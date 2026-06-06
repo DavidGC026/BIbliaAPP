@@ -6,8 +6,9 @@ CREATE TABLE IF NOT EXISTS bible_note_links (
   book_id INT NOT NULL,
   chapter INT NOT NULL,
   verse INT NOT NULL,
-  joplin_note_id VARCHAR(64) NOT NULL,
+  note_id VARCHAR(255) NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE KEY uniq_verse_note (book_id, chapter, verse, joplin_note_id),
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uniq_verse_note (book_id, chapter, verse, note_id),
   KEY idx_verse (book_id, chapter, verse)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

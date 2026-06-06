@@ -1,14 +1,14 @@
 import type { JoplinNote } from "./types"
 
 /**
- * Thin client over the Joplin Data API.
- * Requires a running Joplin Desktop/Terminal client (synced with the server)
- * that exposes the Data API, plus its token.
+ * Client for the Joplin Server API.
+ * Uses session-based authentication via POST /api/sessions.
  *
  * Env:
- *  - JOPLIN_API_URL  e.g. http://localhost:41184
- *  - JOPLIN_TOKEN    the Web Clipper authorization token
+ *  - JOPLIN_API_URL  e.g. https://joplin.dvguzman.com
+ *  - JOPLIN_TOKEN    session ID obtained from POST /api/sessions
  */
+
 function config() {
   const base = process.env.JOPLIN_API_URL
   const token = process.env.JOPLIN_TOKEN
@@ -18,54 +18,65 @@ function config() {
   return { base: base.replace(/\/$/, ""), token }
 }
 
-function withToken(path: string, params: Record<string, string> = {}): string {
-  const { base, token } = config()
-  const url = new URL(base + path)
-  url.searchParams.set("token", token)
-  for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v)
-  return url.toString()
+function headers(): Record<string, string> {
+  const { token } = config()
+  return {
+    "Content-Type": "application/json",
+    "Cookie": `sessionId=${token}`,
+    "X-API-AUTH": token,
+  }
 }
 
 export async function pingJoplin(): Promise<void> {
-  const { base, token } = config()
-  const res = await fetch(`${base}/ping`, { cache: "no-store" })
-  const text = await res.text()
-  if (text.trim() !== "JoplinClipperServer") {
-    throw new Error("El servicio en JOPLIN_API_URL no respondió como un cliente Joplin.")
+  const { base } = config()
+  // Joplin Server exposes /api/ping
+  const res = await fetch(`${base}/api/ping`, { cache: "no-store" })
+  if (!res.ok) {
+    throw new Error(`Joplin Server no alcanzable (${res.status}).`)
   }
-  // Validate the token by hitting an authenticated endpoint.
-  const authRes = await fetch(`${base}/notes?token=${token}&limit=1`, { cache: "no-store" })
-  if (!authRes.ok) {
-    throw new Error("Token de Joplin inválido o sin permisos.")
+  const data = await res.json()
+  if (data.status !== "ok") {
+    throw new Error("El servicio en JOPLIN_API_URL no respondió correctamente.")
   }
 }
 
 export async function getNote(id: string): Promise<JoplinNote> {
-  const res = await fetch(withToken(`/notes/${id}`, { fields: "id,title,body,updated_time,created_time" }), {
+  const { base } = config()
+  const res = await fetch(`${base}/api/items/root:/notes/${id}.md:/content`, {
     cache: "no-store",
+    headers: headers(),
   })
   if (!res.ok) throw new Error(`No se pudo obtener la nota ${id} (${res.status}).`)
-  return (await res.json()) as JoplinNote
+  const body = await res.text()
+  return {
+    id,
+    title: `Nota ${id}`,
+    body,
+  }
 }
 
 export async function updateNote(id: string, body: string, title?: string): Promise<JoplinNote> {
-  const payload: Record<string, string> = { body }
-  if (title) payload.title = title
-  const res = await fetch(withToken(`/notes/${id}`), {
+  const { base } = config()
+  const content = title ? `${title}\n\n${body}` : body
+  const res = await fetch(`${base}/api/items/root:/notes/${id}.md:/content`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
+    headers: headers(),
+    body: content,
   })
   if (!res.ok) throw new Error(`No se pudo actualizar la nota ${id} (${res.status}).`)
-  return (await res.json()) as JoplinNote
+  return { id, title: title ?? `Nota ${id}`, body }
 }
 
 export async function createNote(title: string, body: string): Promise<JoplinNote> {
-  const res = await fetch(withToken("/notes"), {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ title, body }),
+  // Generate a unique note ID (Joplin uses 32-char hex IDs)
+  const id = Array.from({ length: 32 }, () => Math.floor(Math.random() * 16).toString(16)).join("")
+  const { base } = config()
+  const content = `${title}\n\n${body}`
+  const res = await fetch(`${base}/api/items/root:/notes/${id}.md:/content`, {
+    method: "PUT",
+    headers: headers(),
+    body: content,
   })
   if (!res.ok) throw new Error(`No se pudo crear la nota (${res.status}).`)
-  return (await res.json()) as JoplinNote
+  return { id, title, body }
 }
