@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getNotebookNote, updateNotebookNote, deleteNotebookNote } from "@/lib/bible"
+import { createNote, updateNote } from "@/lib/joplin"
 
 export async function GET(
   _req: NextRequest,
@@ -38,8 +39,28 @@ export async function PUT(
     if (!title || !title.trim()) {
       return NextResponse.json({ error: "El título es obligatorio." }, { status: 400 })
     }
-    await updateNotebookNote(idNum, title.trim(), content ?? "")
-    return NextResponse.json({ ok: true })
+
+    const joplinToken = req.headers.get("x-joplin-token") || undefined
+
+    // Get existing note to see if we already have a joplinNoteId
+    const existing = await getNotebookNote(idNum)
+    let joplinNoteId = existing?.joplinNoteId || null
+
+    if (joplinToken) {
+      try {
+        if (joplinNoteId) {
+          await updateNote(joplinNoteId, content ?? "", title.trim(), joplinToken)
+        } else {
+          const joplinNote = await createNote(title.trim(), content ?? "", joplinToken)
+          joplinNoteId = joplinNote.id
+        }
+      } catch (err) {
+        console.error("Error syncing notebook note update to Joplin:", err)
+      }
+    }
+
+    await updateNotebookNote(idNum, title.trim(), content ?? "", joplinNoteId)
+    return NextResponse.json({ ok: true, joplinNoteId })
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Error desconocido" },

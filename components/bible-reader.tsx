@@ -27,9 +27,10 @@ export function BibleReader() {
   const [activeRef, setActiveRef] = useState<string | null>(null)
   const [creating, setCreating] = useState<number | null>(null)
 
-  // Sidebar Tab and Notebook Editing states
+  // Sidebar Tab, Notebook Editing and Layout states
   const [sidebarTab, setSidebarTab] = useState<"verses" | "notebooks">("verses")
   const [editingNotebookNote, setEditingNotebookNote] = useState<{ id: number; title: string; content: string } | null>(null)
+  const [layoutMode, setLayoutMode] = useState<"split" | "bible" | "notebook">("split")
 
   const currentBook = useMemo(
     () => books.find((b) => Number(b.bookId) === bookId) ?? null,
@@ -109,58 +110,101 @@ export function BibleReader() {
 
   const chapterCount = currentBook ? Number(currentBook.chapters) : 0
 
-  return (
-    <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-6 lg:flex-row">
-      {/* Reading column */}
-      <section className="flex-1">
-        <div className="mb-4 flex flex-wrap items-center gap-3">
-          <Select value={bookId ? String(bookId) : ""} onValueChange={selectBook}>
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder="Elige un libro" />
-            </SelectTrigger>
-            <SelectContent>
-              {books.map((b) => (
-                <SelectItem key={b.bookId} value={String(b.bookId)}>
-                  {b.bookName}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+  const renderLayoutSwitcher = () => (
+    <div className="flex items-center rounded-lg border border-border bg-muted/30 p-1">
+      <button
+        onClick={() => setLayoutMode("split")}
+        className={cn(
+          "px-2.5 py-1 text-xs font-semibold rounded transition-colors",
+          layoutMode === "split"
+            ? "bg-background shadow text-foreground font-bold"
+            : "text-muted-foreground hover:text-foreground"
+        )}
+      >
+        Dividido
+      </button>
+      <button
+        onClick={() => setLayoutMode("bible")}
+        className={cn(
+          "px-2.5 py-1 text-xs font-semibold rounded transition-colors",
+          layoutMode === "bible"
+            ? "bg-background shadow text-foreground font-bold"
+            : "text-muted-foreground hover:text-foreground"
+        )}
+      >
+        Solo Biblia
+      </button>
+      <button
+        onClick={() => setLayoutMode("notebook")}
+        className={cn(
+          "px-2.5 py-1 text-xs font-semibold rounded transition-colors",
+          layoutMode === "notebook"
+            ? "bg-background shadow text-foreground font-bold"
+            : "text-muted-foreground hover:text-foreground"
+        )}
+      >
+        Solo Cuaderno
+      </button>
+    </div>
+  )
 
-          {currentBook && (
-            <div className="flex items-center gap-1">
-              <Button
-                variant="outline"
-                size="icon"
-                disabled={chapter <= 1}
-                onClick={() => setChapter((c) => Math.max(1, c - 1))}
-                aria-label="Capítulo anterior"
-              >
-                <ChevronLeft className="size-4" />
-              </Button>
-              <Select value={String(chapter)} onValueChange={(v) => v && setChapter(Number(v))}>
-                <SelectTrigger className="w-32">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Array.from({ length: chapterCount }, (_, i) => i + 1).map((c) => (
-                    <SelectItem key={c} value={String(c)}>
-                      Capítulo {c}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button
-                variant="outline"
-                size="icon"
-                disabled={chapter >= chapterCount}
-                onClick={() => setChapter((c) => Math.min(chapterCount, c + 1))}
-                aria-label="Capítulo siguiente"
-              >
-                <ChevronRight className="size-4" />
-              </Button>
-            </div>
-          )}
+  return (
+    <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-6 lg:flex-row">
+      {/* Reading column */}
+      <section className={cn("flex-1 min-w-0", layoutMode === "notebook" && "hidden")}>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <Select value={bookId ? String(bookId) : ""} onValueChange={selectBook}>
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="Elige un libro" />
+              </SelectTrigger>
+              <SelectContent>
+                {books.map((b) => (
+                  <SelectItem key={b.bookId} value={String(b.bookId)}>
+                    {b.bookName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {currentBook && (
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  disabled={chapter <= 1}
+                  onClick={() => setChapter((c) => Math.max(1, c - 1))}
+                  aria-label="Capítulo anterior"
+                >
+                  <ChevronLeft className="size-4" />
+                </Button>
+                <Select value={String(chapter)} onValueChange={(v) => v && setChapter(Number(v))}>
+                  <SelectTrigger className="w-32">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: chapterCount }, (_, i) => i + 1).map((c) => (
+                      <SelectItem key={c} value={String(c)}>
+                        Capítulo {c}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  disabled={chapter >= chapterCount}
+                  onClick={() => setChapter((c) => Math.min(chapterCount, c + 1))}
+                  aria-label="Capítulo siguiente"
+                >
+                  <ChevronRight className="size-4" />
+                </Button>
+              </div>
+            )}
+          </div>
+
+          {/* Render Layout Switcher when not in only notebook mode (since we render it inside aside in that mode) */}
+          {renderLayoutSwitcher()}
         </div>
 
         {!bookId && (
@@ -233,8 +277,22 @@ export function BibleReader() {
       </section>
 
       {/* Sidebar Panel */}
-      <aside className="lg:w-96 lg:shrink-0">
-        <div className="sticky top-4 flex h-[80vh] flex-col overflow-hidden rounded-lg border border-border bg-card shadow-sm">
+      <aside className={cn(
+        "shrink-0 w-full",
+        layoutMode === "bible" && "hidden",
+        layoutMode === "notebook" ? "w-full" : "lg:w-96 lg:shrink-0"
+      )}>
+        {/* Render Layout Switcher at the top when in Solo Cuaderno mode */}
+        {layoutMode === "notebook" && (
+          <div className="mb-4 flex justify-end">
+            {renderLayoutSwitcher()}
+          </div>
+        )}
+
+        <div className={cn(
+          "sticky top-4 flex flex-col overflow-hidden rounded-lg border border-border bg-card shadow-sm",
+          layoutMode === "notebook" ? "h-[85vh]" : "h-[80vh]"
+        )}>
           {/* Tab Switcher */}
           <div className="flex border-b border-border bg-muted/20">
             <button

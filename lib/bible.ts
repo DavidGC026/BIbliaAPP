@@ -94,11 +94,18 @@ export async function ensureNotebookTables(): Promise<void> {
       notebook_id INT NOT NULL,
       title VARCHAR(255) NOT NULL,
       content TEXT NOT NULL,
+      joplin_note_id VARCHAR(255) DEFAULT NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
       FOREIGN KEY (notebook_id) REFERENCES bible_notebooks(id) ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
   `)
+  // Migration to add joplin_note_id to existing table if needed
+  try {
+    await getPool().query(`ALTER TABLE bible_notebook_notes ADD COLUMN joplin_note_id VARCHAR(255) DEFAULT NULL`)
+  } catch (_) {
+    // Column already exists
+  }
 }
 
 export async function listNotebooks(): Promise<any[]> {
@@ -126,7 +133,7 @@ export async function deleteNotebook(id: number): Promise<void> {
 export async function listNotebookNotes(notebookId: number): Promise<any[]> {
   await ensureNotebookTables()
   const [rows] = await getPool().query<RowDataPacket[]>(
-    `SELECT id, notebook_id AS notebookId, title, content, created_at AS createdAt, updated_at AS updatedAt
+    `SELECT id, notebook_id AS notebookId, title, content, joplin_note_id AS joplinNoteId, created_at AS createdAt, updated_at AS updatedAt
      FROM bible_notebook_notes
      WHERE notebook_id = ?
      ORDER BY id DESC`,
@@ -135,11 +142,11 @@ export async function listNotebookNotes(notebookId: number): Promise<any[]> {
   return rows
 }
 
-export async function createNotebookNote(notebookId: number, title: string, content: string): Promise<number> {
+export async function createNotebookNote(notebookId: number, title: string, content: string, joplinNoteId: string | null = null): Promise<number> {
   await ensureNotebookTables()
   const [result] = await getPool().query<ResultSetHeader>(
-    `INSERT INTO bible_notebook_notes (notebook_id, title, content) VALUES (?, ?, ?)`,
-    [notebookId, title, content]
+    `INSERT INTO bible_notebook_notes (notebook_id, title, content, joplin_note_id) VALUES (?, ?, ?, ?)`,
+    [notebookId, title, content, joplinNoteId]
   )
   return result.insertId
 }
@@ -147,7 +154,7 @@ export async function createNotebookNote(notebookId: number, title: string, cont
 export async function getNotebookNote(id: number): Promise<any | null> {
   await ensureNotebookTables()
   const [rows] = await getPool().query<RowDataPacket[]>(
-    `SELECT id, notebook_id AS notebookId, title, content, created_at AS createdAt, updated_at AS updatedAt
+    `SELECT id, notebook_id AS notebookId, title, content, joplin_note_id AS joplinNoteId, created_at AS createdAt, updated_at AS updatedAt
      FROM bible_notebook_notes
      WHERE id = ?`,
     [id]
@@ -156,11 +163,11 @@ export async function getNotebookNote(id: number): Promise<any | null> {
   return rows[0]
 }
 
-export async function updateNotebookNote(id: number, title: string, content: string): Promise<void> {
+export async function updateNotebookNote(id: number, title: string, content: string, joplinNoteId: string | null = null): Promise<void> {
   await ensureNotebookTables()
   await getPool().query(
-    `UPDATE bible_notebook_notes SET title = ?, content = ? WHERE id = ?`,
-    [title, content, id]
+    `UPDATE bible_notebook_notes SET title = ?, content = ?, joplin_note_id = ? WHERE id = ?`,
+    [title, content, joplinNoteId, id]
   )
 }
 

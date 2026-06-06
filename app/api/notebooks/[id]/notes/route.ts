@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { listNotebookNotes, createNotebookNote } from "@/lib/bible"
+import { createNote } from "@/lib/joplin"
 
 export async function GET(
   _req: NextRequest,
@@ -35,8 +36,26 @@ export async function POST(
     if (!title || !title.trim()) {
       return NextResponse.json({ error: "El título es obligatorio." }, { status: 400 })
     }
-    const noteId = await createNotebookNote(idNum, title.trim(), content ?? "")
-    return NextResponse.json({ id: noteId, title: title.trim(), content: content ?? "" })
+
+    const joplinToken = req.headers.get("x-joplin-token") || undefined
+    let joplinNoteId: string | null = null
+
+    if (joplinToken) {
+      try {
+        const joplinNote = await createNote(title.trim(), content ?? "", joplinToken)
+        joplinNoteId = joplinNote.id
+      } catch (err) {
+        console.error("Error creating note in Joplin:", err)
+      }
+    }
+
+    const noteId = await createNotebookNote(idNum, title.trim(), content ?? "", joplinNoteId)
+    return NextResponse.json({
+      id: noteId,
+      title: title.trim(),
+      content: content ?? "",
+      joplinNoteId,
+    })
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Error desconocido" },
