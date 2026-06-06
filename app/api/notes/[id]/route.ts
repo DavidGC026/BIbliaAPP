@@ -1,10 +1,11 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getNote, updateNote } from "@/lib/joplin"
 
-export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params
-    const note = await getNote(id)
+    const joplinToken = req.headers.get("x-joplin-token") || undefined
+    const note = await getNote(id, joplinToken)
     return NextResponse.json({ note })
   } catch (err) {
     return NextResponse.json(
@@ -18,7 +19,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   try {
     const { id } = await params
     const { body, title } = await req.json()
-    const note = await updateNote(id, body ?? "", title)
+    const joplinToken = req.headers.get("x-joplin-token") || undefined
+    const note = await updateNote(id, body ?? "", title, joplinToken)
     return NextResponse.json({ note })
   } catch (err) {
     return NextResponse.json(

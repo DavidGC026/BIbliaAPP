@@ -32,11 +32,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Datos del versículo incompletos." }, { status: 400 })
     }
 
+    const joplinToken = req.headers.get("x-joplin-token") || undefined
     let noteId = existingNoteId as string | undefined
     if (!noteId) {
       const title = `${bookName} ${chapter}:${verse}`
       const noteBody = `> ${text ?? ""}\n\n*(${title} — RVR1960)*\n\n`
-      const note = await createNote(title, noteBody)
+      const note = await createNote(title, noteBody, joplinToken)
       noteId = note.id
     }
 

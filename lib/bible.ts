@@ -78,3 +78,93 @@ export async function createLink(
 export async function deleteLink(id: number): Promise<void> {
   await getPool().query<ResultSetHeader>(`DELETE FROM bible_note_links WHERE id = ?`, [id])
 }
+
+export async function ensureNotebookTables(): Promise<void> {
+  await getPool().query(`
+    CREATE TABLE IF NOT EXISTS bible_notebooks (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      name VARCHAR(255) NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+  `)
+  await getPool().query(`
+    CREATE TABLE IF NOT EXISTS bible_notebook_notes (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      notebook_id INT NOT NULL,
+      title VARCHAR(255) NOT NULL,
+      content TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      FOREIGN KEY (notebook_id) REFERENCES bible_notebooks(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+  `)
+}
+
+export async function listNotebooks(): Promise<any[]> {
+  await ensureNotebookTables()
+  const [rows] = await getPool().query<RowDataPacket[]>(
+    `SELECT id, name, created_at AS createdAt FROM bible_notebooks ORDER BY id DESC`
+  )
+  return rows
+}
+
+export async function createNotebook(name: string): Promise<number> {
+  await ensureNotebookTables()
+  const [result] = await getPool().query<ResultSetHeader>(
+    `INSERT INTO bible_notebooks (name) VALUES (?)`,
+    [name]
+  )
+  return result.insertId
+}
+
+export async function deleteNotebook(id: number): Promise<void> {
+  await ensureNotebookTables()
+  await getPool().query(`DELETE FROM bible_notebooks WHERE id = ?`, [id])
+}
+
+export async function listNotebookNotes(notebookId: number): Promise<any[]> {
+  await ensureNotebookTables()
+  const [rows] = await getPool().query<RowDataPacket[]>(
+    `SELECT id, notebook_id AS notebookId, title, content, created_at AS createdAt, updated_at AS updatedAt
+     FROM bible_notebook_notes
+     WHERE notebook_id = ?
+     ORDER BY id DESC`,
+    [notebookId]
+  )
+  return rows
+}
+
+export async function createNotebookNote(notebookId: number, title: string, content: string): Promise<number> {
+  await ensureNotebookTables()
+  const [result] = await getPool().query<ResultSetHeader>(
+    `INSERT INTO bible_notebook_notes (notebook_id, title, content) VALUES (?, ?, ?)`,
+    [notebookId, title, content]
+  )
+  return result.insertId
+}
+
+export async function getNotebookNote(id: number): Promise<any | null> {
+  await ensureNotebookTables()
+  const [rows] = await getPool().query<RowDataPacket[]>(
+    `SELECT id, notebook_id AS notebookId, title, content, created_at AS createdAt, updated_at AS updatedAt
+     FROM bible_notebook_notes
+     WHERE id = ?`,
+    [id]
+  )
+  if (rows.length === 0) return null
+  return rows[0]
+}
+
+export async function updateNotebookNote(id: number, title: string, content: string): Promise<void> {
+  await ensureNotebookTables()
+  await getPool().query(
+    `UPDATE bible_notebook_notes SET title = ?, content = ? WHERE id = ?`,
+    [title, content, id]
+  )
+}
+
+export async function deleteNotebookNote(id: number): Promise<void> {
+  await ensureNotebookTables()
+  await getPool().query(`DELETE FROM bible_notebook_notes WHERE id = ?`, [id])
+}

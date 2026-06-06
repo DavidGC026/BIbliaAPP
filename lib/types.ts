@@ -34,3 +34,18 @@ export interface HealthStatus {
   mysql: { ok: boolean; message: string }
   joplin: { ok: boolean; message: string }
 }
+
+export interface Notebook {
+  id: number
+  name: string
+  createdAt: string
+}
+
+export interface NotebookNote {
+  id: number
+  notebookId: number
+  title: string
+  content: string
+  createdAt: string
+  updatedAt: string
+}

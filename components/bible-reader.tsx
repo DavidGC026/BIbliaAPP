@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button"
 import { fetcher } from "@/lib/fetcher"
 import type { Book, Verse, NoteLink } from "@/lib/types"
 import { NotePanel } from "./note-panel"
+import { NotebookSidebar } from "./notebook-sidebar"
 import { FileText, Plus, ChevronLeft, ChevronRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -25,6 +26,10 @@ export function BibleReader() {
   const [activeNoteId, setActiveNoteId] = useState<string | null>(null)
   const [activeRef, setActiveRef] = useState<string | null>(null)
   const [creating, setCreating] = useState<number | null>(null)
+
+  // Sidebar Tab and Notebook Editing states
+  const [sidebarTab, setSidebarTab] = useState<"verses" | "notebooks">("verses")
+  const [editingNotebookNote, setEditingNotebookNote] = useState<{ id: number; title: string; content: string } | null>(null)
 
   const currentBook = useMemo(
     () => books.find((b) => Number(b.bookId) === bookId) ?? null,
@@ -57,6 +62,7 @@ export function BibleReader() {
   }
 
   async function handleVerseNote(v: Verse) {
+    setSidebarTab("verses") // Auto switch to verse notes tab
     const existing = linksByVerse.get(Number(v.verse))
     if (existing) {
       setActiveNoteId(existing.joplinNoteId)
@@ -65,9 +71,13 @@ export function BibleReader() {
     }
     setCreating(Number(v.verse))
     try {
+      const token = typeof window !== "undefined" ? localStorage.getItem("joplin_token") : null
       const res = await fetch("/api/links", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { "x-joplin-token": token } : {}),
+        },
         body: JSON.stringify({
           bookId: v.bookId,
           bookName: v.bookName,
@@ -86,6 +96,15 @@ export function BibleReader() {
     } finally {
       setCreating(null)
     }
+  }
+
+  function handleInsertVerseToNote(v: Verse) {
+    if (!editingNotebookNote) return
+    const quote = `\n> **${v.bookName} ${v.chapter}:${v.verse}** — ${v.text}\n\n`
+    setEditingNotebookNote({
+      ...editingNotebookNote,
+      content: editingNotebookNote.content + quote,
+    })
   }
 
   const chapterCount = currentBook ? Number(currentBook.chapters) : 0
@@ -182,33 +201,83 @@ export function BibleReader() {
                 <p className="flex-1 font-serif text-lg leading-relaxed text-foreground">
                   {v.text}
                 </p>
-                <button
-                  onClick={() => handleVerseNote(v)}
-                  disabled={creating === Number(v.verse)}
-                  aria-label={hasNote ? "Ver nota" : "Añadir nota"}
-                  className={cn(
-                    "mt-1 inline-flex size-7 shrink-0 items-center justify-center rounded-md transition-colors",
-                    hasNote
-                      ? "text-primary hover:bg-primary/10"
-                      : "text-muted-foreground opacity-0 hover:bg-accent group-hover:opacity-100",
+                <div className="mt-1 flex items-center gap-1.5">
+                  {editingNotebookNote && (
+                    <button
+                      onClick={() => handleInsertVerseToNote(v)}
+                      title="Insertar versículo en la nota de cuaderno activa"
+                      aria-label="Insertar versículo"
+                      className="inline-flex size-7 shrink-0 items-center justify-center rounded-md text-emerald-600 bg-emerald-500/10 hover:bg-emerald-500/20 dark:text-emerald-400 dark:bg-emerald-950/20 dark:hover:bg-emerald-950/40 transition-colors"
+                    >
+                      <Plus className="size-4 font-bold" />
+                    </button>
                   )}
-                >
-                  {hasNote ? <FileText className="size-4" /> : <Plus className="size-4" />}
-                </button>
+                  <button
+                    onClick={() => handleVerseNote(v)}
+                    disabled={creating === Number(v.verse)}
+                    aria-label={hasNote ? "Ver nota" : "Añadir nota"}
+                    className={cn(
+                      "inline-flex size-7 shrink-0 items-center justify-center rounded-md transition-colors",
+                      hasNote
+                        ? "text-primary hover:bg-primary/10"
+                        : "text-muted-foreground opacity-0 hover:bg-accent group-hover:opacity-100",
+                    )}
+                  >
+                    {hasNote ? <FileText className="size-4" /> : <Plus className="size-4" />}
+                  </button>
+                </div>
               </li>
             )
           })}
         </ol>
       </section>
 
-      {/* Note panel */}
+      {/* Sidebar Panel */}
       <aside className="lg:w-96 lg:shrink-0">
-        <div className="sticky top-4 h-[70vh] overflow-hidden rounded-lg border border-border bg-card">
-          <NotePanel
-            noteId={activeNoteId}
-            reference={activeRef}
-            onClose={() => setActiveNoteId(null)}
-          />
+        <div className="sticky top-4 flex h-[80vh] flex-col overflow-hidden rounded-lg border border-border bg-card shadow-sm">
+          {/* Tab Switcher */}
+          <div className="flex border-b border-border bg-muted/20">
+            <button
+              onClick={() => setSidebarTab("verses")}
+              className={cn(
+                "flex-1 py-3 text-xs font-semibold uppercase tracking-wider transition-colors border-b-2 text-center",
+                sidebarTab === "verses"
+                  ? "border-primary text-primary bg-background font-bold"
+                  : "border-transparent text-muted-foreground hover:text-foreground hover:bg-accent/30"
+              )}
+            >
+              Notas de Versículo
+            </button>
+            <button
+              onClick={() => setSidebarTab("notebooks")}
+              className={cn(
+                "flex-1 py-3 text-xs font-semibold uppercase tracking-wider transition-colors border-b-2 text-center",
+                sidebarTab === "notebooks"
+                  ? "border-primary text-primary bg-background font-bold"
+                  : "border-transparent text-muted-foreground hover:text-foreground hover:bg-accent/30"
+              )}
+            >
+              Mis Cuadernos
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-hidden">
+            {sidebarTab === "verses" ? (
+              <NotePanel
+                noteId={activeNoteId}
+                reference={activeRef}
+                onClose={() => setActiveNoteId(null)}
+              />
+            ) : (
+              <NotebookSidebar
+                editingNote={editingNotebookNote}
+                setEditingNote={(note) => {
+                  setEditingNotebookNote(note)
+                  if (note) setSidebarTab("notebooks")
+                }}
+              />
+            )}
+          </div>
         </div>
       </aside>
     </div>
