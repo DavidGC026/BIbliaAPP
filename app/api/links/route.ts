@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getLinksForChapter, createLink, deleteLink } from "@/lib/bible"
-import { createNote } from "@/lib/joplin"
+import { createNote, ensureDefaultFolder, BIBLIA_FOLDER_ID } from "@/lib/joplin"
 
 // GET /api/links?book=&chapter=  -> existing links for a chapter
 export async function GET(req: NextRequest) {
@@ -35,9 +35,12 @@ export async function POST(req: NextRequest) {
     const joplinToken = req.headers.get("x-joplin-token") || undefined
     let noteId = existingNoteId as string | undefined
     if (!noteId) {
+      if (joplinToken) {
+        await ensureDefaultFolder(joplinToken)
+      }
       const title = `${bookName} ${chapter}:${verse}`
       const noteBody = `> ${text ?? ""}\n\n*(${title} — RVR1960)*\n\n`
-      const note = await createNote(title, noteBody, joplinToken)
+      const note = await createNote(title, noteBody, BIBLIA_FOLDER_ID, joplinToken)
       noteId = note.id
     }
 

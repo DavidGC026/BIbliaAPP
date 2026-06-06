@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { listNotebookNotes, createNotebookNote } from "@/lib/bible"
+import { listNotebookNotes, createNotebookNote, getNotebook } from "@/lib/bible"
 import { createNote } from "@/lib/joplin"
 
 export async function GET(
@@ -42,7 +42,11 @@ export async function POST(
 
     if (joplinToken) {
       try {
-        const joplinNote = await createNote(title.trim(), content ?? "", joplinToken)
+        // Fetch the notebook to get joplinFolderId
+        const notebook = await getNotebook(idNum)
+        const parentId = notebook?.joplinFolderId || undefined
+        
+        const joplinNote = await createNote(title.trim(), content ?? "", parentId, joplinToken)
         joplinNoteId = joplinNote.id
       } catch (err) {
         console.error("Error creating note in Joplin:", err)

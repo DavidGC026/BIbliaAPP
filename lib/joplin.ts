@@ -30,6 +30,34 @@ function headers(customToken?: string): Record<string, string> {
   }
 }
 
+function formatJoplinNote(title: string, body: string, id: string, parentId: string): string {
+  const timeStr = new Date().toISOString().replace(/\.\d+Z$/, ".000Z")
+  return `${title}\n\n${body}\n\nid: ${id}\nparent_id: ${parentId}\ncreated_time: ${timeStr}\nupdated_time: ${timeStr}\nis_conflict: 0\nlatitude: 0.00000000\nlongitude: 0.00000000\naltitude: 0.0000\nauthor: \nsource_url: \nis_todo: 0\ntodo_due: 0\ntodo_completed: 0\nsource: joplin\nsource_application: net.cozic.joplin-desktop\napplication_data: \norder: 0\nuser_created_time: ${timeStr}\nuser_updated_time: ${timeStr}\nencryption_cipher_text: \nencryption_was_encrypted: 0\nencryption_key_id: \ntype_: 1`
+}
+
+export async function createFolder(title: string, id: string, customToken?: string): Promise<void> {
+  const { base } = config(customToken)
+  const timeStr = new Date().toISOString().replace(/\.\d+Z$/, ".000Z")
+  const content = `${title}\n\nid: ${id}\ncreated_time: ${timeStr}\nupdated_time: ${timeStr}\nis_conflict: 0\nlatitude: 0.00000000\nlongitude: 0.00000000\naltitude: 0.0000\nauthor: \nsource_url: \nis_todo: 0\ntodo_due: 0\ntodo_completed: 0\nsource: joplin\nsource_application: net.cozic.joplin-desktop\napplication_data: \norder: 0\nuser_created_time: ${timeStr}\nuser_updated_time: ${timeStr}\nencryption_cipher_text: \nencryption_was_encrypted: 0\nencryption_key_id: \ntype_: 2`
+
+  const res = await fetch(`${base}/api/items/root:/${id}.md:/content`, {
+    method: "PUT",
+    headers: headers(customToken),
+    body: content,
+  })
+  if (!res.ok) throw new Error(`No se pudo crear la libreta en Joplin (${res.status}).`)
+}
+
+export const BIBLIA_FOLDER_ID = "b1b11a00000000000000000000000000"
+
+export async function ensureDefaultFolder(customToken?: string): Promise<void> {
+  try {
+    await createFolder("Biblia", BIBLIA_FOLDER_ID, customToken)
+  } catch (err) {
+    console.error("Error ensuring default Biblia folder:", err)
+  }
+}
+
 export async function pingJoplin(customToken?: string): Promise<void> {
   const { base, token } = config(customToken)
   if (!token) {
@@ -47,15 +75,33 @@ export async function pingJoplin(customToken?: string): Promise<void> {
 
 export async function getNote(id: string, customToken?: string): Promise<JoplinNote> {
   const { base } = config(customToken)
-  const res = await fetch(`${base}/api/items/root:/notes/${id}.md:/content`, {
+  const res = await fetch(`${base}/api/items/root:/${id}.md:/content`, {
     cache: "no-store",
     headers: headers(customToken),
   })
   if (!res.ok) throw new Error(`No se pudo obtener la nota ${id} (${res.status}).`)
-  const body = await res.text()
+  const text = await res.text()
+  
+  // Extract clean body by stripping out metadata block at the bottom
+  const lines = text.split("\n")
+  const metadataIndex = lines.findIndex(line => line.startsWith("id: ") || line.startsWith("type_: "))
+  
+  let body = text
+  let title = `Nota ${id}`
+  
+  if (metadataIndex !== -1) {
+    body = lines.slice(0, metadataIndex).join("\n").trim()
+  }
+  
+  // Clean up title if it's the first line
+  const firstLine = lines[0] || ""
+  if (firstLine.trim()) {
+    title = firstLine.trim()
+  }
+  
   return {
     id,
-    title: `Nota ${id}`,
+    title,
     body,
   }
 }
@@ -64,25 +110,35 @@ export async function updateNote(
   id: string,
   body: string,
   title?: string,
+  parentId?: string,
   customToken?: string,
 ): Promise<JoplinNote> {
   const { base } = config(customToken)
-  const content = title ? `${title}\n\n${body}` : body
-  const res = await fetch(`${base}/api/items/root:/notes/${id}.md:/content`, {
+  const actualParentId = parentId || BIBLIA_FOLDER_ID
+  const cleanTitle = title || `Nota ${id}`
+  const content = formatJoplinNote(cleanTitle, body, id, actualParentId)
+  
+  const res = await fetch(`${base}/api/items/root:/${id}.md:/content`, {
     method: "PUT",
     headers: headers(customToken),
     body: content,
   })
   if (!res.ok) throw new Error(`No se pudo actualizar la nota ${id} (${res.status}).`)
-  return { id, title: title ?? `Nota ${id}`, body }
+  return { id, title: cleanTitle, body }
 }
 
-export async function createNote(title: string, body: string, customToken?: string): Promise<JoplinNote> {
-  // Generate a unique note ID (Joplin uses 32-char hex IDs)
+export async function createNote(
+  title: string,
+  body: string,
+  parentId?: string,
+  customToken?: string,
+): Promise<JoplinNote> {
   const id = Array.from({ length: 32 }, () => Math.floor(Math.random() * 16).toString(16)).join("")
   const { base } = config(customToken)
-  const content = `${title}\n\n${body}`
-  const res = await fetch(`${base}/api/items/root:/notes/${id}.md:/content`, {
+  const actualParentId = parentId || BIBLIA_FOLDER_ID
+  const content = formatJoplinNote(title, body, id, actualParentId)
+  
+  const res = await fetch(`${base}/api/items/root:/${id}.md:/content`, {
     method: "PUT",
     headers: headers(customToken),
     body: content,

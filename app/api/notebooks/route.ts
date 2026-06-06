@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { listNotebooks, createNotebook } from "@/lib/bible"
+import { createFolder } from "@/lib/joplin"
 
 export async function GET() {
   try {
@@ -19,8 +20,20 @@ export async function POST(req: NextRequest) {
     if (!name || !name.trim()) {
       return NextResponse.json({ error: "El nombre es obligatorio." }, { status: 400 })
     }
-    const id = await createNotebook(name.trim())
-    return NextResponse.json({ id, name: name.trim() })
+
+    const joplinToken = req.headers.get("x-joplin-token") || undefined
+    const joplinFolderId = Array.from({ length: 32 }, () => Math.floor(Math.random() * 16).toString(16)).join("")
+
+    if (joplinToken) {
+      try {
+        await createFolder(name.trim(), joplinFolderId, joplinToken)
+      } catch (err) {
+        console.error("Error creating folder in Joplin:", err)
+      }
+    }
+
+    const id = await createNotebook(name.trim(), joplinFolderId)
+    return NextResponse.json({ id, name: name.trim(), joplinFolderId })
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Error desconocido" },

@@ -111,16 +111,16 @@ export async function ensureNotebookTables(): Promise<void> {
 export async function listNotebooks(): Promise<any[]> {
   await ensureNotebookTables()
   const [rows] = await getPool().query<RowDataPacket[]>(
-    `SELECT id, name, created_at AS createdAt FROM bible_notebooks ORDER BY id DESC`
+    `SELECT id, name, joplin_folder_id AS joplinFolderId, created_at AS createdAt FROM bible_notebooks ORDER BY id DESC`
   )
   return rows
 }
 
-export async function createNotebook(name: string): Promise<number> {
+export async function createNotebook(name: string, joplinFolderId: string | null = null): Promise<number> {
   await ensureNotebookTables()
   const [result] = await getPool().query<ResultSetHeader>(
-    `INSERT INTO bible_notebooks (name) VALUES (?)`,
-    [name]
+    `INSERT INTO bible_notebooks (name, joplin_folder_id) VALUES (?, ?)`,
+    [name, joplinFolderId]
   )
   return result.insertId
 }
@@ -128,6 +128,16 @@ export async function createNotebook(name: string): Promise<number> {
 export async function deleteNotebook(id: number): Promise<void> {
   await ensureNotebookTables()
   await getPool().query(`DELETE FROM bible_notebooks WHERE id = ?`, [id])
+}
+
+export async function getNotebook(id: number): Promise<any | null> {
+  await ensureNotebookTables()
+  const [rows] = await getPool().query<RowDataPacket[]>(
+    `SELECT id, name, joplin_folder_id AS joplinFolderId FROM bible_notebooks WHERE id = ?`,
+    [id]
+  )
+  if (rows.length === 0) return null
+  return rows[0]
 }
 
 export async function listNotebookNotes(notebookId: number): Promise<any[]> {
