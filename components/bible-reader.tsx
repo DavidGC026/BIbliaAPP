@@ -49,7 +49,8 @@ export function BibleReader() {
     return map
   }, [linksData])
 
-  function selectBook(value: string) {
+  function selectBook(value: string | null) {
+    if (!value) return
     setBookId(Number(value))
     setChapter(1)
     setActiveNoteId(null)
@@ -118,7 +119,7 @@ export function BibleReader() {
               >
                 <ChevronLeft className="size-4" />
               </Button>
-              <Select value={String(chapter)} onValueChange={(v) => setChapter(Number(v))}>
+              <Select value={String(chapter)} onValueChange={(v) => v && setChapter(Number(v))}>
                 <SelectTrigger className="w-32">
                   <SelectValue />
                 </SelectTrigger>
