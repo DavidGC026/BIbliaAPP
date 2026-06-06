@@ -26,8 +26,21 @@ export interface JoplinNote {
   id: string
   title: string
   body: string
+  parent_id?: string
   updated_time?: number
   created_time?: number
+}
+
+export interface JoplinFolder {
+  id: string
+  title: string
+  parent_id: string
+}
+
+export interface JoplinNoteSummary {
+  id: string
+  title: string
+  updated_time?: number
 }
 
 export interface HealthStatus {
