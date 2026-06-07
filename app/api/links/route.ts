@@ -47,13 +47,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Datos del versículo incompletos." }, { status: 400 })
     }
 
-    const joplinToken = req.headers.get("x-joplin-token") || process.env.JOPLIN_TOKEN || undefined
-    if (!joplinToken) {
-      return NextResponse.json(
-        { error: "Debes iniciar sesión en Joplin para crear notas por versículo." },
-        { status: 401 },
-      )
-    }
+    const joplinToken = req.headers.get("x-joplin-token") || undefined
     let noteId = existingNoteId as string | undefined
     if (!noteId) {
       const title = `${bookName} ${chapter}:${verse}`

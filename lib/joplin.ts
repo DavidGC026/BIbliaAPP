@@ -15,7 +15,9 @@ import {
  *
  * Env:
  *  - JOPLIN_API_URL  e.g. https://joplin.dvguzman.com
- *  - JOPLIN_TOKEN    session ID obtained from POST /api/sessions
+ *  - JOPLIN_TOKEN    optional session ID obtained from POST /api/sessions
+ *  - JOPLIN_EMAIL    optional email used to create a server-side session
+ *  - JOPLIN_PASSWORD optional password used to create a server-side session
  */
 
 function config(customToken?: string) {
@@ -27,11 +29,36 @@ function config(customToken?: string) {
   return { base: base.replace(/\/$/, ""), token }
 }
 
-function headers(customToken?: string): Record<string, string> {
-  const { token } = config(customToken)
-  if (!token) {
-    throw new Error("No hay un token de sesión de Joplin activo.")
+let cachedServerSession: string | null = null
+
+async function getServerSession(): Promise<string> {
+  if (cachedServerSession) return cachedServerSession
+  const { base } = config()
+  const email = process.env.JOPLIN_EMAIL
+  const password = process.env.JOPLIN_PASSWORD
+  if (!email || !password) {
+    throw new Error("Faltan JOPLIN_EMAIL y JOPLIN_PASSWORD para iniciar sesión en Joplin.")
   }
+  const res = await fetch(`${base}/api/sessions`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok || !data.id) {
+    throw new Error(`No se pudo iniciar sesión en Joplin (${res.status}).`)
+  }
+  cachedServerSession = data.id
+  return cachedServerSession
+}
+
+async function sessionToken(customToken?: string): Promise<string> {
+  const { token } = config(customToken)
+  return token || getServerSession()
+}
+
+async function headers(customToken?: string): Promise<Record<string, string>> {
+  const token = await sessionToken(customToken)
   return {
     "Content-Type": "application/json",
     "Authorization": `Bearer ${token}`,
@@ -40,8 +67,8 @@ function headers(customToken?: string): Record<string, string> {
   }
 }
 
-function contentHeaders(customToken?: string): Record<string, string> {
-  const h = headers(customToken)
+async function contentHeaders(customToken?: string): Promise<Record<string, string>> {
+  const h = await headers(customToken)
   return {
     ...h,
     "Content-Type": "text/plain; charset=utf-8",
@@ -61,7 +88,7 @@ export async function createFolder(title: string, id: string, customToken?: stri
 
   const res = await fetch(`${base}/api/items/root:/${id}.md:/content`, {
     method: "PUT",
-    headers: contentHeaders(customToken),
+    headers: await contentHeaders(customToken),
     body: content,
   })
   if (!res.ok) throw new Error(`No se pudo crear la libreta en Joplin (${res.status}): ${await res.text()}`)
@@ -83,10 +110,8 @@ export async function ensureVerseNotesFolder(customToken?: string): Promise<void
 }
 
 export async function pingJoplin(customToken?: string): Promise<void> {
-  const { base, token } = config(customToken)
-  if (!token) {
-    throw new Error("Token de sesión no configurado.")
-  }
+  const { base } = config(customToken)
+  await sessionToken(customToken)
   const res = await fetch(`${base}/api/ping`, { cache: "no-store" })
   if (!res.ok) {
     throw new Error(`Joplin Server no alcanzable (${res.status}).`)
@@ -101,7 +126,7 @@ export async function getNote(id: string, customToken?: string): Promise<JoplinN
   const { base } = config(customToken)
   const res = await fetch(`${base}/api/items/root:/${id}.md:/content`, {
     cache: "no-store",
-    headers: headers(customToken),
+    headers: await headers(customToken),
   })
   if (!res.ok) throw new Error(`No se pudo obtener la nota ${id} (${res.status}).`)
   const text = await res.text()
@@ -144,7 +169,7 @@ export async function updateNote(
   
   const res = await fetch(`${base}/api/items/root:/${id}.md:/content`, {
     method: "PUT",
-    headers: contentHeaders(customToken),
+    headers: await contentHeaders(customToken),
     body: content,
   })
   if (!res.ok) throw new Error(`No se pudo actualizar la nota ${id} (${res.status}): ${await res.text()}`)
@@ -164,7 +189,7 @@ export async function createNote(
   
   const res = await fetch(`${base}/api/items/root:/${id}.md:/content`, {
     method: "PUT",
-    headers: headers(customToken),
+    headers: await contentHeaders(customToken),
     body: content,
   })
   if (!res.ok) throw new Error(`No se pudo crear la nota (${res.status}): ${await res.text()}`)
@@ -173,7 +198,7 @@ export async function createNote(
 
 export async function syncJoplin(customToken: string): Promise<void> {
   const { base } = config(customToken)
-  const authHeaders = headers(customToken)
+  const authHeaders = await headers(customToken)
 
   let currentCursor = await getSyncCursor(customToken)
   let hasMore = true
