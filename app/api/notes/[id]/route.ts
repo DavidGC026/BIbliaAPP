@@ -19,7 +19,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         },
       })
     }
-    const joplinToken = req.headers.get("x-joplin-token") || undefined
+    const joplinToken = req.headers.get("x-joplin-token") || process.env.JOPLIN_TOKEN || undefined
     const note = await getNote(id, joplinToken)
     return NextResponse.json({ note })
   } catch (err) {

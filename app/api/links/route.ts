@@ -7,7 +7,7 @@ import {
   createNotebook,
   createNotebookNote,
 } from "@/lib/bible"
-import { createNote, BIBLIA_FOLDER_ID } from "@/lib/joplin"
+import { createNote, ensureVerseNotesFolder, VERSE_NOTES_FOLDER_ID } from "@/lib/joplin"
 
 async function createLocalVerseNote(title: string, body: string): Promise<string> {
   const notebooks = await listNotebooks()
@@ -59,7 +59,8 @@ export async function POST(req: NextRequest) {
       const title = `${bookName} ${chapter}:${verse}`
       const noteBody = `> ${text ?? ""}\n\n*(${title} — RVR1960)*\n\n`
       try {
-        const note = await createNote(title, noteBody, BIBLIA_FOLDER_ID, joplinToken)
+        await ensureVerseNotesFolder(joplinToken)
+        const note = await createNote(title, noteBody, VERSE_NOTES_FOLDER_ID, joplinToken)
         noteId = note.id
       } catch (err) {
         const message = err instanceof Error ? err.message : "Error desconocido"

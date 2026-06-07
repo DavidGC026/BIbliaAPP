@@ -68,6 +68,7 @@ export async function createFolder(title: string, id: string, customToken?: stri
 }
 
 export const BIBLIA_FOLDER_ID = "b1b11a00000000000000000000000000"
+export const VERSE_NOTES_FOLDER_ID = "b1b11a00000000000000000000000001"
 
 export async function ensureDefaultFolder(customToken?: string): Promise<void> {
   try {
@@ -75,6 +76,10 @@ export async function ensureDefaultFolder(customToken?: string): Promise<void> {
   } catch (err) {
     console.error("Error ensuring default Biblia folder:", err)
   }
+}
+
+export async function ensureVerseNotesFolder(customToken?: string): Promise<void> {
+  await createFolder("notas_v", VERSE_NOTES_FOLDER_ID, customToken)
 }
 
 export async function pingJoplin(customToken?: string): Promise<void> {
