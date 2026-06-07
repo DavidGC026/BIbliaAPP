@@ -71,7 +71,7 @@ async function contentHeaders(customToken?: string): Promise<Record<string, stri
   const h = await headers(customToken)
   return {
     ...h,
-    "Content-Type": "text/plain; charset=utf-8",
+    "Content-Type": "application/octet-stream",
   }
 }
 
