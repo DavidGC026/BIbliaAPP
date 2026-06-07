@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getLinksForChapter, createLink, deleteLink } from "@/lib/bible"
-import { createNote } from "@/lib/joplin"
+import { createNote, BIBLIA_FOLDER_ID } from "@/lib/joplin"
 
 // GET /api/links?book=&chapter=  -> existing links for a chapter
 export async function GET(req: NextRequest) {
@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
     if (!noteId) {
       const title = `${bookName} ${chapter}:${verse}`
       const noteBody = `> ${text ?? ""}\n\n*(${title} — RVR1960)*\n\n`
-      const note = await createNote(title, noteBody, undefined, joplinToken)
+      const note = await createNote(title, noteBody, BIBLIA_FOLDER_ID, joplinToken)
       noteId = note.id
     }
 
