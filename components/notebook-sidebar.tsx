@@ -43,9 +43,9 @@ interface NotebookNote {
 interface NotebookSidebarProps {
   editingNote: { id: number; title: string; content: string } | null
   setEditingNote: (note: { id: number; title: string; content: string } | null) => void
+  onSessionExpired: () => void
 }
-
-export function NotebookSidebar({ editingNote, setEditingNote }: NotebookSidebarProps) {
+export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired }: NotebookSidebarProps) {
   const { data: notebooksData, mutate: mutateNotebooks } = useSWR<{ notebooks: Notebook[] }>(
     "/api/notebooks",
     fetcher
@@ -82,10 +82,17 @@ export function NotebookSidebar({ editingNote, setEditingNote }: NotebookSidebar
     try {
       const res = await fetch("/api/notebooks", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(localStorage.getItem("joplin_session") ? { "x-joplin-session": localStorage.getItem("joplin_session")! } : {}),
+        },
         body: JSON.stringify({ name: newNotebookName.trim() }),
       })
       const data = await res.json()
+      if (res.status === 401 || res.status === 403) {
+        localStorage.removeItem("joplin_session")
+        onSessionExpired()
+      }
       if (!res.ok) throw new Error(data.error)
       await mutateNotebooks()
       setActiveNotebookId(data.id)
@@ -123,10 +130,17 @@ export function NotebookSidebar({ editingNote, setEditingNote }: NotebookSidebar
     try {
       const res = await fetch(`/api/notebooks/${activeNotebookId}/notes`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(localStorage.getItem("joplin_session") ? { "x-joplin-session": localStorage.getItem("joplin_session")! } : {}),
+        },
         body: JSON.stringify({ title: newNoteTitle.trim(), content: "" }),
       })
       const data = await res.json()
+      if (res.status === 401 || res.status === 403) {
+        localStorage.removeItem("joplin_session")
+        onSessionExpired()
+      }
       if (!res.ok) throw new Error(data.error)
       await mutateNotes()
       setEditingNote({ id: data.id, title: data.title, content: data.content })
@@ -143,11 +157,18 @@ export function NotebookSidebar({ editingNote, setEditingNote }: NotebookSidebar
     try {
       const res = await fetch(`/api/notebooks/notes/${editingNote.id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(localStorage.getItem("joplin_session") ? { "x-joplin-session": localStorage.getItem("joplin_session")! } : {}),
+        },
         body: JSON.stringify({ title: editingNote.title, content: editingNote.content }),
       })
       if (!res.ok) {
         const data = await res.json()
+        if (res.status === 401 || res.status === 403) {
+          localStorage.removeItem("joplin_session")
+          onSessionExpired()
+        }
         throw new Error(data.error)
       }
       await mutateNotes()

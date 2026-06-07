@@ -12,9 +12,10 @@ interface NotePanelProps {
   noteId: string | null
   reference: string | null
   onClose: () => void
+  onSessionExpired: () => void
 }
 
-export function NotePanel({ noteId, reference, onClose }: NotePanelProps) {
+export function NotePanel({ noteId, reference, onClose, onSessionExpired }: NotePanelProps) {
   const { data, isLoading, mutate, error } = useSWR<{ note: JoplinNote }>(
     noteId ? `/api/notes/${noteId}` : null,
     fetcher,
@@ -33,11 +34,18 @@ export function NotePanel({ noteId, reference, onClose }: NotePanelProps) {
     try {
       const res = await fetch(`/api/notes/${noteId}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(localStorage.getItem("joplin_session") ? { "x-joplin-session": localStorage.getItem("joplin_session")! } : {}),
+        },
         body: JSON.stringify({ body }),
       })
       if (!res.ok) {
         const err = await res.json()
+        if (res.status === 401 || res.status === 403) {
+          localStorage.removeItem("joplin_session")
+          onSessionExpired()
+        }
         throw new Error(err.error)
       }
       await mutate()
@@ -91,7 +99,7 @@ export function NotePanel({ noteId, reference, onClose }: NotePanelProps) {
 
       <footer className="flex items-center justify-between gap-2 border-t border-border px-4 py-3">
         <span className="text-xs text-muted-foreground">
-          Sesión de Joplin por credenciales
+          Sesión de Joplin activa
         </span>
         <div className="flex items-center gap-2">
           <span className="text-xs text-muted-foreground">

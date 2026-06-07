@@ -3,32 +3,23 @@ import {
   getLinksForChapter,
   createLink,
   deleteLink,
-  listNotebooks,
-  createNotebook,
-  createNotebookNote,
 } from "@/lib/bible"
 import { createNote, ensureVerseNotesFolder, VERSE_NOTES_FOLDER_ID } from "@/lib/joplin"
-
-async function createLocalVerseNote(title: string, body: string): Promise<string> {
-  const notebooks = await listNotebooks()
-  const existing = notebooks.find((n) => n.name === "Notas de versículo")
-  const notebookId = existing?.id ?? await createNotebook("Notas de versículo")
-  const localId = await createNotebookNote(notebookId, title, body)
-  return `local:${localId}`
-}
 
 function isJoplinAuthError(message: string): boolean {
   return (
     message.includes("(401)") ||
     message.includes("(403)") ||
     message.toLowerCase().includes("session") ||
-    message.toLowerCase().includes("credenciales")
+    message.toLowerCase().includes("sesión") ||
+    message.toLowerCase().includes("credenciales") ||
+    message.toLowerCase().includes("inicia sesión")
   )
 }
 
-async function createJoplinVerseNote(title: string, body: string): Promise<string> {
-  await ensureVerseNotesFolder()
-  const note = await createNote(title, body, VERSE_NOTES_FOLDER_ID)
+async function createJoplinVerseNote(title: string, body: string, sessionId?: string): Promise<string> {
+  await ensureVerseNotesFolder(sessionId)
+  const note = await createNote(title, body, VERSE_NOTES_FOLDER_ID, sessionId)
   return note.id
 }
 
@@ -62,24 +53,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Datos del versículo incompletos." }, { status: 400 })
     }
 
+    const sessionId = req.headers.get("x-joplin-session") || undefined
     let noteId = existingNoteId as string | undefined
     if (!noteId) {
       const title = `${bookName} ${chapter}:${verse}`
       const noteBody = `> ${text ?? ""}\n\n*(${title} — RVR1960)*\n\n`
-      try {
-        noteId = await createJoplinVerseNote(title, noteBody)
-      } catch (err) {
-        const message = err instanceof Error ? err.message : "Error desconocido"
-        if (isJoplinAuthError(message)) {
-          try {
-            noteId = await createJoplinVerseNote(title, noteBody)
-          } catch {
-            noteId = await createLocalVerseNote(title, noteBody)
-          }
-        } else {
-          throw err
-        }
-      }
+      noteId = await createJoplinVerseNote(title, noteBody, sessionId)
     }
 
     await createLink(bookId, chapter, verse, noteId!)

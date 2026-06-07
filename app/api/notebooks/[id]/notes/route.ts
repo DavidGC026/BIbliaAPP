@@ -2,6 +2,13 @@ import { type NextRequest, NextResponse } from "next/server"
 import { listNotebookNotes, createNotebookNote, getNotebook } from "@/lib/bible"
 import { createNote, syncJoplin } from "@/lib/joplin"
 
+function statusForError(err: unknown): number {
+  const message = err instanceof Error ? err.message.toLowerCase() : ""
+  return message.includes("sesión") || message.includes("session") || message.includes("401") || message.includes("403")
+    ? 401
+    : 500
+}
+
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -13,8 +20,9 @@ export async function GET(
       return NextResponse.json({ error: "ID de libreta inválido." }, { status: 400 })
     }
 
+    const sessionId = req.headers.get("x-joplin-session") || undefined
     try {
-      await syncJoplin()
+      await syncJoplin(sessionId)
     } catch (err) {
       console.error("Error syncing notes from Joplin:", err)
     }
@@ -24,7 +32,7 @@ export async function GET(
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Error desconocido" },
-      { status: 500 },
+      { status: statusForError(err) },
     )
   }
 }
@@ -44,6 +52,7 @@ export async function POST(
       return NextResponse.json({ error: "El título es obligatorio." }, { status: 400 })
     }
 
+    const sessionId = req.headers.get("x-joplin-session") || undefined
     let joplinNoteId: string | null = null
 
     try {
@@ -51,10 +60,14 @@ export async function POST(
       const notebook = await getNotebook(idNum)
       const parentId = notebook?.joplinFolderId || undefined
       
-      const joplinNote = await createNote(title.trim(), content ?? "", parentId)
+      const joplinNote = await createNote(title.trim(), content ?? "", parentId, sessionId)
       joplinNoteId = joplinNote.id
     } catch (err) {
       console.error("Error creating note in Joplin:", err)
+      return NextResponse.json(
+        { error: err instanceof Error ? err.message : "No se pudo crear la nota en Joplin." },
+        { status: statusForError(err) },
+      )
     }
 
     const noteId = await createNotebookNote(idNum, title.trim(), content ?? "", joplinNoteId)

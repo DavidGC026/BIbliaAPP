@@ -14,6 +14,7 @@ import { fetcher } from "@/lib/fetcher"
 import type { Book, Verse, NoteLink, BibleVersion } from "@/lib/types"
 import { NotePanel } from "./note-panel"
 import { NotebookSidebar } from "./notebook-sidebar"
+import { JoplinLogin } from "./joplin-login"
 import { FileText, Plus, ChevronLeft, ChevronRight, Search, X, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -37,6 +38,13 @@ export function BibleReader() {
   const [sidebarTab, setSidebarTab] = useState<"verses" | "notebooks">("verses")
   const [editingNotebookNote, setEditingNotebookNote] = useState<{ id: number; title: string; content: string } | null>(null)
   const [layoutMode, setLayoutMode] = useState<"split" | "bible" | "notebook">("split")
+  const [joplinSession, setJoplinSession] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setJoplinSession(localStorage.getItem("joplin_session"))
+    }
+  }, [])
 
   // Search state
   const [searchQuery, setSearchQuery] = useState("")
@@ -203,7 +211,10 @@ export function BibleReader() {
     try {
       const res = await fetch("/api/links", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(joplinSession ? { "x-joplin-session": joplinSession } : {}),
+        },
         body: JSON.stringify({
           bookId: v.bookId,
           bookName: v.bookName,
@@ -220,6 +231,8 @@ export function BibleReader() {
     } catch (e) {
       const message = e instanceof Error ? e.message : "No se pudo crear la nota"
       if (message.includes("401") || message.includes("403")) {
+        localStorage.removeItem("joplin_session")
+        setJoplinSession(null)
         alert("La sesión de Joplin no es válida. Vuelve a iniciar sesión con tus credenciales.")
       } else {
         alert(message)
@@ -564,11 +577,14 @@ export function BibleReader() {
           </div>
 
           <div className="flex-1 overflow-hidden">
-            {sidebarTab === "verses" ? (
+            {!joplinSession ? (
+              <JoplinLogin onLogin={setJoplinSession} />
+            ) : sidebarTab === "verses" ? (
               <NotePanel
                 noteId={activeNoteId}
                 reference={activeRef}
                 onClose={() => setActiveNoteId(null)}
+                onSessionExpired={() => setJoplinSession(null)}
               />
             ) : (
               <NotebookSidebar
@@ -577,6 +593,7 @@ export function BibleReader() {
                   setEditingNotebookNote(note)
                   if (note) setSidebarTab("notebooks")
                 }}
+                onSessionExpired={() => setJoplinSession(null)}
               />
             )}
           </div>

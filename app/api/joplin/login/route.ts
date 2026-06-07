@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    return NextResponse.json({ ok: true })
+    return NextResponse.json({ sessionId: data.id })
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Error desconocido" },

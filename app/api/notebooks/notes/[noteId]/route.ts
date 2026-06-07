@@ -2,6 +2,13 @@ import { type NextRequest, NextResponse } from "next/server"
 import { getNotebookNote, updateNotebookNote, deleteNotebookNote, getNotebook } from "@/lib/bible"
 import { createNote, updateNote } from "@/lib/joplin"
 
+function statusForError(err: unknown): number {
+  const message = err instanceof Error ? err.message.toLowerCase() : ""
+  return message.includes("sesión") || message.includes("session") || message.includes("401") || message.includes("403")
+    ? 401
+    : 500
+}
+
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ noteId: string }> }
@@ -20,7 +27,7 @@ export async function GET(
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Error desconocido" },
-      { status: 500 },
+      { status: statusForError(err) },
     )
   }
 }
@@ -40,6 +47,8 @@ export async function PUT(
       return NextResponse.json({ error: "El título es obligatorio." }, { status: 400 })
     }
 
+    const sessionId = req.headers.get("x-joplin-session") || undefined
+
     // Get existing note to see if we already have a joplinNoteId
     const existing = await getNotebookNote(idNum)
     let joplinNoteId = existing?.joplinNoteId || null
@@ -49,13 +58,17 @@ export async function PUT(
       const parentId = notebook?.joplinFolderId || undefined
 
       if (joplinNoteId) {
-        await updateNote(joplinNoteId, content ?? "", title.trim(), parentId)
+        await updateNote(joplinNoteId, content ?? "", title.trim(), parentId, sessionId)
       } else {
-        const joplinNote = await createNote(title.trim(), content ?? "", parentId)
+        const joplinNote = await createNote(title.trim(), content ?? "", parentId, sessionId)
         joplinNoteId = joplinNote.id
       }
     } catch (err) {
       console.error("Error syncing notebook note update to Joplin:", err)
+      return NextResponse.json(
+        { error: err instanceof Error ? err.message : "No se pudo guardar la nota en Joplin." },
+        { status: statusForError(err) },
+      )
     }
 
     await updateNotebookNote(idNum, title.trim(), content ?? "", joplinNoteId)

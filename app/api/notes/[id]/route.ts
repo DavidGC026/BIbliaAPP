@@ -19,7 +19,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         },
       })
     }
-    const note = await getNote(id)
+    const sessionId = req.headers.get("x-joplin-session") || undefined
+    const note = await getNote(id, sessionId)
     return NextResponse.json({ note })
   } catch (err) {
     return NextResponse.json(
@@ -48,7 +49,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         },
       })
     }
-    const note = await updateNote(id, body ?? "", title)
+    const sessionId = req.headers.get("x-joplin-session") || undefined
+    const note = await updateNote(id, body ?? "", title, undefined, sessionId)
     return NextResponse.json({ note })
   } catch (err) {
     return NextResponse.json(
