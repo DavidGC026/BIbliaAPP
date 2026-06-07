@@ -38,7 +38,10 @@ export function NotePanel({ noteId, reference, onClose, onSessionExpired }: Note
           "Content-Type": "application/json",
           ...(localStorage.getItem("joplin_session") ? { "x-joplin-session": localStorage.getItem("joplin_session")! } : {}),
         },
-        body: JSON.stringify({ body }),
+        body: JSON.stringify({
+          body,
+          title: data?.note?.title || reference || undefined,
+        }),
       })
       if (!res.ok) {
         const err = await res.json()

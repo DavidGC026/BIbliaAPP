@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getNote, updateNote } from "@/lib/joplin"
+import { getNote, updateNote, VERSE_NOTES_FOLDER_ID } from "@/lib/joplin"
 import { getNotebookNote, updateNotebookNote } from "@/lib/bible"
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -50,7 +50,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       })
     }
     const sessionId = req.headers.get("x-joplin-session") || undefined
-    const note = await updateNote(id, body ?? "", title, undefined, sessionId)
+    const note = await updateNote(id, body ?? "", title, VERSE_NOTES_FOLDER_ID, sessionId)
     return NextResponse.json({ note })
   } catch (err) {
     return NextResponse.json(
