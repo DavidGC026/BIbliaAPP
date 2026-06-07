@@ -298,6 +298,25 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired 
                 ref={textareaRef}
                 value={editingNote.content}
                 onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setEditingNote({ ...editingNote, content: e.target.value })}
+                onDragOver={(e) => {
+                  e.preventDefault()
+                  e.dataTransfer.dropEffect = "copy"
+                }}
+                onDrop={(e) => {
+                  e.preventDefault()
+                  const dragText = e.dataTransfer.getData("text/plain")
+                  if (dragText) {
+                    const formattedText = `\n> **${dragText}**\n\n`
+                    const start = textareaRef.current?.selectionStart ?? editingNote.content.length
+                    const end = textareaRef.current?.selectionEnd ?? editingNote.content.length
+                    const textBefore = editingNote.content.substring(0, start)
+                    const textAfter = editingNote.content.substring(end)
+                    setEditingNote({
+                      ...editingNote,
+                      content: textBefore + formattedText + textAfter
+                    })
+                  }
+                }}
                 placeholder="Comienza a escribir. Haz clic en el botón '+' o arrastra los versículos de la Biblia aquí para insertarlos..."
                 className="h-full w-full resize-none border-none bg-transparent px-0 py-1 font-sans text-base leading-relaxed focus-visible:ring-0"
               />

@@ -16,7 +16,7 @@ import type { Book, Verse, NoteLink, BibleVersion } from "@/lib/types"
 import { NotePanel } from "./note-panel"
 import { NotebookSidebar } from "./notebook-sidebar"
 import { JoplinLogin } from "./joplin-login"
-import { FileText, Plus, ChevronLeft, ChevronRight, Search, X, Loader2, Copy } from "lucide-react"
+import { FileText, Plus, ChevronLeft, ChevronRight, Search, X, Loader2, Copy, Share2, LogOut } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const bookAbbrMap: Record<number, string> = {
@@ -32,6 +32,8 @@ const bookAbbrMap: Record<number, string> = {
 export function BibleReader() {
   const searchParams = useSearchParams()
   const paramsAppliedRef = useRef(false)
+  const skipClearSelectionRef = useRef(false)
+  const isFirstRender = useRef(true)
   const { data: biblesData } = useSWR<{ bibles: BibleVersion[] }>("/api/bibles", fetcher)
   const bibles = biblesData?.bibles ?? []
   const [bibleId, setBibleId] = useState<number>(149)
@@ -42,11 +44,70 @@ export function BibleReader() {
   const books = booksData?.books ?? []
 
   const [bookId, setBookId] = useState<number | null>(1)
+
+  const currentBook = useMemo(
+    () => books.find((b) => Number(b.bookId) === bookId) ?? null,
+    [books, bookId],
+  )
+  const currentBible = useMemo(
+    () => bibles.find((b) => Number(b.bibleId) === bibleId) ?? null,
+    [bibles, bibleId],
+  )
+  const [mobileMenuTab, setMobileMenuTab] = useState<"selectors" | "search" | "settings" | null>(null)
+  
+  const toggleMobileTab = (tab: "selectors" | "search" | "settings") => {
+    setMobileMenuTab(prev => prev === tab ? null : tab)
+  }
   const [chapter, setChapter] = useState(1)
   const [activeNoteId, setActiveNoteId] = useState<string | null>(null)
   const [activeRef, setActiveRef] = useState<string | null>(null)
   const [creating, setCreating] = useState<number | null>(null)
   const [selectedVerses, setSelectedVerses] = useState<number[]>([])
+  const [lastSelectedVerse, setLastSelectedVerse] = useState<number | null>(null)
+  const [fontSize, setFontSize] = useState<number>(18)
+  const [recentSearches, setRecentSearches] = useState<string[]>([])
+  const [canShare, setCanShare] = useState(false)
+
+  // Load settings on mount
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const savedSize = localStorage.getItem("bible_font_size")
+      if (savedSize) {
+        const parsed = parseInt(savedSize, 10)
+        if (!isNaN(parsed) && parsed >= 14 && parsed <= 28) {
+          setFontSize(parsed)
+        }
+      }
+      const savedSearches = localStorage.getItem("recent_searches")
+      if (savedSearches) {
+        try {
+          setRecentSearches(JSON.parse(savedSearches))
+        } catch {
+          setRecentSearches([])
+        }
+      }
+      if (typeof navigator.share === "function") {
+        setCanShare(true)
+      }
+    }
+  }, [])
+
+  const changeFontSize = (newSize: number) => {
+    const size = Math.min(28, Math.max(14, newSize))
+    setFontSize(size)
+    localStorage.setItem("bible_font_size", String(size))
+  }
+
+  const saveSearch = useCallback((query: string) => {
+    const trimmed = query.trim()
+    if (!trimmed || trimmed.length < 2) return
+    setRecentSearches(prev => {
+      const filtered = prev.filter(q => q.toLowerCase() !== trimmed.toLowerCase())
+      const updated = [trimmed, ...filtered].slice(0, 5)
+      localStorage.setItem("recent_searches", JSON.stringify(updated))
+      return updated
+    })
+  }, [])
 
   // Load and apply query parameters on mount
   useEffect(() => {
@@ -91,6 +152,7 @@ export function BibleReader() {
           for (let i = start; i <= end; i++) {
             selected.push(i)
           }
+          skipClearSelectionRef.current = true
           setSelectedVerses(selected)
           hasParams = true
         }
@@ -170,14 +232,53 @@ export function BibleReader() {
     return () => document.removeEventListener("mousedown", handleClick)
   }, [])
 
-  const currentBook = useMemo(
-    () => books.find((b) => Number(b.bookId) === bookId) ?? null,
-    [books, bookId],
-  )
-  const currentBible = useMemo(
-    () => bibles.find((b) => Number(b.bibleId) === bibleId) ?? null,
-    [bibles, bibleId],
-  )
+  // Keyboard Shortcuts Effect
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      const activeEl = document.activeElement
+      if (
+        activeEl &&
+        (activeEl.tagName === "INPUT" ||
+          activeEl.tagName === "TEXTAREA" ||
+          activeEl.getAttribute("contenteditable") === "true")
+      ) {
+        return
+      }
+
+      if (e.key === "ArrowLeft") {
+        if (chapter > 1) {
+          e.preventDefault()
+          setChapter(c => Math.max(1, c - 1))
+        }
+      } else if (e.key === "ArrowRight") {
+        if (currentBook && chapter < Number(currentBook.chapters)) {
+          e.preventDefault()
+          setChapter(c => Math.min(Number(currentBook.chapters), c + 1))
+        }
+      } else if (e.key === "Escape") {
+        if (selectedVerses.length > 0) {
+          e.preventDefault()
+          setSelectedVerses([])
+        }
+        if (searchOpen) {
+          e.preventDefault()
+          setSearchOpen(false)
+        }
+      } else if (e.key === "/") {
+        const searchInput = document.querySelector<HTMLInputElement>('input[placeholder*="Buscar palabras"]')
+        if (searchInput) {
+          e.preventDefault()
+          searchInput.focus()
+          setSearchOpen(true)
+        }
+      }
+    }
+
+    window.addEventListener("keydown", handleGlobalKeyDown)
+    return () => window.removeEventListener("keydown", handleGlobalKeyDown)
+  }, [chapter, currentBook, selectedVerses, searchOpen])
+
+
 
   const [highlightedVerse, setHighlightedVerse] = useState<number | null>(null)
   const [currentVerse, setCurrentVerse] = useState<number>(1)
@@ -198,6 +299,9 @@ export function BibleReader() {
 
   // Navigate to a search result verse
   const goToSearchResult = useCallback((v: Verse) => {
+    if (searchQuery) {
+      saveSearch(searchQuery)
+    }
     setBookId(Number(v.bookId))
     setChapter(Number(v.chapter))
     setCurrentVerse(Number(v.verse))
@@ -209,7 +313,7 @@ export function BibleReader() {
     setTimeout(() => {
       setHighlightedVerse(null)
     }, 4000)
-  }, [])
+  }, [searchQuery, saveSearch])
 
   const versesKey = bookId ? `/api/verses?bible=${bibleId}&book=${bookId}&chapter=${chapter}` : null
   const { data: versesData, isLoading: versesLoading } = useSWR<{ verses: Verse[] }>(
@@ -246,18 +350,40 @@ export function BibleReader() {
 
   // Clear selection on navigation change
   useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false
+      return
+    }
+    if (skipClearSelectionRef.current) {
+      skipClearSelectionRef.current = false
+      return
+    }
     setSelectedVerses([])
   }, [bookId, chapter])
 
-  const toggleVerseSelection = useCallback((verseNum: number) => {
+  const toggleVerseSelection = useCallback((verseNum: number, shiftKey?: boolean) => {
     setSelectedVerses(prev => {
+      if (shiftKey && prev.length > 0) {
+        let anchor = lastSelectedVerse !== null && prev.includes(lastSelectedVerse) ? lastSelectedVerse : prev[0]
+        const start = Math.min(anchor, verseNum)
+        const end = Math.max(anchor, verseNum)
+        const range: number[] = []
+        for (let i = start; i <= end; i++) {
+          range.push(i)
+        }
+        const newSelection = Array.from(new Set([...prev, ...range])).sort((a, b) => a - b)
+        setLastSelectedVerse(verseNum)
+        return newSelection
+      }
+
+      setLastSelectedVerse(verseNum)
       if (prev.includes(verseNum)) {
         return prev.filter(x => x !== verseNum)
       } else {
         return [...prev, verseNum].sort((a, b) => a - b)
       }
     })
-  }, [])
+  }, [lastSelectedVerse])
 
   const formatVerseRange = useCallback((versesList: number[]) => {
     if (versesList.length === 0) return ""
@@ -283,12 +409,12 @@ export function BibleReader() {
     const selectedVersesData = verses
       .filter(v => selectedVerses.includes(Number(v.verse)))
       .sort((a, b) => Number(a.verse) - Number(b.verse))
-    
+
     if (selectedVersesData.length === 0) return
 
     const verseRangeStr = formatVerseRange(selectedVerses)
     const titleLine = `${currentBook?.bookName} ${chapter}:${verseRangeStr}:`
-    
+
     // Format each verse text
     const bodyLines = selectedVersesData
       .map(v => `${v.verse}. ${v.text}`)
@@ -297,7 +423,7 @@ export function BibleReader() {
     const bookUsfm = bookAbbrMap[Number(currentBook?.bookId)] || ""
     const bibleAbbr = currentBible?.abbr || "RVR1960"
     const bibleIdVal = bibleId || 149
-    
+
     const origin = typeof window !== "undefined" ? window.location.origin : "https://biblia2.dvguzman.com"
     const customUrl = `${origin}/es/bible/${bibleIdVal}/${bookUsfm}.${chapter}.${verseRangeStr}.${bibleAbbr}`
     const footerLine = `${currentBook?.bookName.toUpperCase()} ${chapter}:${verseRangeStr}\n${customUrl}`
@@ -335,12 +461,70 @@ export function BibleReader() {
     }
   }, [bookId, chapter, selectedVerses, mutateHighlights])
 
+  const highlightMatch = useCallback((text: string, query: string) => {
+    if (!query || !query.trim()) return <span>{text}</span>
+    const parts = text.split(new RegExp(`(${query.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&")})`, "gi"))
+    return (
+      <>
+        {parts.map((part, i) =>
+          part.toLowerCase() === query.toLowerCase() ? (
+            <mark key={i} className="bg-yellow-500/30 text-foreground dark:bg-yellow-500/40 rounded px-0.5 font-semibold">
+              {part}
+            </mark>
+          ) : (
+            part
+          )
+        )}
+      </>
+    )
+  }, [])
+
+  const handleShareSelection = useCallback(async () => {
+    if (selectedVerses.length === 0) return
+    const selectedVersesData = verses
+      .filter(v => selectedVerses.includes(Number(v.verse)))
+      .sort((a, b) => Number(a.verse) - Number(b.verse))
+    
+    if (selectedVersesData.length === 0) return
+
+    const verseRangeStr = formatVerseRange(selectedVerses)
+    const titleLine = `${currentBook?.bookName} ${chapter}:${verseRangeStr}:`
+    
+    const bodyLines = selectedVersesData
+      .map(v => `${v.verse}. ${v.text}`)
+      .join("\n\n")
+
+    const bookUsfm = bookAbbrMap[Number(currentBook?.bookId)] || ""
+    const bibleAbbr = currentBible?.abbr || "RVR1960"
+    const bibleIdVal = bibleId || 149
+    
+    const origin = typeof window !== "undefined" ? window.location.origin : "https://biblia2.dvguzman.com"
+    const customUrl = `${origin}/es/bible/${bibleIdVal}/${bookUsfm}.${chapter}.${verseRangeStr}.${bibleAbbr}`
+    const footerLine = `${currentBook?.bookName.toUpperCase()} ${chapter}:${verseRangeStr}\n${customUrl}`
+
+    const shareText = `${titleLine}\n\n${bodyLines}\n\n${footerLine}`
+
+    try {
+      await navigator.share({
+        title: `${currentBook?.bookName} ${chapter}:${verseRangeStr}`,
+        text: shareText,
+        url: customUrl
+      })
+    } catch (err) {
+      if (err instanceof Error && err.name !== "AbortError") {
+        console.error("Error al compartir:", err)
+        alert("No se pudo compartir el contenido.")
+      }
+    }
+  }, [selectedVerses, verses, currentBook, chapter, currentBible, bibleId, formatVerseRange])
+
   function selectBook(value: string | null) {
     if (!value) return
     setBookId(Number(value))
     setChapter(1)
     setCurrentVerse(1)
     setActiveNoteId(null)
+    setMobileMenuTab(null)
   }
 
   useEffect(() => {
@@ -376,6 +560,7 @@ export function BibleReader() {
     setSearchQuery("")
     setSearchResults([])
     setHighlightedVerse(currentVerse)
+    setMobileMenuTab(null)
   }
 
   async function handleVerseNote(v: Verse) {
@@ -474,9 +659,75 @@ export function BibleReader() {
     <div className="mx-auto flex max-w-none w-full flex-col gap-6 px-4 lg:px-6 py-6 lg:flex-row lg:items-start">
       {/* Reading column */}
       <section className={cn("flex-1 min-w-0", layoutMode === "notebook" && "hidden")}>
-        <div className="sticky top-2 z-30 mb-5 rounded-xl border border-border/70 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80 p-3 md:p-4">
-          <div className="flex flex-col gap-3">
-            <div className="flex flex-wrap items-end gap-3">
+        <div className="sticky top-2 z-30 mb-3 md:mb-5 rounded-xl border border-border/70 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80 p-2 md:p-4">
+          <div className="flex flex-col gap-2 md:gap-3">
+            {/* Minimal Header Row for Mobile */}
+            <div className="flex md:hidden items-center justify-between w-full border-b border-border/40 pb-2 mb-1">
+              {/* Passage reference button */}
+              <button
+                onClick={() => toggleMobileTab("selectors")}
+                className="flex items-center gap-1.5 text-xs font-bold text-foreground bg-muted/40 px-3 py-1.5 rounded-lg border border-border hover:bg-muted transition-colors cursor-pointer"
+              >
+                <span>{currentBible?.abbr || "RVR1960"}</span>
+                <span className="text-muted-foreground/60">•</span>
+                <span className="text-primary font-serif">
+                  {currentBook ? currentBook.bookName : "Libro"} {chapter}
+                </span>
+                <ChevronRight className={cn("size-3.5 text-muted-foreground transition-transform", mobileMenuTab === "selectors" && "rotate-90")} />
+              </button>
+
+              {/* Quick action buttons */}
+              <div className="flex items-center gap-0.5">
+                <Button
+                  variant={mobileMenuTab === "search" ? "secondary" : "ghost"}
+                  size="icon"
+                  onClick={() => {
+                    toggleMobileTab("search")
+                    if (mobileMenuTab !== "search") {
+                      setTimeout(() => {
+                        document.querySelector<HTMLInputElement>('input[placeholder*="Buscar palabras"]')?.focus()
+                      }, 50)
+                    }
+                  }}
+                  className="size-8 rounded-lg cursor-pointer"
+                  title="Buscar"
+                >
+                  <Search className="size-4" />
+                </Button>
+                
+                <Button
+                  variant={mobileMenuTab === "settings" ? "secondary" : "ghost"}
+                  size="icon"
+                  onClick={() => toggleMobileTab("settings")}
+                  className="size-8 rounded-lg cursor-pointer text-xs font-bold"
+                  title="Ajustes de lectura"
+                >
+                  <span className="font-serif">Aa</span>
+                </Button>
+
+                {joplinSession && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => {
+                      const el = document.querySelector<HTMLElement>('aside')
+                      if (el) {
+                        el.scrollIntoView({ behavior: 'smooth' })
+                      }
+                    }}
+                    className="size-8 rounded-lg cursor-pointer text-emerald-600 dark:text-emerald-400"
+                    title="Ver notas"
+                  >
+                    <FileText className="size-4" />
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            <div className={cn(
+              "flex-wrap items-end gap-3",
+              mobileMenuTab === "selectors" ? "flex" : "hidden md:flex"
+            )}>
               <div className="min-w-[230px] flex-1 md:flex-none">
                 <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Versión</p>
                 <Select value={String(bibleId)} onValueChange={selectBible}>
@@ -517,7 +768,12 @@ export function BibleReader() {
                 <div className="flex items-end gap-1.5">
                   <div>
                     <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Capítulo</p>
-                    <Select value={String(chapter)} onValueChange={(v) => v && setChapter(Number(v))}>
+                    <Select value={String(chapter)} onValueChange={(v) => {
+                      if (v) {
+                        setChapter(Number(v))
+                        setMobileMenuTab(null)
+                      }
+                    }}>
                       <SelectTrigger className="w-36">
                         <span className="truncate text-sm">Capítulo {chapter}</span>
                       </SelectTrigger>
@@ -536,8 +792,12 @@ export function BibleReader() {
                       variant="outline"
                       size="icon"
                       disabled={chapter <= 1}
-                      onClick={() => setChapter((c) => Math.max(1, c - 1))}
+                      onClick={() => {
+                        setChapter((c) => Math.max(1, c - 1))
+                        setMobileMenuTab(null)
+                      }}
                       aria-label="Capítulo anterior"
+                      className="cursor-pointer"
                     >
                       <ChevronLeft className="size-4" />
                     </Button>
@@ -545,18 +805,57 @@ export function BibleReader() {
                       variant="outline"
                       size="icon"
                       disabled={chapter >= chapterCount}
-                      onClick={() => setChapter((c) => Math.min(chapterCount, c + 1))}
+                      onClick={() => {
+                        setChapter((c) => Math.min(chapterCount, c + 1))
+                        setMobileMenuTab(null)
+                      }}
                       aria-label="Capítulo siguiente"
+                      className="cursor-pointer"
                     >
                       <ChevronRight className="size-4" />
                     </Button>
                   </div>
                 </div>
               )}
+
+              <div className="flex flex-col gap-1">
+                <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Tamaño</p>
+                <div className="flex items-center rounded-lg border border-border bg-muted/20 p-0.5 h-10">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-xs font-semibold cursor-pointer"
+                    onClick={() => changeFontSize(fontSize - 1)}
+                    disabled={fontSize <= 14}
+                    title="Reducir letra"
+                  >
+                    A-
+                  </Button>
+                  <span className="px-2 text-xs font-bold text-muted-foreground min-w-[32px] text-center">
+                    {fontSize}px
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-xs font-semibold cursor-pointer"
+                    onClick={() => changeFontSize(fontSize + 1)}
+                    disabled={fontSize >= 28}
+                    title="Aumentar letra"
+                  >
+                    A+
+                  </Button>
+                </div>
+              </div>
             </div>
 
-            <div className="flex flex-wrap items-end justify-between gap-3">
-              <div className="min-w-[220px] flex-1 md:max-w-sm" ref={searchRef}>
+            <div className={cn(
+              "flex-wrap items-end justify-between gap-3",
+              (mobileMenuTab === "search" || mobileMenuTab === "settings") ? "flex" : "hidden md:flex"
+            )}>
+              <div className={cn(
+                "min-w-[220px] flex-1 md:max-w-sm",
+                mobileMenuTab === "search" ? "block" : "hidden md:block"
+              )} ref={searchRef}>
                 <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Buscar</p>
                 <div className="relative">
                   <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
@@ -582,7 +881,7 @@ export function BibleReader() {
                         setSearchQuery("")
                         setSearchResults([])
                       }}
-                      className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground"
+                      className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground cursor-pointer"
                       title="Limpiar búsqueda"
                     >
                       <X className="size-4" />
@@ -590,43 +889,100 @@ export function BibleReader() {
                   )}
                 </div>
 
-                {searchOpen && (searchQuery.trim().length >= 2) && (
+                {searchOpen && (
                   <div className="absolute left-0 right-0 z-50 mt-1 max-h-96 overflow-y-auto rounded-md border border-border bg-popover p-2 text-popover-foreground shadow-md">
-                    {searchLoading ? (
-                      <div className="flex items-center justify-center p-4 text-sm text-muted-foreground">
-                        <Loader2 className="mr-2 size-4 animate-spin" />
-                        Buscando...
-                      </div>
-                    ) : searchResults.length === 0 ? (
-                      <div className="p-4 text-center text-sm text-muted-foreground">
-                        No se encontraron resultados.
-                      </div>
-                    ) : (
-                      <div className="space-y-1">
-                        <div className="px-2 py-1 text-xs font-semibold text-muted-foreground">
-                          {searchResults.length} resultados
+                    {searchQuery.trim().length < 2 ? (
+                      recentSearches.length > 0 ? (
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between px-2 py-1 text-xs font-semibold text-muted-foreground border-b border-border/40 pb-1.5 mb-1">
+                            <span>Búsquedas recientes</span>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setRecentSearches([])
+                                localStorage.removeItem("recent_searches")
+                              }}
+                              className="text-[10px] hover:text-destructive hover:underline cursor-pointer"
+                            >
+                              Limpiar
+                            </button>
+                          </div>
+                          {recentSearches.map((term, i) => (
+                            <div
+                              key={i}
+                              className="flex items-center justify-between group rounded hover:bg-accent hover:text-accent-foreground transition-colors px-2 py-1 text-xs"
+                            >
+                              <button
+                                onClick={() => {
+                                  setSearchQuery(term)
+                                  setSearchOpen(true)
+                                }}
+                                className="flex-1 text-left py-1 text-foreground cursor-pointer"
+                              >
+                                {term}
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  setRecentSearches(prev => {
+                                    const updated = prev.filter(t => t !== term)
+                                    localStorage.setItem("recent_searches", JSON.stringify(updated))
+                                    return updated
+                                  })
+                                }}
+                                className="opacity-0 group-hover:opacity-100 p-1 hover:text-destructive text-muted-foreground transition-opacity cursor-pointer"
+                                title="Eliminar"
+                              >
+                                <X className="size-3" />
+                              </button>
+                            </div>
+                          ))}
                         </div>
-                        {searchResults.map((v) => (
-                          <button
-                            key={`${v.id}-${v.bookId}-${v.chapter}-${v.verse}`}
-                            onClick={() => goToSearchResult(v)}
-                            className="w-full text-left rounded px-2 py-1.5 hover:bg-accent hover:text-accent-foreground transition-colors"
-                          >
-                            <span className="font-semibold text-primary block text-xs">
-                              {v.bookName} {v.chapter}:{v.verse}
-                            </span>
-                            <span className="line-clamp-2 text-xs text-muted-foreground mt-0.5">
-                              {v.text}
-                            </span>
-                          </button>
-                        ))}
-                      </div>
+                      ) : (
+                        <div className="p-3 text-center text-xs text-muted-foreground">
+                          Escribe para buscar pasajes o palabras.
+                        </div>
+                      )
+                    ) : (
+                      searchLoading ? (
+                        <div className="flex items-center justify-center p-4 text-sm text-muted-foreground">
+                          <Loader2 className="mr-2 size-4 animate-spin" />
+                          Buscando...
+                        </div>
+                      ) : searchResults.length === 0 ? (
+                        <div className="p-4 text-center text-sm text-muted-foreground">
+                          No se encontraron resultados.
+                        </div>
+                      ) : (
+                        <div className="space-y-1">
+                          <div className="px-2 py-1 text-xs font-semibold text-muted-foreground">
+                            {searchResults.length} resultados
+                          </div>
+                          {searchResults.map((v) => (
+                            <button
+                              key={`${v.id}-${v.bookId}-${v.chapter}-${v.verse}`}
+                              onClick={() => goToSearchResult(v)}
+                              className="w-full text-left rounded px-2 py-1.5 hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer"
+                            >
+                              <span className="font-semibold text-primary block text-xs">
+                                {v.bookName} {v.chapter}:{v.verse}
+                              </span>
+                              <span className="line-clamp-2 text-xs text-muted-foreground mt-0.5">
+                                {highlightMatch(v.text, searchQuery)}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      )
                     )}
                   </div>
                 )}
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className={cn(
+                "items-center gap-2 w-full md:w-auto justify-between md:justify-end border-t border-border/40 pt-2 md:pt-0 md:border-0",
+                mobileMenuTab === "settings" ? "flex" : "hidden md:flex"
+              )}>
                 <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Vista</span>
                 {renderLayoutSwitcher()}
               </div>
@@ -665,8 +1021,14 @@ export function BibleReader() {
                 key={v.id}
                 id={`verse-${v.verse}`}
                 onClick={() => setCurrentVerse(Number(v.verse))}
+                draggable={true}
+                onDragStart={(e) => {
+                  const verseText = `${v.bookName} ${v.chapter}:${v.verse} — ${v.text}`
+                  e.dataTransfer.setData("text/plain", verseText)
+                  e.dataTransfer.effectAllowed = "copy"
+                }}
                 className={cn(
-                  "group flex gap-3 rounded-md px-3 py-2 transition-all duration-300 hover:bg-accent/40",
+                  "group flex gap-3 rounded-md px-3 py-2 transition-all duration-300 hover:bg-accent/40 cursor-grab active:cursor-grabbing",
                   hasNote && "bg-accent/30",
                   highlightColor === "yellow" && "bg-yellow-500/10 dark:bg-yellow-500/20 border-l-4 border-yellow-500 rounded-l-none pl-2",
                   highlightColor === "green" && "bg-emerald-500/10 dark:bg-emerald-500/20 border-l-4 border-emerald-500 rounded-l-none pl-2",
@@ -678,21 +1040,23 @@ export function BibleReader() {
                 )}
               >
                 <span
-                  className="mt-1 select-none text-xs font-medium text-primary tabular-nums cursor-pointer hover:underline"
+                  className="mt-1.5 select-none font-medium text-primary tabular-nums cursor-pointer hover:underline"
                   onClick={(e) => {
                     e.stopPropagation()
-                    toggleVerseSelection(Number(v.verse))
+                    toggleVerseSelection(Number(v.verse), e.shiftKey)
                   }}
+                  style={{ fontSize: `${Math.max(12, fontSize - 6)}px` }}
                 >
                   {v.verse}
                 </span>
                 <p
                   onClick={(e) => {
                     e.stopPropagation()
-                    toggleVerseSelection(Number(v.verse))
+                    toggleVerseSelection(Number(v.verse), e.shiftKey)
                     setCurrentVerse(Number(v.verse))
                   }}
-                  className="flex-1 font-serif text-lg leading-relaxed text-foreground cursor-pointer select-none"
+                  className="flex-1 font-serif leading-relaxed text-foreground cursor-pointer select-none"
+                  style={{ fontSize: `${fontSize}px` }}
                 >
                   {v.text}
                 </p>
@@ -735,6 +1099,35 @@ export function BibleReader() {
             )
           })}
         </ol>
+
+        {/* Bottom Chapter Navigation */}
+        {bookId && !versesLoading && verses.length > 0 && (
+          <div className="mt-8 flex items-center justify-between border-t border-border/60 pt-6 pb-4">
+            <Button
+              variant="outline"
+              onClick={() => setChapter(c => Math.max(1, c - 1))}
+              disabled={chapter <= 1}
+              className="gap-2 cursor-pointer"
+            >
+              <ChevronLeft className="size-4" />
+              <span>Capítulo anterior</span>
+            </Button>
+            
+            <span className="text-sm font-semibold text-muted-foreground">
+              {currentBook?.bookName} {chapter}
+            </span>
+            
+            <Button
+              variant="outline"
+              onClick={() => setChapter(c => Math.min(chapterCount, c + 1))}
+              disabled={chapter >= chapterCount}
+              className="gap-2 cursor-pointer"
+            >
+              <span>Capítulo siguiente</span>
+              <ChevronRight className="size-4" />
+            </Button>
+          </div>
+        )}
       </section>
 
       {/* Sidebar Panel */}
@@ -755,7 +1148,7 @@ export function BibleReader() {
           layoutMode === "notebook" ? "h-[calc(100vh-1rem)]" : "h-[calc(100vh-1rem)]"
         )}>
           {/* Tab Switcher */}
-          <div className="flex border-b border-border bg-muted/20">
+          <div className="flex items-center border-b border-border bg-muted/20 pr-2">
             <button
               onClick={() => setSidebarTab("verses")}
               className={cn(
@@ -778,6 +1171,23 @@ export function BibleReader() {
             >
               Mis Cuadernos
             </button>
+            
+            {joplinSession && (
+              <button
+                onClick={() => {
+                  if (confirm("¿Cerrar sesión de Joplin?")) {
+                    localStorage.removeItem("joplin_session")
+                    setJoplinSession(null)
+                    setActiveNoteId(null)
+                    setEditingNotebookNote(null)
+                  }
+                }}
+                className="p-2 text-muted-foreground hover:text-destructive rounded transition-colors cursor-pointer"
+                title="Cerrar sesión de Joplin"
+              >
+                <LogOut className="size-4" />
+              </button>
+            )}
           </div>
 
           <div className="flex-1 overflow-hidden">
@@ -806,72 +1216,88 @@ export function BibleReader() {
 
       {/* Floating Selection Toolbar */}
       {selectedVerses.length > 0 && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-background/85 backdrop-blur-md border border-border shadow-2xl rounded-full px-5 py-2.5 flex items-center gap-3.5 animate-in fade-in slide-in-from-bottom-4 duration-300">
-          <div className="flex flex-col min-w-0">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-background/85 backdrop-blur-md border border-border shadow-2xl rounded-full px-3 py-2 sm:px-5 sm:py-2.5 flex items-center gap-2 sm:gap-3.5 animate-in fade-in slide-in-from-bottom-4 duration-300">
+          <div className="hidden sm:flex flex-col min-w-0">
             <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground leading-none mb-0.5">Selección</span>
             <span className="text-xs font-bold text-foreground truncate max-w-[150px] md:max-w-[200px]">
               {currentBook?.bookName} {chapter}:{formatVerseRange(selectedVerses)}
             </span>
           </div>
+          <div className="flex sm:hidden flex-col min-w-0 max-w-[70px]">
+            <span className="text-[10px] font-bold text-foreground truncate">
+              {currentBook ? (bookAbbrMap[Number(currentBook.bookId)] || currentBook.bookName) : ""} {chapter}:{formatVerseRange(selectedVerses)}
+            </span>
+          </div>
 
-          <div className="w-[1px] h-6 bg-border" />
+          <div className="w-[1px] h-5 sm:h-6 bg-border" />
 
           {/* Color palette */}
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1 sm:gap-1.5">
             <button
               onClick={() => handleHighlightSelection("yellow")}
-              className="size-5 rounded-full bg-yellow-400 border border-yellow-500/20 hover:scale-115 active:scale-90 transition-transform cursor-pointer"
+              className="size-4 sm:size-5 rounded-full bg-yellow-400 border border-yellow-500/20 hover:scale-115 active:scale-90 transition-transform cursor-pointer"
               title="Destacar Amarillo"
             />
             <button
               onClick={() => handleHighlightSelection("green")}
-              className="size-5 rounded-full bg-emerald-400 border border-emerald-500/20 hover:scale-115 active:scale-90 transition-transform cursor-pointer"
+              className="size-4 sm:size-5 rounded-full bg-emerald-400 border border-emerald-500/20 hover:scale-115 active:scale-90 transition-transform cursor-pointer"
               title="Destacar Verde"
             />
             <button
               onClick={() => handleHighlightSelection("blue")}
-              className="size-5 rounded-full bg-sky-400 border border-sky-500/20 hover:scale-115 active:scale-90 transition-transform cursor-pointer"
+              className="size-4 sm:size-5 rounded-full bg-sky-400 border border-sky-500/20 hover:scale-115 active:scale-90 transition-transform cursor-pointer"
               title="Destacar Azul"
             />
             <button
               onClick={() => handleHighlightSelection("orange")}
-              className="size-5 rounded-full bg-orange-400 border border-orange-500/20 hover:scale-115 active:scale-90 transition-transform cursor-pointer"
+              className="size-4 sm:size-5 rounded-full bg-orange-400 border border-orange-500/20 hover:scale-115 active:scale-90 transition-transform cursor-pointer"
               title="Destacar Naranja"
             />
             <button
               onClick={() => handleHighlightSelection("pink")}
-              className="size-5 rounded-full bg-pink-400 border border-pink-500/20 hover:scale-115 active:scale-90 transition-transform cursor-pointer"
+              className="size-4 sm:size-5 rounded-full bg-pink-400 border border-pink-500/20 hover:scale-115 active:scale-90 transition-transform cursor-pointer"
               title="Destacar Rosa"
             />
             
             {/* Clear highlight button */}
             <button
               onClick={() => handleHighlightSelection(null)}
-              className="size-5 rounded-full border border-border bg-background hover:bg-muted flex items-center justify-center hover:scale-115 active:scale-90 transition-transform cursor-pointer"
+              className="size-4 sm:size-5 rounded-full border border-border bg-background hover:bg-muted flex items-center justify-center hover:scale-115 active:scale-90 transition-transform cursor-pointer"
               title="Quitar Destacado"
             >
               <X className="size-3 text-muted-foreground" />
             </button>
           </div>
 
-          <div className="w-[1px] h-6 bg-border" />
+          <div className="w-[1px] h-5 sm:h-6 bg-border" />
 
           {/* Action buttons */}
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-0.5 sm:gap-1">
+            {canShare && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleShareSelection}
+                className="h-8 rounded-full text-xs font-semibold px-2 sm:px-3 gap-1 shadow-sm border-primary/20 hover:bg-primary/5 hover:text-primary cursor-pointer"
+              >
+                <Share2 className="size-3.5" />
+                <span className="hidden sm:inline">Compartir</span>
+              </Button>
+            )}
             <Button
               variant="default"
               size="sm"
               onClick={handleCopySelection}
-              className="h-8 rounded-full text-xs font-semibold px-3 gap-1 shadow-sm"
+              className="h-8 rounded-full text-xs font-semibold px-2 sm:px-3 gap-1 shadow-sm cursor-pointer"
             >
               <Copy className="size-3.5" />
-              <span>Copiar</span>
+              <span className="hidden sm:inline">Copiar</span>
             </Button>
             <Button
               variant="ghost"
               size="icon"
               onClick={() => setSelectedVerses([])}
-              className="h-8 w-8 rounded-full text-muted-foreground hover:text-foreground"
+              className="h-7 w-7 sm:h-8 sm:w-8 rounded-full text-muted-foreground hover:text-foreground cursor-pointer"
               title="Cancelar selección"
             >
               <X className="size-4" />
