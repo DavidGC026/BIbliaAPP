@@ -1,9 +1,17 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { listNotebooks, createNotebook } from "@/lib/bible"
-import { createFolder } from "@/lib/joplin"
+import { createFolder, syncJoplin } from "@/lib/joplin"
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
+    const joplinToken = req.headers.get("x-joplin-token") || undefined
+    if (joplinToken) {
+      try {
+        await syncJoplin(joplinToken)
+      } catch (err) {
+        console.error("Error syncing notebooks from Joplin:", err)
+      }
+    }
     const notebooks = await listNotebooks()
     return NextResponse.json({ notebooks })
   } catch (err) {

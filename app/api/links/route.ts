@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getLinksForChapter, createLink, deleteLink } from "@/lib/bible"
-import { createNote, ensureDefaultFolder, BIBLIA_FOLDER_ID } from "@/lib/joplin"
+import { createNote } from "@/lib/joplin"
 
 // GET /api/links?book=&chapter=  -> existing links for a chapter
 export async function GET(req: NextRequest) {
@@ -33,24 +33,31 @@ export async function POST(req: NextRequest) {
     }
 
     const joplinToken = req.headers.get("x-joplin-token") || undefined
+    if (!joplinToken) {
+      return NextResponse.json(
+        { error: "Debes iniciar sesión en Joplin para crear notas por versículo." },
+        { status: 401 },
+      )
+    }
     let noteId = existingNoteId as string | undefined
     if (!noteId) {
-      if (joplinToken) {
-        await ensureDefaultFolder(joplinToken)
-      }
       const title = `${bookName} ${chapter}:${verse}`
       const noteBody = `> ${text ?? ""}\n\n*(${title} — RVR1960)*\n\n`
-      const note = await createNote(title, noteBody, BIBLIA_FOLDER_ID, joplinToken)
+      const note = await createNote(title, noteBody, undefined, joplinToken)
       noteId = note.id
     }
 
     await createLink(bookId, chapter, verse, noteId!)
     return NextResponse.json({ joplinNoteId: noteId })
   } catch (err) {
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Error desconocido" },
-      { status: 500 },
-    )
+    const message = err instanceof Error ? err.message : "Error desconocido"
+    if (message.includes("(401)") || message.includes("(403)") || message.toLowerCase().includes("token")) {
+      return NextResponse.json(
+        { error: "Tu sesión de Joplin expiró o no es válida. Inicia sesión nuevamente." },
+        { status: 401 },
+      )
+    }
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }
 

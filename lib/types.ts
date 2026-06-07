@@ -4,6 +4,12 @@ export interface Book {
   chapters: number
 }
 
+export interface BibleVersion {
+  bibleId: number
+  abbr: string
+  name: string
+}
+
 export interface Verse {
   id: number
   bookId: number

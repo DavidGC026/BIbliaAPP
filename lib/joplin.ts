@@ -1,4 +1,13 @@
 import type { JoplinNote } from "./types"
+import {
+  getSyncCursor,
+  setSyncCursor,
+  findNotebookByJoplinId,
+  upsertNotebook,
+  upsertNotebookNote,
+  deleteNotebookByJoplinId,
+  deleteNotebookNoteByJoplinId,
+} from "./bible"
 
 /**
  * Client for the Joplin Server API.
@@ -30,9 +39,10 @@ function headers(customToken?: string): Record<string, string> {
   }
 }
 
-function formatJoplinNote(title: string, body: string, id: string, parentId: string): string {
+function formatJoplinNote(title: string, body: string, id: string, parentId?: string): string {
   const timeStr = new Date().toISOString().replace(/\.\d+Z$/, ".000Z")
-  return `${title}\n\n${body}\n\nid: ${id}\nparent_id: ${parentId}\ncreated_time: ${timeStr}\nupdated_time: ${timeStr}\nis_conflict: 0\nlatitude: 0.00000000\nlongitude: 0.00000000\naltitude: 0.0000\nauthor: \nsource_url: \nis_todo: 0\ntodo_due: 0\ntodo_completed: 0\nsource: joplin\nsource_application: net.cozic.joplin-desktop\napplication_data: \norder: 0\nuser_created_time: ${timeStr}\nuser_updated_time: ${timeStr}\nencryption_cipher_text: \nencryption_was_encrypted: 0\nencryption_key_id: \ntype_: 1`
+  const parentLine = parentId ? `parent_id: ${parentId}\n` : ""
+  return `${title}\n\n${body}\n\nid: ${id}\n${parentLine}created_time: ${timeStr}\nupdated_time: ${timeStr}\nis_conflict: 0\nlatitude: 0.00000000\nlongitude: 0.00000000\naltitude: 0.0000\nauthor: \nsource_url: \nis_todo: 0\ntodo_due: 0\ntodo_completed: 0\nsource: joplin\nsource_application: net.cozic.joplin-desktop\napplication_data: \norder: 0\nuser_created_time: ${timeStr}\nuser_updated_time: ${timeStr}\nencryption_cipher_text: \nencryption_was_encrypted: 0\nencryption_key_id: \ntype_: 1`
 }
 
 export async function createFolder(title: string, id: string, customToken?: string): Promise<void> {
@@ -114,7 +124,7 @@ export async function updateNote(
   customToken?: string,
 ): Promise<JoplinNote> {
   const { base } = config(customToken)
-  const actualParentId = parentId || BIBLIA_FOLDER_ID
+  const actualParentId = parentId
   const cleanTitle = title || `Nota ${id}`
   const content = formatJoplinNote(cleanTitle, body, id, actualParentId)
   
@@ -135,7 +145,7 @@ export async function createNote(
 ): Promise<JoplinNote> {
   const id = Array.from({ length: 32 }, () => Math.floor(Math.random() * 16).toString(16)).join("")
   const { base } = config(customToken)
-  const actualParentId = parentId || BIBLIA_FOLDER_ID
+  const actualParentId = parentId
   const content = formatJoplinNote(title, body, id, actualParentId)
   
   const res = await fetch(`${base}/api/items/root:/${id}.md:/content`, {
@@ -145,4 +155,80 @@ export async function createNote(
   })
   if (!res.ok) throw new Error(`No se pudo crear la nota (${res.status}).`)
   return { id, title, body }
+}
+
+export async function syncJoplin(customToken: string): Promise<void> {
+  const { base } = config(customToken)
+  const authHeaders = headers(customToken)
+
+  let currentCursor = await getSyncCursor(customToken)
+  let hasMore = true
+  let pages = 0
+
+  while (hasMore) {
+    pages++
+    const url = `${base}/api/items/root:/:/delta` + (currentCursor ? `?cursor=${currentCursor}` : "")
+    const res = await fetch(url, { headers: authHeaders })
+    if (!res.ok) {
+      if (res.status === 400 && currentCursor) {
+        console.warn("Joplin delta cursor invalid, resetting and retrying from scratch...")
+        currentCursor = ""
+        continue
+      }
+      throw new Error(`Error al obtener delta de Joplin (${res.status}): ${await res.text()}`)
+    }
+    const data = await res.json()
+
+    if (data.items) {
+      for (const item of data.items) {
+        const jopId = item.item_name.replace(".md", "")
+        
+        // Deletion change event (type = 2)
+        if (item.type === 2) {
+          await deleteNotebookNoteByJoplinId(jopId)
+          await deleteNotebookByJoplinId(jopId)
+          continue
+        }
+
+        // Create/Update change event (type = 1)
+        if (item.type === 1 && item.jopItem) {
+          const type_ = item.jopItem.type_
+          
+          if (type_ === 2) {
+            // Folder
+            if (jopId === BIBLIA_FOLDER_ID) continue
+            const title = item.jopItem.title || jopId
+            await upsertNotebook(title, jopId)
+          } else if (type_ === 1) {
+            // Note
+            const parentId = item.jopItem.parent_id
+            if (parentId === BIBLIA_FOLDER_ID) {
+              continue
+            }
+            
+            const notebook = await findNotebookByJoplinId(parentId)
+            if (notebook) {
+              const title = item.jopItem.title || jopId
+              let body = item.jopItem.body || ""
+              const lines = body.split("\n")
+              const metadataIndex = lines.findIndex((line: string) => line.startsWith("id: ") || line.startsWith("type_: "))
+              if (metadataIndex !== -1) {
+                body = lines.slice(0, metadataIndex).join("\n").trim()
+              }
+              await upsertNotebookNote(notebook.id, title, body, jopId)
+            }
+          }
+        }
+      }
+    }
+
+    hasMore = data.has_more
+    currentCursor = data.cursor || ""
+    await setSyncCursor(customToken, currentCursor)
+
+    if (pages > 100) {
+      console.warn("Safeguard: broke out of sync loop after 100 pages.")
+      break
+    }
+  }
 }

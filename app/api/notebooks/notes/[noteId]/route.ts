@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getNotebookNote, updateNotebookNote, deleteNotebookNote } from "@/lib/bible"
+import { getNotebookNote, updateNotebookNote, deleteNotebookNote, getNotebook } from "@/lib/bible"
 import { createNote, updateNote } from "@/lib/joplin"
 
 export async function GET(
@@ -48,10 +48,13 @@ export async function PUT(
 
     if (joplinToken) {
       try {
+        const notebook = existing?.notebookId ? await getNotebook(existing.notebookId) : null
+        const parentId = notebook?.joplinFolderId || undefined
+
         if (joplinNoteId) {
-          await updateNote(joplinNoteId, content ?? "", title.trim(), joplinToken)
+          await updateNote(joplinNoteId, content ?? "", title.trim(), parentId, joplinToken)
         } else {
-          const joplinNote = await createNote(title.trim(), content ?? "", joplinToken)
+          const joplinNote = await createNote(title.trim(), content ?? "", parentId, joplinToken)
           joplinNoteId = joplinNote.id
         }
       } catch (err) {

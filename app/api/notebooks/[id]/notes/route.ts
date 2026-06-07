@@ -1,9 +1,9 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { listNotebookNotes, createNotebookNote, getNotebook } from "@/lib/bible"
-import { createNote } from "@/lib/joplin"
+import { createNote, syncJoplin } from "@/lib/joplin"
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
@@ -12,6 +12,16 @@ export async function GET(
     if (isNaN(idNum)) {
       return NextResponse.json({ error: "ID de libreta inválido." }, { status: 400 })
     }
+
+    const joplinToken = req.headers.get("x-joplin-token") || undefined
+    if (joplinToken) {
+      try {
+        await syncJoplin(joplinToken)
+      } catch (err) {
+        console.error("Error syncing notes from Joplin:", err)
+      }
+    }
+
     const notes = await listNotebookNotes(idNum)
     return NextResponse.json({ notes })
   } catch (err) {

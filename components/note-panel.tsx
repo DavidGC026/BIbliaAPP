@@ -188,7 +188,7 @@ export function NotePanel({ noteId, reference, onClose }: NotePanelProps) {
           <Textarea
             value={body}
             onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setBody(e.target.value)}
-            placeholder="Escribe tu nota en Markdown…"
+            placeholder="Escribe tu nota en Markdown... Arrastra los versículos de la Biblia aquí para insertarlos..."
             className="min-h-80 resize-none font-mono text-sm leading-relaxed"
           />
         )}

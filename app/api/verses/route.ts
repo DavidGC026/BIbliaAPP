@@ -4,12 +4,13 @@ import { getVerses } from "@/lib/bible"
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url)
+    const bibleId = Number(searchParams.get("bible"))
     const bookId = Number(searchParams.get("book"))
     const chapter = Number(searchParams.get("chapter"))
-    if (!bookId || !chapter) {
-      return NextResponse.json({ error: "Parámetros 'book' y 'chapter' requeridos." }, { status: 400 })
+    if (!bibleId || !bookId || !chapter) {
+      return NextResponse.json({ error: "Parámetros 'bible', 'book' y 'chapter' requeridos." }, { status: 400 })
     }
-    const verses = await getVerses(bookId, chapter)
+    const verses = await getVerses(bibleId, bookId, chapter)
     return NextResponse.json({ verses })
   } catch (err) {
     return NextResponse.json(

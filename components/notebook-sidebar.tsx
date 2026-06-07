@@ -239,7 +239,7 @@ export function NotebookSidebar({ editingNote, setEditingNote }: NotebookSidebar
               ref={textareaRef}
               value={editingNote.content}
               onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setEditingNote({ ...editingNote, content: e.target.value })}
-              placeholder="Comienza a escribir. Haz clic en el botón '+' de los versículos de la Biblia para insertarlos aquí..."
+              placeholder="Comienza a escribir. Haz clic en el botón '+' o arrastra los versículos de la Biblia aquí para insertarlos..."
               className="h-full w-full resize-none border-none bg-transparent px-0 py-1 font-sans text-base leading-relaxed focus-visible:ring-0"
             />
           </div>

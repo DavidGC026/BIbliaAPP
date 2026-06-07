@@ -20,7 +20,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     const { id } = await params
     const { body, title } = await req.json()
     const joplinToken = req.headers.get("x-joplin-token") || undefined
-    const note = await updateNote(id, body ?? "", title, joplinToken)
+    const note = await updateNote(id, body ?? "", title, undefined, joplinToken)
     return NextResponse.json({ note })
   } catch (err) {
     return NextResponse.json(
