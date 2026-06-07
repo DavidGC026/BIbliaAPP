@@ -1,5 +1,6 @@
 import { ConnectionBanner } from "@/components/connection-banner"
 import { BibleReader } from "@/components/bible-reader"
+import { ThemeToggle } from "@/components/theme-toggle"
 import { BookOpen } from "lucide-react"
 
 export default function Page() {
@@ -18,6 +19,9 @@ export default function Page() {
             <p className="text-xs text-muted-foreground">
               Lectura multiversión vinculada con tus notas de Joplin
             </p>
+          </div>
+          <div className="ml-auto">
+            <ThemeToggle />
           </div>
         </div>
       </header>
