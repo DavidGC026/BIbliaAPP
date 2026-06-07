@@ -184,7 +184,7 @@ export async function createNotebookNote(notebookId: number, title: string, cont
   await ensureNotebookTables()
   const [result] = await getPool().query<ResultSetHeader>(
     `INSERT INTO bible_notebook_notes (notebook_id, title, content, joplin_note_id) VALUES (?, ?, ?, ?)`,
-    [notebookId, title, content, joplinNoteId]
+    [notebookId, title, "", joplinNoteId]
   )
   return result.insertId
 }
@@ -205,7 +205,7 @@ export async function updateNotebookNote(id: number, title: string, content: str
   await ensureNotebookTables()
   await getPool().query(
     `UPDATE bible_notebook_notes SET title = ?, content = ?, joplin_note_id = ? WHERE id = ?`,
-    [title, content, joplinNoteId, id]
+    [title, "", joplinNoteId, id]
   )
 }
 
@@ -284,13 +284,13 @@ export async function upsertNotebookNote(notebookId: number, title: string, cont
   if (existing) {
     await getPool().query(
       `UPDATE bible_notebook_notes SET notebook_id = ?, title = ?, content = ? WHERE id = ?`,
-      [notebookId, title, content, existing.id]
+      [notebookId, title, "", existing.id]
     )
     return existing.id
   } else {
     const [result] = await getPool().query<ResultSetHeader>(
       `INSERT INTO bible_notebook_notes (notebook_id, title, content, joplin_note_id) VALUES (?, ?, ?, ?)`,
-      [notebookId, title, content, joplinNoteId]
+      [notebookId, title, "", joplinNoteId]
     )
     return result.insertId
   }

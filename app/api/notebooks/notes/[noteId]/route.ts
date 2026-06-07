@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getNotebookNote, updateNotebookNote, deleteNotebookNote, getNotebook } from "@/lib/bible"
-import { createNote, updateNote } from "@/lib/joplin"
+import { createNote, updateNote, getNote } from "@/lib/joplin"
 
 function statusForError(err: unknown): number {
   const message = err instanceof Error ? err.message.toLowerCase() : ""
@@ -10,7 +10,7 @@ function statusForError(err: unknown): number {
 }
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ noteId: string }> }
 ) {
   try {
@@ -23,7 +23,29 @@ export async function GET(
     if (!note) {
       return NextResponse.json({ error: "Nota no encontrada." }, { status: 404 })
     }
-    return NextResponse.json({ note })
+
+    let content = note.content
+    if (note.joplinNoteId) {
+      try {
+        const sessionId = req.headers.get("x-joplin-session") || undefined
+        const joplinNote = await getNote(note.joplinNoteId, sessionId)
+        content = joplinNote.body
+      } catch (err) {
+        console.error("Error fetching note content from Joplin:", err)
+      }
+    }
+
+    return NextResponse.json({
+      note: {
+        id: note.id,
+        notebookId: note.notebookId,
+        title: note.title,
+        content: content,
+        joplinNoteId: note.joplinNoteId,
+        createdAt: note.createdAt,
+        updatedAt: note.updatedAt,
+      }
+    })
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Error desconocido" },
@@ -71,7 +93,8 @@ export async function PUT(
       )
     }
 
-    await updateNotebookNote(idNum, title.trim(), content ?? "", joplinNoteId)
+    // Save empty content locally, leaving body only in Joplin
+    await updateNotebookNote(idNum, title.trim(), "", joplinNoteId)
     return NextResponse.json({ ok: true, joplinNoteId })
   } catch (err) {
     return NextResponse.json(

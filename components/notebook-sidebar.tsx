@@ -67,6 +67,24 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired 
   const [savingNote, setSavingNote] = useState(false)
   const [savedAt, setSavedAt] = useState<string | null>(null)
 
+  // Fetch the full note content from Joplin Server when a note is selected
+  const { data: noteDetails, isLoading: noteDetailsLoading } = useSWR<{ note: NotebookNote }>(
+    editingNote ? `/api/notebooks/notes/${editingNote.id}` : null,
+    fetcher
+  )
+
+  useEffect(() => {
+    if (noteDetails?.note && editingNote && noteDetails.note.id === editingNote.id) {
+      if (noteDetails.note.content !== editingNote.content && !savingNote) {
+        setEditingNote({
+          id: editingNote.id,
+          title: noteDetails.note.title,
+          content: noteDetails.note.content || "",
+        })
+      }
+    }
+  }, [noteDetails, editingNote?.id])
+
   // Auto-focus textarea when verse is appended
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -248,13 +266,20 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired 
           />
 
           <div className="relative flex-1">
-            <Textarea
-              ref={textareaRef}
-              value={editingNote.content}
-              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setEditingNote({ ...editingNote, content: e.target.value })}
-              placeholder="Comienza a escribir. Haz clic en el botón '+' o arrastra los versículos de la Biblia aquí para insertarlos..."
-              className="h-full w-full resize-none border-none bg-transparent px-0 py-1 font-sans text-base leading-relaxed focus-visible:ring-0"
-            />
+            {noteDetailsLoading ? (
+              <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                <Loader2 className="mr-2 size-4 animate-spin" />
+                Cargando nota desde Joplin...
+              </div>
+            ) : (
+              <Textarea
+                ref={textareaRef}
+                value={editingNote.content}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setEditingNote({ ...editingNote, content: e.target.value })}
+                placeholder="Comienza a escribir. Haz clic en el botón '+' o arrastra los versículos de la Biblia aquí para insertarlos..."
+                className="h-full w-full resize-none border-none bg-transparent px-0 py-1 font-sans text-base leading-relaxed focus-visible:ring-0"
+              />
+            )}
           </div>
 
           <div className="rounded-md bg-accent/30 px-3 py-2.5 text-xs text-muted-foreground flex items-center gap-2">

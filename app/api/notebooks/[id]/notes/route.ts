@@ -70,7 +70,7 @@ export async function POST(
       )
     }
 
-    const noteId = await createNotebookNote(idNum, title.trim(), content ?? "", joplinNoteId)
+    const noteId = await createNotebookNote(idNum, title.trim(), "", joplinNoteId)
     return NextResponse.json({
       id: noteId,
       title: title.trim(),

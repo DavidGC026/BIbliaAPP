@@ -197,26 +197,26 @@ export async function syncJoplin(sessionId?: string): Promise<void> {
       for (const item of data.items) {
         const jopId = item.item_name.replace(".md", "")
         
-        // Deletion change event (type = 2)
-        if (item.type === 2) {
+        // Deletion change event (type = 3)
+        if (item.type === 3) {
           await deleteNotebookNoteByJoplinId(jopId)
           await deleteNotebookByJoplinId(jopId)
           continue
         }
 
-        // Create/Update change event (type = 1)
-        if (item.type === 1 && item.jopItem) {
+        // Create/Update change event (type = 1 or type = 2)
+        if ((item.type === 1 || item.type === 2) && item.jopItem) {
           const type_ = item.jopItem.type_
           
           if (type_ === 2) {
             // Folder
-            if (jopId === BIBLIA_FOLDER_ID) continue
+            if (jopId === BIBLIA_FOLDER_ID || jopId === VERSE_NOTES_FOLDER_ID) continue
             const title = item.jopItem.title || jopId
             await upsertNotebook(title, jopId)
           } else if (type_ === 1) {
             // Note
             const parentId = item.jopItem.parent_id
-            if (parentId === BIBLIA_FOLDER_ID) {
+            if (parentId === BIBLIA_FOLDER_ID || parentId === VERSE_NOTES_FOLDER_ID) {
               continue
             }
             
