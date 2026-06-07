@@ -4,7 +4,7 @@ import type { NextRequest } from "next/server"
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, x-joplin-session",
 }
 
 export function middleware(request: NextRequest) {
