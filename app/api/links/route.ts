@@ -17,6 +17,21 @@ async function createLocalVerseNote(title: string, body: string): Promise<string
   return `local:${localId}`
 }
 
+function isJoplinAuthError(message: string): boolean {
+  return (
+    message.includes("(401)") ||
+    message.includes("(403)") ||
+    message.toLowerCase().includes("session") ||
+    message.toLowerCase().includes("token")
+  )
+}
+
+async function createJoplinVerseNote(title: string, body: string, token?: string): Promise<string> {
+  await ensureVerseNotesFolder(token)
+  const note = await createNote(title, body, VERSE_NOTES_FOLDER_ID, token)
+  return note.id
+}
+
 // GET /api/links?book=&chapter=  -> existing links for a chapter
 export async function GET(req: NextRequest) {
   try {
@@ -53,13 +68,15 @@ export async function POST(req: NextRequest) {
       const title = `${bookName} ${chapter}:${verse}`
       const noteBody = `> ${text ?? ""}\n\n*(${title} — RVR1960)*\n\n`
       try {
-        await ensureVerseNotesFolder(joplinToken)
-        const note = await createNote(title, noteBody, VERSE_NOTES_FOLDER_ID, joplinToken)
-        noteId = note.id
+        noteId = await createJoplinVerseNote(title, noteBody, joplinToken)
       } catch (err) {
         const message = err instanceof Error ? err.message : "Error desconocido"
-        if (message.includes("(401)") || message.includes("(403)") || message.toLowerCase().includes("session")) {
-          noteId = await createLocalVerseNote(title, noteBody)
+        if (isJoplinAuthError(message)) {
+          try {
+            noteId = await createJoplinVerseNote(title, noteBody)
+          } catch {
+            noteId = await createLocalVerseNote(title, noteBody)
+          }
         } else {
           throw err
         }
@@ -70,7 +87,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ joplinNoteId: noteId })
   } catch (err) {
     const message = err instanceof Error ? err.message : "Error desconocido"
-    if (message.includes("(401)") || message.includes("(403)") || message.toLowerCase().includes("token")) {
+    if (isJoplinAuthError(message)) {
       return NextResponse.json(
         { error: "La sesión de Joplin del servidor expiró o no es válida. Actualiza JOPLIN_TOKEN e intenta nuevamente." },
         { status: 401 },
