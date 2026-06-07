@@ -1,6 +1,21 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getLinksForChapter, createLink, deleteLink } from "@/lib/bible"
+import {
+  getLinksForChapter,
+  createLink,
+  deleteLink,
+  listNotebooks,
+  createNotebook,
+  createNotebookNote,
+} from "@/lib/bible"
 import { createNote, BIBLIA_FOLDER_ID } from "@/lib/joplin"
+
+async function createLocalVerseNote(title: string, body: string): Promise<string> {
+  const notebooks = await listNotebooks()
+  const existing = notebooks.find((n) => n.name === "Notas de versículo")
+  const notebookId = existing?.id ?? await createNotebook("Notas de versículo")
+  const localId = await createNotebookNote(notebookId, title, body)
+  return `local:${localId}`
+}
 
 // GET /api/links?book=&chapter=  -> existing links for a chapter
 export async function GET(req: NextRequest) {
@@ -32,7 +47,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Datos del versículo incompletos." }, { status: 400 })
     }
 
-    const joplinToken = req.headers.get("x-joplin-token") || undefined
+    const joplinToken = req.headers.get("x-joplin-token") || process.env.JOPLIN_TOKEN || undefined
     if (!joplinToken) {
       return NextResponse.json(
         { error: "Debes iniciar sesión en Joplin para crear notas por versículo." },
@@ -43,8 +58,17 @@ export async function POST(req: NextRequest) {
     if (!noteId) {
       const title = `${bookName} ${chapter}:${verse}`
       const noteBody = `> ${text ?? ""}\n\n*(${title} — RVR1960)*\n\n`
-      const note = await createNote(title, noteBody, BIBLIA_FOLDER_ID, joplinToken)
-      noteId = note.id
+      try {
+        const note = await createNote(title, noteBody, BIBLIA_FOLDER_ID, joplinToken)
+        noteId = note.id
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Error desconocido"
+        if (message.includes("(401)") || message.includes("(403)") || message.toLowerCase().includes("session")) {
+          noteId = await createLocalVerseNote(title, noteBody)
+        } else {
+          throw err
+        }
+      }
     }
 
     await createLink(bookId, chapter, verse, noteId!)
@@ -53,7 +77,7 @@ export async function POST(req: NextRequest) {
     const message = err instanceof Error ? err.message : "Error desconocido"
     if (message.includes("(401)") || message.includes("(403)") || message.toLowerCase().includes("token")) {
       return NextResponse.json(
-        { error: "Tu sesión de Joplin expiró o no es válida. Inicia sesión nuevamente." },
+        { error: "La sesión de Joplin del servidor expiró o no es válida. Actualiza JOPLIN_TOKEN e intenta nuevamente." },
         { status: 401 },
       )
     }

@@ -34,6 +34,7 @@ function headers(customToken?: string): Record<string, string> {
   }
   return {
     "Content-Type": "application/json",
+    "Authorization": `Bearer ${token}`,
     "Cookie": `sessionId=${token}`,
     "X-API-AUTH": token,
   }
