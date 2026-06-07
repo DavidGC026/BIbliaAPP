@@ -53,6 +53,10 @@ async function getServerSession(): Promise<string> {
 }
 
 async function sessionToken(customToken?: string): Promise<string> {
+  if (customToken) return customToken
+  if (process.env.JOPLIN_EMAIL && process.env.JOPLIN_PASSWORD) {
+    return getServerSession()
+  }
   const { token } = config(customToken)
   return token || getServerSession()
 }
