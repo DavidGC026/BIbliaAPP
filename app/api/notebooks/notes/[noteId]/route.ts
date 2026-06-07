@@ -46,20 +46,18 @@ export async function PUT(
     const existing = await getNotebookNote(idNum)
     let joplinNoteId = existing?.joplinNoteId || null
 
-    if (joplinToken) {
-      try {
-        const notebook = existing?.notebookId ? await getNotebook(existing.notebookId) : null
-        const parentId = notebook?.joplinFolderId || undefined
+    try {
+      const notebook = existing?.notebookId ? await getNotebook(existing.notebookId) : null
+      const parentId = notebook?.joplinFolderId || undefined
 
-        if (joplinNoteId) {
-          await updateNote(joplinNoteId, content ?? "", title.trim(), parentId, joplinToken)
-        } else {
-          const joplinNote = await createNote(title.trim(), content ?? "", parentId, joplinToken)
-          joplinNoteId = joplinNote.id
-        }
-      } catch (err) {
-        console.error("Error syncing notebook note update to Joplin:", err)
+      if (joplinNoteId) {
+        await updateNote(joplinNoteId, content ?? "", title.trim(), parentId, joplinToken)
+      } else {
+        const joplinNote = await createNote(title.trim(), content ?? "", parentId, joplinToken)
+        joplinNoteId = joplinNote.id
       }
+    } catch (err) {
+      console.error("Error syncing notebook note update to Joplin:", err)
     }
 
     await updateNotebookNote(idNum, title.trim(), content ?? "", joplinNoteId)

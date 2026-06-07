@@ -5,12 +5,10 @@ import { createFolder, syncJoplin } from "@/lib/joplin"
 export async function GET(req: NextRequest) {
   try {
     const joplinToken = req.headers.get("x-joplin-token") || undefined
-    if (joplinToken) {
-      try {
-        await syncJoplin(joplinToken)
-      } catch (err) {
-        console.error("Error syncing notebooks from Joplin:", err)
-      }
+    try {
+      await syncJoplin(joplinToken)
+    } catch (err) {
+      console.error("Error syncing notebooks from Joplin:", err)
     }
     const notebooks = await listNotebooks()
     return NextResponse.json({ notebooks })
@@ -32,12 +30,10 @@ export async function POST(req: NextRequest) {
     const joplinToken = req.headers.get("x-joplin-token") || undefined
     const joplinFolderId = Array.from({ length: 32 }, () => Math.floor(Math.random() * 16).toString(16)).join("")
 
-    if (joplinToken) {
-      try {
-        await createFolder(name.trim(), joplinFolderId, joplinToken)
-      } catch (err) {
-        console.error("Error creating folder in Joplin:", err)
-      }
+    try {
+      await createFolder(name.trim(), joplinFolderId, joplinToken)
+    } catch (err) {
+      console.error("Error creating folder in Joplin:", err)
     }
 
     const id = await createNotebook(name.trim(), joplinFolderId)

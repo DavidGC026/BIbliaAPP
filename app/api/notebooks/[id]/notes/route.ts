@@ -14,12 +14,10 @@ export async function GET(
     }
 
     const joplinToken = req.headers.get("x-joplin-token") || undefined
-    if (joplinToken) {
-      try {
-        await syncJoplin(joplinToken)
-      } catch (err) {
-        console.error("Error syncing notes from Joplin:", err)
-      }
+    try {
+      await syncJoplin(joplinToken)
+    } catch (err) {
+      console.error("Error syncing notes from Joplin:", err)
     }
 
     const notes = await listNotebookNotes(idNum)
@@ -50,17 +48,15 @@ export async function POST(
     const joplinToken = req.headers.get("x-joplin-token") || undefined
     let joplinNoteId: string | null = null
 
-    if (joplinToken) {
-      try {
-        // Fetch the notebook to get joplinFolderId
-        const notebook = await getNotebook(idNum)
-        const parentId = notebook?.joplinFolderId || undefined
-        
-        const joplinNote = await createNote(title.trim(), content ?? "", parentId, joplinToken)
-        joplinNoteId = joplinNote.id
-      } catch (err) {
-        console.error("Error creating note in Joplin:", err)
-      }
+    try {
+      // Fetch the notebook to get joplinFolderId
+      const notebook = await getNotebook(idNum)
+      const parentId = notebook?.joplinFolderId || undefined
+      
+      const joplinNote = await createNote(title.trim(), content ?? "", parentId, joplinToken)
+      joplinNoteId = joplinNote.id
+    } catch (err) {
+      console.error("Error creating note in Joplin:", err)
     }
 
     const noteId = await createNotebookNote(idNum, title.trim(), content ?? "", joplinNoteId)
