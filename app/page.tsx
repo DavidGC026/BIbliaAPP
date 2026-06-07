@@ -2,6 +2,7 @@ import { ConnectionBanner } from "@/components/connection-banner"
 import { BibleReader } from "@/components/bible-reader"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { BookOpen } from "lucide-react"
+import { Suspense } from "react"
 
 export default function Page() {
   return (
@@ -25,7 +26,10 @@ export default function Page() {
           </div>
         </div>
       </header>
-      <BibleReader />
+      <Suspense fallback={<div className="p-8 text-center text-sm text-muted-foreground">Cargando Biblia...</div>}>
+        <BibleReader />
+      </Suspense>
     </main>
   )
 }
+

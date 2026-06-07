@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useSearchParams } from "next/navigation"
 import useSWR from "swr"
 import {
   Select,
@@ -29,6 +30,8 @@ const bookAbbrMap: Record<number, string> = {
 }
 
 export function BibleReader() {
+  const searchParams = useSearchParams()
+  const paramsAppliedRef = useRef(false)
   const { data: biblesData } = useSWR<{ bibles: BibleVersion[] }>("/api/bibles", fetcher)
   const bibles = biblesData?.bibles ?? []
   const [bibleId, setBibleId] = useState<number>(149)
@@ -44,6 +47,65 @@ export function BibleReader() {
   const [activeRef, setActiveRef] = useState<string | null>(null)
   const [creating, setCreating] = useState<number | null>(null)
   const [selectedVerses, setSelectedVerses] = useState<number[]>([])
+
+  // Load and apply query parameters on mount
+  useEffect(() => {
+    if (paramsAppliedRef.current) return
+
+    const pBible = searchParams.get("bible")
+    const pBook = searchParams.get("book")
+    const pChapter = searchParams.get("chapter")
+    const pVerse = searchParams.get("verse")
+
+    let hasParams = false
+    if (pBible) {
+      const bId = parseInt(pBible, 10)
+      if (!isNaN(bId)) {
+        setBibleId(bId)
+        hasParams = true
+      }
+    }
+    if (pBook) {
+      const bkId = parseInt(pBook, 10)
+      if (!isNaN(bkId)) {
+        setBookId(bkId)
+        hasParams = true
+      }
+    }
+    if (pChapter) {
+      const ch = parseInt(pChapter, 10)
+      if (!isNaN(ch)) {
+        setChapter(ch)
+        hasParams = true
+      }
+    }
+
+    if (pVerse) {
+      const rangeMatch = pVerse.match(/^(\d+)(?:-(\d+))?$/)
+      if (rangeMatch) {
+        const start = parseInt(rangeMatch[1], 10)
+        const end = rangeMatch[2] ? parseInt(rangeMatch[2], 10) : start
+        if (!isNaN(start)) {
+          setHighlightedVerse(start)
+          const selected: number[] = []
+          for (let i = start; i <= end; i++) {
+            selected.push(i)
+          }
+          setSelectedVerses(selected)
+          hasParams = true
+        }
+      }
+    }
+
+    if (hasParams) {
+      paramsAppliedRef.current = true
+      if (typeof window !== "undefined") {
+        const url = new URL(window.location.href)
+        url.search = ""
+        window.history.replaceState({}, "", url.pathname)
+      }
+    }
+  }, [searchParams])
 
   // Sidebar Tab, Notebook Editing and Layout states
   const [sidebarTab, setSidebarTab] = useState<"verses" | "notebooks">("verses")
@@ -236,8 +298,9 @@ export function BibleReader() {
     const bibleAbbr = currentBible?.abbr || "RVR1960"
     const bibleIdVal = bibleId || 149
     
-    const youVersionUrl = `https://www.bible.com/es/bible/${bibleIdVal}/${bookUsfm}.${chapter}.${verseRangeStr}.${bibleAbbr}`
-    const footerLine = `${currentBook?.bookName.toUpperCase()} ${chapter}:${verseRangeStr}\n${youVersionUrl}`
+    const origin = typeof window !== "undefined" ? window.location.origin : "https://biblia2.dvguzman.com"
+    const customUrl = `${origin}/es/bible/${bibleIdVal}/${bookUsfm}.${chapter}.${verseRangeStr}.${bibleAbbr}`
+    const footerLine = `${currentBook?.bookName.toUpperCase()} ${chapter}:${verseRangeStr}\n${customUrl}`
 
     const clipboardText = `${titleLine}\n\n${bodyLines}\n\n${footerLine}`
 
@@ -499,13 +562,18 @@ export function BibleReader() {
                   <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
                   <input
                     type="text"
-                    placeholder="Buscar palabras..."
+                    placeholder="Buscar palabras o pasajes (p. ej. 1 Pedro 5)..."
                     value={searchQuery}
                     onChange={(e) => {
                       setSearchQuery(e.target.value)
                       setSearchOpen(true)
                     }}
                     onFocus={() => setSearchOpen(true)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && searchResults.length > 0) {
+                        goToSearchResult(searchResults[0])
+                      }
+                    }}
                     className="w-full rounded-md border border-input bg-background pl-9 pr-8 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                   />
                   {searchQuery && (
