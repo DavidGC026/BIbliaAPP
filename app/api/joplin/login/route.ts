@@ -33,8 +33,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Joplin Server returns { id: "SESSION_TOKEN", ... }
-    return NextResponse.json({ token: data.id })
+    return NextResponse.json({ ok: true })
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Error desconocido" },

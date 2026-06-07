@@ -121,13 +121,9 @@ export function NotebookSidebar({ editingNote, setEditingNote }: NotebookSidebar
   async function handleCreateNote() {
     if (!activeNotebookId || !newNoteTitle.trim()) return
     try {
-      const token = typeof window !== "undefined" ? localStorage.getItem("joplin_token") : null
       const res = await fetch(`/api/notebooks/${activeNotebookId}/notes`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { "x-joplin-token": token } : {}),
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title: newNoteTitle.trim(), content: "" }),
       })
       const data = await res.json()
@@ -145,13 +141,9 @@ export function NotebookSidebar({ editingNote, setEditingNote }: NotebookSidebar
     if (!editingNote) return
     setSavingNote(true)
     try {
-      const token = typeof window !== "undefined" ? localStorage.getItem("joplin_token") : null
       const res = await fetch(`/api/notebooks/notes/${editingNote.id}`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { "x-joplin-token": token } : {}),
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title: editingNote.title, content: editingNote.content }),
       })
       if (!res.ok) {

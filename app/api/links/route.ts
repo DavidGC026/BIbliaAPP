@@ -22,13 +22,13 @@ function isJoplinAuthError(message: string): boolean {
     message.includes("(401)") ||
     message.includes("(403)") ||
     message.toLowerCase().includes("session") ||
-    message.toLowerCase().includes("token")
+    message.toLowerCase().includes("credenciales")
   )
 }
 
-async function createJoplinVerseNote(title: string, body: string, token?: string): Promise<string> {
-  await ensureVerseNotesFolder(token)
-  const note = await createNote(title, body, VERSE_NOTES_FOLDER_ID, token)
+async function createJoplinVerseNote(title: string, body: string): Promise<string> {
+  await ensureVerseNotesFolder()
+  const note = await createNote(title, body, VERSE_NOTES_FOLDER_ID)
   return note.id
 }
 
@@ -62,13 +62,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Datos del versículo incompletos." }, { status: 400 })
     }
 
-    const joplinToken = req.headers.get("x-joplin-token") || undefined
     let noteId = existingNoteId as string | undefined
     if (!noteId) {
       const title = `${bookName} ${chapter}:${verse}`
       const noteBody = `> ${text ?? ""}\n\n*(${title} — RVR1960)*\n\n`
       try {
-        noteId = await createJoplinVerseNote(title, noteBody, joplinToken)
+        noteId = await createJoplinVerseNote(title, noteBody)
       } catch (err) {
         const message = err instanceof Error ? err.message : "Error desconocido"
         if (isJoplinAuthError(message)) {
@@ -89,7 +88,7 @@ export async function POST(req: NextRequest) {
     const message = err instanceof Error ? err.message : "Error desconocido"
     if (isJoplinAuthError(message)) {
       return NextResponse.json(
-        { error: "La sesión de Joplin del servidor expiró o no es válida. Actualiza JOPLIN_TOKEN e intenta nuevamente." },
+        { error: "La sesión de Joplin no es válida. Inicia sesión con tus credenciales de Joplin e intenta nuevamente." },
         { status: 401 },
       )
     }

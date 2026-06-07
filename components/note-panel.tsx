@@ -15,14 +15,6 @@ interface NotePanelProps {
 }
 
 export function NotePanel({ noteId, reference, onClose }: NotePanelProps) {
-  const [token, setToken] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      setToken(localStorage.getItem("joplin_token"))
-    }
-  }, [])
-
   const { data, isLoading, mutate, error } = useSWR<{ note: JoplinNote }>(
     noteId ? `/api/notes/${noteId}` : null,
     fetcher,
@@ -35,25 +27,13 @@ export function NotePanel({ noteId, reference, onClose }: NotePanelProps) {
     if (data?.note) setBody(data.note.body ?? "")
   }, [data?.note])
 
-  useEffect(() => {
-    if (error && (error.message.includes("session") || error.message.includes("expired") || error.message.includes("token"))) {
-      localStorage.removeItem("joplin_token")
-      setToken(null)
-    }
-  }, [error])
-
-
   async function handleSave() {
     if (!noteId) return
     setSaving(true)
     try {
-      const clientToken = typeof window !== "undefined" ? localStorage.getItem("joplin_token") : null
       const res = await fetch(`/api/notes/${noteId}`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          ...(clientToken ? { "x-joplin-token": clientToken } : {}),
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ body }),
       })
       if (!res.ok) {
@@ -111,7 +91,7 @@ export function NotePanel({ noteId, reference, onClose }: NotePanelProps) {
 
       <footer className="flex items-center justify-between gap-2 border-t border-border px-4 py-3">
         <span className="text-xs text-muted-foreground">
-          {token ? "Sesión del navegador activa" : "Sesión gestionada por servidor"}
+          Sesión de Joplin por credenciales
         </span>
         <div className="flex items-center gap-2">
           <span className="text-xs text-muted-foreground">

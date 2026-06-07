@@ -16,10 +16,8 @@ export async function GET(req: NextRequest) {
     status.mysql = { ok: false, message: err instanceof Error ? err.message : "Error" }
   }
 
-  const joplinToken = req.headers.get("x-joplin-token") || undefined
-
   try {
-    await pingJoplin(joplinToken)
+    await pingJoplin()
     status.joplin = { ok: true, message: "Conectado" }
   } catch (err) {
     status.joplin = { ok: false, message: err instanceof Error ? err.message : "Error" }

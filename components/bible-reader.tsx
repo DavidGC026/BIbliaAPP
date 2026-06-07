@@ -201,13 +201,9 @@ export function BibleReader() {
     }
     setCreating(Number(v.verse))
     try {
-      const token = typeof window !== "undefined" ? localStorage.getItem("joplin_token") : null
       const res = await fetch("/api/links", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { "x-joplin-token": token } : {}),
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           bookId: v.bookId,
           bookName: v.bookName,
@@ -224,10 +220,7 @@ export function BibleReader() {
     } catch (e) {
       const message = e instanceof Error ? e.message : "No se pudo crear la nota"
       if (message.includes("401") || message.includes("403")) {
-        if (typeof window !== "undefined") {
-          localStorage.removeItem("joplin_token")
-        }
-        alert("Tu sesión de Joplin expiró. Vuelve a iniciar sesión en el panel derecho.")
+        alert("La sesión de Joplin no es válida. Vuelve a iniciar sesión con tus credenciales.")
       } else {
         alert(message)
       }

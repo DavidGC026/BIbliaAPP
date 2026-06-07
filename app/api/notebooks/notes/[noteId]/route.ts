@@ -40,8 +40,6 @@ export async function PUT(
       return NextResponse.json({ error: "El título es obligatorio." }, { status: 400 })
     }
 
-    const joplinToken = req.headers.get("x-joplin-token") || undefined
-
     // Get existing note to see if we already have a joplinNoteId
     const existing = await getNotebookNote(idNum)
     let joplinNoteId = existing?.joplinNoteId || null
@@ -51,9 +49,9 @@ export async function PUT(
       const parentId = notebook?.joplinFolderId || undefined
 
       if (joplinNoteId) {
-        await updateNote(joplinNoteId, content ?? "", title.trim(), parentId, joplinToken)
+        await updateNote(joplinNoteId, content ?? "", title.trim(), parentId)
       } else {
-        const joplinNote = await createNote(title.trim(), content ?? "", parentId, joplinToken)
+        const joplinNote = await createNote(title.trim(), content ?? "", parentId)
         joplinNoteId = joplinNote.id
       }
     } catch (err) {

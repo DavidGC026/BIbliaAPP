@@ -4,9 +4,8 @@ import { createFolder, syncJoplin } from "@/lib/joplin"
 
 export async function GET(req: NextRequest) {
   try {
-    const joplinToken = req.headers.get("x-joplin-token") || undefined
     try {
-      await syncJoplin(joplinToken)
+      await syncJoplin()
     } catch (err) {
       console.error("Error syncing notebooks from Joplin:", err)
     }
@@ -27,11 +26,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "El nombre es obligatorio." }, { status: 400 })
     }
 
-    const joplinToken = req.headers.get("x-joplin-token") || undefined
     const joplinFolderId = Array.from({ length: 32 }, () => Math.floor(Math.random() * 16).toString(16)).join("")
 
     try {
-      await createFolder(name.trim(), joplinFolderId, joplinToken)
+      await createFolder(name.trim(), joplinFolderId)
     } catch (err) {
       console.error("Error creating folder in Joplin:", err)
     }

@@ -15,18 +15,16 @@ import {
  *
  * Env:
  *  - JOPLIN_API_URL  e.g. https://joplin.dvguzman.com
- *  - JOPLIN_TOKEN    optional session ID obtained from POST /api/sessions
- *  - JOPLIN_EMAIL    optional email used to create a server-side session
- *  - JOPLIN_PASSWORD optional password used to create a server-side session
+ *  - JOPLIN_EMAIL    email used to create a server-side session
+ *  - JOPLIN_PASSWORD password used to create a server-side session
  */
 
-function config(customToken?: string) {
+function config() {
   const base = process.env.JOPLIN_API_URL
-  const token = customToken || process.env.JOPLIN_TOKEN
   if (!base) {
     throw new Error("Falta la variable de entorno JOPLIN_API_URL.")
   }
-  return { base: base.replace(/\/$/, ""), token }
+  return { base: base.replace(/\/$/, "") }
 }
 
 let cachedServerSession: string | null = null
@@ -52,17 +50,12 @@ async function getServerSession(): Promise<string> {
   return cachedServerSession
 }
 
-async function sessionToken(customToken?: string): Promise<string> {
-  if (customToken) return customToken
-  if (process.env.JOPLIN_EMAIL && process.env.JOPLIN_PASSWORD) {
-    return getServerSession()
-  }
-  const { token } = config(customToken)
-  return token || getServerSession()
+async function sessionToken(): Promise<string> {
+  return getServerSession()
 }
 
-async function headers(customToken?: string): Promise<Record<string, string>> {
-  const token = await sessionToken(customToken)
+async function headers(): Promise<Record<string, string>> {
+  const token = await sessionToken()
   return {
     "Content-Type": "application/json",
     "Authorization": `Bearer ${token}`,
@@ -71,8 +64,8 @@ async function headers(customToken?: string): Promise<Record<string, string>> {
   }
 }
 
-async function contentHeaders(customToken?: string): Promise<Record<string, string>> {
-  const h = await headers(customToken)
+async function contentHeaders(): Promise<Record<string, string>> {
+  const h = await headers()
   return {
     ...h,
     "Content-Type": "application/octet-stream",
@@ -85,14 +78,14 @@ function formatJoplinNote(title: string, body: string, id: string, parentId?: st
   return `${title}\n\n${body}\n\nid: ${id}\n${parentLine}created_time: ${timeStr}\nupdated_time: ${timeStr}\nis_conflict: 0\nlatitude: 0.00000000\nlongitude: 0.00000000\naltitude: 0.0000\nauthor: \nsource_url: \nis_todo: 0\ntodo_due: 0\ntodo_completed: 0\nsource: joplin\nsource_application: net.cozic.joplin-desktop\napplication_data: \norder: 0\nuser_created_time: ${timeStr}\nuser_updated_time: ${timeStr}\nencryption_cipher_text: \nencryption_was_encrypted: 0\nencryption_key_id: \ntype_: 1`
 }
 
-export async function createFolder(title: string, id: string, customToken?: string): Promise<void> {
-  const { base } = config(customToken)
+export async function createFolder(title: string, id: string): Promise<void> {
+  const { base } = config()
   const timeStr = new Date().toISOString().replace(/\.\d+Z$/, ".000Z")
   const content = `${title}\n\nid: ${id}\ncreated_time: ${timeStr}\nupdated_time: ${timeStr}\nis_conflict: 0\nlatitude: 0.00000000\nlongitude: 0.00000000\naltitude: 0.0000\nauthor: \nsource_url: \nis_todo: 0\ntodo_due: 0\ntodo_completed: 0\nsource: joplin\nsource_application: net.cozic.joplin-desktop\napplication_data: \norder: 0\nuser_created_time: ${timeStr}\nuser_updated_time: ${timeStr}\nencryption_cipher_text: \nencryption_was_encrypted: 0\nencryption_key_id: \ntype_: 2`
 
   const res = await fetch(`${base}/api/items/root:/${id}.md:/content`, {
     method: "PUT",
-    headers: await contentHeaders(customToken),
+    headers: await contentHeaders(),
     body: content,
   })
   if (!res.ok) throw new Error(`No se pudo crear la libreta en Joplin (${res.status}): ${await res.text()}`)
@@ -101,21 +94,21 @@ export async function createFolder(title: string, id: string, customToken?: stri
 export const BIBLIA_FOLDER_ID = "b1b11a00000000000000000000000000"
 export const VERSE_NOTES_FOLDER_ID = "b1b11a00000000000000000000000001"
 
-export async function ensureDefaultFolder(customToken?: string): Promise<void> {
+export async function ensureDefaultFolder(): Promise<void> {
   try {
-    await createFolder("Biblia", BIBLIA_FOLDER_ID, customToken)
+    await createFolder("Biblia", BIBLIA_FOLDER_ID)
   } catch (err) {
     console.error("Error ensuring default Biblia folder:", err)
   }
 }
 
-export async function ensureVerseNotesFolder(customToken?: string): Promise<void> {
-  await createFolder("notas_v", VERSE_NOTES_FOLDER_ID, customToken)
+export async function ensureVerseNotesFolder(): Promise<void> {
+  await createFolder("notas_v", VERSE_NOTES_FOLDER_ID)
 }
 
-export async function pingJoplin(customToken?: string): Promise<void> {
-  const { base } = config(customToken)
-  await sessionToken(customToken)
+export async function pingJoplin(): Promise<void> {
+  const { base } = config()
+  await sessionToken()
   const res = await fetch(`${base}/api/ping`, { cache: "no-store" })
   if (!res.ok) {
     throw new Error(`Joplin Server no alcanzable (${res.status}).`)
@@ -126,11 +119,11 @@ export async function pingJoplin(customToken?: string): Promise<void> {
   }
 }
 
-export async function getNote(id: string, customToken?: string): Promise<JoplinNote> {
-  const { base } = config(customToken)
+export async function getNote(id: string): Promise<JoplinNote> {
+  const { base } = config()
   const res = await fetch(`${base}/api/items/root:/${id}.md:/content`, {
     cache: "no-store",
-    headers: await headers(customToken),
+    headers: await headers(),
   })
   if (!res.ok) throw new Error(`No se pudo obtener la nota ${id} (${res.status}).`)
   const text = await res.text()
@@ -164,16 +157,15 @@ export async function updateNote(
   body: string,
   title?: string,
   parentId?: string,
-  customToken?: string,
 ): Promise<JoplinNote> {
-  const { base } = config(customToken)
+  const { base } = config()
   const actualParentId = parentId
   const cleanTitle = title || `Nota ${id}`
   const content = formatJoplinNote(cleanTitle, body, id, actualParentId)
   
   const res = await fetch(`${base}/api/items/root:/${id}.md:/content`, {
     method: "PUT",
-    headers: await contentHeaders(customToken),
+    headers: await contentHeaders(),
     body: content,
   })
   if (!res.ok) throw new Error(`No se pudo actualizar la nota ${id} (${res.status}): ${await res.text()}`)
@@ -184,27 +176,26 @@ export async function createNote(
   title: string,
   body: string,
   parentId?: string,
-  customToken?: string,
 ): Promise<JoplinNote> {
   const id = Array.from({ length: 32 }, () => Math.floor(Math.random() * 16).toString(16)).join("")
-  const { base } = config(customToken)
+  const { base } = config()
   const actualParentId = parentId
   const content = formatJoplinNote(title, body, id, actualParentId)
   
   const res = await fetch(`${base}/api/items/root:/${id}.md:/content`, {
     method: "PUT",
-    headers: await contentHeaders(customToken),
+    headers: await contentHeaders(),
     body: content,
   })
   if (!res.ok) throw new Error(`No se pudo crear la nota (${res.status}): ${await res.text()}`)
   return { id, title, body }
 }
 
-export async function syncJoplin(customToken: string): Promise<void> {
-  const { base } = config(customToken)
-  const authHeaders = await headers(customToken)
+export async function syncJoplin(): Promise<void> {
+  const { base } = config()
+  const authHeaders = await headers()
 
-  let currentCursor = await getSyncCursor(customToken)
+  let currentCursor = await getSyncCursor("server-session")
   let hasMore = true
   let pages = 0
 
@@ -267,7 +258,7 @@ export async function syncJoplin(customToken: string): Promise<void> {
 
     hasMore = data.has_more
     currentCursor = data.cursor || ""
-    await setSyncCursor(customToken, currentCursor)
+    await setSyncCursor("server-session", currentCursor)
 
     if (pages > 100) {
       console.warn("Safeguard: broke out of sync loop after 100 pages.")

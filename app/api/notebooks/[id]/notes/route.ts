@@ -13,9 +13,8 @@ export async function GET(
       return NextResponse.json({ error: "ID de libreta inválido." }, { status: 400 })
     }
 
-    const joplinToken = req.headers.get("x-joplin-token") || undefined
     try {
-      await syncJoplin(joplinToken)
+      await syncJoplin()
     } catch (err) {
       console.error("Error syncing notes from Joplin:", err)
     }
@@ -45,7 +44,6 @@ export async function POST(
       return NextResponse.json({ error: "El título es obligatorio." }, { status: 400 })
     }
 
-    const joplinToken = req.headers.get("x-joplin-token") || undefined
     let joplinNoteId: string | null = null
 
     try {
@@ -53,7 +51,7 @@ export async function POST(
       const notebook = await getNotebook(idNum)
       const parentId = notebook?.joplinFolderId || undefined
       
-      const joplinNote = await createNote(title.trim(), content ?? "", parentId, joplinToken)
+      const joplinNote = await createNote(title.trim(), content ?? "", parentId)
       joplinNoteId = joplinNote.id
     } catch (err) {
       console.error("Error creating note in Joplin:", err)
