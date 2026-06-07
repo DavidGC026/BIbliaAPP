@@ -39,6 +39,14 @@ function headers(customToken?: string): Record<string, string> {
   }
 }
 
+function contentHeaders(customToken?: string): Record<string, string> {
+  const h = headers(customToken)
+  return {
+    ...h,
+    "Content-Type": "text/plain; charset=utf-8",
+  }
+}
+
 function formatJoplinNote(title: string, body: string, id: string, parentId?: string): string {
   const timeStr = new Date().toISOString().replace(/\.\d+Z$/, ".000Z")
   const parentLine = parentId ? `parent_id: ${parentId}\n` : ""
@@ -52,10 +60,10 @@ export async function createFolder(title: string, id: string, customToken?: stri
 
   const res = await fetch(`${base}/api/items/root:/${id}.md:/content`, {
     method: "PUT",
-    headers: headers(customToken),
+    headers: contentHeaders(customToken),
     body: content,
   })
-  if (!res.ok) throw new Error(`No se pudo crear la libreta en Joplin (${res.status}).`)
+  if (!res.ok) throw new Error(`No se pudo crear la libreta en Joplin (${res.status}): ${await res.text()}`)
 }
 
 export const BIBLIA_FOLDER_ID = "b1b11a00000000000000000000000000"
@@ -130,10 +138,10 @@ export async function updateNote(
   
   const res = await fetch(`${base}/api/items/root:/${id}.md:/content`, {
     method: "PUT",
-    headers: headers(customToken),
+    headers: contentHeaders(customToken),
     body: content,
   })
-  if (!res.ok) throw new Error(`No se pudo actualizar la nota ${id} (${res.status}).`)
+  if (!res.ok) throw new Error(`No se pudo actualizar la nota ${id} (${res.status}): ${await res.text()}`)
   return { id, title: cleanTitle, body }
 }
 
@@ -153,7 +161,7 @@ export async function createNote(
     headers: headers(customToken),
     body: content,
   })
-  if (!res.ok) throw new Error(`No se pudo crear la nota (${res.status}).`)
+  if (!res.ok) throw new Error(`No se pudo crear la nota (${res.status}): ${await res.text()}`)
   return { id, title, body }
 }
 
