@@ -2,6 +2,13 @@ import { type NextRequest, NextResponse } from "next/server"
 import { getNote, updateNote, VERSE_NOTES_FOLDER_ID } from "@/lib/joplin"
 import { getNotebookNote, updateNotebookNote } from "@/lib/bible"
 
+function statusForError(err: unknown): number {
+  const message = err instanceof Error ? err.message.toLowerCase() : ""
+  return message.includes("sesión") || message.includes("session") || message.includes("401") || message.includes("403")
+    ? 401
+    : 500
+}
+
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params
@@ -25,7 +32,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Error desconocido" },
-      { status: 500 },
+      { status: statusForError(err) },
     )
   }
 }
@@ -55,7 +62,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Error desconocido" },
-      { status: 500 },
+      { status: statusForError(err) },
     )
   }
 }

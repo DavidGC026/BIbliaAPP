@@ -15,8 +15,18 @@ import type { Book, Verse, NoteLink, BibleVersion } from "@/lib/types"
 import { NotePanel } from "./note-panel"
 import { NotebookSidebar } from "./notebook-sidebar"
 import { JoplinLogin } from "./joplin-login"
-import { FileText, Plus, ChevronLeft, ChevronRight, Search, X, Loader2 } from "lucide-react"
+import { FileText, Plus, ChevronLeft, ChevronRight, Search, X, Loader2, Copy } from "lucide-react"
 import { cn } from "@/lib/utils"
+
+const bookAbbrMap: Record<number, string> = {
+  1: "GEN", 2: "EXO", 3: "LEV", 4: "NUM", 5: "DEU", 6: "JOS", 7: "JDG", 8: "RUT", 9: "1SA", 10: "2SA",
+  11: "1KI", 12: "2KI", 13: "1CH", 14: "2CH", 15: "EZR", 16: "NEH", 17: "EST", 18: "JOB", 19: "PSA", 20: "PRO",
+  21: "ECC", 22: "SNG", 23: "ISA", 24: "JER", 25: "LAM", 26: "EZK", 27: "DAN", 28: "HOS", 29: "JOL", 30: "AMO",
+  31: "OBA", 32: "JON", 33: "MIC", 34: "NAM", 35: "HAB", 36: "ZEP", 37: "HAG", 38: "ZEC", 39: "MAL", 40: "MAT",
+  41: "MRK", 42: "LUK", 43: "JHN", 44: "ACT", 45: "ROM", 46: "1CO", 47: "2CO", 48: "GAL", 49: "EPH", 50: "PHP",
+  51: "COL", 52: "1TH", 53: "2TH", 54: "1TI", 55: "2TI", 56: "TIT", 57: "PHM", 58: "HEB", 59: "JAS", 60: "1PE",
+  61: "2PE", 62: "1JN", 63: "2JN", 64: "3JN", 65: "JUD", 66: "REV"
+}
 
 export function BibleReader() {
   const { data: biblesData } = useSWR<{ bibles: BibleVersion[] }>("/api/bibles", fetcher)
@@ -28,11 +38,12 @@ export function BibleReader() {
   )
   const books = booksData?.books ?? []
 
-  const [bookId, setBookId] = useState<number | null>(null)
+  const [bookId, setBookId] = useState<number | null>(1)
   const [chapter, setChapter] = useState(1)
   const [activeNoteId, setActiveNoteId] = useState<string | null>(null)
   const [activeRef, setActiveRef] = useState<string | null>(null)
   const [creating, setCreating] = useState<number | null>(null)
+  const [selectedVerses, setSelectedVerses] = useState<number[]>([])
 
   // Sidebar Tab, Notebook Editing and Layout states
   const [sidebarTab, setSidebarTab] = useState<"verses" | "notebooks">("verses")
@@ -155,6 +166,111 @@ export function BibleReader() {
     for (const l of linksData?.links ?? []) map.set(Number(l.verse), l)
     return map
   }, [linksData])
+
+  const highlightsKey = bookId ? `/api/highlights?book=${bookId}&chapter=${chapter}` : null
+  const { data: highlightsData, mutate: mutateHighlights } = useSWR<{ highlights: { verse: number; color: string }[] }>(
+    highlightsKey,
+    fetcher
+  )
+  const highlights = highlightsData?.highlights ?? []
+
+  const highlightsByVerse = useMemo(() => {
+    const map = new Map<number, string>()
+    for (const h of highlights) {
+      map.set(Number(h.verse), h.color)
+    }
+    return map
+  }, [highlights])
+
+  // Clear selection on navigation change
+  useEffect(() => {
+    setSelectedVerses([])
+  }, [bookId, chapter])
+
+  const toggleVerseSelection = useCallback((verseNum: number) => {
+    setSelectedVerses(prev => {
+      if (prev.includes(verseNum)) {
+        return prev.filter(x => x !== verseNum)
+      } else {
+        return [...prev, verseNum].sort((a, b) => a - b)
+      }
+    })
+  }, [])
+
+  const formatVerseRange = useCallback((versesList: number[]) => {
+    if (versesList.length === 0) return ""
+    const sorted = [...versesList].sort((a, b) => a - b)
+    const ranges: string[] = []
+    let start = sorted[0]
+    let end = sorted[0]
+    for (let i = 1; i < sorted.length; i++) {
+      if (sorted[i] === end + 1) {
+        end = sorted[i]
+      } else {
+        ranges.push(start === end ? `${start}` : `${start}-${end}`)
+        start = sorted[i]
+        end = sorted[i]
+      }
+    }
+    ranges.push(start === end ? `${start}` : `${start}-${end}`)
+    return ranges.join(",")
+  }, [])
+
+  const handleCopySelection = useCallback(async () => {
+    if (selectedVerses.length === 0) return
+    const selectedVersesData = verses
+      .filter(v => selectedVerses.includes(Number(v.verse)))
+      .sort((a, b) => Number(a.verse) - Number(b.verse))
+    
+    if (selectedVersesData.length === 0) return
+
+    const verseRangeStr = formatVerseRange(selectedVerses)
+    const titleLine = `${currentBook?.bookName} ${chapter}:${verseRangeStr}:`
+    
+    // Format each verse text
+    const bodyLines = selectedVersesData
+      .map(v => `${v.verse}. ${v.text}`)
+      .join("\n\n")
+
+    const bookUsfm = bookAbbrMap[Number(currentBook?.bookId)] || ""
+    const bibleAbbr = currentBible?.abbr || "RVR1960"
+    const bibleIdVal = bibleId || 149
+    
+    const youVersionUrl = `https://www.bible.com/es/bible/${bibleIdVal}/${bookUsfm}.${chapter}.${verseRangeStr}.${bibleAbbr}`
+    const footerLine = `${currentBook?.bookName.toUpperCase()} ${chapter}:${verseRangeStr}\n${youVersionUrl}`
+
+    const clipboardText = `${titleLine}\n\n${bodyLines}\n\n${footerLine}`
+
+    try {
+      await navigator.clipboard.writeText(clipboardText)
+      alert("¡Versículos copiados al portapapeles con formato YouVersion!")
+    } catch (err) {
+      console.error("Error al copiar al portapapeles:", err)
+      alert("No se pudo copiar al portapapeles.")
+    }
+  }, [selectedVerses, verses, currentBook, chapter, currentBible, bibleId, formatVerseRange])
+
+  const handleHighlightSelection = useCallback(async (color: string | null) => {
+    if (selectedVerses.length === 0) return
+    try {
+      const res = await fetch("/api/highlights", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          bookId,
+          chapter,
+          verses: selectedVerses,
+          color
+        })
+      })
+      if (!res.ok) throw new Error("Error al guardar destacados")
+      await mutateHighlights()
+      setSelectedVerses([]) // Clear selection after highlighting
+    } catch (err) {
+      console.error(err)
+      alert("Error al guardar destacados.")
+    }
+  }, [bookId, chapter, selectedVerses, mutateHighlights])
 
   function selectBook(value: string | null) {
     if (!value) return
@@ -471,10 +587,11 @@ export function BibleReader() {
             </p>
           </div>
         )}
-
         <ol className="space-y-1">
           {verses.map((v) => {
             const hasNote = linksByVerse.has(Number(v.verse))
+            const highlightColor = highlightsByVerse.get(Number(v.verse))
+            const isSelected = selectedVerses.includes(Number(v.verse))
             return (
               <li
                 key={v.id}
@@ -483,13 +600,32 @@ export function BibleReader() {
                 className={cn(
                   "group flex gap-3 rounded-md px-3 py-2 transition-all duration-300 hover:bg-accent/40",
                   hasNote && "bg-accent/30",
+                  highlightColor === "yellow" && "bg-yellow-500/10 dark:bg-yellow-500/20 border-l-4 border-yellow-500 rounded-l-none pl-2",
+                  highlightColor === "green" && "bg-emerald-500/10 dark:bg-emerald-500/20 border-l-4 border-emerald-500 rounded-l-none pl-2",
+                  highlightColor === "blue" && "bg-sky-500/10 dark:bg-sky-500/20 border-l-4 border-sky-500 rounded-l-none pl-2",
+                  highlightColor === "orange" && "bg-orange-500/10 dark:bg-orange-500/20 border-l-4 border-orange-500 rounded-l-none pl-2",
+                  highlightColor === "pink" && "bg-pink-500/10 dark:bg-pink-500/20 border-l-4 border-pink-500 rounded-l-none pl-2",
+                  isSelected && "ring-2 ring-primary bg-primary/5 dark:bg-primary/10",
                   highlightedVerse === Number(v.verse) && "bg-yellow-500/15 dark:bg-yellow-500/10 ring-2 ring-yellow-500/80 scale-[1.01] shadow-sm",
                 )}
               >
-                <span className="mt-1 select-none text-xs font-medium text-primary tabular-nums">
+                <span
+                  className="mt-1 select-none text-xs font-medium text-primary tabular-nums cursor-pointer hover:underline"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    toggleVerseSelection(Number(v.verse))
+                  }}
+                >
                   {v.verse}
                 </span>
-                <p className="flex-1 font-serif text-lg leading-relaxed text-foreground">
+                <p
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    toggleVerseSelection(Number(v.verse))
+                    setCurrentVerse(Number(v.verse))
+                  }}
+                  className="flex-1 font-serif text-lg leading-relaxed text-foreground cursor-pointer select-none"
+                >
                   {v.text}
                 </p>
                 <div className="mt-1 flex items-center gap-1.5">
@@ -599,6 +735,82 @@ export function BibleReader() {
           </div>
         </div>
       </aside>
+
+      {/* Floating Selection Toolbar */}
+      {selectedVerses.length > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-background/85 backdrop-blur-md border border-border shadow-2xl rounded-full px-5 py-2.5 flex items-center gap-3.5 animate-in fade-in slide-in-from-bottom-4 duration-300">
+          <div className="flex flex-col min-w-0">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground leading-none mb-0.5">Selección</span>
+            <span className="text-xs font-bold text-foreground truncate max-w-[150px] md:max-w-[200px]">
+              {currentBook?.bookName} {chapter}:{formatVerseRange(selectedVerses)}
+            </span>
+          </div>
+
+          <div className="w-[1px] h-6 bg-border" />
+
+          {/* Color palette */}
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => handleHighlightSelection("yellow")}
+              className="size-5 rounded-full bg-yellow-400 border border-yellow-500/20 hover:scale-115 active:scale-90 transition-transform cursor-pointer"
+              title="Destacar Amarillo"
+            />
+            <button
+              onClick={() => handleHighlightSelection("green")}
+              className="size-5 rounded-full bg-emerald-400 border border-emerald-500/20 hover:scale-115 active:scale-90 transition-transform cursor-pointer"
+              title="Destacar Verde"
+            />
+            <button
+              onClick={() => handleHighlightSelection("blue")}
+              className="size-5 rounded-full bg-sky-400 border border-sky-500/20 hover:scale-115 active:scale-90 transition-transform cursor-pointer"
+              title="Destacar Azul"
+            />
+            <button
+              onClick={() => handleHighlightSelection("orange")}
+              className="size-5 rounded-full bg-orange-400 border border-orange-500/20 hover:scale-115 active:scale-90 transition-transform cursor-pointer"
+              title="Destacar Naranja"
+            />
+            <button
+              onClick={() => handleHighlightSelection("pink")}
+              className="size-5 rounded-full bg-pink-400 border border-pink-500/20 hover:scale-115 active:scale-90 transition-transform cursor-pointer"
+              title="Destacar Rosa"
+            />
+            
+            {/* Clear highlight button */}
+            <button
+              onClick={() => handleHighlightSelection(null)}
+              className="size-5 rounded-full border border-border bg-background hover:bg-muted flex items-center justify-center hover:scale-115 active:scale-90 transition-transform cursor-pointer"
+              title="Quitar Destacado"
+            >
+              <X className="size-3 text-muted-foreground" />
+            </button>
+          </div>
+
+          <div className="w-[1px] h-6 bg-border" />
+
+          {/* Action buttons */}
+          <div className="flex items-center gap-1">
+            <Button
+              variant="default"
+              size="sm"
+              onClick={handleCopySelection}
+              className="h-8 rounded-full text-xs font-semibold px-3 gap-1 shadow-sm"
+            >
+              <Copy className="size-3.5" />
+              <span>Copiar</span>
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setSelectedVerses([])}
+              className="h-8 w-8 rounded-full text-muted-foreground hover:text-foreground"
+              title="Cancelar selección"
+            >
+              <X className="size-4" />
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

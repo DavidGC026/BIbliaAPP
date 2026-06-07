@@ -28,6 +28,13 @@ export function NotePanel({ noteId, reference, onClose, onSessionExpired }: Note
     if (data?.note) setBody(data.note.body ?? "")
   }, [data?.note])
 
+  useEffect(() => {
+    if (error && (error.message.includes("401") || error.message.includes("403") || error.message.includes("sesión"))) {
+      localStorage.removeItem("joplin_session")
+      onSessionExpired()
+    }
+  }, [error, onSessionExpired])
+
   async function handleSave() {
     if (!noteId) return
     setSaving(true)

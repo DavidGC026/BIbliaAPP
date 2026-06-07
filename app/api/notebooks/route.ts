@@ -16,6 +16,13 @@ export async function GET(req: NextRequest) {
       await syncJoplin(sessionId)
     } catch (err) {
       console.error("Error syncing notebooks from Joplin:", err)
+      const status = statusForError(err)
+      if (status === 401) {
+        return NextResponse.json(
+          { error: err instanceof Error ? err.message : "Sesión de Joplin inválida." },
+          { status: 401 }
+        )
+      }
     }
     const notebooks = await listNotebooks()
     return NextResponse.json({ notebooks })

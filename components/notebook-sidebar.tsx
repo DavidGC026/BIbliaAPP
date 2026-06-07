@@ -46,8 +46,16 @@ interface NotebookSidebarProps {
   onSessionExpired: () => void
 }
 export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired }: NotebookSidebarProps) {
-  const { data: notebooksData, mutate: mutateNotebooks } = useSWR<{ notebooks: Notebook[] }>(
-    "/api/notebooks",
+  const [session, setSession] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setSession(localStorage.getItem("joplin_session"))
+    }
+  }, [])
+
+  const { data: notebooksData, mutate: mutateNotebooks, error: notebooksError } = useSWR<{ notebooks: Notebook[] }>(
+    session ? "/api/notebooks" : null,
     fetcher
   )
   const notebooks = notebooksData?.notebooks ?? []
@@ -56,11 +64,25 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired 
   const [newNotebookName, setNewNotebookName] = useState("")
   const [isCreatingNotebook, setIsCreatingNotebook] = useState(false)
 
-  const { data: notesData, mutate: mutateNotes, isLoading: notesLoading } = useSWR<{ notes: NotebookNote[] }>(
+  const { data: notesData, mutate: mutateNotes, isLoading: notesLoading, error: notesError } = useSWR<{ notes: NotebookNote[] }>(
     activeNotebookId ? `/api/notebooks/${activeNotebookId}/notes` : null,
     fetcher
   )
   const notes = notesData?.notes ?? []
+
+  useEffect(() => {
+    if (notebooksError && (notebooksError.message.includes("401") || notebooksError.message.includes("403") || notebooksError.message.includes("sesión"))) {
+      localStorage.removeItem("joplin_session")
+      onSessionExpired()
+    }
+  }, [notebooksError, onSessionExpired])
+
+  useEffect(() => {
+    if (notesError && (notesError.message.includes("401") || notesError.message.includes("403") || notesError.message.includes("sesión"))) {
+      localStorage.removeItem("joplin_session")
+      onSessionExpired()
+    }
+  }, [notesError, onSessionExpired])
 
   const [newNoteTitle, setNewNoteTitle] = useState("")
   const [isCreatingNote, setIsCreatingNote] = useState(false)
