@@ -4,10 +4,9 @@ import { useEffect, useState } from "react"
 import useSWR from "swr"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
-import { Input } from "@/components/ui/input"
 import { fetcher } from "@/lib/fetcher"
 import type { JoplinNote } from "@/lib/types"
-import { X, Save, BookOpen, Key } from "lucide-react"
+import { X, Save } from "lucide-react"
 
 interface NotePanelProps {
   noteId: string | null
@@ -17,10 +16,6 @@ interface NotePanelProps {
 
 export function NotePanel({ noteId, reference, onClose }: NotePanelProps) {
   const [token, setToken] = useState<string | null>(null)
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [loggingIn, setLoggingIn] = useState(false)
-  const [loginError, setLoginError] = useState<string | null>(null)
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -29,7 +24,7 @@ export function NotePanel({ noteId, reference, onClose }: NotePanelProps) {
   }, [])
 
   const { data, isLoading, mutate, error } = useSWR<{ note: JoplinNote }>(
-    noteId && token ? `/api/notes/${noteId}` : null,
+    noteId ? `/api/notes/${noteId}` : null,
     fetcher,
   )
   const [body, setBody] = useState("")
@@ -47,33 +42,6 @@ export function NotePanel({ noteId, reference, onClose }: NotePanelProps) {
     }
   }, [error])
 
-  async function handleLogin() {
-    if (!email.trim() || !password.trim()) {
-      setLoginError("Correo y contraseña son obligatorios.")
-      return
-    }
-    setLoggingIn(true)
-    setLoginError(null)
-    try {
-      const res = await fetch("/api/joplin/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim(), password: password.trim() }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error)
-      
-      localStorage.setItem("joplin_token", data.token)
-      setToken(data.token)
-      setLoginError(null)
-      // Force reload page to refresh SWR states globally
-      window.location.reload()
-    } catch (e) {
-      setLoginError(e instanceof Error ? e.message : "Error al iniciar sesión")
-    } finally {
-      setLoggingIn(false)
-    }
-  }
 
   async function handleSave() {
     if (!noteId) return
@@ -101,51 +69,6 @@ export function NotePanel({ noteId, reference, onClose }: NotePanelProps) {
     }
   }
 
-  if (!token) {
-    return (
-      <div className="flex h-full flex-col items-center justify-center p-6 text-center">
-        <div className="mb-4 flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary">
-          <Key className="size-6" />
-        </div>
-        <h3 className="mb-1 text-sm font-semibold text-foreground">Conectar Joplin</h3>
-        <p className="mb-6 text-pretty text-xs text-muted-foreground leading-relaxed">
-          Introduce tus credenciales de Joplin Server para ver, crear y vincular tus notas.
-        </p>
-        <div className="w-full space-y-3">
-          <Input
-            type="email"
-            placeholder="Correo electrónico"
-            value={email}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
-            className="h-9 text-xs"
-            onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
-              if (e.key === "Enter") handleLogin()
-            }}
-          />
-          <Input
-            type="password"
-            placeholder="Contraseña"
-            value={password}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
-            className="h-9 text-xs"
-            onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
-              if (e.key === "Enter") handleLogin()
-            }}
-          />
-          {loginError && (
-            <p className="text-[11px] text-destructive text-left">{loginError}</p>
-          )}
-          <Button
-            onClick={handleLogin}
-            disabled={loggingIn}
-            className="w-full h-9 text-xs font-semibold"
-          >
-            {loggingIn ? "Conectando..." : "Iniciar Sesión"}
-          </Button>
-        </div>
-      </div>
-    )
-  }
 
   if (!noteId) {
     return (
@@ -153,16 +76,6 @@ export function NotePanel({ noteId, reference, onClose }: NotePanelProps) {
         <p className="text-pretty text-sm leading-relaxed">
           Selecciona un versículo y abre o crea una nota para verla aquí.
         </p>
-        <button
-          onClick={() => {
-            localStorage.removeItem("joplin_token")
-            setToken(null)
-            window.location.reload()
-          }}
-          className="mt-6 text-xs text-muted-foreground hover:text-destructive transition-colors underline"
-        >
-          Desconectar Joplin
-        </button>
       </div>
     )
   }
@@ -174,7 +87,9 @@ export function NotePanel({ noteId, reference, onClose }: NotePanelProps) {
           <p className="truncate text-sm font-medium text-foreground">
             {data?.note?.title ?? reference ?? "Nota"}
           </p>
-          <p className="text-xs text-muted-foreground">Nota de Joplin</p>
+          <p className="text-xs text-muted-foreground">
+            {noteId.startsWith("local:") ? "Nota local" : "Nota de Joplin"}
+          </p>
         </div>
         <Button variant="ghost" size="icon" onClick={onClose} aria-label="Cerrar panel">
           <X className="size-4" />
@@ -195,16 +110,9 @@ export function NotePanel({ noteId, reference, onClose }: NotePanelProps) {
       </div>
 
       <footer className="flex items-center justify-between gap-2 border-t border-border px-4 py-3">
-        <button
-          onClick={() => {
-            localStorage.removeItem("joplin_token")
-            setToken(null)
-            window.location.reload()
-          }}
-          className="text-xs text-muted-foreground hover:text-destructive transition-colors underline"
-        >
-          Cerrar sesión
-        </button>
+        <span className="text-xs text-muted-foreground">
+          {token ? "Sesión del navegador activa" : "Sesión gestionada por servidor"}
+        </span>
         <div className="flex items-center gap-2">
           <span className="text-xs text-muted-foreground">
             {savedAt ? `Guardado ${savedAt}` : "Cambios sin guardar"}
