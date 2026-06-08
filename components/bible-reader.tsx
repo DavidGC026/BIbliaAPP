@@ -12,22 +12,16 @@ import {
 } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import { fetcher } from "@/lib/fetcher"
+import { buildBiblePassageUrl } from "@/lib/bible-url"
 import type { Book, Verse, NoteLink, BibleVersion } from "@/lib/types"
 import { NotePanel } from "./note-panel"
 import { NotebookSidebar } from "./notebook-sidebar"
 import { VerseImageCreator } from "./verse-image-creator"
 import { FileText, Plus, ChevronLeft, ChevronRight, Search, X, Loader2, Copy, Share2, LogOut, Star, Image as ImageIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { BOOK_ID_TO_ABBR } from "@/lib/bible-url"
 
-const bookAbbrMap: Record<number, string> = {
-  1: "GEN", 2: "EXO", 3: "LEV", 4: "NUM", 5: "DEU", 6: "JOS", 7: "JDG", 8: "RUT", 9: "1SA", 10: "2SA",
-  11: "1KI", 12: "2KI", 13: "1CH", 14: "2CH", 15: "EZR", 16: "NEH", 17: "EST", 18: "JOB", 19: "PSA", 20: "PRO",
-  21: "ECC", 22: "SNG", 23: "ISA", 24: "JER", 25: "LAM", 26: "EZK", 27: "DAN", 28: "HOS", 29: "JOL", 30: "AMO",
-  31: "OBA", 32: "JON", 33: "MIC", 34: "NAM", 35: "HAB", 36: "ZEP", 37: "HAG", 38: "ZEC", 39: "MAL", 40: "MAT",
-  41: "MRK", 42: "LUK", 43: "JHN", 44: "ACT", 45: "ROM", 46: "1CO", 47: "2CO", 48: "GAL", 49: "EPH", 50: "PHP",
-  51: "COL", 52: "1TH", 53: "2TH", 54: "1TI", 55: "2TI", 56: "TIT", 57: "PHM", 58: "HEB", 59: "JAS", 60: "1PE",
-  61: "2PE", 62: "1JN", 63: "2JN", 64: "3JN", 65: "JUD", 66: "REV"
-}
+const bookAbbrMap = BOOK_ID_TO_ABBR
 
 export function BibleReader({
   initialBookId,
@@ -35,7 +29,9 @@ export function BibleReader({
   initialVerse,
   initialBibleId,
   onClearInitialValues,
-  showOnlyVerseNotes = false
+  showOnlyVerseNotes = false,
+  isGuest = false,
+  onLoginRequest,
 }: {
   initialBookId?: number | null
   initialChapter?: number | null
@@ -43,6 +39,8 @@ export function BibleReader({
   initialBibleId?: number | null
   onClearInitialValues?: () => void
   showOnlyVerseNotes?: boolean
+  isGuest?: boolean
+  onLoginRequest?: () => void
 } = {}) {
   const searchParams = useSearchParams()
   const paramsAppliedRef = useRef(false)
@@ -180,6 +178,7 @@ export function BibleReader({
         const start = parseInt(rangeMatch[1], 10)
         const end = rangeMatch[2] ? parseInt(rangeMatch[2], 10) : start
         if (!isNaN(start)) {
+          setCurrentVerse(start)
           setHighlightedVerse(start)
           const selected: number[] = []
           for (let i = start; i <= end; i++) {
@@ -205,7 +204,7 @@ export function BibleReader({
   // Sidebar Tab, Notebook Editing and Layout states
   const [sidebarTab, setSidebarTab] = useState<"verses" | "notebooks">("verses")
   const [editingNotebookNote, setEditingNotebookNote] = useState<{ id: number; title: string; content: string } | null>(null)
-  const [layoutMode, setLayoutMode] = useState<"split" | "bible" | "notebook">("split")
+  const [layoutMode, setLayoutMode] = useState<"split" | "bible" | "notebook">(isGuest ? "bible" : "split")
 
   // Force tab state if only verse notes mode is active
   useEffect(() => {
@@ -374,7 +373,7 @@ export function BibleReader({
     }
   }, [verses.length, bookId, chapter])
 
-  const linksKey = bookId ? `/api/links?book=${bookId}&chapter=${chapter}` : null
+  const linksKey = !isGuest && bookId ? `/api/links?book=${bookId}&chapter=${chapter}` : null
   const { data: linksData, mutate: mutateLinks } = useSWR<{ links: NoteLink[] }>(
     linksKey,
     fetcher,
@@ -386,7 +385,7 @@ export function BibleReader({
   }, [linksData])
 
   // 2. Highlights fetch logic
-  const highlightsKey = bookId && bibleId ? `/api/highlights?book=${bookId}&chapter=${chapter}&bibleId=${bibleId}` : null
+  const highlightsKey = !isGuest && bookId && bibleId ? `/api/highlights?book=${bookId}&chapter=${chapter}&bibleId=${bibleId}` : null
   const { data: highlightsData, mutate: mutateHighlights } = useSWR<{ highlights: { verse: number; color: string }[] }>(
     highlightsKey,
     fetcher,
@@ -474,12 +473,18 @@ export function BibleReader({
       .map(v => `${v.verse}. ${v.text}`)
       .join("\n\n")
 
-    const bookUsfm = bookAbbrMap[Number(currentBook?.bookId)] || ""
     const bibleAbbr = currentBible?.abbr || "RVR1960"
     const bibleIdVal = bibleId || 149
 
     const origin = typeof window !== "undefined" ? window.location.origin : "https://biblia2.dvguzman.com"
-    const customUrl = `${origin}/es/bible/${bibleIdVal}/${bookUsfm}.${chapter}.${verseRangeStr}.${bibleAbbr}`
+    const customUrl = buildBiblePassageUrl({
+      origin,
+      bibleId: bibleIdVal,
+      bookId: Number(currentBook?.bookId) || 1,
+      chapter,
+      verseRange: verseRangeStr,
+      bibleAbbr,
+    })
     const footerLine = `${currentBook?.bookName.toUpperCase()} ${chapter}:${verseRangeStr}\n${customUrl}`
 
     const clipboardText = `${titleLine}\n\n${bodyLines}\n\n${footerLine}`
@@ -568,12 +573,18 @@ export function BibleReader({
       .map(v => `${v.verse}. ${v.text}`)
       .join("\n\n")
 
-    const bookUsfm = bookAbbrMap[Number(currentBook?.bookId)] || ""
     const bibleAbbr = currentBible?.abbr || "RVR1960"
     const bibleIdVal = bibleId || 149
     
     const origin = typeof window !== "undefined" ? window.location.origin : "https://biblia2.dvguzman.com"
-    const customUrl = `${origin}/es/bible/${bibleIdVal}/${bookUsfm}.${chapter}.${verseRangeStr}.${bibleAbbr}`
+    const customUrl = buildBiblePassageUrl({
+      origin,
+      bibleId: bibleIdVal,
+      bookId: Number(currentBook?.bookId) || 1,
+      chapter,
+      verseRange: verseRangeStr,
+      bibleAbbr,
+    })
     const footerLine = `${currentBook?.bookName.toUpperCase()} ${chapter}:${verseRangeStr}\n${customUrl}`
 
     const shareText = `${titleLine}\n\n${bodyLines}\n\n${footerLine}`
@@ -656,6 +667,10 @@ export function BibleReader({
   }
 
   async function handleVerseNote(v: Verse) {
+    if (isGuest) {
+      onLoginRequest?.()
+      return
+    }
     setSidebarTab("verses") // Auto switch to verse notes tab
     const existing = linksByVerse.get(Number(v.verse))
     if (existing) {
@@ -735,7 +750,7 @@ export function BibleReader({
       >
         Solo Biblia
       </button>
-      {!showOnlyVerseNotes && (
+      {!showOnlyVerseNotes && !isGuest && (
         <button
           onClick={() => setLayoutMode("notebook")}
           className={cn(
@@ -805,13 +820,17 @@ export function BibleReader({
                   variant="ghost"
                   size="icon"
                   onClick={() => {
+                    if (isGuest) {
+                      onLoginRequest?.()
+                      return
+                    }
                     const el = document.querySelector<HTMLElement>('aside')
                     if (el) {
                       el.scrollIntoView({ behavior: 'smooth' })
                     }
                   }}
                   className="size-8 rounded-lg cursor-pointer text-emerald-600 dark:text-emerald-400"
-                  title="Ver notas"
+                  title={isGuest ? "Inicia sesión para ver notas" : "Ver notas"}
                 >
                   <FileText className="size-4" />
                 </Button>
@@ -1178,15 +1197,17 @@ export function BibleReader({
                     }}
                     draggable={false}
                     disabled={creating === Number(v.verse)}
-                    aria-label={hasNote ? "Ver nota" : "Añadir nota"}
+                    aria-label={isGuest ? "Inicia sesión para añadir nota" : hasNote ? "Ver nota" : "Añadir nota"}
                     className={cn(
                       "inline-flex size-7 shrink-0 items-center justify-center rounded-md transition-colors",
-                      hasNote
-                        ? "text-primary hover:bg-primary/10"
-                        : "text-muted-foreground/80 hover:text-foreground hover:bg-accent",
+                      isGuest
+                        ? "text-muted-foreground/60 hover:text-primary hover:bg-primary/10"
+                        : hasNote
+                          ? "text-primary hover:bg-primary/10"
+                          : "text-muted-foreground/80 hover:text-foreground hover:bg-accent",
                     )}
                   >
-                    {hasNote ? <FileText className="size-4" /> : <Plus className="size-4" />}
+                    {isGuest ? <FileText className="size-4" /> : hasNote ? <FileText className="size-4" /> : <Plus className="size-4" />}
                   </button>
                 </div>
               </li>
@@ -1225,6 +1246,7 @@ export function BibleReader({
       </section>
 
       {/* Sidebar Panel */}
+      {!isGuest && (
       <aside className={cn(
         "min-w-0 w-full self-start lg:sticky lg:top-2",
         layoutMode === "bible" && "hidden",
@@ -1303,6 +1325,7 @@ export function BibleReader({
           </div>
         </div>
       </aside>
+      )}
 
       {/* Floating Selection Toolbar */}
       {selectedVerses.length > 0 && (
@@ -1321,6 +1344,29 @@ export function BibleReader({
 
           <div className="w-[1px] h-5 sm:h-6 bg-border" />
 
+          {isGuest ? (
+            <>
+              <Button
+                variant="default"
+                size="sm"
+                onClick={handleCopySelection}
+                className="h-8 rounded-full text-xs font-semibold px-2 sm:px-3 gap-1 shadow-sm cursor-pointer"
+              >
+                <Copy className="size-3.5" />
+                <span className="hidden sm:inline">Copiar</span>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onLoginRequest?.()}
+                className="h-8 rounded-full text-xs font-semibold px-3 gap-1 shadow-sm cursor-pointer"
+              >
+                <FileText className="size-3.5" />
+                <span>Iniciar sesión</span>
+              </Button>
+            </>
+          ) : (
+          <>
           {/* Color palette */}
           <div className="flex items-center gap-1 sm:gap-1.5">
             <button
@@ -1402,7 +1448,10 @@ export function BibleReader({
               <Star className="size-3.5 fill-amber-500/20" />
               <span className="hidden sm:inline">Favorito</span>
             </Button>
-            <Button
+          </div>
+          </>
+          )}
+          <Button
               variant="ghost"
               size="icon"
               onClick={() => setSelectedVerses([])}
@@ -1411,7 +1460,6 @@ export function BibleReader({
             >
               <X className="size-4" />
             </Button>
-          </div>
         </div>
       )}
 

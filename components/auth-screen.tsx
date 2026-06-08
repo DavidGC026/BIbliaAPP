@@ -6,18 +6,19 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { BookOpen, User, Mail, Lock, Loader2, ArrowRight } from "lucide-react"
 
-interface User {
+interface AuthUser {
   id: number
   name: string
   email: string
   role: string
 }
 
-interface AuthScreenProps {
-  onLoginSuccess: (user: User) => void
+interface AuthFormProps {
+  onLoginSuccess: (user: AuthUser) => void
+  compact?: boolean
 }
 
-export function AuthScreen({ onLoginSuccess }: AuthScreenProps) {
+export function AuthForm({ onLoginSuccess, compact = false }: AuthFormProps) {
   const [isLogin, setIsLogin] = useState(true)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -32,7 +33,7 @@ export function AuthScreen({ onLoginSuccess }: AuthScreenProps) {
     setLoading(true)
 
     const url = isLogin ? "/api/auth/login" : "/api/auth/register"
-    const body = isLogin 
+    const body = isLogin
       ? { email: email.trim(), password }
       : { name: name.trim(), email: email.trim(), password, role }
 
@@ -48,10 +49,7 @@ export function AuthScreen({ onLoginSuccess }: AuthScreenProps) {
         throw new Error(data.error || "Algo salió mal")
       }
 
-      // Store token in localStorage
       localStorage.setItem("biblia_token", data.token)
-      
-      // Notify parent component
       onLoginSuccess(data.user)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error al procesar la solicitud")
@@ -61,122 +59,127 @@ export function AuthScreen({ onLoginSuccess }: AuthScreenProps) {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-background via-muted/50 to-background px-4 py-12 sm:px-6 lg:px-8">
-      <div className="w-full max-w-md space-y-8 rounded-2xl border border-border bg-card/60 p-8 shadow-xl backdrop-blur-md">
-        
-        {/* Header */}
-        <div className="flex flex-col items-center text-center">
-          <img 
-            src="/logo.png" 
-            alt="Logo BibliaAPP" 
-            className="size-16 rounded-2xl shadow-lg shadow-primary/25 mb-4 object-cover"
-          />
-          <h2 className="mt-6 text-3xl font-extrabold tracking-tight text-foreground">
-            BibliaAPP
-          </h2>
-          <p className="mt-2 text-sm text-muted-foreground">
-            {isLogin 
-              ? "Accede a tus lecturas, notas y devocionales" 
-              : "Crea tu cuenta para comenzar a estudiar"}
-          </p>
-        </div>
+    <div className={compact ? "p-6 sm:p-8" : "w-full max-w-md space-y-8 rounded-2xl border border-border bg-card/60 p-8 shadow-xl backdrop-blur-md"}>
+      <div className="flex flex-col items-center text-center">
+        <img
+          src="/logo.png"
+          alt="Logo BibliaAPP"
+          className={compact ? "size-12 rounded-xl shadow-md shadow-primary/20 mb-3 object-cover" : "size-16 rounded-2xl shadow-lg shadow-primary/25 mb-4 object-cover"}
+        />
+        <h2 className={compact ? "text-2xl font-extrabold tracking-tight text-foreground" : "mt-6 text-3xl font-extrabold tracking-tight text-foreground"}>
+          BibliaAPP
+        </h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          {isLogin
+            ? "Accede a tus lecturas, notas y devocionales"
+            : "Crea tu cuenta para comenzar a estudiar"}
+        </p>
+      </div>
 
-        {/* Form */}
-        <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
-          {error && (
-            <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive border border-destructive/20 text-center animate-shake">
-              {error}
+      <form className={compact ? "mt-6 space-y-4" : "mt-8 space-y-5"} onSubmit={handleSubmit}>
+        {error && (
+          <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive border border-destructive/20 text-center">
+            {error}
+          </div>
+        )}
+
+        <div className="space-y-4">
+          {!isLogin && (
+            <div className="relative">
+              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1">
+                Nombre Completo
+              </label>
+              <div className="relative">
+                <User className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
+                <Input
+                  type="text"
+                  required
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Juan Pérez"
+                  className="pl-9 h-10"
+                />
+              </div>
             </div>
           )}
 
-          <div className="space-y-4">
-            {!isLogin && (
-              <div className="relative">
-                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1">
-                  Nombre Completo
-                </label>
-                <div className="relative">
-                  <User className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
-                  <Input
-                    type="text"
-                    required
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Juan Pérez"
-                    className="pl-9 h-10"
-                  />
-                </div>
-              </div>
-            )}
-
-            <div>
-              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1">
-                Correo Electrónico
-              </label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
-                <Input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="ejemplo@correo.com"
-                  className="pl-9 h-10"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1">
-                Contraseña
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
-                <Input
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="pl-9 h-10"
-                />
-              </div>
+          <div>
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1">
+              Correo Electrónico
+            </label>
+            <div className="relative">
+              <Mail className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
+              <Input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="ejemplo@correo.com"
+                className="pl-9 h-10"
+              />
             </div>
           </div>
 
-          <Button
-            type="submit"
-            disabled={loading}
-            className="w-full h-10 mt-6 gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-md transition-all active:scale-[0.98]"
-          >
-            {loading ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <>
-                <span>{isLogin ? "Iniciar Sesión" : "Crear Cuenta"}</span>
-                <ArrowRight className="size-4" />
-              </>
-            )}
-          </Button>
-        </form>
-
-        {/* Toggle link */}
-        <div className="text-center pt-4 border-t border-border/40">
-          <button
-            type="button"
-            onClick={() => {
-              setIsLogin(!isLogin)
-              setError(null)
-            }}
-            className="text-xs font-semibold text-primary hover:underline transition-all"
-          >
-            {isLogin 
-              ? "¿No tienes una cuenta? Regístrate aquí" 
-              : "¿Ya tienes cuenta? Inicia sesión"}
-          </button>
+          <div>
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1">
+              Contraseña
+            </label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
+              <Input
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="pl-9 h-10"
+              />
+            </div>
+          </div>
         </div>
 
+        <Button
+          type="submit"
+          disabled={loading}
+          className="w-full h-10 mt-2 gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-md transition-all active:scale-[0.98]"
+        >
+          {loading ? (
+            <Loader2 className="size-4 animate-spin" />
+          ) : (
+            <>
+              <span>{isLogin ? "Iniciar Sesión" : "Crear Cuenta"}</span>
+              <ArrowRight className="size-4" />
+            </>
+          )}
+        </Button>
+      </form>
+
+      <div className="text-center pt-4 border-t border-border/40">
+        <button
+          type="button"
+          onClick={() => {
+            setIsLogin(!isLogin)
+            setError(null)
+          }}
+          className="text-xs font-semibold text-primary hover:underline transition-all"
+        >
+          {isLogin
+            ? "¿No tienes una cuenta? Regístrate aquí"
+            : "¿Ya tienes cuenta? Inicia sesión"}
+        </button>
       </div>
+    </div>
+  )
+}
+
+interface AuthScreenProps {
+  onLoginSuccess: (user: AuthUser) => void
+}
+
+export function AuthScreen({ onLoginSuccess }: AuthScreenProps) {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-background via-muted/50 to-background px-4 py-12 sm:px-6 lg:px-8">
+      <AuthForm onLoginSuccess={onLoginSuccess} />
     </div>
   )
 }

@@ -6,10 +6,7 @@ export async function GET(req: NextRequest) {
   try {
     const session = getSession(req)
     if (!session) {
-      return NextResponse.json(
-        { error: "No autorizado. Inicie sesión." },
-        { status: 401 }
-      )
+      return NextResponse.json({ user: null })
     }
 
     await updateUserStreak(session.userId)

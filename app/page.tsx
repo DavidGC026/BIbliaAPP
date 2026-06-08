@@ -4,7 +4,8 @@ import * as React from "react"
 import { useState, useEffect, Suspense, useCallback } from "react"
 import useSWR from "swr"
 import { fetcher } from "@/lib/fetcher"
-import { AuthScreen } from "@/components/auth-screen"
+import { AuthModal } from "@/components/auth-modal"
+import { LoginPrompt } from "@/components/login-prompt"
 import { ConnectionBanner } from "@/components/connection-banner"
 import { BibleReader } from "@/components/bible-reader"
 import { Button } from "@/components/ui/button"
@@ -32,8 +33,10 @@ import {
   BookText, 
   Heart, 
   Search, 
-  LogOut, 
+  LogOut,
+  LogIn,
   Loader2,
+  Lock,
   User,
   Users,
   Calendar,
@@ -50,6 +53,12 @@ import {
   PanelLeftOpen
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { getReaderDeepLinkFromSearch } from "@/lib/bible-url"
+
+function readInitialDeepLink() {
+  if (typeof window === "undefined") return null
+  return getReaderDeepLinkFromSearch(window.location.search)
+}
 
 interface UserProfile {
   id: number
@@ -61,8 +70,26 @@ interface UserProfile {
   streakCount: number
 }
 
+const GUEST_SECTIONS = ["dashboard", "reading", "search", "references"]
+
+const PROTECTED_TAB_MESSAGES: Record<string, { title: string; description: string }> = {
+  feed: { title: "Comunidad", description: "Inicia sesión para ver publicaciones, comentar y conectar con otros lectores." },
+  library: { title: "Biblioteca personal", description: "Guarda y organiza tus libros y recursos de estudio con una cuenta." },
+  notebook: { title: "Notas y libretas", description: "Crea notas vinculadas a versículos y organiza tus cuadernos de estudio." },
+  profile: { title: "Tu perfil", description: "Personaliza tu perfil, apodo y preferencias de estudio." },
+  favorites: { title: "Favoritos", description: "Marca versículos como favoritos para acceder a ellos rápidamente." },
+  highlights: { title: "Subrayados", description: "Resalta pasajes con colores y revísalos cuando quieras." },
+  plans: { title: "Planes de lectura", description: "Sigue planes de lectura y registra tu progreso diario." },
+  prayers: { title: "Peticiones de oración", description: "Comparte y acompaña peticiones de oración con la comunidad." },
+  devotionals: { title: "Diario devocional", description: "Escribe y guarda tus reflexiones espirituales personales." },
+  groups: { title: "Grupos", description: "Únete a grupos de estudio y crece junto a otros." },
+  activity: { title: "Actividad", description: "Consulta tu historial de lectura y actividad en la app." },
+  statistics: { title: "Estadísticas", description: "Visualiza tus hábitos de lectura y progreso espiritual." },
+  users: { title: "Gestión de usuarios", description: "Panel de administración de usuarios." },
+}
+
 export default function Page() {
-  const { data, error, mutate, isLoading } = useSWR<{ user: UserProfile }>(
+  const { data, mutate, isLoading } = useSWR<{ user: UserProfile | null }>(
     "/api/auth/me",
     fetcher,
     {
@@ -70,16 +97,21 @@ export default function Page() {
     }
   )
 
-  const user = data?.user
+  const user = data?.user ?? null
+  const isGuest = !isLoading && !user
+  const [showAuthModal, setShowAuthModal] = useState(false)
+  const openLogin = useCallback(() => setShowAuthModal(true), [])
   
-  // Navigation tabs
-  const [activeTab, setActiveTab] = useState<string>("reading")
+  const initialDeepLink = readInitialDeepLink()
 
-  // Direct reader navigation state (from Search page)
-  const [navBookId, setNavBookId] = useState<number | null>(null)
-  const [navChapter, setNavChapter] = useState<number | null>(null)
-  const [navVerse, setNavVerse] = useState<number | null>(null)
-  const [navBibleId, setNavBibleId] = useState<number | null>(null)
+  // Navigation tabs
+  const [activeTab, setActiveTab] = useState<string>(initialDeepLink ? "reading" : "dashboard")
+
+  // Direct reader navigation state (from Search page or shared links)
+  const [navBookId, setNavBookId] = useState<number | null>(initialDeepLink?.book ?? null)
+  const [navChapter, setNavChapter] = useState<number | null>(initialDeepLink?.chapter ?? null)
+  const [navVerse, setNavVerse] = useState<number | null>(initialDeepLink?.verse ?? null)
+  const [navBibleId, setNavBibleId] = useState<number | null>(initialDeepLink?.bible ?? null)
 
   // Separated Notebook Tab States
   const [notebookEditingNote, setNotebookEditingNote] = useState<{ id: number; title: string; content: string } | null>(null)
@@ -105,6 +137,7 @@ export default function Page() {
 
   // Parsed sections permissions
   const allowedSections = React.useMemo(() => {
+    if (isGuest) return GUEST_SECTIONS
     if (!user) return []
     
     // Default config that everyone should have access to
@@ -128,11 +161,23 @@ export default function Page() {
       // Default configurations for non-admin
       return defaultBasics
     }
-  }, [user])
+  }, [isGuest, user])
 
-  // Set default tab based on user role and permissions
+  // Set default tab based on user role and permissions (skip when opening a shared verse link)
   useEffect(() => {
-    if (user) {
+    const deepLink = getReaderDeepLinkFromSearch(window.location.search)
+    if (deepLink) {
+      setActiveTab("reading")
+      if (deepLink.bible) setNavBibleId(deepLink.bible)
+      if (deepLink.book) setNavBookId(deepLink.book)
+      if (deepLink.chapter) setNavChapter(deepLink.chapter)
+      if (deepLink.verse) setNavVerse(deepLink.verse)
+      return
+    }
+
+    if (isGuest) {
+      setActiveTab("dashboard")
+    } else if (user) {
       const defaults = user.role === "admin" ? "dashboard" : "reading"
       if (allowedSections.includes(defaults)) {
         setActiveTab(defaults)
@@ -140,7 +185,7 @@ export default function Page() {
         setActiveTab(allowedSections[0])
       }
     }
-  }, [user, allowedSections])
+  }, [isGuest, user, allowedSections])
 
   async function handleLogout() {
     if (!confirm("¿Estás seguro de cerrar sesión?")) return
@@ -181,13 +226,22 @@ export default function Page() {
   }
 
   // Render auth screen if not authenticated
-  if (error || !user) {
-    return <AuthScreen onLoginSuccess={() => mutate()} />
-  }
-
-  // Force username setup if missing
   if (user && !user.username) {
     return <UsernameSetupModal user={user} onComplete={() => mutate()} />
+  }
+
+  const isTabLocked = (tabId: string) => isGuest && !GUEST_SECTIONS.includes(tabId)
+
+  const renderProtectedTab = (tabId: string) => {
+    if (activeTab !== tabId || !isTabLocked(tabId)) return null
+    const msg = PROTECTED_TAB_MESSAGES[tabId]
+    return (
+      <LoginPrompt
+        title={msg?.title ? `${msg.title} requiere cuenta` : "Inicia sesión para continuar"}
+        description={msg?.description ?? "Esta función requiere iniciar sesión."}
+        onLogin={openLogin}
+      />
+    )
   }
 
   // Define tab navigation structure
@@ -215,13 +269,21 @@ export default function Page() {
     { id: "users", label: "Usuarios", icon: Users, section: "GENERAL" }
   ]
 
-  // Filter allowed navigation links
-  const desktopNavItems = allNavItems.filter(item => allowedSections.includes(item.id))
+  // Filter allowed navigation links (guests see all items, some locked)
+  const desktopNavItems = isGuest
+    ? allNavItems
+    : allNavItems.filter(item => allowedSections.includes(item.id))
 
-  // Mobile Bottom Navigation logic (shows first 4 allowed items + 1 "Más" button if > 5 allowed)
-  const showMoreButton = desktopNavItems.length > 5
-  const mobileDirectItems = showMoreButton ? desktopNavItems.slice(0, 4) : desktopNavItems
-  const mobileMoreItems = showMoreButton ? desktopNavItems.slice(4) : []
+  const guestDirectIds = ["dashboard", "reading", "search", "references"]
+  const showMoreButton = isGuest
+    ? allNavItems.some(item => !guestDirectIds.includes(item.id))
+    : desktopNavItems.length > 5
+  const mobileDirectItems = isGuest
+    ? allNavItems.filter(item => guestDirectIds.includes(item.id))
+    : showMoreButton ? desktopNavItems.slice(0, 4) : desktopNavItems
+  const mobileMoreItems = isGuest
+    ? allNavItems.filter(item => !guestDirectIds.includes(item.id))
+    : showMoreButton ? desktopNavItems.slice(4) : []
 
   // Get active tab label for mobile header
   const activeLabel = allNavItems.find(item => item.id === activeTab)?.label ?? "Estudio"
@@ -251,7 +313,7 @@ export default function Page() {
                 <div className="flex flex-col min-w-0">
                   <h1 className="text-sm font-bold tracking-tight text-foreground leading-none">BibliaAPP</h1>
                   <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider mt-0.5">
-                    {user.role === "admin" ? "Administrador" : "Lector"}
+                    {isGuest ? "Visitante" : user?.role === "admin" ? "Administrador" : "Lector"}
                   </p>
                 </div>
               )}
@@ -268,6 +330,7 @@ export default function Page() {
           </div>
 
           {/* Racha */}
+          {!isGuest && user && (
           <div className={cn("flex items-center mb-4 shrink-0", sidebarCollapsed ? "justify-center px-2" : "px-5")}>
             {sidebarCollapsed ? (
               <div title={`Racha: ${user.streakCount || 0} días`} className="flex items-center justify-center size-8 rounded-lg bg-amber-500/10 border border-amber-500/20">
@@ -280,6 +343,7 @@ export default function Page() {
               </div>
             )}
           </div>
+          )}
 
           {/* Navigation links */}
           <nav className={cn("flex-1 pb-4 space-y-1", sidebarCollapsed ? "px-2" : "px-3 space-y-5")}>
@@ -288,19 +352,24 @@ export default function Page() {
               desktopNavItems.map((item) => {
                 const Icon = item.icon
                 const isActive = activeTab === item.id
+                const locked = isTabLocked(item.id)
                 return (
                   <button
                     key={item.id}
                     onClick={() => setActiveTab(item.id)}
-                    title={item.label}
+                    title={locked ? `${item.label} (requiere cuenta)` : item.label}
                     className={cn(
-                      "flex items-center justify-center w-full p-2.5 rounded-xl transition-all group cursor-pointer",
+                      "flex items-center justify-center w-full p-2.5 rounded-xl transition-all group cursor-pointer relative",
                       isActive
                         ? "bg-primary text-primary-foreground shadow-md"
-                        : "text-muted-foreground hover:bg-accent/40 hover:text-foreground"
+                        : "text-muted-foreground hover:bg-accent/40 hover:text-foreground",
+                      locked && !isActive && "opacity-70"
                     )}
                   >
                     <Icon className="size-5 shrink-0" />
+                    {locked && (
+                      <Lock className="size-2.5 absolute top-1 right-1 text-muted-foreground" />
+                    )}
                   </button>
                 )
               })
@@ -317,6 +386,7 @@ export default function Page() {
                     {sectionItems.map((item) => {
                       const Icon = item.icon
                       const isActive = activeTab === item.id
+                      const locked = isTabLocked(item.id)
                       return (
                         <button
                           key={item.id}
@@ -325,11 +395,13 @@ export default function Page() {
                             "flex items-center gap-3 w-full px-3 py-2 rounded-xl text-sm font-medium transition-all group cursor-pointer",
                             isActive
                               ? "bg-primary text-primary-foreground shadow-md shadow-primary/10"
-                              : "text-muted-foreground hover:bg-accent/40 hover:text-foreground"
+                              : "text-muted-foreground hover:bg-accent/40 hover:text-foreground",
+                            locked && !isActive && "opacity-75"
                           )}
                         >
                           <Icon className={cn("size-4 shrink-0 transition-transform group-hover:scale-110", isActive ? "" : "text-muted-foreground group-hover:text-primary")} />
-                          <span>{item.label}</span>
+                          <span className="flex-1 text-left">{item.label}</span>
+                          {locked && <Lock className="size-3 shrink-0 opacity-60" />}
                         </button>
                       )
                     })}
@@ -342,7 +414,49 @@ export default function Page() {
 
         {/* User profile section & ThemeToggle */}
         <div className={cn("flex flex-col gap-2 p-3 border-t border-border bg-card/40", sidebarCollapsed && "items-center")}>
-          {sidebarCollapsed ? (
+          {isGuest ? (
+            sidebarCollapsed ? (
+              <>
+                <button
+                  onClick={toggleSidebar}
+                  title="Expandir menú"
+                  className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-all"
+                >
+                  <PanelLeftOpen className="size-4" />
+                </button>
+                <ThemeToggle />
+                <button
+                  onClick={openLogin}
+                  title="Iniciar sesión"
+                  className="p-2 rounded-lg text-primary hover:bg-primary/10 transition-all"
+                >
+                  <LogIn className="size-4" />
+                </button>
+              </>
+            ) : (
+              <>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="flex size-8 items-center justify-center rounded-full bg-muted text-muted-foreground shrink-0">
+                      <User className="size-4" />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-foreground truncate">Modo visitante</p>
+                      <p className="text-[10px] text-muted-foreground truncate">Explora sin cuenta</p>
+                    </div>
+                  </div>
+                  <ThemeToggle />
+                </div>
+                <button
+                  onClick={openLogin}
+                  className="flex items-center justify-center gap-2 w-full px-3 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-all cursor-pointer"
+                >
+                  <LogIn className="size-3.5" />
+                  <span>Iniciar sesión</span>
+                </button>
+              </>
+            )
+          ) : sidebarCollapsed ? (
             <>
               <button
                 onClick={toggleSidebar}
@@ -368,8 +482,8 @@ export default function Page() {
                     <User className="size-4" />
                   </span>
                   <div className="min-w-0">
-                    <p className="text-xs font-bold text-foreground truncate">{user.name}</p>
-                    <p className="text-[10px] text-muted-foreground truncate">{user.email}</p>
+                    <p className="text-xs font-bold text-foreground truncate">{user?.name}</p>
+                    <p className="text-[10px] text-muted-foreground truncate">{user?.email}</p>
                   </div>
                 </div>
                 <ThemeToggle />
@@ -397,10 +511,12 @@ export default function Page() {
           <span className="text-sm font-bold text-foreground">{activeLabel}</span>
           
           {/* Racha (Mobile) */}
+          {!isGuest && user && (
           <div className="flex items-center gap-0.5 text-xs font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-lg border border-amber-500/15">
             <Flame className="size-3.5 fill-amber-500 text-amber-500 animate-pulse" />
             <span>{user.streakCount || 0}</span>
           </div>
+          )}
         </div>
         
         <div className="flex items-center gap-1">
@@ -429,6 +545,15 @@ export default function Page() {
             </button>
           )}
           <ThemeToggle />
+          {isGuest ? (
+            <button
+              onClick={openLogin}
+              className="p-2 text-primary hover:bg-primary/10 transition-colors rounded"
+              title="Iniciar sesión"
+            >
+              <LogIn className="size-4.5" />
+            </button>
+          ) : (
           <button
             onClick={handleLogout}
             className="p-2 text-muted-foreground hover:text-destructive transition-colors rounded"
@@ -436,6 +561,7 @@ export default function Page() {
           >
             <LogOut className="size-4.5" />
           </button>
+          )}
         </div>
       </div>
 
@@ -443,11 +569,16 @@ export default function Page() {
       <div className={cn("flex-1 flex flex-col min-h-screen overflow-hidden pb-16 md:pb-0 transition-all duration-300 ease-in-out", sidebarCollapsed ? "md:pl-[60px]" : "md:pl-64")}>
         <div className="flex-grow p-4 md:p-6 overflow-y-auto">
           
-          {activeTab === "dashboard" && allowedSections.includes("dashboard") && (
-            <Dashboard userName={user.name} setActiveTab={setActiveTab} />
+          {activeTab === "dashboard" && !isTabLocked("dashboard") && (
+            <Dashboard
+              userName={user?.name}
+              isGuest={isGuest}
+              setActiveTab={setActiveTab}
+              onLoginRequest={openLogin}
+            />
           )}
 
-          {activeTab === "reading" && allowedSections.includes("reading") && (
+          {activeTab === "reading" && !isTabLocked("reading") && (
             <Suspense fallback={<div className="p-8 text-center text-sm text-muted-foreground">Cargando Biblia...</div>}>
               <BibleReader 
                 initialBookId={navBookId}
@@ -456,11 +587,14 @@ export default function Page() {
                 initialBibleId={navBibleId}
                 onClearInitialValues={handleClearNavValues}
                 showOnlyVerseNotes={true}
+                isGuest={isGuest}
+                onLoginRequest={openLogin}
               />
             </Suspense>
           )}
 
-          {activeTab === "feed" && allowedSections.includes("feed") && (
+          {renderProtectedTab("feed")}
+          {activeTab === "feed" && !isGuest && allowedSections.includes("feed") && user && (
             <div className="h-[calc(100vh-8rem)] md:h-[calc(100vh-3rem)] rounded-xl border border-border shadow-sm overflow-hidden bg-card/10">
               <Suspense fallback={<div className="p-8 text-center text-sm text-muted-foreground">Cargando Feed...</div>}>
                 <Feed currentUserId={user.id} />
@@ -468,7 +602,8 @@ export default function Page() {
             </div>
           )}
 
-          {activeTab === "profile" && allowedSections.includes("profile") && (
+          {renderProtectedTab("profile")}
+          {activeTab === "profile" && !isGuest && allowedSections.includes("profile") && user && (
             <div className="h-[calc(100vh-8rem)] md:h-[calc(100vh-3rem)] rounded-xl shadow-sm overflow-hidden">
               <Suspense fallback={<div className="p-8 text-center text-sm text-muted-foreground">Cargando Perfil...</div>}>
                 <ProfileSection currentUserId={user.id} initialUsername={user.username || undefined} />
@@ -476,7 +611,8 @@ export default function Page() {
             </div>
           )}
 
-          {activeTab === "notebook" && allowedSections.includes("notebook") && (
+          {renderProtectedTab("notebook")}
+          {activeTab === "notebook" && !isGuest && allowedSections.includes("notebook") && (
             <div className="h-[calc(100vh-8rem)] md:h-[calc(100vh-3rem)] rounded-xl border border-border bg-card/45 shadow-sm backdrop-blur-sm overflow-hidden p-4">
               <Suspense fallback={<div className="p-8 text-center text-sm text-muted-foreground">Cargando libreta...</div>}>
                 <NotebookSidebar 
@@ -491,54 +627,64 @@ export default function Page() {
             </div>
           )}
 
-          {activeTab === "devotionals" && allowedSections.includes("devotionals") && (
+          {renderProtectedTab("devotionals")}
+          {activeTab === "devotionals" && !isGuest && allowedSections.includes("devotionals") && (
             <Devotionals />
           )}
 
-          {activeTab === "plans" && allowedSections.includes("plans") && (
+          {renderProtectedTab("plans")}
+          {activeTab === "plans" && !isGuest && allowedSections.includes("plans") && user && (
             <ReadingPlans 
               onSelectReading={handleSelectVerse} 
               streakCount={user.streakCount || 0}
             />
           )}
 
-          {activeTab === "search" && allowedSections.includes("search") && (
+          {activeTab === "search" && !isTabLocked("search") && (
             <SearchAdvanced onSelectVerse={handleSelectVerse} />
           )}
 
-          {activeTab === "prayers" && allowedSections.includes("prayers") && (
+          {renderProtectedTab("prayers")}
+          {activeTab === "prayers" && !isGuest && allowedSections.includes("prayers") && (
             <PrayerRequests />
           )}
 
-          {activeTab === "groups" && allowedSections.includes("groups") && (
+          {renderProtectedTab("groups")}
+          {activeTab === "groups" && !isGuest && allowedSections.includes("groups") && (
             <Groups />
           )}
 
-          {activeTab === "activity" && allowedSections.includes("activity") && (
+          {renderProtectedTab("activity")}
+          {activeTab === "activity" && !isGuest && allowedSections.includes("activity") && (
             <Activity />
           )}
 
-          {activeTab === "statistics" && allowedSections.includes("statistics") && (
+          {renderProtectedTab("statistics")}
+          {activeTab === "statistics" && !isGuest && allowedSections.includes("statistics") && (
             <Statistics />
           )}
 
-          {activeTab === "favorites" && allowedSections.includes("favorites") && (
+          {renderProtectedTab("favorites")}
+          {activeTab === "favorites" && !isGuest && allowedSections.includes("favorites") && (
             <Favorites />
           )}
 
-          {activeTab === "highlights" && allowedSections.includes("highlights") && (
+          {renderProtectedTab("highlights")}
+          {activeTab === "highlights" && !isGuest && allowedSections.includes("highlights") && (
             <HighlightsManager />
           )}
 
-          {activeTab === "references" && allowedSections.includes("references") && (
+          {activeTab === "references" && !isTabLocked("references") && (
             <ReferencesExplorer />
           )}
 
-          {activeTab === "library" && allowedSections.includes("library") && (
+          {renderProtectedTab("library")}
+          {activeTab === "library" && !isGuest && allowedSections.includes("library") && (
             <PersonalLibrary />
           )}
 
-          {activeTab === "users" && allowedSections.includes("users") && (
+          {renderProtectedTab("users")}
+          {activeTab === "users" && !isGuest && allowedSections.includes("users") && user && (
             <UserManagement currentUserId={user.id} />
           )}
         </div>
@@ -631,6 +777,16 @@ export default function Page() {
           </button>
         )}
       </nav>
+
+      {showAuthModal && (
+        <AuthModal
+          onClose={() => setShowAuthModal(false)}
+          onLoginSuccess={() => {
+            setShowAuthModal(false)
+            mutate()
+          }}
+        />
+      )}
 
       {user && !user.username && (
         <UsernameSetupModal 
