@@ -17,7 +17,7 @@ const sourceSerif = Source_Serif_4({
 export const metadata: Metadata = {
   title: 'Study Bible DVG',
   description:
-    'Lee la Biblia Reina Valera 1960 y vincula versículos con tus notas de Joplin.',
+    'Lee la Biblia Reina Valera 1960 y guarda tus notas de estudio en tu libreta personal.',
   generator: 'v0.app',
   icons: {
     icon: [

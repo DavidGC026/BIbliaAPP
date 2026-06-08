@@ -45,12 +45,13 @@ interface NotebookSidebarProps {
   setEditingNote: (note: { id: number; title: string; content: string } | null) => void
   onSessionExpired: () => void
 }
+
 export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired }: NotebookSidebarProps) {
   const [session, setSession] = useState<string | null>(null)
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      setSession(localStorage.getItem("joplin_session"))
+      setSession(localStorage.getItem("biblia_token"))
     }
   }, [])
 
@@ -63,33 +64,45 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired 
   const [activeNotebookId, setActiveNotebookId] = useState<number | null>(null)
   const [newNotebookName, setNewNotebookName] = useState("")
   const [isCreatingNotebook, setIsCreatingNotebook] = useState(false)
+  const [creatingNotebook, setCreatingNotebook] = useState(false)
+  const [deletingNotebook, setDeletingNotebook] = useState(false)
 
+  const notesKey = activeNotebookId ? `/api/notebooks/${activeNotebookId}/notes` : null
   const { data: notesData, mutate: mutateNotes, isLoading: notesLoading, error: notesError } = useSWR<{ notes: NotebookNote[] }>(
-    activeNotebookId ? `/api/notebooks/${activeNotebookId}/notes` : null,
+    notesKey,
     fetcher
   )
   const notes = notesData?.notes ?? []
 
   useEffect(() => {
-    if (notebooksError && (notebooksError.message.includes("401") || notebooksError.message.includes("403") || notebooksError.message.includes("sesión"))) {
-      localStorage.removeItem("joplin_session")
+    if (notebooksError && (notebooksError.status === 401 || notebooksError.status === 403)) {
+      localStorage.removeItem("biblia_token")
       onSessionExpired()
     }
   }, [notebooksError, onSessionExpired])
 
   useEffect(() => {
-    if (notesError && (notesError.message.includes("401") || notesError.message.includes("403") || notesError.message.includes("sesión"))) {
-      localStorage.removeItem("joplin_session")
+    if (notesError && (notesError.status === 401 || notesError.status === 403)) {
+      localStorage.removeItem("biblia_token")
       onSessionExpired()
     }
   }, [notesError, onSessionExpired])
+
+  // Si la libreta activa ya no existe (p. ej. tras eliminarla), limpiar estado
+  useEffect(() => {
+    if (notesError?.status === 404 && activeNotebookId) {
+      setActiveNotebookId(null)
+      setEditingNote(null)
+      void mutateNotebooks()
+    }
+  }, [notesError, activeNotebookId, mutateNotebooks, setEditingNote])
 
   const [newNoteTitle, setNewNoteTitle] = useState("")
   const [isCreatingNote, setIsCreatingNote] = useState(false)
   const [savingNote, setSavingNote] = useState(false)
   const [savedAt, setSavedAt] = useState<string | null>(null)
 
-  // Fetch the full note content from Joplin Server when a note is selected
+  // Fetch the full note content when a note is selected
   const { data: noteDetails, isLoading: noteDetailsLoading } = useSWR<{ note: NotebookNote }>(
     editingNote ? `/api/notebooks/notes/${editingNote.id}` : null,
     fetcher
@@ -110,28 +123,38 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired 
   // Auto-focus textarea when verse is appended
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
-  // When notebooks load and there is no active notebook, select the first one if available
+  // Mantener libreta activa sincronizada con la lista real
   useEffect(() => {
-    if (notebooks.length > 0 && activeNotebookId === null) {
+    if (!notebooksData) return
+
+    if (notebooks.length === 0) {
+      if (activeNotebookId !== null) setActiveNotebookId(null)
+      return
+    }
+
+    if (activeNotebookId === null || !notebooks.some((n) => n.id === activeNotebookId)) {
       setActiveNotebookId(notebooks[0].id)
     }
-  }, [notebooks, activeNotebookId])
+  }, [notebooks, activeNotebookId, notebooksData])
 
   async function handleCreateNotebook() {
-    if (!newNotebookName.trim()) return
+    if (!newNotebookName.trim() || creatingNotebook) return
+    setCreatingNotebook(true)
+    const token = localStorage.getItem("biblia_token")
     try {
       const res = await fetch("/api/notebooks", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          ...(localStorage.getItem("joplin_session") ? { "x-joplin-session": localStorage.getItem("joplin_session")! } : {}),
+          ...(token ? { "Authorization": `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({ name: newNotebookName.trim() }),
       })
       const data = await res.json()
       if (res.status === 401 || res.status === 403) {
-        localStorage.removeItem("joplin_session")
+        localStorage.removeItem("biblia_token")
         onSessionExpired()
+        return
       }
       if (!res.ok) throw new Error(data.error)
       await mutateNotebooks()
@@ -140,45 +163,70 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired 
       setIsCreatingNotebook(false)
     } catch (e) {
       alert(e instanceof Error ? e.message : "Error al crear libreta")
+    } finally {
+      setCreatingNotebook(false)
     }
   }
 
   async function handleDeleteNotebook() {
-    if (!activeNotebookId) return
+    if (!activeNotebookId || deletingNotebook) return
     const currentNotebook = notebooks.find((n) => n.id === activeNotebookId)
     if (!confirm(`¿Estás seguro de eliminar la libreta "${currentNotebook?.name}" y todas sus notas?`)) {
       return
     }
+
+    const deletedId = activeNotebookId
+    setActiveNotebookId(null)
+    setEditingNote(null)
+    setIsCreatingNote(false)
+    setIsCreatingNotebook(false)
+    void mutateNotes(undefined, { revalidate: false })
+
+    setDeletingNotebook(true)
+    const token = localStorage.getItem("biblia_token")
     try {
-      const res = await fetch(`/api/notebooks/${activeNotebookId}`, {
+      const res = await fetch(`/api/notebooks/${deletedId}`, {
         method: "DELETE",
+        headers: {
+          ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+        },
       })
       if (!res.ok) {
         const data = await res.json()
         throw new Error(data.error)
       }
-      setActiveNotebookId(null)
-      setEditingNote(null)
-      await mutateNotebooks()
+
+      const updated = await mutateNotebooks()
+      const remaining = updated?.notebooks ?? []
+      if (remaining.length === 0) {
+        setActiveNotebookId(null)
+        setIsCreatingNotebook(true)
+      } else {
+        setActiveNotebookId(remaining[0].id)
+      }
     } catch (e) {
       alert(e instanceof Error ? e.message : "Error al eliminar libreta")
+      await mutateNotebooks()
+    } finally {
+      setDeletingNotebook(false)
     }
   }
 
   async function handleCreateNote() {
-    if (!activeNotebookId || !newNoteTitle.trim()) return
+    if (!hasValidNotebook || !activeNotebookId || !newNoteTitle.trim()) return
+    const token = localStorage.getItem("biblia_token")
     try {
       const res = await fetch(`/api/notebooks/${activeNotebookId}/notes`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          ...(localStorage.getItem("joplin_session") ? { "x-joplin-session": localStorage.getItem("joplin_session")! } : {}),
+          ...(token ? { "Authorization": `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({ title: newNoteTitle.trim(), content: "" }),
       })
       const data = await res.json()
       if (res.status === 401 || res.status === 403) {
-        localStorage.removeItem("joplin_session")
+        localStorage.removeItem("biblia_token")
         onSessionExpired()
       }
       if (!res.ok) throw new Error(data.error)
@@ -194,19 +242,20 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired 
   async function handleSaveNote() {
     if (!editingNote) return
     setSavingNote(true)
+    const token = localStorage.getItem("biblia_token")
     try {
       const res = await fetch(`/api/notebooks/notes/${editingNote.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          ...(localStorage.getItem("joplin_session") ? { "x-joplin-session": localStorage.getItem("joplin_session")! } : {}),
+          ...(token ? { "Authorization": `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({ title: editingNote.title, content: editingNote.content }),
       })
       if (!res.ok) {
         const data = await res.json()
         if (res.status === 401 || res.status === 403) {
-          localStorage.removeItem("joplin_session")
+          localStorage.removeItem("biblia_token")
           onSessionExpired()
         }
         throw new Error(data.error)
@@ -220,12 +269,16 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired 
     }
   }
 
-  async function handleDeleteNote(noteId: number, title: string, event: React.MouseEvent) {
-    event.stopPropagation() // Don't trigger editing note click
+  async function handleDeleteNote(noteId: number, title: string, event?: React.MouseEvent) {
+    event?.stopPropagation()
     if (!confirm(`¿Eliminar la nota "${title}"?`)) return
+    const token = localStorage.getItem("biblia_token")
     try {
       const res = await fetch(`/api/notebooks/notes/${noteId}`, {
         method: "DELETE",
+        headers: {
+          ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+        }
       })
       if (!res.ok) {
         const data = await res.json()
@@ -241,12 +294,13 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired 
   }
 
   const selectedNotebook = notebooks.find((n) => n.id === activeNotebookId)
+  const hasValidNotebook = activeNotebookId !== null && notebooks.some((n) => n.id === activeNotebookId)
 
-  // Notebook Note Editor view
+  // Note Editor view
   if (editingNote) {
     return (
       <div className="flex h-full flex-col">
-        <header className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
+        <header className="flex items-center justify-between gap-2 border-b border-border px-4 py-3 bg-card/40">
           <Button
             variant="ghost"
             size="sm"
@@ -260,6 +314,15 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired 
             <span>Volver</span>
           </Button>
           <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => handleDeleteNote(editingNote.id, editingNote.title)}
+              className="size-8 text-destructive hover:bg-destructive/10"
+              title="Eliminar nota"
+            >
+              <Trash2 className="size-4" />
+            </Button>
             <span className="text-xs text-muted-foreground">
               {savedAt ? `Guardado ${savedAt}` : "Cambios sin guardar"}
             </span>
@@ -291,7 +354,7 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired 
             {noteDetailsLoading ? (
               <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
                 <Loader2 className="mr-2 size-4 animate-spin" />
-                Cargando nota desde Joplin...
+                Cargando nota...
               </div>
             ) : (
               <Textarea
@@ -339,8 +402,7 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired 
   // Notebook & Note List view
   return (
     <div className="flex h-full flex-col">
-      <header className="flex flex-col gap-3 border-b border-border p-4">
-        {/* Notebook Selector & Creation */}
+      <header className="flex flex-col gap-3 border-b border-border p-4 bg-card/20">
         <div className="flex flex-col gap-2">
           <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             Mi Cuaderno
@@ -359,8 +421,12 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired 
                     if (e.key === "Escape") setIsCreatingNotebook(false)
                   }}
                 />
-                <Button size="sm" onClick={handleCreateNotebook}>
-                  Crear
+                <Button size="sm" onClick={handleCreateNotebook} disabled={creatingNotebook}>
+                  {creatingNotebook ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    "Crear"
+                  )}
                 </Button>
                 <Button
                   size="sm"
@@ -373,11 +439,12 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired 
             ) : (
               <>
                 <Select
-                  value={activeNotebookId ? String(activeNotebookId) : ""}
+                  value={hasValidNotebook ? String(activeNotebookId) : ""}
                   onValueChange={(val) => val && setActiveNotebookId(Number(val))}
+                  disabled={deletingNotebook || notebooks.length === 0}
                 >
                   <SelectTrigger className="flex-1">
-                    <SelectValue placeholder="Elige un cuaderno" />
+                    <SelectValue placeholder={deletingNotebook ? "Eliminando..." : "Elige un cuaderno"} />
                   </SelectTrigger>
                   <SelectContent>
                     {notebooks.map((n) => (
@@ -395,15 +462,20 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired 
                 >
                   <FolderPlus className="size-4" />
                 </Button>
-                {activeNotebookId && (
+                {hasValidNotebook && (
                   <Button
                     variant="outline"
                     size="icon"
                     onClick={handleDeleteNotebook}
+                    disabled={deletingNotebook}
                     className="text-destructive hover:bg-destructive/10"
                     title="Eliminar Libreta"
                   >
-                    <Trash2 className="size-4" />
+                    {deletingNotebook ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="size-4" />
+                    )}
                   </Button>
                 )}
               </>
@@ -414,10 +486,21 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired 
 
       {/* Note list for active notebook */}
       <div className="flex-1 overflow-auto p-4">
-        {!activeNotebookId ? (
+        {deletingNotebook ? (
           <div className="flex h-48 flex-col items-center justify-center text-center text-muted-foreground">
-            <BookOpen className="mb-2 size-8 text-muted-foreground/50" />
-            <p className="text-sm">Crea o selecciona una libreta para ver tus notas.</p>
+            <Loader2 className="mb-2 size-8 animate-spin text-primary" />
+            <p className="text-sm">Eliminando libreta...</p>
+          </div>
+        ) : !hasValidNotebook ? (
+          <div className="flex h-48 flex-col items-center justify-center gap-3 text-center text-muted-foreground">
+            <BookOpen className="size-8 text-muted-foreground/50" />
+            <p className="text-sm">No tienes libretas. Crea una nueva para empezar.</p>
+            {!isCreatingNotebook && (
+              <Button size="sm" onClick={() => setIsCreatingNotebook(true)} className="gap-1.5">
+                <FolderPlus className="size-4" />
+                Nueva libreta
+              </Button>
+            )}
           </div>
         ) : (
           <div className="flex flex-col gap-4">
@@ -497,8 +580,9 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired 
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="size-7 shrink-0 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="size-7 shrink-0 text-muted-foreground hover:text-destructive sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
                       onClick={(e: React.MouseEvent<HTMLButtonElement>) => handleDeleteNote(note.id, note.title, e)}
+                      aria-label={`Eliminar nota ${note.title}`}
                     >
                       <Trash2 className="size-4" />
                     </Button>

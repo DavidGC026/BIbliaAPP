@@ -24,7 +24,7 @@ export interface NoteLink {
   bookId: number
   chapter: number
   verse: number
-  joplinNoteId: string
+  noteContent?: string
   createdAt: string
 }
 
@@ -38,7 +38,6 @@ export interface JoplinNote {
 
 export interface HealthStatus {
   mysql: { ok: boolean; message: string }
-  joplin: { ok: boolean; message: string }
 }
 
 export interface Notebook {

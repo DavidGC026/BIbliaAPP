@@ -15,7 +15,6 @@ import { fetcher } from "@/lib/fetcher"
 import type { Book, Verse, NoteLink, BibleVersion } from "@/lib/types"
 import { NotePanel } from "./note-panel"
 import { NotebookSidebar } from "./notebook-sidebar"
-import { JoplinLogin } from "./joplin-login"
 import { FileText, Plus, ChevronLeft, ChevronRight, Search, X, Loader2, Copy, Share2, LogOut } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -29,7 +28,19 @@ const bookAbbrMap: Record<number, string> = {
   61: "2PE", 62: "1JN", 63: "2JN", 64: "3JN", 65: "JUD", 66: "REV"
 }
 
-export function BibleReader() {
+export function BibleReader({
+  initialBookId,
+  initialChapter,
+  initialVerse,
+  onClearInitialValues,
+  showOnlyVerseNotes = false
+}: {
+  initialBookId?: number | null
+  initialChapter?: number | null
+  initialVerse?: number | null
+  onClearInitialValues?: () => void
+  showOnlyVerseNotes?: boolean
+} = {}) {
   const searchParams = useSearchParams()
   const paramsAppliedRef = useRef(false)
   const skipClearSelectionRef = useRef(false)
@@ -37,6 +48,20 @@ export function BibleReader() {
   const { data: biblesData } = useSWR<{ bibles: BibleVersion[] }>("/api/bibles", fetcher)
   const bibles = biblesData?.bibles ?? []
   const [bibleId, setBibleId] = useState<number>(149)
+
+  // Apply props if available
+  useEffect(() => {
+    if (initialBookId) {
+      setBookId(initialBookId)
+      if (initialChapter) setChapter(initialChapter)
+      if (initialVerse) {
+        setCurrentVerse(initialVerse)
+        setHighlightedVerse(initialVerse)
+        setSelectedVerses([initialVerse])
+      }
+      onClearInitialValues?.()
+    }
+  }, [initialBookId, initialChapter, initialVerse, onClearInitialValues])
   const { data: booksData } = useSWR<{ books: Book[] }>(
     bibleId ? `/api/books?bible=${bibleId}` : null,
     fetcher,
@@ -173,13 +198,16 @@ export function BibleReader() {
   const [sidebarTab, setSidebarTab] = useState<"verses" | "notebooks">("verses")
   const [editingNotebookNote, setEditingNotebookNote] = useState<{ id: number; title: string; content: string } | null>(null)
   const [layoutMode, setLayoutMode] = useState<"split" | "bible" | "notebook">("split")
-  const [joplinSession, setJoplinSession] = useState<string | null>(null)
 
+  // Force tab state if only verse notes mode is active
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      setJoplinSession(localStorage.getItem("joplin_session"))
+    if (showOnlyVerseNotes) {
+      setSidebarTab("verses")
+      if (layoutMode === "notebook") {
+        setLayoutMode("split")
+      }
     }
-  }, [])
+  }, [showOnlyVerseNotes, layoutMode])
 
   // Search state
   const [searchQuery, setSearchQuery] = useState("")
@@ -567,17 +595,18 @@ export function BibleReader() {
     setSidebarTab("verses") // Auto switch to verse notes tab
     const existing = linksByVerse.get(Number(v.verse))
     if (existing) {
-      setActiveNoteId(existing.joplinNoteId)
+      setActiveNoteId(String(existing.id))
       setActiveRef(`${v.bookName} ${v.chapter}:${v.verse}`)
       return
     }
     setCreating(Number(v.verse))
+    const token = localStorage.getItem("biblia_token")
     try {
       const res = await fetch("/api/links", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          ...(joplinSession ? { "x-joplin-session": joplinSession } : {}),
+          ...(token ? { "Authorization": `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({
           bookId: v.bookId,
@@ -588,19 +617,20 @@ export function BibleReader() {
         }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error)
+      if (!res.ok) {
+        if (res.status === 401 || res.status === 403) {
+          localStorage.removeItem("biblia_token")
+          window.location.reload()
+          return
+        }
+        throw new Error(data.error)
+      }
       await mutateLinks()
-      setActiveNoteId(data.joplinNoteId)
+      setActiveNoteId(String(data.id))
       setActiveRef(`${v.bookName} ${v.chapter}:${v.verse}`)
     } catch (e) {
       const message = e instanceof Error ? e.message : "No se pudo crear la nota"
-      if (message.includes("401") || message.includes("403")) {
-        localStorage.removeItem("joplin_session")
-        setJoplinSession(null)
-        alert("La sesión de Joplin no es válida. Vuelve a iniciar sesión con tus credenciales.")
-      } else {
-        alert(message)
-      }
+      alert(message)
     } finally {
       setCreating(null)
     }
@@ -641,17 +671,19 @@ export function BibleReader() {
       >
         Solo Biblia
       </button>
-      <button
-        onClick={() => setLayoutMode("notebook")}
-        className={cn(
-          "px-2.5 py-1 text-xs font-semibold rounded transition-colors",
-          layoutMode === "notebook"
-            ? "bg-background shadow text-foreground font-bold"
-            : "text-muted-foreground hover:text-foreground"
-        )}
-      >
-        Solo Cuaderno
-      </button>
+      {!showOnlyVerseNotes && (
+        <button
+          onClick={() => setLayoutMode("notebook")}
+          className={cn(
+            "px-2.5 py-1 text-xs font-semibold rounded transition-colors",
+            layoutMode === "notebook"
+              ? "bg-background shadow text-foreground font-bold"
+              : "text-muted-foreground hover:text-foreground"
+          )}
+        >
+          Solo Cuaderno
+        </button>
+      )}
     </div>
   )
 
@@ -705,22 +737,20 @@ export function BibleReader() {
                   <span className="font-serif">Aa</span>
                 </Button>
 
-                {joplinSession && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => {
-                      const el = document.querySelector<HTMLElement>('aside')
-                      if (el) {
-                        el.scrollIntoView({ behavior: 'smooth' })
-                      }
-                    }}
-                    className="size-8 rounded-lg cursor-pointer text-emerald-600 dark:text-emerald-400"
-                    title="Ver notas"
-                  >
-                    <FileText className="size-4" />
-                  </Button>
-                )}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => {
+                    const el = document.querySelector<HTMLElement>('aside')
+                    if (el) {
+                      el.scrollIntoView({ behavior: 'smooth' })
+                    }
+                  }}
+                  className="size-8 rounded-lg cursor-pointer text-emerald-600 dark:text-emerald-400"
+                  title="Ver notas"
+                >
+                  <FileText className="size-4" />
+                </Button>
               </div>
             </div>
 
@@ -1148,57 +1178,50 @@ export function BibleReader() {
           layoutMode === "notebook" ? "h-[calc(100vh-1rem)]" : "h-[calc(100vh-1rem)]"
         )}>
           {/* Tab Switcher */}
-          <div className="flex items-center border-b border-border bg-muted/20 pr-2">
-            <button
-              onClick={() => setSidebarTab("verses")}
-              className={cn(
-                "flex-1 py-3 text-xs font-semibold uppercase tracking-wider transition-colors border-b-2 text-center",
-                sidebarTab === "verses"
-                  ? "border-primary text-primary bg-background font-bold"
-                  : "border-transparent text-muted-foreground hover:text-foreground hover:bg-accent/30"
-              )}
-            >
-              Notas de Versículo
-            </button>
-            <button
-              onClick={() => setSidebarTab("notebooks")}
-              className={cn(
-                "flex-1 py-3 text-xs font-semibold uppercase tracking-wider transition-colors border-b-2 text-center",
-                sidebarTab === "notebooks"
-                  ? "border-primary text-primary bg-background font-bold"
-                  : "border-transparent text-muted-foreground hover:text-foreground hover:bg-accent/30"
-              )}
-            >
-              Mis Cuadernos
-            </button>
-            
-            {joplinSession && (
+          {showOnlyVerseNotes ? (
+            <div className="px-4 py-3 border-b border-border bg-muted/10">
+              <span className="text-xs font-bold uppercase tracking-wider text-primary">
+                Notas de Versículo
+              </span>
+            </div>
+          ) : (
+            <div className="flex items-center border-b border-border bg-muted/20 pr-2">
               <button
-                onClick={() => {
-                  if (confirm("¿Cerrar sesión de Joplin?")) {
-                    localStorage.removeItem("joplin_session")
-                    setJoplinSession(null)
-                    setActiveNoteId(null)
-                    setEditingNotebookNote(null)
-                  }
-                }}
-                className="p-2 text-muted-foreground hover:text-destructive rounded transition-colors cursor-pointer"
-                title="Cerrar sesión de Joplin"
+                onClick={() => setSidebarTab("verses")}
+                className={cn(
+                  "flex-1 py-3 text-xs font-semibold uppercase tracking-wider transition-colors border-b-2 text-center",
+                  sidebarTab === "verses"
+                    ? "border-primary text-primary bg-background font-bold"
+                    : "border-transparent text-muted-foreground hover:text-foreground hover:bg-accent/30"
+                )}
               >
-                <LogOut className="size-4" />
+                Notas de Versículo
               </button>
-            )}
-          </div>
+              <button
+                onClick={() => setSidebarTab("notebooks")}
+                className={cn(
+                  "flex-1 py-3 text-xs font-semibold uppercase tracking-wider transition-colors border-b-2 text-center",
+                  sidebarTab === "notebooks"
+                    ? "border-primary text-primary bg-background font-bold"
+                    : "border-transparent text-muted-foreground hover:text-foreground hover:bg-accent/30"
+                )}
+              >
+                Mis Cuadernos
+              </button>
+            </div>
+          )}
 
           <div className="flex-1 overflow-hidden">
-            {!joplinSession ? (
-              <JoplinLogin onLogin={setJoplinSession} />
-            ) : sidebarTab === "verses" ? (
+            {sidebarTab === "verses" ? (
               <NotePanel
                 noteId={activeNoteId}
                 reference={activeRef}
                 onClose={() => setActiveNoteId(null)}
-                onSessionExpired={() => setJoplinSession(null)}
+                onDeleted={() => mutateLinks()}
+                onSessionExpired={() => {
+                  localStorage.removeItem("biblia_token")
+                  window.location.reload()
+                }}
               />
             ) : (
               <NotebookSidebar
@@ -1207,7 +1230,10 @@ export function BibleReader() {
                   setEditingNotebookNote(note)
                   if (note) setSidebarTab("notebooks")
                 }}
-                onSessionExpired={() => setJoplinSession(null)}
+                onSessionExpired={() => {
+                  localStorage.removeItem("biblia_token")
+                  window.location.reload()
+                }}
               />
             )}
           </div>
