@@ -420,40 +420,44 @@ export function VerseImageCreator({ open, onOpenChange, text, reference, abbr = 
           </div>
         </div>
 
-        <div className="flex w-full items-center justify-between p-4 bg-zinc-900 border-b border-white/10 shrink-0">
+        <div className="flex w-full items-center justify-between px-4 py-3 bg-zinc-900/80 backdrop-blur-xl border-b border-white/[0.06] shrink-0">
           <Button
             variant="ghost"
             size="icon"
             onClick={() => onOpenChange(false)}
-            className="text-white hover:bg-white/10 rounded-full"
+            className="text-white/70 hover:text-white hover:bg-white/10 rounded-full h-9 w-9"
           >
             <X className="h-5 w-5" />
           </Button>
-          <h2 className="text-sm font-semibold tracking-wide uppercase">Crear Imagen</h2>
-          <div className="flex gap-2">
+          <div className="flex flex-col items-center leading-none">
+            <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-primary/80">Editor</span>
+            <h2 className="text-sm font-semibold tracking-wide text-white mt-0.5">Crear Imagen</h2>
+          </div>
+          <div className="flex items-center gap-1.5">
             <Button
               variant="ghost"
               size="icon"
               onClick={handleDownloadImage}
               disabled={isExporting || isDownloadingBg}
-              className="text-white hover:bg-white/10 rounded-full"
+              className="text-white/70 hover:text-white hover:bg-white/10 rounded-full h-9 w-9"
               title="Descargar"
             >
               {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger
-                className="inline-flex items-center justify-center bg-primary text-white hover:bg-primary/90 rounded-full h-10 w-10 disabled:opacity-50"
+                className="inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-full h-9 pl-3 pr-4 text-sm font-semibold shadow-lg shadow-primary/20 transition-colors disabled:opacity-50"
                 disabled={isExporting || isDownloadingBg}
                 title="Compartir"
               >
                 {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Share2 className="h-4 w-4" />}
+                <span className="hidden sm:inline">Compartir</span>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-[200px] rounded-xl border-primary/10 bg-zinc-900 text-white backdrop-blur-xl">
-                <DropdownMenuItem onClick={handleShareImageCommunity} className="rounded-lg cursor-pointer hover:bg-white/10">
+              <DropdownMenuContent align="end" className="w-[210px] rounded-xl border-white/10 bg-zinc-900/95 text-white backdrop-blur-xl shadow-2xl">
+                <DropdownMenuItem onClick={handleShareImageCommunity} className="rounded-lg cursor-pointer hover:bg-white/10 focus:bg-white/10">
                   Compartir en Comunidad
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleShareImageExternal} className="rounded-lg cursor-pointer hover:bg-white/10">
+                <DropdownMenuItem onClick={handleShareImageExternal} className="rounded-lg cursor-pointer hover:bg-white/10 focus:bg-white/10">
                   Compartir Externo
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -461,14 +465,17 @@ export function VerseImageCreator({ open, onOpenChange, text, reference, abbr = 
           </div>
         </div>
 
-        <div className="flex-1 flex items-center justify-center bg-zinc-950 p-4 overflow-y-auto min-h-[50vh]">
+        <div className="flex-1 flex items-center justify-center bg-gradient-to-b from-zinc-950 to-black p-6 overflow-y-auto min-h-[50vh]">
           {isDownloadingBg ? (
-            <div className="flex flex-col items-center gap-2 text-white/50">
-              <Loader2 className="h-8 w-8 animate-spin" />
+            <div className="flex flex-col items-center gap-3 text-white/50">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
               <p className="text-xs">Cargando imagen de alta calidad...</p>
             </div>
           ) : (
-            <div style={{ width: previewWidth, height: previewHeight }}>
+            <div
+              className="rounded-xl overflow-hidden ring-1 ring-white/10 shadow-2xl shadow-black/60"
+              style={{ width: previewWidth, height: previewHeight }}
+            >
               <div
                 style={{
                   transform: `scale(${previewScale})`,
@@ -483,8 +490,11 @@ export function VerseImageCreator({ open, onOpenChange, text, reference, abbr = 
           )}
         </div>
 
-        <div className="w-full bg-zinc-900 border-t border-white/10 shrink-0 flex flex-col h-[35vh]">
-          <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+        <div className="w-full bg-zinc-900/90 backdrop-blur-xl border-t border-white/[0.06] shrink-0 flex flex-col h-[35vh] rounded-t-2xl -mt-3">
+          <div className="flex justify-center pt-2.5 pb-1">
+            <div className="h-1 w-10 rounded-full bg-white/15" />
+          </div>
+          <div className="flex-1 overflow-y-auto px-4 pb-2 custom-scrollbar">
             {editorTab === "format" && (
               <div className="flex items-center justify-center gap-4 h-full">
                 {(["1:1", "3:4", "9:16"] as AspectRatio[]).map((ratio) => (
@@ -492,8 +502,10 @@ export function VerseImageCreator({ open, onOpenChange, text, reference, abbr = 
                     key={ratio}
                     onClick={() => setAspectRatio(ratio)}
                     className={cn(
-                      "flex flex-col items-center justify-center gap-2 transition-all rounded-lg p-2 border-2",
-                      aspectRatio === ratio ? "border-primary bg-primary/10 text-primary" : "border-transparent text-white/60 hover:text-white",
+                      "flex flex-col items-center justify-center gap-2.5 transition-all rounded-xl px-5 py-4 border",
+                      aspectRatio === ratio
+                        ? "border-primary/60 bg-primary/10 text-primary shadow-lg shadow-primary/10"
+                        : "border-white/10 text-white/50 hover:text-white hover:border-white/20 hover:bg-white/5",
                     )}
                   >
                     <div
@@ -509,7 +521,7 @@ export function VerseImageCreator({ open, onOpenChange, text, reference, abbr = 
             )}
 
             {editorTab === "backgrounds" && (
-              <div className="grid grid-cols-3 gap-2 h-full auto-rows-[100px]">
+              <div className="grid grid-cols-3 gap-2.5 h-full auto-rows-[100px]">
                 <button
                   onClick={() => {
                     setBackgroundImageUrl(undefined)
@@ -517,38 +529,44 @@ export function VerseImageCreator({ open, onOpenChange, text, reference, abbr = 
                     setSelectedUnsplashId(null)
                   }}
                   className={cn(
-                    "flex flex-col items-center justify-center rounded-lg border-2 bg-gradient-to-b from-zinc-800 to-zinc-900 transition-all",
-                    !backgroundImageUrl ? "border-primary" : "border-transparent",
+                    "flex flex-col items-center justify-center gap-1.5 rounded-xl border bg-gradient-to-b from-zinc-800 to-zinc-900 transition-all",
+                    !backgroundImageUrl
+                      ? "border-primary/60 ring-2 ring-primary/40"
+                      : "border-white/10 hover:border-white/20",
                   )}
                 >
-                  <div className="h-6 w-6 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 mb-1" />
+                  <div className="h-7 w-7 rounded-full bg-gradient-to-br from-indigo-500 to-primary" />
                   <span className="text-[10px] font-medium text-white/80">Colores</span>
                 </button>
 
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="flex flex-col items-center justify-center rounded-lg border-2 border-transparent bg-white/5 hover:bg-white/10 transition-all"
+                  className="flex flex-col items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20 transition-all"
                 >
-                  <Upload className="h-6 w-6 text-white/70 mb-1" />
+                  <Upload className="h-6 w-6 text-white/70" />
                   <span className="text-[10px] font-medium text-white/80">Subir</span>
                 </button>
                 <input type="file" accept="image/*" ref={fileInputRef} className="hidden" onChange={handleLocalImageUpload} />
 
                 {isLoadingImages ? (
-                  <div className="flex items-center justify-center rounded-lg bg-white/5 border-2 border-transparent">
-                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                  </div>
+                  Array.from({ length: 6 }).map((_, i) => (
+                    <div key={i} className="flex items-center justify-center rounded-xl bg-white/5 border border-white/10 animate-pulse">
+                      {i === 0 && <Loader2 className="h-5 w-5 animate-spin text-primary" />}
+                    </div>
+                  ))
                 ) : (
                   unsplashImages.map((img) => (
                     <button
                       key={img.id}
                       onClick={() => handleSelectUnsplashImage(img.url, img.id)}
                       className={cn(
-                        "relative rounded-lg overflow-hidden border-2 transition-all",
-                        selectedUnsplashId === img.id ? "border-primary shadow-lg shadow-primary/20 scale-[1.02]" : "border-transparent opacity-80 hover:opacity-100",
+                        "relative rounded-xl overflow-hidden border transition-all",
+                        selectedUnsplashId === img.id
+                          ? "border-primary/60 ring-2 ring-primary/40 shadow-lg shadow-primary/20 scale-[1.02]"
+                          : "border-white/10 opacity-80 hover:opacity-100 hover:border-white/20",
                       )}
                     >
-                      <img src={img.thumb} alt="Unsplash" className="object-cover h-full w-full" />
+                      <img src={img.thumb || "/placeholder.svg"} alt="Fondo de Unsplash" className="object-cover h-full w-full" />
                     </button>
                   ))
                 )}
@@ -556,11 +574,11 @@ export function VerseImageCreator({ open, onOpenChange, text, reference, abbr = 
             )}
 
             {editorTab === "settings" && (
-              <div className="flex flex-col gap-6 pt-2 h-full max-w-md mx-auto w-full">
-                <div className="space-y-3">
+              <div className="flex flex-col gap-5 pt-2 h-full max-w-md mx-auto w-full">
+                <div className="space-y-2.5 rounded-xl border border-white/10 bg-white/[0.03] p-4">
                   <div className="flex justify-between items-center">
                     <label className="text-[11px] font-bold uppercase tracking-wider text-white/80">Tamaño de Letra</label>
-                    <span className="text-xs text-primary font-mono">{textSize}px</span>
+                    <span className="text-xs text-primary font-mono tabular-nums">{textSize}px</span>
                   </div>
                   <input
                     type="range"
@@ -573,10 +591,10 @@ export function VerseImageCreator({ open, onOpenChange, text, reference, abbr = 
                   />
                 </div>
 
-                <div className="space-y-3">
+                <div className="space-y-2.5 rounded-xl border border-white/10 bg-white/[0.03] p-4">
                   <div className="flex justify-between items-center">
                     <label className="text-[11px] font-bold uppercase tracking-wider text-white/80">Opacidad Oscura</label>
-                    <span className="text-xs text-primary font-mono">{overlayOpacity}%</span>
+                    <span className="text-xs text-primary font-mono tabular-nums">{overlayOpacity}%</span>
                   </div>
                   <input
                     type="range"
@@ -589,10 +607,10 @@ export function VerseImageCreator({ open, onOpenChange, text, reference, abbr = 
                   />
                 </div>
 
-                <div className="space-y-3">
+                <div className="space-y-2.5 rounded-xl border border-white/10 bg-white/[0.03] p-4">
                   <div className="flex justify-between items-center">
                     <label className="text-[11px] font-bold uppercase tracking-wider text-white/80">Difuminar (Blur)</label>
-                    <span className="text-xs text-primary font-mono">{bgBlur}px</span>
+                    <span className="text-xs text-primary font-mono tabular-nums">{bgBlur}px</span>
                   </div>
                   <input
                     type="range"
@@ -608,10 +626,13 @@ export function VerseImageCreator({ open, onOpenChange, text, reference, abbr = 
             )}
           </div>
 
-          <div className="flex items-center justify-around p-3 border-t border-white/10 bg-zinc-950 pb-safe">
+          <div className="flex items-center justify-around p-2 border-t border-white/[0.06] bg-zinc-950/80 pb-safe">
             <button
               onClick={() => setEditorTab("format")}
-              className={cn("flex flex-col items-center gap-1 transition-colors", editorTab === "format" ? "text-primary" : "text-white/50 hover:text-white")}
+              className={cn(
+                "flex flex-col items-center gap-1 transition-all rounded-xl px-5 py-2",
+                editorTab === "format" ? "text-primary bg-primary/10" : "text-white/50 hover:text-white hover:bg-white/5",
+              )}
             >
               <Layout className="h-5 w-5" />
               <span className="text-[10px] font-medium">Formato</span>
@@ -619,7 +640,10 @@ export function VerseImageCreator({ open, onOpenChange, text, reference, abbr = 
 
             <button
               onClick={() => setEditorTab("backgrounds")}
-              className={cn("flex flex-col items-center gap-1 transition-colors", editorTab === "backgrounds" ? "text-primary" : "text-white/50 hover:text-white")}
+              className={cn(
+                "flex flex-col items-center gap-1 transition-all rounded-xl px-5 py-2",
+                editorTab === "backgrounds" ? "text-primary bg-primary/10" : "text-white/50 hover:text-white hover:bg-white/5",
+              )}
             >
               <ImageIcon className="h-5 w-5" />
               <span className="text-[10px] font-medium">Fondos</span>
@@ -627,7 +651,10 @@ export function VerseImageCreator({ open, onOpenChange, text, reference, abbr = 
 
             <button
               onClick={() => setEditorTab("settings")}
-              className={cn("flex flex-col items-center gap-1 transition-colors", editorTab === "settings" ? "text-primary" : "text-white/50 hover:text-white")}
+              className={cn(
+                "flex flex-col items-center gap-1 transition-all rounded-xl px-5 py-2",
+                editorTab === "settings" ? "text-primary bg-primary/10" : "text-white/50 hover:text-white hover:bg-white/5",
+              )}
             >
               <Settings2 className="h-5 w-5" />
               <span className="text-[10px] font-medium">Ajustes</span>
