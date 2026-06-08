@@ -5,7 +5,12 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
-import {
+import { 
+  BookMarked, 
+  ChevronRight, 
+  Clock, 
+  Folder, 
+  MoreVertical, 
   Plus, 
   Search, 
   Settings2, 
@@ -25,7 +30,8 @@ import {
   Sparkles,
   FileText,
   Calendar,
-  MoreHorizontal
+  MoreHorizontal,
+  Upload
 } from "lucide-react"
 
 const AVAILABLE_TAGS = [
@@ -99,6 +105,7 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired 
   const [isPublishing, setIsPublishing] = useState(false)
   const [configCover, setConfigCover] = useState("grad-purple")
   const [customCoverUrl, setCustomCoverUrl] = useState("")
+  const [isUploadingCover, setIsUploadingCover] = useState(false)
   const [savingNotebook, setSavingNotebook] = useState(false)
   const [deletingNotebook, setDeletingNotebook] = useState(false)
 
@@ -762,6 +769,91 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired 
             </div>
           </div>
         )}
+
+        {/* Publish Note Modal */}
+        {showPublishModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-fade-in">
+            <div className="bg-card w-full max-w-md rounded-2xl border border-border shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+              <div className="flex items-center justify-between p-4 border-b border-border/50 bg-muted/20">
+                <h3 className="font-bold text-foreground flex items-center gap-2">
+                  <Share2 className="size-4 text-primary" />
+                  Publicar en Comunidad
+                </h3>
+                <button 
+                  onClick={() => setShowPublishModal(false)}
+                  className="p-1 rounded-full hover:bg-muted text-muted-foreground transition-colors"
+                >
+                  <X className="size-4" />
+                </button>
+              </div>
+
+              <div className="p-5 space-y-4 overflow-y-auto">
+                <p className="text-sm text-muted-foreground">
+                  Comparte esta nota con todos en el feed de la comunidad.
+                </p>
+                <div className="space-y-2">
+                  <label htmlFor="publish-comment" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Agrega un comentario (opcional)</label>
+                  <Textarea
+                    id="publish-comment"
+                    placeholder="¿Por qué quieres compartir esto?"
+                    value={publishComment}
+                    onChange={(e) => setPublishComment(e.target.value)}
+                    className="resize-none h-20 text-sm"
+                  />
+                </div>
+                <div className="bg-muted/40 p-3 rounded-lg border border-border/50 text-sm">
+                  <strong className="block mb-1 text-foreground">{editingNote.title || "Sin título"}</strong>
+                  <p className="line-clamp-3 text-muted-foreground/80">{editingNote.content}</p>
+                </div>
+              </div>
+
+              <div className="p-4 border-t border-border/60 bg-muted/20 flex justify-end gap-2.5">
+                <Button 
+                  variant="ghost" 
+                  onClick={() => setShowPublishModal(false)}
+                  className="h-9 px-4 text-xs font-semibold"
+                >
+                  Cancelar
+                </Button>
+                <Button 
+                  onClick={async () => {
+                    if (isPublishing) return
+                    setIsPublishing(true)
+                    try {
+                      const postContent = publishComment.trim()
+                        ? `${publishComment.trim()}\n\n---\n**${editingNote.title}**\n${editingNote.content}`
+                        : `**${editingNote.title}**\n${editingNote.content}`
+                      
+                      const res = await fetch("/api/feed/posts", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          type: "note",
+                          content: postContent,
+                          isPublic: true
+                        })
+                      })
+                      if (!res.ok) throw new Error("Failed to publish")
+                      setShowPublishModal(false)
+                      setPublishComment("")
+                      alert("¡Nota publicada en la comunidad!")
+                    } catch (err) {
+                      console.error("Error publishing note:", err)
+                      alert("Error al publicar la nota")
+                    } finally {
+                      setIsPublishing(false)
+                    }
+                  }}
+                  disabled={isPublishing}
+                  className="h-9 px-4 text-xs font-semibold bg-primary hover:bg-primary/90"
+                >
+                  {isPublishing && <Loader2 className="size-4 animate-spin mr-2" />}
+                  Publicar
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     )
   }
@@ -1191,12 +1283,51 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired 
 
               <div className="space-y-1">
                 <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">O URL de Imagen de Portada (Opcional)</label>
-                <Input 
-                  value={customCoverUrl}
-                  onChange={(e) => setCustomCoverUrl(e.target.value)}
-                  placeholder="https://images.unsplash.com/..."
-                  className="h-10 text-xs"
-                />
+                <div className="flex gap-2">
+                  <Input 
+                    value={customCoverUrl}
+                    onChange={(e) => setCustomCoverUrl(e.target.value)}
+                    placeholder="https://images.unsplash.com/..."
+                    className="h-10 text-xs flex-1"
+                  />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    id="cover-upload"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0]
+                      if (!file) return
+                      setIsUploadingCover(true)
+                      try {
+                        const formData = new FormData()
+                        formData.append("file", file)
+                        const res = await fetch("/api/upload", {
+                          method: "POST",
+                          body: formData
+                        })
+                        if (!res.ok) throw new Error("Error al subir imagen")
+                        const data = await res.json()
+                        setCustomCoverUrl(data.url)
+                        setConfigCover("")
+                      } catch (err) {
+                        console.error(err)
+                        alert("Hubo un problema al subir la imagen")
+                      } finally {
+                        setIsUploadingCover(false)
+                      }
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-10 px-3"
+                    disabled={isUploadingCover}
+                    onClick={() => document.getElementById("cover-upload")?.click()}
+                  >
+                    {isUploadingCover ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
+                  </Button>
+                </div>
               </div>
             </div>
 
@@ -1210,7 +1341,7 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired 
               </Button>
               <Button 
                 onClick={handleSaveNotebook}
-                disabled={savingNotebook || !configName.trim()}
+                disabled={savingNotebook || isUploadingCover || !configName.trim()}
                 className="h-9 px-4 text-xs font-semibold bg-primary hover:bg-primary/90 shadow-md"
               >
                 {savingNotebook ? <Loader2 className="size-4 animate-spin" /> : "Guardar Libreta"}

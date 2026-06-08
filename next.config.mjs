@@ -3,7 +3,7 @@ const csp = [
   "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://static.cloudflareinsights.com",
   "script-src-elem 'self' 'unsafe-inline' https://static.cloudflareinsights.com",
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob:",
+  "img-src 'self' data: blob: https: http:",
   "font-src 'self' data:",
   "connect-src 'self' https://biblia2.dvguzman.com https://static.cloudflareinsights.com",
   "frame-ancestors 'self'",
