@@ -38,7 +38,7 @@ interface VerseResult {
 }
 
 interface SearchAdvancedProps {
-  onSelectVerse: (bookId: number, chapter: number, verse: number) => void
+  onSelectVerse: (bookId: number, chapter: number, verse: number, bibleId?: number) => void
 }
 
 export function SearchAdvanced({ onSelectVerse }: SearchAdvancedProps) {
@@ -224,7 +224,7 @@ export function SearchAdvanced({ onSelectVerse }: SearchAdvancedProps) {
               {results.map((verse) => (
                 <div
                   key={verse.id}
-                  onClick={() => onSelectVerse(verse.bookId, verse.chapter, verse.verse)}
+                  onClick={() => onSelectVerse(verse.bookId, verse.chapter, verse.verse, Number(bibleId))}
                   className="group p-4 rounded-xl border border-border bg-card/65 hover:bg-accent/40 cursor-pointer transition-all duration-200 hover:scale-[1.002] hover:shadow-sm"
                 >
                   <div className="flex items-start justify-between gap-4">

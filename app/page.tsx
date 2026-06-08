@@ -21,6 +21,7 @@ import { Statistics } from "@/components/statistics"
 import { Favorites } from "@/components/favorites"
 import { HighlightsManager } from "@/components/highlights-manager"
 import { ReferencesExplorer } from "@/components/references-explorer"
+import { PersonalLibrary } from "@/components/personal-library"
 import { 
   BookOpen, 
   LayoutDashboard, 
@@ -38,7 +39,8 @@ import {
   Star,
   HeartHandshake,
   Highlighter,
-  Link as LinkIcon
+  Link as LinkIcon,
+  Library
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -69,6 +71,7 @@ export default function Page() {
   const [navBookId, setNavBookId] = useState<number | null>(null)
   const [navChapter, setNavChapter] = useState<number | null>(null)
   const [navVerse, setNavVerse] = useState<number | null>(null)
+  const [navBibleId, setNavBibleId] = useState<number | null>(null)
 
   // Separated Notebook Tab States
   const [notebookEditingNote, setNotebookEditingNote] = useState<{ id: number; title: string; content: string } | null>(null)
@@ -79,7 +82,7 @@ export default function Page() {
     
     // Always grant full access to admins, overriding custom allowedSections
     if (user.role === "admin") {
-      return ["dashboard", "reading", "search", "notebook", "favorites", "highlights", "references", "plans", "prayers", "devotionals", "groups", "activity", "statistics", "users"]
+      return ["dashboard", "reading", "search", "notebook", "favorites", "highlights", "references", "library", "plans", "prayers", "devotionals", "groups", "activity", "statistics", "users"]
     }
 
     if (user.allowedSections) {
@@ -89,14 +92,14 @@ export default function Page() {
           : user.allowedSections
         
         // Ensure new basic features are always available
-        const defaultBasics = ["search", "highlights", "references"]
+        const defaultBasics = ["search", "highlights", "references", "library"]
         return Array.from(new Set([...parsed, ...defaultBasics]))
       } catch (_) {
-        return ["reading", "search", "notebook", "highlights", "references", "plans"]
+        return ["reading", "search", "notebook", "highlights", "references", "library", "plans"]
       }
     } else {
       // Default configurations for non-admin
-      return ["reading", "search", "notebook", "favorites", "highlights", "references", "plans", "prayers", "devotionals", "groups", "activity", "statistics"]
+      return ["reading", "search", "notebook", "favorites", "highlights", "references", "library", "plans", "prayers", "devotionals", "groups", "activity", "statistics"]
     }
   }, [user])
 
@@ -123,10 +126,13 @@ export default function Page() {
     }
   }
 
-  function handleSelectVerse(bookId: number, chapter: number) {
+  const handleSelectVerse = (bookId: number, chapter: number, verse?: number, bibleId?: number) => {
     setNavBookId(bookId)
     setNavChapter(chapter)
-    setNavVerse(1) // Default to verse 1
+    setNavVerse(verse || 1)
+    if (bibleId) {
+      setNavBibleId(bibleId)
+    }
     setActiveTab("reading")
   }
 
@@ -134,6 +140,7 @@ export default function Page() {
     setNavBookId(null)
     setNavChapter(null)
     setNavVerse(null)
+    setNavBibleId(null)
   }
 
   // Render loading screen
@@ -158,6 +165,7 @@ export default function Page() {
     { id: "search", label: "Búsqueda", icon: Search, section: "ESTUDIO BÍBLICO" },
     { id: "references", label: "Referencias", icon: LinkIcon, section: "ESTUDIO BÍBLICO" },
     
+    { id: "library", label: "Libros", icon: Library, section: "PERSONAL" },
     { id: "notebook", label: "Notas", icon: BookText, section: "PERSONAL" },
     { id: "favorites", label: "Favoritos", icon: Star, section: "PERSONAL" },
     { id: "highlights", label: "Subrayados", icon: Highlighter, section: "PERSONAL" },
@@ -339,6 +347,7 @@ export default function Page() {
                 initialBookId={navBookId}
                 initialChapter={navChapter}
                 initialVerse={navVerse}
+                initialBibleId={navBibleId}
                 onClearInitialValues={handleClearNavValues}
                 showOnlyVerseNotes={true}
               />
@@ -401,6 +410,10 @@ export default function Page() {
 
           {activeTab === "references" && allowedSections.includes("references") && (
             <ReferencesExplorer />
+          )}
+
+          {activeTab === "library" && allowedSections.includes("library") && (
+            <PersonalLibrary />
           )}
 
           {activeTab === "users" && allowedSections.includes("users") && (

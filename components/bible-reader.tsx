@@ -32,12 +32,14 @@ export function BibleReader({
   initialBookId,
   initialChapter,
   initialVerse,
+  initialBibleId,
   onClearInitialValues,
   showOnlyVerseNotes = false
 }: {
   initialBookId?: number | null
   initialChapter?: number | null
   initialVerse?: number | null
+  initialBibleId?: number | null
   onClearInitialValues?: () => void
   showOnlyVerseNotes?: boolean
 } = {}) {
@@ -49,11 +51,15 @@ export function BibleReader({
   const bibles = biblesData?.bibles ?? []
   const [bibleId, setBibleId] = useState<number>(149)
 
-  // Apply props if available
+  // Handle initial prop values (from navigation)
   useEffect(() => {
-    if (initialBookId) {
+    if (initialBookId && initialChapter) {
       setBookId(initialBookId)
-      if (initialChapter) setChapter(initialChapter)
+      setChapter(initialChapter)
+      if (initialBibleId) {
+        setBibleId(initialBibleId)
+      }
+      
       if (initialVerse) {
         setCurrentVerse(initialVerse)
         setHighlightedVerse(initialVerse)
@@ -377,10 +383,12 @@ export function BibleReader({
     return map
   }, [linksData])
 
-  const highlightsKey = bookId ? `/api/highlights?book=${bookId}&chapter=${chapter}` : null
+  // 2. Highlights fetch logic
+  const highlightsKey = bookId && bibleId ? `/api/highlights?book=${bookId}&chapter=${chapter}&bibleId=${bibleId}` : null
   const { data: highlightsData, mutate: mutateHighlights } = useSWR<{ highlights: { verse: number; color: string }[] }>(
     highlightsKey,
-    fetcher
+    fetcher,
+    { revalidateOnFocus: false }
   )
   const highlights = highlightsData?.highlights ?? []
 
@@ -493,7 +501,8 @@ export function BibleReader({
           bookId,
           chapter,
           verses: selectedVerses,
-          color
+          color,
+          bibleId
         })
       })
       if (!res.ok) throw new Error("Error al guardar destacados")

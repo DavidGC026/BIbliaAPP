@@ -23,18 +23,20 @@ export async function GET(req: NextRequest) {
         book_id INT NOT NULL,
         chapter INT NOT NULL,
         verse INT NOT NULL,
+        bible_id INT NOT NULL DEFAULT 1,
         color VARCHAR(50) NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        UNIQUE KEY uniq_verse_user_highlight (user_id, book_id, chapter, verse)
+        UNIQUE KEY uniq_verse_user_bible_highlight (user_id, book_id, chapter, verse, bible_id)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
     `)
 
     const [rows] = await getPool().query(`
       SELECT 
-        h.id, h.book_id, h.chapter, h.verse, h.color, h.created_at,
+        h.id, h.book_id, h.chapter, h.verse, h.color, h.created_at, h.bible_id,
         bb.name AS book_name,
-        (SELECT bv.text FROM bible_verses bv WHERE bv.idBook = h.book_id AND bv.chapter = h.chapter AND bv.verse = h.verse LIMIT 1) as text
+        (SELECT bv.text FROM bible_verses bv WHERE bv.idBook = h.book_id AND bv.chapter = h.chapter AND bv.verse = h.verse AND bv.idBible = h.bible_id LIMIT 1) as text,
+        (SELECT b.abbr FROM bible_bibles b WHERE b.idBible = h.bible_id LIMIT 1) as bible_abbr
       FROM bible_verse_highlights h
       JOIN bible_books bb ON h.book_id = bb.idBook
       WHERE h.user_id = ?

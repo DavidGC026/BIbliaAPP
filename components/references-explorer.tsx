@@ -8,9 +8,9 @@ import { Loader2, Link as LinkIcon, BookOpen, AlertCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface BibleBook {
-  idBook: number
-  name: string
-  testament: string
+  bookId: number
+  bookName: string
+  chapters?: number
 }
 
 interface VerseRef {
@@ -23,7 +23,7 @@ interface VerseRef {
 }
 
 export function ReferencesExplorer() {
-  const { data: booksData, isLoading: isLoadingBooks } = useSWR<{ books: BibleBook[] }>("/api/books", fetcher)
+  const { data: booksData, isLoading: isLoadingBooks } = useSWR<{ books: BibleBook[] }>("/api/books?bible=1", fetcher)
   
   const [selectedBook, setSelectedBook] = useState<number>(1)
   const [selectedChapter, setSelectedChapter] = useState<number>(1)
@@ -69,7 +69,7 @@ export function ReferencesExplorer() {
               disabled={isLoadingBooks}
             >
               {books.map(b => (
-                <option key={b.idBook} value={b.idBook}>{b.name}</option>
+                <option key={b.bookId} value={b.bookId}>{b.bookName}</option>
               ))}
             </select>
           </div>

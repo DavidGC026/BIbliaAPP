@@ -24,6 +24,8 @@ interface Highlight {
   created_at: string
   book_name: string
   text: string
+  bible_id: number
+  bible_abbr?: string
 }
 
 export function HighlightsManager() {
@@ -187,7 +189,7 @@ export function HighlightsManager() {
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1.5">
                           <span className={cn("px-2 py-0.5 rounded text-xs font-bold", activeColorTheme?.light, activeColorTheme?.text)}>
-                            {h.book_name} {h.chapter}:{h.verse}
+                            {h.book_name} {h.chapter}:{h.verse} {h.bible_abbr ? `(${h.bible_abbr})` : ""}
                           </span>
                           <span className="text-[10px] text-muted-foreground">
                             {new Date(h.created_at).toLocaleDateString()}
