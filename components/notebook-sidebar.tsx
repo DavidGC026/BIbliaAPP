@@ -858,6 +858,67 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired 
                     onChange={(e) => setPublishComment(e.target.value)}
                     className="resize-none h-20 text-sm"
                   />
+                  <div className="flex items-center justify-between">
+                    <div className="flex gap-1.5">
+                      {['👍', '❤️', '🙏', '🙌', '😊', '🔥', '👏', '🕊️'].map(emoji => (
+                        <button
+                          key={emoji}
+                          onClick={() => setPublishComment(prev => prev + emoji)}
+                          className="text-sm hover:bg-muted p-1 rounded transition-colors"
+                          type="button"
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
+                    
+                    <div>
+                      <input
+                        type="file"
+                        accept="image/*,.pdf,.doc,.docx,.txt"
+                        className="hidden"
+                        id="publish-attachment-upload"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0]
+                          if (!file) return
+                          setIsUploadingAttachment(true)
+                          try {
+                            const formData = new FormData()
+                            formData.append("file", file)
+                            const res = await fetch("/api/upload", {
+                              method: "POST",
+                              body: formData
+                            })
+                            if (!res.ok) throw new Error("Error al subir archivo")
+                            const data = await res.json()
+                            
+                            const isImage = file.type.startsWith("image/")
+                            const markdownLink = isImage 
+                              ? `\n\n![${file.name}](${data.url})`
+                              : `\n\n[📄 ${file.name}](${data.url})`
+                              
+                            setPublishComment(prev => prev + markdownLink)
+                          } catch (err) {
+                            console.error(err)
+                            alert("Hubo un problema al adjuntar el archivo")
+                          } finally {
+                            setIsUploadingAttachment(false)
+                            e.target.value = ""
+                          }
+                        }}
+                      />
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => document.getElementById("publish-attachment-upload")?.click()}
+                        disabled={isUploadingAttachment}
+                        className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
+                        title="Adjuntar archivo"
+                      >
+                        {isUploadingAttachment ? <Loader2 className="size-3.5 animate-spin" /> : <Paperclip className="size-3.5" />}
+                      </Button>
+                    </div>
+                  </div>
                 </div>
                 <div className="bg-muted/40 p-3 rounded-lg border border-border/50 text-sm">
                   <strong className="block mb-1 text-foreground">{editingNote.title || "Sin título"}</strong>

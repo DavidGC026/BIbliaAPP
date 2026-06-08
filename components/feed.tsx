@@ -16,15 +16,19 @@ import {
   MessageSquare,
   BookOpen,
   Share2,
-  Send
+  Send,
+  Image as ImageIcon,
+  Paperclip,
+  Trash2
 } from "lucide-react"
 import { ProfileSection } from "./profile-section"
 
 export function Feed({ currentUserId }: { currentUserId: number }) {
-  const [activeTab, setActiveTab] = useState<"following" | "explore" | "search">("following")
+  const [activeTab, setActiveTab] = useState<"following" | "explore">("following")
   const [isComposing, setIsComposing] = useState(false)
   const [newPostContent, setNewPostContent] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
 
   // In a real app, 'explore' might hit a different endpoint or pass a flag.
   // For now, getFeed returns public posts from followed users + own posts.
@@ -79,6 +83,25 @@ export function Feed({ currentUserId }: { currentUserId: number }) {
     }
   }
 
+  const handleDeletePost = async (postId: number) => {
+    if (!confirm("¿Seguro que deseas eliminar esta publicación?")) return
+    
+    // Optimistic update
+    mutateFeed({
+      feed: posts.filter(p => p.id !== postId)
+    }, false)
+
+    try {
+      const res = await fetch(`/api/feed/posts/${postId}`, { method: "DELETE" })
+      if (!res.ok) throw new Error("Failed to delete")
+      mutateFeed()
+    } catch (e) {
+      console.error("Error deleting post:", e)
+      alert("No se pudo eliminar la publicación")
+      mutateFeed() // Revert on error
+    }
+  }
+
   return (
     <div className="flex flex-col h-full bg-card/10 relative">
       {/* Header */}
@@ -108,26 +131,10 @@ export function Feed({ currentUserId }: { currentUserId: number }) {
           >
             Explorar
           </button>
-          <button
-            onClick={() => setActiveTab("search")}
-            className={cn(
-              "pb-3 text-sm font-bold border-b-2 transition-colors",
-              activeTab === "search" 
-                ? "border-primary text-foreground" 
-                : "border-transparent text-muted-foreground hover:text-foreground"
-            )}
-          >
-            Buscar Personas
-          </button>
         </div>
       </div>
 
-      {activeTab === "search" ? (
-        <div className="flex-1 overflow-hidden h-full">
-          <ProfileSection currentUserId={currentUserId} />
-        </div>
-      ) : (
-        <div className="flex-1 overflow-y-auto p-4 md:p-6 pb-24">
+      <div className="flex-1 overflow-y-auto p-4 md:p-6 pb-24">
         <div className="max-w-2xl mx-auto space-y-4">
           
           {/* Compose Box (Always visible at top for quick posting) */}
@@ -146,15 +153,69 @@ export function Feed({ currentUserId }: { currentUserId: number }) {
                       placeholder="¿Qué Dios te ha enseñado hoy?"
                       className="min-h-[100px] resize-none border-border/50 focus-visible:ring-primary/30"
                     />
-                    <div className="flex justify-end gap-2">
-                      <Button variant="ghost" size="sm" onClick={() => setIsComposing(false)}>
-                        Cancelar
-                      </Button>
-                      <Button size="sm" onClick={handleCreatePost} disabled={!newPostContent.trim() || isSubmitting}>
-                        {isSubmitting ? <Loader2 className="size-4 animate-spin mr-2" /> : <MessageSquarePlus className="size-4 mr-2" />}
-                        Publicar
-                      </Button>
-                    </div>
+                    <div className="flex gap-2 w-full sm:w-auto">
+                    <input
+                      type="file"
+                      accept="image/*,.pdf,.doc,.docx,.txt"
+                      className="hidden"
+                      id="feed-attachment-upload"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0]
+                        if (!file) return
+                        setIsUploading(true)
+                        try {
+                          const formData = new FormData()
+                          formData.append("file", file)
+                          const res = await fetch("/api/upload", {
+                            method: "POST",
+                            body: formData
+                          })
+                          if (!res.ok) throw new Error("Error al subir archivo")
+                          const data = await res.json()
+                          
+                          const isImage = file.type.startsWith("image/")
+                          const markdownLink = isImage 
+                            ? `\n\n![${file.name}](${data.url})`
+                            : `\n\n[📄 ${file.name}](${data.url})`
+                            
+                          setNewPostContent(prev => prev + markdownLink)
+                        } catch (err) {
+                          console.error(err)
+                          alert("Hubo un problema al adjuntar el archivo")
+                        } finally {
+                          setIsUploading(false)
+                          e.target.value = ""
+                        }
+                      }}
+                    />
+                    <Button 
+                      variant="outline" 
+                      onClick={() => document.getElementById("feed-attachment-upload")?.click()}
+                      disabled={isUploading}
+                      className="flex-1 sm:flex-none"
+                    >
+                      {isUploading ? <Loader2 className="size-4 animate-spin mr-2" /> : <Paperclip className="size-4 mr-2" />}
+                      Adjuntar
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      onClick={() => {
+                        setIsComposing(false)
+                        setNewPostContent("")
+                      }}
+                      className="flex-1 sm:flex-none"
+                    >
+                      Cancelar
+                    </Button>
+                    <Button 
+                      onClick={handleCreatePost}
+                      disabled={!newPostContent.trim() || isSubmitting || isUploading}
+                      className="flex-1 sm:flex-none bg-primary hover:bg-primary/90 gap-2"
+                    >
+                      {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : <MessageSquare className="size-4" />}
+                      Publicar
+                    </Button>
+                  </div>
                   </div>
                 ) : (
                   <div 
@@ -184,13 +245,18 @@ export function Feed({ currentUserId }: { currentUserId: number }) {
           ) : (
             <div className="space-y-4">
               {posts.map((post: any) => (
-                <FeedPostCard key={post.id} post={post} onLikeToggle={handleLikeToggle} />
+                <FeedPostCard 
+                  key={post.id} 
+                  post={post} 
+                  currentUserId={currentUserId}
+                  onLikeToggle={handleLikeToggle} 
+                  onDelete={handleDeletePost}
+                />
               ))}
             </div>
           )}
         </div>
       </div>
-      )}
 
       {/* Floating Action Button (Mobile only) */}
       {!isComposing && (
@@ -216,7 +282,17 @@ function UserAvatarPlaceholder() {
   )
 }
 
-function FeedPostCard({ post, onLikeToggle }: { post: any, onLikeToggle: (id: number, isLiked: boolean) => void }) {
+function FeedPostCard({ 
+  post, 
+  currentUserId,
+  onLikeToggle, 
+  onDelete 
+}: { 
+  post: any, 
+  currentUserId: number,
+  onLikeToggle: (id: number, isLiked: boolean) => void,
+  onDelete: (id: number) => void
+}) {
   const [showComments, setShowComments] = useState(false)
   const [newComment, setNewComment] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -287,10 +363,19 @@ function FeedPostCard({ post, onLikeToggle }: { post: any, onLikeToggle: (id: nu
             {new Date(post.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' })}
           </span>
         </div>
-        <div className="ml-auto pl-2">
+        <div className="ml-auto pl-2 flex items-center gap-2">
           <span className="text-[10px] font-semibold uppercase tracking-wider bg-muted px-2 py-0.5 rounded text-muted-foreground">
             {post.type === 'verse' ? '📖 Versículo' : post.type === 'devotional' ? '🌅 Devocional' : post.type === 'note' ? '📝 Nota' : 'Publicación'}
           </span>
+          {post.user_id === currentUserId && (
+            <button
+              onClick={() => onDelete(post.id)}
+              className="text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 p-1 rounded-md transition-colors"
+              title="Eliminar publicación"
+            >
+              <Trash2 className="size-4" />
+            </button>
+          )}
         </div>
       </div>
 
@@ -302,9 +387,40 @@ function FeedPostCard({ post, onLikeToggle }: { post: any, onLikeToggle: (id: nu
         </div>
       )}
       
-      <p className="text-foreground whitespace-pre-wrap text-[15px] leading-relaxed">
-        {post.content}
-      </p>
+      <div className="text-foreground whitespace-pre-wrap text-[15px] leading-relaxed break-words space-y-3">
+        {post.content.split('\n\n').map((paragraph: string, i: number) => {
+          // Check for image markdown ![alt](url)
+          const imgMatch = paragraph.match(/^!\[(.*?)\]\((.*?)\)$/)
+          if (imgMatch) {
+            return (
+              <img 
+                key={i} 
+                src={imgMatch[2]} 
+                alt={imgMatch[1]} 
+                className="max-w-full rounded-lg border border-border/50 max-h-96 object-cover" 
+              />
+            )
+          }
+          // Check for simple link [alt](url)
+          const linkMatch = paragraph.match(/^\[(.*?)\]\((.*?)\)$/)
+          if (linkMatch) {
+            return (
+              <a 
+                key={i} 
+                href={linkMatch[2]} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-primary hover:underline flex items-center gap-1.5 p-3 border border-border/50 rounded-lg bg-muted/20"
+              >
+                <Paperclip className="size-4" />
+                <span className="font-medium truncate">{linkMatch[1]}</span>
+              </a>
+            )
+          }
+          // Default text
+          return <p key={i}>{paragraph}</p>
+        })}
+      </div>
 
       {/* Post Actions */}
       <div className="flex flex-wrap items-center gap-4 sm:gap-6 mt-4 pt-3 border-t border-border/30">

@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
     
     await writeFile(filepath, buffer)
 
-    return NextResponse.json({ url: `/uploads/${filename}` })
+    return NextResponse.json({ url: `/api/uploads/${filename}` })
   } catch (err) {
     console.error("Error uploading file:", err)
     return NextResponse.json(
