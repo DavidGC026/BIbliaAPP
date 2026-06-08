@@ -9,15 +9,16 @@ export async function POST(req: NextRequest) {
     if (!email || !password) {
       return NextResponse.json(
         { error: "El correo electrónico y la contraseña son obligatorios." },
-        { status: 400 }
+        { status: 400 },
       )
     }
 
-    const user = await getUserByEmail(email)
+    const normalizedEmail = email.trim().toLowerCase()
+    const user = await getUserByEmail(normalizedEmail)
     if (!user) {
       return NextResponse.json(
         { error: "Credenciales incorrectas." },
-        { status: 401 }
+        { status: 401 },
       )
     }
 
@@ -25,7 +26,18 @@ export async function POST(req: NextRequest) {
     if (user.password !== passwordHash) {
       return NextResponse.json(
         { error: "Credenciales incorrectas." },
-        { status: 401 }
+        { status: 401 },
+      )
+    }
+
+    if (!user.emailVerified && user.role !== "admin") {
+      return NextResponse.json(
+        {
+          error: "Debes verificar tu correo antes de iniciar sesión.",
+          code: "EMAIL_NOT_VERIFIED",
+          email: user.email,
+        },
+        { status: 403 },
       )
     }
 
@@ -34,20 +46,19 @@ export async function POST(req: NextRequest) {
     const response = NextResponse.json({
       success: true,
       user: { id: user.id, name: user.name, email: user.email, role: user.role },
-      token
+      token,
     })
 
-    // Set HTTP-only cookie
     response.headers.append(
       "Set-Cookie",
-      `session=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 60 * 60}`
+      `session=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 60 * 60}`,
     )
 
     return response
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Error al iniciar sesión" },
-      { status: 500 }
+      { status: 500 },
     )
   }
 }

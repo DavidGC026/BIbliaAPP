@@ -1,63 +1,38 @@
 "use client"
 
 import * as React from "react"
-import { useState, useEffect, Suspense, useCallback } from "react"
+import { useState, useEffect, useCallback } from "react"
 import useSWR from "swr"
 import { fetcher } from "@/lib/fetcher"
 import { AuthModal } from "@/components/auth-modal"
-import { LoginPrompt } from "@/components/login-prompt"
 import { ConnectionBanner } from "@/components/connection-banner"
-import { BibleReader } from "@/components/bible-reader"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { NotebookSidebar } from "@/components/notebook-sidebar"
-import { Dashboard } from "@/components/dashboard"
-import { Devotionals } from "@/components/devotionals"
-import { SearchAdvanced } from "@/components/search-advanced"
-import { UserManagement } from "@/components/user-management"
-import { ReadingPlans } from "@/components/reading-plans"
 import { ThemeToggle } from "@/components/theme-toggle"
-import { PrayerRequests } from "@/components/prayer-requests"
-import { Groups } from "@/components/groups"
-import { Activity } from "@/components/activity"
-import { Statistics } from "@/components/statistics"
-import { Favorites } from "@/components/favorites"
-import { HighlightsManager } from "@/components/highlights-manager"
-import { ReferencesExplorer } from "@/components/references-explorer"
-import { PersonalLibrary } from "@/components/personal-library"
-import { Feed } from "@/components/feed"
-import { ProfileSection } from "@/components/profile-section"
 import { 
-  BookOpen, 
-  LayoutDashboard, 
-  BookText, 
-  Heart, 
-  Search, 
   LogOut,
   LogIn,
   Loader2,
   Lock,
-  User,
+  Search,
   Users,
-  Calendar,
   Flame,
-  Activity as ActivityIcon,
-  BarChart2,
-  Star,
-  HeartHandshake,
-  Highlighter,
-  Link as LinkIcon,
-  Library,
   MoreHorizontal,
   PanelLeftClose,
   PanelLeftOpen
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { getReaderDeepLinkFromSearch } from "@/lib/bible-url"
+import { loadReaderDeepLink, lockReaderDeepLink, isReaderDeepLinkLocked } from "@/lib/bible-url"
+import { GUEST_SECTIONS, resolveAllowedSections } from "@/lib/app-sections"
+import {
+  AppSectionOutlet,
+  buildAppNavItems,
+  getNavGroupOrder,
+} from "@/lib/app-section-registry/index.client"
 
-function readInitialDeepLink() {
+function getInitialDeepLink() {
   if (typeof window === "undefined") return null
-  return getReaderDeepLinkFromSearch(window.location.search)
+  return loadReaderDeepLink()
 }
 
 interface UserProfile {
@@ -70,23 +45,8 @@ interface UserProfile {
   streakCount: number
 }
 
-const GUEST_SECTIONS = ["dashboard", "reading", "search", "references"]
-
-const PROTECTED_TAB_MESSAGES: Record<string, { title: string; description: string }> = {
-  feed: { title: "Comunidad", description: "Inicia sesión para ver publicaciones, comentar y conectar con otros lectores." },
-  library: { title: "Biblioteca personal", description: "Guarda y organiza tus libros y recursos de estudio con una cuenta." },
-  notebook: { title: "Notas y libretas", description: "Crea notas vinculadas a versículos y organiza tus cuadernos de estudio." },
-  profile: { title: "Tu perfil", description: "Personaliza tu perfil, apodo y preferencias de estudio." },
-  favorites: { title: "Favoritos", description: "Marca versículos como favoritos para acceder a ellos rápidamente." },
-  highlights: { title: "Subrayados", description: "Resalta pasajes con colores y revísalos cuando quieras." },
-  plans: { title: "Planes de lectura", description: "Sigue planes de lectura y registra tu progreso diario." },
-  prayers: { title: "Peticiones de oración", description: "Comparte y acompaña peticiones de oración con la comunidad." },
-  devotionals: { title: "Diario devocional", description: "Escribe y guarda tus reflexiones espirituales personales." },
-  groups: { title: "Grupos", description: "Únete a grupos de estudio y crece junto a otros." },
-  activity: { title: "Actividad", description: "Consulta tu historial de lectura y actividad en la app." },
-  statistics: { title: "Estadísticas", description: "Visualiza tus hábitos de lectura y progreso espiritual." },
-  users: { title: "Gestión de usuarios", description: "Panel de administración de usuarios." },
-}
+const APP_NAV_ITEMS = buildAppNavItems()
+const NAV_GROUPS = getNavGroupOrder()
 
 export default function Page() {
   const { data, mutate, isLoading } = useSWR<{ user: UserProfile | null }>(
@@ -101,17 +61,31 @@ export default function Page() {
   const isGuest = !isLoading && !user
   const [showAuthModal, setShowAuthModal] = useState(false)
   const openLogin = useCallback(() => setShowAuthModal(true), [])
-  
-  const initialDeepLink = readInitialDeepLink()
 
   // Navigation tabs
-  const [activeTab, setActiveTab] = useState<string>(initialDeepLink ? "reading" : "dashboard")
+  const [activeTab, setActiveTab] = useState<string>(() => {
+    const deepLink = getInitialDeepLink()
+    return deepLink || isReaderDeepLinkLocked() ? "reading" : "dashboard"
+  })
 
   // Direct reader navigation state (from Search page or shared links)
-  const [navBookId, setNavBookId] = useState<number | null>(initialDeepLink?.book ?? null)
-  const [navChapter, setNavChapter] = useState<number | null>(initialDeepLink?.chapter ?? null)
-  const [navVerse, setNavVerse] = useState<number | null>(initialDeepLink?.verse ?? null)
-  const [navBibleId, setNavBibleId] = useState<number | null>(initialDeepLink?.bible ?? null)
+  const [navBookId, setNavBookId] = useState<number | null>(() => getInitialDeepLink()?.book ?? null)
+  const [navChapter, setNavChapter] = useState<number | null>(() => getInitialDeepLink()?.chapter ?? null)
+  const [navVerse, setNavVerse] = useState<number | null>(() => getInitialDeepLink()?.verse ?? null)
+  const [navBibleId, setNavBibleId] = useState<number | null>(() => getInitialDeepLink()?.bible ?? null)
+  const [hasPendingDeepLink, setHasPendingDeepLink] = useState(
+    () => !!getInitialDeepLink() || isReaderDeepLinkLocked(),
+  )
+
+  const applyDeepLink = useCallback((deepLink: NonNullable<ReturnType<typeof loadReaderDeepLink>>) => {
+    lockReaderDeepLink()
+    setHasPendingDeepLink(true)
+    setActiveTab("reading")
+    if (deepLink.bible != null) setNavBibleId(deepLink.bible)
+    if (deepLink.book != null) setNavBookId(deepLink.book)
+    if (deepLink.chapter != null) setNavChapter(deepLink.chapter)
+    if (deepLink.verse != null) setNavVerse(deepLink.verse)
+  }, [])
 
   // Separated Notebook Tab States
   const [notebookEditingNote, setNotebookEditingNote] = useState<{ id: number; title: string; content: string } | null>(null)
@@ -139,39 +113,22 @@ export default function Page() {
   const allowedSections = React.useMemo(() => {
     if (isGuest) return GUEST_SECTIONS
     if (!user) return []
-    
-    // Default config that everyone should have access to
-    const defaultBasics = ["reading", "search", "highlights", "references", "library", "feed", "profile", "dashboard", "notebook", "favorites", "plans", "prayers", "devotionals", "groups", "activity", "statistics"]
-    
-    if (user.role === "admin") {
-      try {
-        let parsed: string[] = []
-        if (typeof user.allowedSections === "string") {
-          parsed = JSON.parse(user.allowedSections)
-        } else if (Array.isArray(user.allowedSections)) {
-          parsed = user.allowedSections
-        }
-        
-        // Admins also get "users"
-        return Array.from(new Set([...parsed, ...defaultBasics, "users"]))
-      } catch (_) {
-        return [...defaultBasics, "users"]
-      }
-    } else {
-      // Default configurations for non-admin
-      return defaultBasics
-    }
+    return resolveAllowedSections(user)
   }, [isGuest, user])
 
-  // Set default tab based on user role and permissions (skip when opening a shared verse link)
+  // Apply shared verse links on mount
   useEffect(() => {
-    const deepLink = getReaderDeepLinkFromSearch(window.location.search)
+    const deepLink = loadReaderDeepLink()
+    if (deepLink) applyDeepLink(deepLink)
+  }, [applyDeepLink])
+
+  // Set default tab based on user role and permissions (never override a shared verse link)
+  useEffect(() => {
+    if (isReaderDeepLinkLocked()) return
+
+    const deepLink = loadReaderDeepLink()
     if (deepLink) {
-      setActiveTab("reading")
-      if (deepLink.bible) setNavBibleId(deepLink.bible)
-      if (deepLink.book) setNavBookId(deepLink.book)
-      if (deepLink.chapter) setNavChapter(deepLink.chapter)
-      if (deepLink.verse) setNavVerse(deepLink.verse)
+      applyDeepLink(deepLink)
       return
     }
 
@@ -185,7 +142,7 @@ export default function Page() {
         setActiveTab(allowedSections[0])
       }
     }
-  }, [isGuest, user, allowedSections])
+  }, [isGuest, user, allowedSections, applyDeepLink])
 
   async function handleLogout() {
     if (!confirm("¿Estás seguro de cerrar sesión?")) return
@@ -213,10 +170,11 @@ export default function Page() {
     setNavChapter(null)
     setNavVerse(null)
     setNavBibleId(null)
+    setHasPendingDeepLink(false)
   }
 
-  // Render loading screen
-  if (isLoading) {
+  // Render loading screen (skip while opening a shared verse link)
+  if (isLoading && !hasPendingDeepLink) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-background text-muted-foreground">
         <Loader2 className="size-10 animate-spin text-primary mb-4" />
@@ -232,61 +190,22 @@ export default function Page() {
 
   const isTabLocked = (tabId: string) => isGuest && !GUEST_SECTIONS.includes(tabId)
 
-  const renderProtectedTab = (tabId: string) => {
-    if (activeTab !== tabId || !isTabLocked(tabId)) return null
-    const msg = PROTECTED_TAB_MESSAGES[tabId]
-    return (
-      <LoginPrompt
-        title={msg?.title ? `${msg.title} requiere cuenta` : "Inicia sesión para continuar"}
-        description={msg?.description ?? "Esta función requiere iniciar sesión."}
-        onLogin={openLogin}
-      />
-    )
-  }
-
-  // Define tab navigation structure
-  const allNavItems = [
-    { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, section: "PRINCIPAL" },
-    { id: "reading", label: "Leer", icon: BookOpen, section: "PRINCIPAL" },
-    { id: "feed", label: "Comunidad", icon: Users, section: "PRINCIPAL" },
-
-    { id: "search", label: "Búsqueda", icon: Search, section: "ESTUDIO BÍBLICO" },
-    { id: "references", label: "Referencias", icon: LinkIcon, section: "ESTUDIO BÍBLICO" },
-    
-    { id: "library", label: "Libros", icon: Library, section: "PERSONAL" },
-    { id: "notebook", label: "Notas", icon: BookText, section: "PERSONAL" },
-    { id: "profile", label: "Perfil", icon: User, section: "PERSONAL" },
-    { id: "favorites", label: "Favoritos", icon: Star, section: "PERSONAL" },
-    { id: "highlights", label: "Subrayados", icon: Highlighter, section: "PERSONAL" },
-    { id: "plans", label: "Planes", icon: Calendar, section: "PERSONAL" },
-
-    { id: "prayers", label: "Oración", icon: HeartHandshake, section: "VIDA ESPIRITUAL" },
-    { id: "devotionals", label: "Diario", icon: Heart, section: "VIDA ESPIRITUAL" },
-    { id: "groups", label: "Grupos", icon: Users, section: "VIDA ESPIRITUAL" },
-
-    { id: "activity", label: "Actividad", icon: ActivityIcon, section: "GENERAL" },
-    { id: "statistics", label: "Estadísticas", icon: BarChart2, section: "GENERAL" },
-    { id: "users", label: "Usuarios", icon: Users, section: "GENERAL" }
-  ]
-
-  // Filter allowed navigation links (guests see all items, some locked)
   const desktopNavItems = isGuest
-    ? allNavItems
-    : allNavItems.filter(item => allowedSections.includes(item.id))
+    ? APP_NAV_ITEMS
+    : APP_NAV_ITEMS.filter(item => allowedSections.includes(item.id))
 
-  const guestDirectIds = ["dashboard", "reading", "search", "references"]
+  const guestDirectIds = GUEST_SECTIONS
   const showMoreButton = isGuest
-    ? allNavItems.some(item => !guestDirectIds.includes(item.id))
+    ? APP_NAV_ITEMS.some(item => !guestDirectIds.includes(item.id))
     : desktopNavItems.length > 5
   const mobileDirectItems = isGuest
-    ? allNavItems.filter(item => guestDirectIds.includes(item.id))
+    ? APP_NAV_ITEMS.filter(item => guestDirectIds.includes(item.id))
     : showMoreButton ? desktopNavItems.slice(0, 4) : desktopNavItems
   const mobileMoreItems = isGuest
-    ? allNavItems.filter(item => !guestDirectIds.includes(item.id))
+    ? APP_NAV_ITEMS.filter(item => !guestDirectIds.includes(item.id))
     : showMoreButton ? desktopNavItems.slice(4) : []
 
-  // Get active tab label for mobile header
-  const activeLabel = allNavItems.find(item => item.id === activeTab)?.label ?? "Estudio"
+  const activeLabel = APP_NAV_ITEMS.find(item => item.id === activeTab)?.label ?? "Estudio"
 
   return (
     <main className="min-h-screen bg-background flex flex-col md:flex-row">
@@ -375,13 +294,13 @@ export default function Page() {
               })
             ) : (
               // Expanded: sections + labels
-              ["PRINCIPAL", "ESTUDIO BÍBLICO", "PERSONAL", "VIDA ESPIRITUAL", "GENERAL"].map(section => {
-                const sectionItems = desktopNavItems.filter(item => item.section === section)
+              NAV_GROUPS.map(group => {
+                const sectionItems = desktopNavItems.filter(item => item.groupId === group.id)
                 if (sectionItems.length === 0) return null
                 return (
-                  <div key={section} className="space-y-0.5">
+                  <div key={group.id} className="space-y-0.5">
                     <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider px-3 mb-1.5">
-                      {section}
+                      {group.label}
                     </h3>
                     {sectionItems.map((item) => {
                       const Icon = item.icon
@@ -568,125 +487,22 @@ export default function Page() {
       {/* Page Content Area */}
       <div className={cn("flex-1 flex flex-col min-h-screen overflow-hidden pb-16 md:pb-0 transition-all duration-300 ease-in-out", sidebarCollapsed ? "md:pl-[60px]" : "md:pl-64")}>
         <div className="flex-grow p-4 md:p-6 overflow-y-auto">
-          
-          {activeTab === "dashboard" && !isTabLocked("dashboard") && (
-            <Dashboard
-              userName={user?.name}
-              isGuest={isGuest}
-              setActiveTab={setActiveTab}
-              onLoginRequest={openLogin}
-            />
-          )}
-
-          {activeTab === "reading" && !isTabLocked("reading") && (
-            <Suspense fallback={<div className="p-8 text-center text-sm text-muted-foreground">Cargando Biblia...</div>}>
-              <BibleReader 
-                initialBookId={navBookId}
-                initialChapter={navChapter}
-                initialVerse={navVerse}
-                initialBibleId={navBibleId}
-                onClearInitialValues={handleClearNavValues}
-                showOnlyVerseNotes={true}
-                isGuest={isGuest}
-                onLoginRequest={openLogin}
-              />
-            </Suspense>
-          )}
-
-          {renderProtectedTab("feed")}
-          {activeTab === "feed" && !isGuest && allowedSections.includes("feed") && user && (
-            <div className="h-[calc(100vh-8rem)] md:h-[calc(100vh-3rem)] rounded-xl border border-border shadow-sm overflow-hidden bg-card/10">
-              <Suspense fallback={<div className="p-8 text-center text-sm text-muted-foreground">Cargando Feed...</div>}>
-                <Feed currentUserId={user.id} />
-              </Suspense>
-            </div>
-          )}
-
-          {renderProtectedTab("profile")}
-          {activeTab === "profile" && !isGuest && allowedSections.includes("profile") && user && (
-            <div className="h-[calc(100vh-8rem)] md:h-[calc(100vh-3rem)] rounded-xl shadow-sm overflow-hidden">
-              <Suspense fallback={<div className="p-8 text-center text-sm text-muted-foreground">Cargando Perfil...</div>}>
-                <ProfileSection currentUserId={user.id} initialUsername={user.username || undefined} />
-              </Suspense>
-            </div>
-          )}
-
-          {renderProtectedTab("notebook")}
-          {activeTab === "notebook" && !isGuest && allowedSections.includes("notebook") && (
-            <div className="h-[calc(100vh-8rem)] md:h-[calc(100vh-3rem)] rounded-xl border border-border bg-card/45 shadow-sm backdrop-blur-sm overflow-hidden p-4">
-              <Suspense fallback={<div className="p-8 text-center text-sm text-muted-foreground">Cargando libreta...</div>}>
-                <NotebookSidebar 
-                  editingNote={notebookEditingNote}
-                  setEditingNote={setNotebookEditingNote}
-                  onSessionExpired={() => {
-                    localStorage.removeItem("biblia_token")
-                    window.location.reload()
-                  }}
-                />
-              </Suspense>
-            </div>
-          )}
-
-          {renderProtectedTab("devotionals")}
-          {activeTab === "devotionals" && !isGuest && allowedSections.includes("devotionals") && (
-            <Devotionals />
-          )}
-
-          {renderProtectedTab("plans")}
-          {activeTab === "plans" && !isGuest && allowedSections.includes("plans") && user && (
-            <ReadingPlans 
-              onSelectReading={handleSelectVerse} 
-              streakCount={user.streakCount || 0}
-            />
-          )}
-
-          {activeTab === "search" && !isTabLocked("search") && (
-            <SearchAdvanced onSelectVerse={handleSelectVerse} />
-          )}
-
-          {renderProtectedTab("prayers")}
-          {activeTab === "prayers" && !isGuest && allowedSections.includes("prayers") && (
-            <PrayerRequests />
-          )}
-
-          {renderProtectedTab("groups")}
-          {activeTab === "groups" && !isGuest && allowedSections.includes("groups") && (
-            <Groups />
-          )}
-
-          {renderProtectedTab("activity")}
-          {activeTab === "activity" && !isGuest && allowedSections.includes("activity") && (
-            <Activity />
-          )}
-
-          {renderProtectedTab("statistics")}
-          {activeTab === "statistics" && !isGuest && allowedSections.includes("statistics") && (
-            <Statistics />
-          )}
-
-          {renderProtectedTab("favorites")}
-          {activeTab === "favorites" && !isGuest && allowedSections.includes("favorites") && (
-            <Favorites />
-          )}
-
-          {renderProtectedTab("highlights")}
-          {activeTab === "highlights" && !isGuest && allowedSections.includes("highlights") && (
-            <HighlightsManager />
-          )}
-
-          {activeTab === "references" && !isTabLocked("references") && (
-            <ReferencesExplorer />
-          )}
-
-          {renderProtectedTab("library")}
-          {activeTab === "library" && !isGuest && allowedSections.includes("library") && (
-            <PersonalLibrary />
-          )}
-
-          {renderProtectedTab("users")}
-          {activeTab === "users" && !isGuest && allowedSections.includes("users") && user && (
-            <UserManagement currentUserId={user.id} />
-          )}
+          <AppSectionOutlet
+            activeTab={activeTab}
+            isGuest={isGuest}
+            user={user}
+            allowedSections={allowedSections}
+            openLogin={openLogin}
+            setActiveTab={setActiveTab}
+            navBookId={navBookId}
+            navChapter={navChapter}
+            navVerse={navVerse}
+            navBibleId={navBibleId}
+            handleClearNavValues={handleClearNavValues}
+            handleSelectVerse={handleSelectVerse}
+            notebookEditingNote={notebookEditingNote}
+            setNotebookEditingNote={setNotebookEditingNote}
+          />
         </div>
       </div>
 

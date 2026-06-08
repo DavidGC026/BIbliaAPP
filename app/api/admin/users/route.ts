@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { listUsers, createUser, getUserByEmail } from "@/lib/bible"
 import { getSession, hashPassword } from "@/lib/auth"
+import { sanitizeReaderSections } from "@/lib/app-sections"
 
 export async function GET(req: NextRequest) {
   try {
@@ -53,7 +54,11 @@ export async function POST(req: NextRequest) {
 
     const passwordHash = hashPassword(password)
     const userRole = role === "admin" ? "admin" : "user"
-    const sectionsArray = Array.isArray(allowedSections) ? allowedSections : null
+    const sectionsArray = userRole === "admin"
+      ? null
+      : Array.isArray(allowedSections)
+        ? sanitizeReaderSections(allowedSections)
+        : null
     
     const userId = await createUser(name.trim(), email.trim(), passwordHash, userRole, sectionsArray)
 

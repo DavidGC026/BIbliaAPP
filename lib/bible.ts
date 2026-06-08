@@ -139,6 +139,27 @@ export async function ensureDbTables(): Promise<void> {
     await pool.query(`ALTER TABLE users ADD COLUMN last_active_date DATE DEFAULT NULL`)
   } catch (_) {}
 
+  try {
+    await pool.query(`ALTER TABLE users ADD COLUMN email_verified TINYINT(1) DEFAULT 0`)
+    await pool.query(`UPDATE users SET email_verified = 1 WHERE email_verified = 0`)
+  } catch (_) {}
+
+  try {
+    await pool.query(`ALTER TABLE users ADD COLUMN email_verification_token VARCHAR(255) DEFAULT NULL`)
+  } catch (_) {}
+
+  try {
+    await pool.query(`ALTER TABLE users ADD COLUMN email_verification_expires DATETIME DEFAULT NULL`)
+  } catch (_) {}
+
+  try {
+    await pool.query(`ALTER TABLE users ADD COLUMN password_reset_token VARCHAR(255) DEFAULT NULL`)
+  } catch (_) {}
+
+  try {
+    await pool.query(`ALTER TABLE users ADD COLUMN password_reset_expires DATETIME DEFAULT NULL`)
+  } catch (_) {}
+
   // Create reading plans tables
   await pool.query(`
     CREATE TABLE IF NOT EXISTS bible_reading_plans (
@@ -524,11 +545,81 @@ export async function deleteNotebookNote(id: number): Promise<void> {
 export async function getUserByEmail(email: string): Promise<any | null> {
   await ensureDbTables()
   const [rows] = await getPool().query<RowDataPacket[]>(
-    `SELECT id, name, email, password, role, allowed_sections AS allowedSections, streak_count AS streakCount, last_active_date AS lastActiveDate FROM users WHERE email = ?`,
+    `SELECT id, name, email, password, role, email_verified AS emailVerified,
+            allowed_sections AS allowedSections, streak_count AS streakCount,
+            last_active_date AS lastActiveDate
+     FROM users WHERE email = ?`,
     [email]
   )
   if (rows.length === 0) return null
   return rows[0]
+}
+
+export async function getUserByEmailVerificationToken(token: string): Promise<any | null> {
+  await ensureDbTables()
+  const [rows] = await getPool().query<RowDataPacket[]>(
+    `SELECT id, name, email, email_verified AS emailVerified, email_verification_expires AS emailVerificationExpires
+     FROM users WHERE email_verification_token = ?`,
+    [token]
+  )
+  if (rows.length === 0) return null
+  return rows[0]
+}
+
+export async function getUserByPasswordResetToken(token: string): Promise<any | null> {
+  await ensureDbTables()
+  const [rows] = await getPool().query<RowDataPacket[]>(
+    `SELECT id, name, email, password_reset_expires AS passwordResetExpires
+     FROM users WHERE password_reset_token = ?`,
+    [token]
+  )
+  if (rows.length === 0) return null
+  return rows[0]
+}
+
+export async function setUserEmailVerificationToken(
+  userId: number,
+  token: string,
+  expiresHours = 24,
+): Promise<void> {
+  await ensureDbTables()
+  await getPool().query(
+    `UPDATE users SET email_verification_token = ?, email_verification_expires = DATE_ADD(NOW(), INTERVAL ? HOUR) WHERE id = ?`,
+    [token, expiresHours, userId],
+  )
+}
+
+export async function markUserEmailVerified(userId: number): Promise<void> {
+  await ensureDbTables()
+  await getPool().query(
+    `UPDATE users SET email_verified = 1, email_verification_token = NULL, email_verification_expires = NULL WHERE id = ?`,
+    [userId],
+  )
+}
+
+export async function setUserPasswordResetToken(
+  userId: number,
+  token: string,
+  expiresHours = 1,
+): Promise<void> {
+  await ensureDbTables()
+  await getPool().query(
+    `UPDATE users SET password_reset_token = ?, password_reset_expires = DATE_ADD(NOW(), INTERVAL ? HOUR) WHERE id = ?`,
+    [token, expiresHours, userId],
+  )
+}
+
+export async function clearUserPasswordResetToken(userId: number): Promise<void> {
+  await ensureDbTables()
+  await getPool().query(
+    `UPDATE users SET password_reset_token = NULL, password_reset_expires = NULL WHERE id = ?`,
+    [userId],
+  )
+}
+
+export async function updateUserPassword(userId: number, passwordHash: string): Promise<void> {
+  await ensureDbTables()
+  await getPool().query(`UPDATE users SET password = ? WHERE id = ?`, [passwordHash, userId])
 }
 
 export async function getUserById(id: number): Promise<any | null> {
@@ -551,7 +642,7 @@ export async function createUser(
   await ensureDbTables()
   const allowedVal = allowedSections ? JSON.stringify(allowedSections) : null
   const [result] = await getPool().query<ResultSetHeader>(
-    `INSERT INTO users (name, email, password, role, allowed_sections) VALUES (?, ?, ?, ?, ?)`,
+    `INSERT INTO users (name, email, password, role, allowed_sections, email_verified) VALUES (?, ?, ?, ?, ?, 0)`,
     [name, email, passwordHash, role, allowedVal]
   )
   return result.insertId

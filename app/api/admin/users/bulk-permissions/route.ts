@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getSession } from "@/lib/auth"
 import { updateAllReadersPermissions } from "@/lib/bible"
+import { sanitizeReaderSections } from "@/lib/app-sections"
 
 export async function POST(req: NextRequest) {
   try {
@@ -18,7 +19,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Se requiere un arreglo de secciones permitidas." }, { status: 400 })
     }
 
-    const affectedRows = await updateAllReadersPermissions(allowedSections)
+    const sanitized = sanitizeReaderSections(allowedSections)
+    const affectedRows = await updateAllReadersPermissions(sanitized)
 
     return NextResponse.json({ 
       success: true, 

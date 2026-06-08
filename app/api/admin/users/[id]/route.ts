@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { deleteUser, updateUserAdmin } from "@/lib/bible"
 import { getSession, hashPassword } from "@/lib/auth"
+import { sanitizeReaderSections } from "@/lib/app-sections"
 
 export async function PUT(
   req: NextRequest,
@@ -29,9 +30,14 @@ export async function PUT(
     }
 
     const passwordHash = password && password.trim().length > 0 ? hashPassword(password) : null
-    const sectionsArray = Array.isArray(allowedSections) ? allowedSections : null
+    const userRole = role === "admin" ? "admin" : "user"
+    const sectionsArray = userRole === "admin"
+      ? null
+      : Array.isArray(allowedSections)
+        ? sanitizeReaderSections(allowedSections)
+        : null
 
-    await updateUserAdmin(idNum, name.trim(), email.trim(), passwordHash, role, sectionsArray)
+    await updateUserAdmin(idNum, name.trim(), email.trim(), passwordHash, userRole, sectionsArray)
 
     return NextResponse.json({ success: true })
   } catch (err) {

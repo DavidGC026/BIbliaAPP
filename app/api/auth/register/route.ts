@@ -1,50 +1,59 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getUserByEmail, createUser } from "@/lib/bible"
-import { hashPassword, generateToken } from "@/lib/auth"
+import {
+  getUserByEmail,
+  createUser,
+  setUserEmailVerificationToken,
+} from "@/lib/bible"
+import { hashPassword, generateSecureToken } from "@/lib/auth"
+import { sendVerificationEmail } from "@/lib/email"
 
 export async function POST(req: NextRequest) {
   try {
-    const { name, email, password, role } = await req.json()
+    const { name, email, password } = await req.json()
 
     if (!name || !email || !password) {
       return NextResponse.json(
         { error: "Todos los campos (nombre, correo, contraseña) son obligatorios." },
-        { status: 400 }
+        { status: 400 },
       )
     }
 
-    const existingUser = await getUserByEmail(email)
+    if (password.length < 6) {
+      return NextResponse.json(
+        { error: "La contraseña debe tener al menos 6 caracteres." },
+        { status: 400 },
+      )
+    }
+
+    const normalizedEmail = email.trim().toLowerCase()
+    const existingUser = await getUserByEmail(normalizedEmail)
     if (existingUser) {
       return NextResponse.json(
         { error: "El correo electrónico ya está registrado." },
-        { status: 409 }
+        { status: 409 },
       )
     }
 
     const passwordHash = hashPassword(password)
-    // Default role is user, unless explicitly admin (only first admin is seeded)
-    const userRole = role === "admin" ? "admin" : "user"
-    const userId = await createUser(name.trim(), email.trim(), passwordHash, userRole)
+    const userId = await createUser(name.trim(), normalizedEmail, passwordHash, "user")
 
-    const token = generateToken({ userId, role: userRole })
+    const verificationToken = generateSecureToken()
+    await setUserEmailVerificationToken(userId, verificationToken)
 
-    const response = NextResponse.json({
+    const origin = req.headers.get("origin") || undefined
+    await sendVerificationEmail(normalizedEmail, name.trim(), verificationToken, origin)
+
+    return NextResponse.json({
       success: true,
-      user: { id: userId, name: name.trim(), email: email.trim(), role: userRole },
-      token
+      needsVerification: true,
+      message:
+        "Cuenta creada. Revisa tu correo y haz clic en el enlace de verificación para activar tu cuenta.",
+      email: normalizedEmail,
     })
-
-    // Set HTTP-only cookie
-    response.headers.append(
-      "Set-Cookie",
-      `session=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 60 * 60}`
-    )
-
-    return response
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Error al registrar usuario" },
-      { status: 500 }
+      { status: 500 },
     )
   }
 }

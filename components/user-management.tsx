@@ -4,6 +4,8 @@ import * as React from "react"
 import { useState } from "react"
 import useSWR from "swr"
 import { fetcher } from "@/lib/fetcher"
+import { DEFAULT_READER_SECTIONS, getSectionLabel, parseAllowedSections } from "@/lib/app-sections"
+import { SectionPermissionsEditor } from "@/components/section-permissions-editor"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { 
@@ -19,8 +21,6 @@ import {
   ArrowLeft,
   Calendar,
   AlertCircle,
-  CheckSquare,
-  Square,
   Search
 } from "lucide-react"
 
@@ -36,15 +36,6 @@ interface ManagedUser {
 interface UserManagementProps {
   currentUserId: number
 }
-
-const AVAILABLE_SECTIONS = [
-  { id: "dashboard", label: "Dashboard (Admin Only)" },
-  { id: "reading", label: "Lectura (Biblia)" },
-  { id: "notebook", label: "Libreta (Notas)" },
-  { id: "devotionals", label: "Diario Espiritual" },
-  { id: "search", label: "Buscador Avanzado" },
-  { id: "plans", label: "Planes de Lectura" }
-]
 
 export function UserManagement({ currentUserId }: UserManagementProps) {
   const { data: usersData, mutate: mutateUsers, isLoading } = useSWR<{ users: ManagedUser[] }>(
@@ -70,7 +61,7 @@ export function UserManagement({ currentUserId }: UserManagementProps) {
   const [error, setError] = useState<string | null>(null)
 
   // Global Permissions bulk action states
-  const [globalAllowedSections, setGlobalAllowedSections] = useState<string[]>(["reading", "notebook", "plans"])
+  const [globalAllowedSections, setGlobalAllowedSections] = useState<string[]>([...DEFAULT_READER_SECTIONS])
   const [applyingGlobal, setApplyingGlobal] = useState(false)
 
   function openCreateForm() {
@@ -78,7 +69,7 @@ export function UserManagement({ currentUserId }: UserManagementProps) {
     setEmail("")
     setPassword("")
     setRole("user")
-    setAllowedSections(["reading", "notebook", "plans"]) // Defaults
+    setAllowedSections([...DEFAULT_READER_SECTIONS])
     setError(null)
     setEditingUser(null)
     setIsCreating(true)
@@ -90,42 +81,15 @@ export function UserManagement({ currentUserId }: UserManagementProps) {
     setPassword("") // Empty means keep current password
     setRole(user.role)
     
-    // Parse sections
-    let parsedSections: string[] = []
-    try {
-      if (user.allowedSections) {
-        parsedSections = typeof user.allowedSections === "string" 
-          ? JSON.parse(user.allowedSections) 
-          : user.allowedSections
-      } else {
-        parsedSections = user.role === "admin" 
-          ? AVAILABLE_SECTIONS.map(s => s.id)
-          : ["reading", "notebook", "plans"]
-      }
-    } catch (_) {
-      parsedSections = ["reading", "notebook", "plans"]
-    }
-    
-    setAllowedSections(parsedSections)
+    const parsedSections = parseAllowedSections(user.allowedSections)
+    setAllowedSections(
+      user.role === "admin"
+        ? [...DEFAULT_READER_SECTIONS]
+        : parsedSections ?? [...DEFAULT_READER_SECTIONS],
+    )
     setError(null)
     setEditingUser(user)
     setIsCreating(false)
-  }
-
-  function toggleSection(sectionId: string) {
-    setAllowedSections(prev => 
-      prev.includes(sectionId) 
-        ? prev.filter(id => id !== sectionId)
-        : [...prev, sectionId]
-    )
-  }
-
-  function toggleGlobalSection(sectionId: string) {
-    setGlobalAllowedSections(prev => 
-      prev.includes(sectionId) 
-        ? prev.filter(id => id !== sectionId)
-        : [...prev, sectionId]
-    )
   }
 
   async function handleApplyGlobalPermissions() {
@@ -358,30 +322,10 @@ export function UserManagement({ currentUserId }: UserManagementProps) {
               <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">
                 Permisos: Secciones Permitidas
               </label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {AVAILABLE_SECTIONS.filter(s => s.id !== "dashboard").map((sec) => {
-                  const allowed = allowedSections.includes(sec.id)
-                  return (
-                    <button
-                      key={sec.id}
-                      type="button"
-                      onClick={() => toggleSection(sec.id)}
-                      className={`flex items-center gap-3 p-3 rounded-xl border text-sm text-left transition-colors cursor-pointer ${
-                        allowed 
-                          ? "border-primary bg-primary/5 text-foreground" 
-                          : "border-border bg-transparent text-muted-foreground hover:bg-accent/30"
-                      }`}
-                    >
-                      {allowed ? (
-                        <CheckSquare className="size-4 text-primary shrink-0" />
-                      ) : (
-                        <Square className="size-4 text-muted-foreground shrink-0" />
-                      )}
-                      <span>{sec.label}</span>
-                    </button>
-                  )
-                })}
-              </div>
+              <SectionPermissionsEditor
+                selected={allowedSections}
+                onChange={setAllowedSections}
+              />
             </div>
           )}
 
@@ -470,20 +414,11 @@ export function UserManagement({ currentUserId }: UserManagementProps) {
                         // Allowed sections display
                         let sectionsText = "Todas"
                         if (!isAdmin) {
-                          try {
-                            if (u.allowedSections) {
-                              const parsed = typeof u.allowedSections === "string"
-                                ? JSON.parse(u.allowedSections)
-                                : u.allowedSections
-                              sectionsText = parsed.map((s: string) => {
-                                const item = AVAILABLE_SECTIONS.find(as => as.id === s)
-                                return item ? item.label.split(" (")[0] : s
-                              }).join(", ")
-                            } else {
-                              sectionsText = "Lectura, Libreta, Planes (Default)"
-                            }
-                          } catch (_) {
-                            sectionsText = "Desconocido"
+                          const parsed = parseAllowedSections(u.allowedSections)
+                          if (parsed && parsed.length > 0) {
+                            sectionsText = parsed.map((s) => getSectionLabel(s)).join(", ")
+                          } else {
+                            sectionsText = DEFAULT_READER_SECTIONS.map((s) => getSectionLabel(s)).join(", ") + " (Predeterminado)"
                           }
                         }
 
@@ -563,30 +498,11 @@ export function UserManagement({ currentUserId }: UserManagementProps) {
               </p>
             </div>
 
-            <div className="space-y-2 pt-1">
-              {AVAILABLE_SECTIONS.filter(s => s.id !== "dashboard").map((sec) => {
-                const allowed = globalAllowedSections.includes(sec.id)
-                return (
-                  <button
-                    key={sec.id}
-                    type="button"
-                    onClick={() => toggleGlobalSection(sec.id)}
-                    className={`flex items-center gap-2.5 w-full p-2.5 rounded-lg border text-xs text-left transition-colors cursor-pointer ${
-                      allowed 
-                        ? "border-primary/45 bg-primary/5 text-foreground font-semibold" 
-                        : "border-border bg-transparent text-muted-foreground hover:bg-accent/25"
-                    }`}
-                  >
-                    {allowed ? (
-                      <CheckSquare className="size-3.5 text-primary shrink-0" />
-                    ) : (
-                      <Square className="size-3.5 text-muted-foreground shrink-0" />
-                    )}
-                    <span>{sec.label.split(" (")[0]}</span>
-                  </button>
-                )
-              })}
-            </div>
+            <SectionPermissionsEditor
+              selected={globalAllowedSections}
+              onChange={setGlobalAllowedSections}
+              compact
+            />
 
             <Button
               onClick={handleApplyGlobalPermissions}

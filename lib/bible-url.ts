@@ -100,3 +100,66 @@ export function getReaderDeepLinkFromSearch(search: string): {
     verse: verse !== null && !isNaN(verse) ? verse : null,
   }
 }
+
+const READER_DEEPLINK_KEY = "biblia_reader_deeplink"
+const READER_DEEPLINK_LOCK_KEY = "biblia_reader_deeplink_lock"
+
+export type ReaderDeepLink = NonNullable<ReturnType<typeof getReaderDeepLinkFromSearch>>
+
+export function saveReaderDeepLink(link: ReaderDeepLink) {
+  if (typeof window === "undefined") return
+  sessionStorage.setItem(READER_DEEPLINK_KEY, JSON.stringify(link))
+}
+
+export function loadReaderDeepLink(): ReaderDeepLink | null {
+  if (typeof window === "undefined") return null
+
+  const fromUrl = getReaderDeepLinkFromSearch(window.location.search)
+  if (fromUrl) {
+    saveReaderDeepLink(fromUrl)
+    lockReaderDeepLink()
+    return fromUrl
+  }
+
+  if (isReaderDeepLinkLocked()) {
+    const raw = sessionStorage.getItem(READER_DEEPLINK_KEY)
+    if (raw) {
+      try {
+        return JSON.parse(raw) as ReaderDeepLink
+      } catch {
+        sessionStorage.removeItem(READER_DEEPLINK_KEY)
+      }
+    }
+  }
+
+  const raw = sessionStorage.getItem(READER_DEEPLINK_KEY)
+  if (!raw) return null
+
+  try {
+    return JSON.parse(raw) as ReaderDeepLink
+  } catch {
+    sessionStorage.removeItem(READER_DEEPLINK_KEY)
+    return null
+  }
+}
+
+export function clearReaderDeepLink() {
+  if (typeof window === "undefined") return
+  sessionStorage.removeItem(READER_DEEPLINK_KEY)
+}
+
+export function lockReaderDeepLink() {
+  if (typeof window === "undefined") return
+  sessionStorage.setItem(READER_DEEPLINK_LOCK_KEY, "1")
+}
+
+export function isReaderDeepLinkLocked() {
+  if (typeof window === "undefined") return false
+  return sessionStorage.getItem(READER_DEEPLINK_LOCK_KEY) === "1"
+}
+
+export function unlockReaderDeepLink() {
+  if (typeof window === "undefined") return
+  sessionStorage.removeItem(READER_DEEPLINK_LOCK_KEY)
+  clearReaderDeepLink()
+}
