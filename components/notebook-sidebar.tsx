@@ -1,6 +1,3 @@
-"use client"
-
-import * as React from "react"
 import { useState, useEffect, useRef } from "react"
 import useSWR from "swr"
 import { fetcher } from "@/lib/fetcher"
@@ -9,20 +6,24 @@ import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import {
-  Plus,
+  Plus, 
+  Search, 
+  Settings2, 
+  StickyNote, 
   Trash2,
-  Save,
+  X,
   ArrowLeft,
-  BookOpen,
-  FileText,
   Loader2,
-  FolderPlus,
+  Save,
   Tag,
+  BookOpen,
+  Send,
+  Share2,
+  FolderPlus,
   Book,
   Edit2,
   Sparkles,
-  Search,
-  ChevronRight,
+  FileText,
   Calendar,
   MoreHorizontal
 } from "lucide-react"
@@ -93,6 +94,9 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired 
   const [showConfigModal, setShowConfigModal] = useState(false)
   const [modalMode, setModalMode] = useState<"create" | "edit">("create")
   const [configName, setConfigName] = useState("")
+  const [showPublishModal, setShowPublishModal] = useState(false)
+  const [publishComment, setPublishComment] = useState("")
+  const [isPublishing, setIsPublishing] = useState(false)
   const [configCover, setConfigCover] = useState("grad-purple")
   const [customCoverUrl, setCustomCoverUrl] = useState("")
   const [savingNotebook, setSavingNotebook] = useState(false)
@@ -446,9 +450,18 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired 
             >
               <Trash2 className="size-4" />
             </Button>
-            <span className="text-[11px] text-muted-foreground font-medium">
+            <span className="text-[11px] text-muted-foreground font-medium hidden sm:inline-block">
               {savedAt ? `Guardado ${savedAt}` : "Sin guardar"}
             </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowPublishModal(true)}
+              className="h-8 gap-1.5 text-primary border-primary/20 hover:bg-primary/10"
+            >
+              <Share2 className="size-4" />
+              <span className="hidden sm:inline-block">Publicar</span>
+            </Button>
             <Button
               onClick={handleSaveNote}
               disabled={savingNote}

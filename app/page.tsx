@@ -461,9 +461,9 @@ export default function Page() {
           )}
 
           {activeTab === "feed" && allowedSections.includes("feed") && (
-            <div className="h-[calc(100vh-8rem)] md:h-[calc(100vh-3rem)] rounded-xl border border-border shadow-sm overflow-hidden">
+            <div className="h-[calc(100vh-8rem)] md:h-[calc(100vh-3rem)] rounded-xl border border-border shadow-sm overflow-hidden bg-card/10">
               <Suspense fallback={<div className="p-8 text-center text-sm text-muted-foreground">Cargando Feed...</div>}>
-                <Feed />
+                <Feed currentUserId={user.id} />
               </Suspense>
             </div>
           )}

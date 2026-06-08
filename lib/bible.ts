@@ -871,6 +871,7 @@ export async function getFeed(userId: number, type: 'following' | 'explore' = 'f
   const [rows] = await getPool().query<RowDataPacket[]>(
     `SELECT fp.*, u.name as user_name, u.username as user_username,
             (SELECT COUNT(*) FROM feed_likes WHERE post_id = fp.id) as like_count,
+            (SELECT COUNT(*) FROM feed_comments WHERE post_id = fp.id) as comment_count,
             EXISTS(SELECT 1 FROM feed_likes WHERE post_id = fp.id AND user_id = ?) as is_liked
      FROM feed_posts fp
      JOIN users u ON fp.user_id = u.id
@@ -944,6 +945,7 @@ export async function getUserPosts(authorId: number, currentUserId: number, limi
   const [rows] = await getPool().query<RowDataPacket[]>(
     `SELECT fp.*, u.name as user_name, u.username as user_username,
             (SELECT COUNT(*) FROM feed_likes WHERE post_id = fp.id) as like_count,
+            (SELECT COUNT(*) FROM feed_comments WHERE post_id = fp.id) as comment_count,
             EXISTS(SELECT 1 FROM feed_likes WHERE post_id = fp.id AND user_id = ?) as is_liked
      FROM feed_posts fp
      JOIN users u ON fp.user_id = u.id
@@ -953,4 +955,32 @@ export async function getUserPosts(authorId: number, currentUserId: number, limi
     [currentUserId, authorId, currentUserId, limit, offset]
   )
   return rows
+}
+
+// ------------------------------------------------------------------------------------------------
+// Feed Comments
+// ------------------------------------------------------------------------------------------------
+
+export async function addComment(postId: number, userId: number, content: string): Promise<number> {
+  const [result] = await getPool().query<ResultSetHeader>(
+    `INSERT INTO feed_comments (post_id, user_id, content) VALUES (?, ?, ?)`,
+    [postId, userId, content]
+  )
+  return result.insertId
+}
+
+export async function getComments(postId: number): Promise<any[]> {
+  const [rows] = await getPool().query<RowDataPacket[]>(
+    `SELECT fc.*, u.name as user_name, u.username as user_username
+     FROM feed_comments fc
+     JOIN users u ON fc.user_id = u.id
+     WHERE fc.post_id = ?
+     ORDER BY fc.created_at ASC`,
+    [postId]
+  )
+  return rows
+}
+
+export async function deleteComment(commentId: number, userId: number): Promise<void> {
+  await getPool().query(`DELETE FROM feed_comments WHERE id = ? AND user_id = ?`, [commentId, userId])
 }

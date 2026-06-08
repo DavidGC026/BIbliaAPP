@@ -14,11 +14,14 @@ import {
   Users,
   Compass,
   MessageSquare,
-  BookOpen
+  BookOpen,
+  Share2,
+  Send
 } from "lucide-react"
+import { ProfileSection } from "./profile-section"
 
-export function Feed() {
-  const [activeTab, setActiveTab] = useState<"following" | "explore">("following")
+export function Feed({ currentUserId }: { currentUserId: number }) {
+  const [activeTab, setActiveTab] = useState<"following" | "explore" | "search">("following")
   const [isComposing, setIsComposing] = useState(false)
   const [newPostContent, setNewPostContent] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -105,11 +108,26 @@ export function Feed() {
           >
             Explorar
           </button>
+          <button
+            onClick={() => setActiveTab("search")}
+            className={cn(
+              "pb-3 text-sm font-bold border-b-2 transition-colors",
+              activeTab === "search" 
+                ? "border-primary text-foreground" 
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            )}
+          >
+            Buscar Personas
+          </button>
         </div>
       </div>
 
-      {/* Feed Area */}
-      <div className="flex-1 overflow-y-auto p-4 md:p-6 pb-24">
+      {activeTab === "search" ? (
+        <div className="flex-1 overflow-hidden h-full">
+          <ProfileSection currentUserId={currentUserId} />
+        </div>
+      ) : (
+        <div className="flex-1 overflow-y-auto p-4 md:p-6 pb-24">
         <div className="max-w-2xl mx-auto space-y-4">
           
           {/* Compose Box (Always visible at top for quick posting) */}
@@ -166,66 +184,13 @@ export function Feed() {
           ) : (
             <div className="space-y-4">
               {posts.map((post: any) => (
-                <div key={post.id} className="bg-card p-4 md:p-5 rounded-xl border border-border/50 shadow-sm hover:shadow-md transition-shadow animate-fade-in">
-                  
-                  {/* Post Header */}
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="size-10 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary text-sm shrink-0 cursor-pointer hover:opacity-80">
-                      {post.user_name.charAt(0).toUpperCase()}
-                    </div>
-                    <div className="flex flex-col min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-bold text-sm text-foreground truncate cursor-pointer hover:underline">{post.user_name}</span>
-                        <span className="text-xs text-muted-foreground truncate">@{post.user_username}</span>
-                      </div>
-                      <span className="text-[10px] text-muted-foreground">
-                        {new Date(post.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' })}
-                      </span>
-                    </div>
-                    <div className="ml-auto pl-2">
-                      <span className="text-[10px] font-semibold uppercase tracking-wider bg-muted px-2 py-0.5 rounded text-muted-foreground">
-                        {post.type === 'verse' ? '📖 Versículo' : post.type === 'devotional' ? '🌅 Devocional' : post.type === 'note' ? '📝 Nota' : 'Publicación'}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Post Content */}
-                  {post.verse_ref && (
-                    <div className="mb-3 pl-3.5 border-l-2 border-primary/40 text-sm bg-primary/5 py-2 pr-3 rounded-r-lg">
-                      <strong className="text-primary block mb-0.5">{post.verse_ref}</strong>
-                      {post.verse_text && <p className="text-foreground italic">{post.verse_text}</p>}
-                    </div>
-                  )}
-                  
-                  <p className="text-foreground whitespace-pre-wrap text-[15px] leading-relaxed">
-                    {post.content}
-                  </p>
-
-                  {/* Post Actions */}
-                  <div className="flex items-center gap-6 mt-4 pt-3 border-t border-border/30">
-                    <button 
-                      onClick={() => handleLikeToggle(post.id, post.is_liked)}
-                      className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-rose-500 transition-colors group"
-                    >
-                      <div className={cn("p-1.5 rounded-full group-hover:bg-rose-500/10 transition-colors", post.is_liked && "bg-rose-500/10")}>
-                        <Heart className={cn("size-4", post.is_liked && "fill-rose-500 text-rose-500")} />
-                      </div>
-                      <span className={cn(post.is_liked && "text-rose-500")}>{post.like_count > 0 ? post.like_count : "Me gusta"}</span>
-                    </button>
-                    
-                    <button className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-primary transition-colors group">
-                      <div className="p-1.5 rounded-full group-hover:bg-primary/10 transition-colors">
-                        <MessageSquare className="size-4" />
-                      </div>
-                      <span>Comentar</span>
-                    </button>
-                  </div>
-                </div>
+                <FeedPostCard key={post.id} post={post} onLikeToggle={handleLikeToggle} />
               ))}
             </div>
           )}
         </div>
       </div>
+      )}
 
       {/* Floating Action Button (Mobile only) */}
       {!isComposing && (
@@ -248,5 +213,187 @@ function UserAvatarPlaceholder() {
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="size-5">
       <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
     </svg>
+  )
+}
+
+function FeedPostCard({ post, onLikeToggle }: { post: any, onLikeToggle: (id: number, isLiked: boolean) => void }) {
+  const [showComments, setShowComments] = useState(false)
+  const [newComment, setNewComment] = useState("")
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  
+  const { data: commentsData, mutate: mutateComments, isLoading: commentsLoading } = useSWR<{ comments: any[] }>(
+    showComments ? `/api/feed/posts/${post.id}/comments` : null,
+    fetcher
+  )
+  
+  const comments = commentsData?.comments || []
+
+  const handleCommentSubmit = async () => {
+    if (!newComment.trim() || isSubmitting) return
+    setIsSubmitting(true)
+    try {
+      await fetch(`/api/feed/posts/${post.id}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: newComment.trim() })
+      })
+      setNewComment("")
+      mutateComments()
+      // We could ideally mutate the post comment_count in the parent here, but a reload handles it.
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleShare = async () => {
+    const shareUrl = `${window.location.origin}/?tab=feed`
+    const shareText = `Mira esta publicación de @${post.user_username} en la BibliaApp:\n\n"${post.content.substring(0, 100)}..."`
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Publicación en BibliaApp',
+          text: shareText,
+          url: shareUrl
+        })
+      } catch (err) {
+        console.error("Error sharing", err)
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(`${shareText}\n${shareUrl}`)
+        alert("¡Enlace copiado al portapapeles!")
+      } catch (err) {
+        console.error("Error copying", err)
+      }
+    }
+  }
+
+  return (
+    <div className="bg-card p-4 md:p-5 rounded-xl border border-border/50 shadow-sm hover:shadow-md transition-shadow animate-fade-in">
+      {/* Post Header */}
+      <div className="flex items-center gap-3 mb-3">
+        <div className="size-10 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary text-sm shrink-0 cursor-pointer hover:opacity-80">
+          {post.user_name.charAt(0).toUpperCase()}
+        </div>
+        <div className="flex flex-col min-w-0">
+          <div className="flex items-center gap-1.5">
+            <span className="font-bold text-sm text-foreground truncate cursor-pointer hover:underline">{post.user_name}</span>
+            <span className="text-xs text-muted-foreground truncate">@{post.user_username}</span>
+          </div>
+          <span className="text-[10px] text-muted-foreground">
+            {new Date(post.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' })}
+          </span>
+        </div>
+        <div className="ml-auto pl-2">
+          <span className="text-[10px] font-semibold uppercase tracking-wider bg-muted px-2 py-0.5 rounded text-muted-foreground">
+            {post.type === 'verse' ? '📖 Versículo' : post.type === 'devotional' ? '🌅 Devocional' : post.type === 'note' ? '📝 Nota' : 'Publicación'}
+          </span>
+        </div>
+      </div>
+
+      {/* Post Content */}
+      {post.verse_ref && (
+        <div className="mb-3 pl-3.5 border-l-2 border-primary/40 text-sm bg-primary/5 py-2 pr-3 rounded-r-lg">
+          <strong className="text-primary block mb-0.5">{post.verse_ref}</strong>
+          {post.verse_text && <p className="text-foreground italic">{post.verse_text}</p>}
+        </div>
+      )}
+      
+      <p className="text-foreground whitespace-pre-wrap text-[15px] leading-relaxed">
+        {post.content}
+      </p>
+
+      {/* Post Actions */}
+      <div className="flex flex-wrap items-center gap-4 sm:gap-6 mt-4 pt-3 border-t border-border/30">
+        <button 
+          onClick={() => onLikeToggle(post.id, post.is_liked)}
+          className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-rose-500 transition-colors group"
+        >
+          <div className={cn("p-1.5 rounded-full group-hover:bg-rose-500/10 transition-colors", post.is_liked && "bg-rose-500/10")}>
+            <Heart className={cn("size-4", post.is_liked && "fill-rose-500 text-rose-500")} />
+          </div>
+          <span className={cn(post.is_liked && "text-rose-500")}>{post.like_count > 0 ? post.like_count : "Me gusta"}</span>
+        </button>
+        
+        <button 
+          onClick={() => setShowComments(!showComments)}
+          className={cn("flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-primary transition-colors group", showComments && "text-primary")}
+        >
+          <div className={cn("p-1.5 rounded-full group-hover:bg-primary/10 transition-colors", showComments && "bg-primary/10")}>
+            <MessageSquare className={cn("size-4", showComments && "fill-primary/20")} />
+          </div>
+          <span>{post.comment_count > 0 ? post.comment_count : "Comentar"}</span>
+        </button>
+        
+        <button 
+          onClick={handleShare}
+          className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-green-500 transition-colors group ml-auto sm:ml-0"
+        >
+          <div className="p-1.5 rounded-full group-hover:bg-green-500/10 transition-colors">
+            <Share2 className="size-4" />
+          </div>
+          <span>Compartir</span>
+        </button>
+      </div>
+
+      {/* Comments Section */}
+      {showComments && (
+        <div className="mt-4 pt-4 border-t border-border/30 animate-fade-in space-y-4">
+          {/* Comments List */}
+          {commentsLoading ? (
+            <div className="flex justify-center p-4">
+              <Loader2 className="size-5 animate-spin text-primary" />
+            </div>
+          ) : comments.length > 0 ? (
+            <div className="space-y-3">
+              {comments.map((comment) => (
+                <div key={comment.id} className="flex gap-2">
+                  <div className="size-6 rounded-full bg-primary/20 flex items-center justify-center font-bold text-primary text-[10px] shrink-0 mt-0.5">
+                    {comment.user_name.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="bg-muted/30 rounded-2xl rounded-tl-none px-3 py-2 text-sm max-w-[85%] border border-border/20">
+                    <div className="font-bold text-xs text-foreground mb-0.5">
+                      {comment.user_name}
+                    </div>
+                    <p className="text-foreground/90 whitespace-pre-wrap">{comment.content}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground text-center py-2">No hay comentarios aún. ¡Sé el primero!</p>
+          )}
+
+          {/* New Comment Input */}
+          <div className="flex gap-2 items-center">
+            <div className="size-7 rounded-full bg-primary/10 shrink-0 flex items-center justify-center">
+              <UserAvatarPlaceholder />
+            </div>
+            <div className="flex-1 relative">
+              <input
+                type="text"
+                placeholder="Escribe un comentario..."
+                className="w-full bg-muted/40 border border-border/50 rounded-full pl-4 pr-10 py-1.5 text-sm focus:outline-none focus:border-primary/50"
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleCommentSubmit()
+                }}
+              />
+              <button 
+                onClick={handleCommentSubmit}
+                disabled={!newComment.trim() || isSubmitting}
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1 text-primary hover:bg-primary/10 rounded-full disabled:opacity-50 transition-colors"
+              >
+                {isSubmitting ? <Loader2 className="size-3.5 animate-spin" /> : <Send className="size-3.5" />}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   )
 }
