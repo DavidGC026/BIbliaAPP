@@ -20,6 +20,7 @@ import { Activity } from "@/components/activity"
 import { Statistics } from "@/components/statistics"
 import { Favorites } from "@/components/favorites"
 import { HighlightsManager } from "@/components/highlights-manager"
+import { ReferencesExplorer } from "@/components/references-explorer"
 import { 
   BookOpen, 
   LayoutDashboard, 
@@ -36,7 +37,8 @@ import {
   BarChart2,
   Star,
   HeartHandshake,
-  Highlighter
+  Highlighter,
+  Link as LinkIcon
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -74,19 +76,27 @@ export default function Page() {
   // Parsed sections permissions
   const allowedSections = React.useMemo(() => {
     if (!user) return []
+    
+    // Always grant full access to admins, overriding custom allowedSections
+    if (user.role === "admin") {
+      return ["dashboard", "reading", "search", "notebook", "favorites", "highlights", "references", "plans", "prayers", "devotionals", "groups", "activity", "statistics", "users"]
+    }
+
     if (user.allowedSections) {
       try {
-        return typeof user.allowedSections === "string"
+        const parsed = typeof user.allowedSections === "string"
           ? JSON.parse(user.allowedSections)
           : user.allowedSections
+        
+        // Ensure new basic features are always available
+        const defaultBasics = ["search", "highlights", "references"]
+        return Array.from(new Set([...parsed, ...defaultBasics]))
       } catch (_) {
-        return ["reading", "notebook", "plans"]
+        return ["reading", "search", "notebook", "highlights", "references", "plans"]
       }
     } else {
-      // Default configurations
-      return user.role === "admin"
-        ? ["dashboard", "reading", "search", "notebook", "favorites", "highlights", "plans", "prayers", "devotionals", "groups", "activity", "statistics", "users"]
-        : ["reading", "search", "notebook", "favorites", "highlights", "plans", "prayers", "devotionals", "groups", "activity", "statistics"]
+      // Default configurations for non-admin
+      return ["reading", "search", "notebook", "favorites", "highlights", "references", "plans", "prayers", "devotionals", "groups", "activity", "statistics"]
     }
   }, [user])
 
@@ -145,7 +155,8 @@ export default function Page() {
   const allNavItems = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, section: "PRINCIPAL" },
     { id: "reading", label: "Leer", icon: BookOpen, section: "PRINCIPAL" },
-    { id: "search", label: "Buscar", icon: Search, section: "PRINCIPAL" },
+    { id: "search", label: "Búsqueda", icon: Search, section: "ESTUDIO BÍBLICO" },
+    { id: "references", label: "Referencias", icon: LinkIcon, section: "ESTUDIO BÍBLICO" },
     
     { id: "notebook", label: "Notas", icon: BookText, section: "PERSONAL" },
     { id: "favorites", label: "Favoritos", icon: Star, section: "PERSONAL" },
@@ -202,7 +213,7 @@ export default function Page() {
 
           {/* Navigation links */}
           <nav className="flex-1 px-4 space-y-5 pb-4">
-            {["PRINCIPAL", "PERSONAL", "VIDA ESPIRITUAL", "GENERAL"].map(section => {
+            {["PRINCIPAL", "ESTUDIO BÍBLICO", "PERSONAL", "VIDA ESPIRITUAL", "GENERAL"].map(section => {
               const sectionItems = desktopNavItems.filter(item => item.section === section)
               if (sectionItems.length === 0) return null
               
@@ -386,6 +397,10 @@ export default function Page() {
 
           {activeTab === "highlights" && allowedSections.includes("highlights") && (
             <HighlightsManager />
+          )}
+
+          {activeTab === "references" && allowedSections.includes("references") && (
+            <ReferencesExplorer />
           )}
 
           {activeTab === "users" && allowedSections.includes("users") && (
