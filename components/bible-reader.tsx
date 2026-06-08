@@ -15,7 +15,8 @@ import { fetcher } from "@/lib/fetcher"
 import type { Book, Verse, NoteLink, BibleVersion } from "@/lib/types"
 import { NotePanel } from "./note-panel"
 import { NotebookSidebar } from "./notebook-sidebar"
-import { FileText, Plus, ChevronLeft, ChevronRight, Search, X, Loader2, Copy, Share2, LogOut, Star } from "lucide-react"
+import { VerseImageCreator } from "./verse-image-creator"
+import { FileText, Plus, ChevronLeft, ChevronRight, Search, X, Loader2, Copy, Share2, LogOut, Star, Image as ImageIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const bookAbbrMap: Record<number, string> = {
@@ -98,6 +99,7 @@ export function BibleReader({
   const [fontSize, setFontSize] = useState<number>(18)
   const [recentSearches, setRecentSearches] = useState<string[]>([])
   const [canShare, setCanShare] = useState(false)
+  const [imageCreatorOpen, setImageCreatorOpen] = useState(false)
 
   // Load settings on mount
   useEffect(() => {
@@ -589,6 +591,24 @@ export function BibleReader({
       }
     }
   }, [selectedVerses, verses, currentBook, chapter, currentBible, bibleId, formatVerseRange])
+
+  const imageCreatorData = useMemo(() => {
+    if (selectedVerses.length === 0) return null
+    const selectedVersesData = verses
+      .filter((v) => selectedVerses.includes(Number(v.verse)))
+      .sort((a, b) => Number(a.verse) - Number(b.verse))
+    if (selectedVersesData.length === 0) return null
+
+    const verseRangeStr = formatVerseRange(selectedVerses)
+    const text = selectedVersesData.map((v) => v.text).join(" ")
+    const reference = `${currentBook?.bookName ?? "Biblia"} ${chapter}:${verseRangeStr}`
+
+    return {
+      text,
+      reference,
+      abbr: currentBible?.abbr || "RVR1960",
+    }
+  }, [selectedVerses, verses, currentBook, chapter, currentBible, formatVerseRange])
 
   function selectBook(value: string | null) {
     if (!value) return
@@ -1355,6 +1375,16 @@ export function BibleReader({
               </Button>
             )}
             <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setImageCreatorOpen(true)}
+              disabled={!imageCreatorData}
+              className="h-8 rounded-full text-xs font-semibold px-2 sm:px-3 gap-1 shadow-sm border-primary/20 hover:bg-primary/5 hover:text-primary cursor-pointer"
+            >
+              <ImageIcon className="size-3.5" />
+              <span className="hidden sm:inline">Imagen</span>
+            </Button>
+            <Button
               variant="default"
               size="sm"
               onClick={handleCopySelection}
@@ -1383,6 +1413,16 @@ export function BibleReader({
             </Button>
           </div>
         </div>
+      )}
+
+      {imageCreatorData && (
+        <VerseImageCreator
+          open={imageCreatorOpen}
+          onOpenChange={setImageCreatorOpen}
+          text={imageCreatorData.text}
+          reference={imageCreatorData.reference}
+          abbr={imageCreatorData.abbr}
+        />
       )}
     </div>
   )

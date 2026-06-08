@@ -4,7 +4,7 @@ import * as React from "react"
 import { useState, useRef } from "react"
 import useSWR from "swr"
 import { fetcher } from "@/lib/fetcher"
-import { Quote, Share2, BookOpen, ChevronDown, Loader2, Image as ImageIcon, Download, X, Type } from "lucide-react"
+import { Quote, Share2, BookOpen, ChevronDown, Loader2, Image as ImageIcon, Download, X, Type, Camera, Settings2, Layout, Upload } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -39,99 +39,7 @@ const THEME_COLORS: Record<string, string> = {
   Promesa: "bg-fuchsia-500/10 text-fuchsia-600 dark:text-fuchsia-400 border-fuchsia-500/20",
 }
 
-const GRADIENT_BACKGROUNDS = [
-  "from-zinc-950 to-neutral-900",
-  "from-slate-950 to-slate-900",
-  "from-stone-950 to-gray-900",
-  "from-blue-950 to-indigo-950",
-  "from-purple-950 to-violet-950",
-]
-
-type TextSize = "sm" | "md" | "lg"
-
-const TEXT_SIZE_CLASSES: Record<TextSize, string> = {
-  sm: "text-base md:text-lg lg:text-xl",
-  md: "text-lg md:text-xl lg:text-2xl",
-  lg: "text-xl md:text-2xl lg:text-3xl",
-}
-
-const DEFAULT_THEME_COLOR = "bg-primary/10 text-primary border-primary/20"
-
-import { createPortal } from "react-dom"
-
-function Dialog({ open, onOpenChange, children }: { open: boolean; onOpenChange: (open: boolean) => void; children: React.ReactNode }) {
-  const [mounted, setMounted] = React.useState(false)
-
-  React.useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  React.useEffect(() => {
-    if (open) {
-      document.body.style.overflow = "hidden"
-    }
-    return () => {
-      document.body.style.overflow = "unset"
-    }
-  }, [open])
-
-  if (!open || !mounted) return null
-
-  return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-center justify-center" role="dialog" aria-modal="true">
-      <div 
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm" 
-        onClick={() => onOpenChange(false)}
-      />
-      <div className="relative z-10 mx-4 w-full max-w-xs">{children}</div>
-    </div>,
-    document.body
-  )
-}
-
-const VerseImageCard = React.forwardRef<HTMLDivElement, {
-  text: string
-  reference: string
-  theme: string
-  abbr: string
-  gradient: string
-  textSize: TextSize
-}>(function VerseImageCard({ text, reference, theme, abbr, gradient, textSize }, ref) {
-  const themeClass = THEME_COLORS[theme] || DEFAULT_THEME_COLOR
-
-  return (
-    <div 
-      ref={ref}
-      className={cn(
-        "relative flex aspect-[9/16] w-[240px] flex-col items-center justify-center rounded-xl p-3",
-        "bg-gradient-to-b",
-        gradient
-      )}
-    >
-      <div className="absolute inset-0 rounded-xl bg-black/15" />
-      <div className="relative z-10 flex flex-col items-center justify-center text-center">
-        <span className={cn(
-          "mb-3 inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[10px] font-medium tracking-wider",
-          themeClass
-        )}>
-          <Quote className="h-3 w-3" />
-          {theme.toUpperCase()}
-        </span>
-        
-        <p className={cn(
-          "font-serif italic leading-relaxed tracking-tight text-white/95 mb-3 px-3",
-          TEXT_SIZE_CLASSES[textSize]
-        )}>
-          "{text}"
-        </p>
-        
-        <p className="text-[10px] font-medium tracking-wide text-white/70">
-          — RVR1960 | {reference}
-        </p>
-      </div>
-    </div>
-  )
-})
+import { VerseImageCreator } from "@/components/verse-image-creator"
 
 export function VerseOfTheDay() {
   const { data: biblesData } = useSWR<{ bibles: BibleVersion[] }>("/api/bibles", fetcher)
@@ -139,10 +47,6 @@ export function VerseOfTheDay() {
   
   const [selectedBibleId, setSelectedBibleId] = useState<number>(149)
   const [isImageModalOpen, setIsImageModalOpen] = useState(false)
-  const [selectedGradient, setSelectedGradient] = useState<string>(GRADIENT_BACKGROUNDS[0])
-  const [textSize, setTextSize] = useState<TextSize>("md")
-  const [isExporting, setIsExporting] = useState(false)
-  const cardRef = useRef<HTMLDivElement>(null)
 
   const { data, isLoading, error } = useSWR<VerseOfTheDayData>(
     `/api/verse-of-the-day?idBible=${selectedBibleId}`,
@@ -154,7 +58,7 @@ export function VerseOfTheDay() {
   const handleShare = async () => {
     if (!data) return
 
-    const shareText = `"${data.text}"\n\n- ${data.reference} (${selectedBible?.abbr})\nTema: ${data.theme}\n\nApp Biblia`
+    const shareText = `"${data.text}"\n\n- ${data.reference} (${selectedBible?.abbr})\nTema: ${data.theme}\n\nLee más en: https://biblia2.dvguzman.com`
     
     try {
       if (navigator.share) {
@@ -173,76 +77,13 @@ export function VerseOfTheDay() {
     }
   }
 
-  const handleDownloadImage = async () => {
-    if (!cardRef.current) return
-    
-    setIsExporting(true)
-    try {
-      const dataUrl = await toPng(cardRef.current, {
-        quality: 1,
-        pixelRatio: 3,
-        width: cardRef.current.offsetWidth,
-        height: cardRef.current.offsetHeight,
-        style: {
-          transform: "scale(1)",
-          transformOrigin: "top left",
-        },
-      })
-      
-      const link = document.createElement("a")
-      link.download = `versiculo-${data?.reference.replace(/\s/g, "-")}.png`
-      link.href = dataUrl
-      link.click()
-    } catch (err) {
-      console.error("Error al generar imagen:", err)
-    } finally {
-      setIsExporting(false)
-    }
-  }
 
-  const handleShareImage = async () => {
-    if (!cardRef.current) return
-    
-    setIsExporting(true)
-    try {
-      const dataUrl = await toBlob(cardRef.current, {
-        quality: 1,
-        pixelRatio: 3,
-      })
-      
-      if (!dataUrl) return
-      
-      const file = new File([dataUrl], `versiculo-${data?.reference.replace(/\s/g, "-")}.png`, { type: "image/png" })
-      
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({
-          title: `Versículo del Día - ${data?.reference}`,
-          text: `"${data?.text}" - RVR1960 | ${data?.reference}`,
-          files: [file],
-        })
-      } else if (navigator.share) {
-        await navigator.share({
-          title: `Versículo del Día - ${data?.reference}`,
-          text: `"${data?.text}" - RVR1960 | ${data?.reference}`,
-        })
-      } else {
-        await navigator.clipboard.writeText(`"${data?.text}" - RVR1960 | ${data?.reference}`)
-        alert("Versículo copiado al portapapeles")
-      }
-    } catch (err) {
-      if (err instanceof Error && err.name !== "AbortError") {
-        console.error("Error al compartir imagen:", err)
-      }
-    } finally {
-      setIsExporting(false)
-    }
-  }
 
   if (error) {
     return null
   }
 
-  const themeClass = data?.theme ? (THEME_COLORS[data.theme] || DEFAULT_THEME_COLOR) : DEFAULT_THEME_COLOR
+  const themeClass = data?.theme ? (THEME_COLORS[data.theme] || "bg-primary/10 text-primary border-primary/20") : "bg-primary/10 text-primary border-primary/20"
 
   return (
     <div className="relative overflow-hidden rounded-2xl border bg-background/50 p-6 md:p-8 shadow-sm backdrop-blur-xl dark:bg-zinc-950/50">
@@ -317,98 +158,16 @@ export function VerseOfTheDay() {
         ) : null}
       </div>
 
-      <Dialog open={isImageModalOpen} onOpenChange={setIsImageModalOpen}>
-        <div className="flex flex-col items-center gap-3 bg-card/90 rounded-xl overflow-hidden">
-          <div className="flex w-full items-center justify-between p-3 border-b border-border/50">
-            <h2 className="text-sm font-semibold">Vista Previa</h2>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setIsImageModalOpen(false)}
-              className="h-6 w-6 rounded-full"
-            >
-              <X className="h-3 w-3" />
-            </Button>
-          </div>
-          
-          <VerseImageCard
-            ref={cardRef}
-            text={data?.text || ""}
-            reference={data?.reference || ""}
-            theme={data?.theme || ""}
-            abbr="RVR1960"
-            gradient={selectedGradient}
-            textSize={textSize}
-          />
-
-          <div className="w-full space-y-2.5 p-3">
-            <div className="flex items-center justify-center gap-1.5">
-              <Type className="h-3 w-3 text-muted-foreground" />
-              <span className="text-[10px] font-medium text-muted-foreground">Tamaño:</span>
-              {(["sm", "md", "lg"] as TextSize[]).map((size) => (
-                <Button
-                  key={size}
-                  variant={textSize === size ? "default" : "ghost"}
-                  size="sm"
-                  onClick={() => setTextSize(size)}
-                  className="h-5 px-1.5 text-[9px]"
-                >
-                  {size === "sm" ? "P" : size === "md" ? "M" : "G"}
-                </Button>
-              ))}
-            </div>
-
-            <div className="space-y-1">
-              <p className="text-[9px] font-medium text-muted-foreground text-center uppercase">Fondo</p>
-              <div className="flex flex-wrap justify-center gap-1">
-                {GRADIENT_BACKGROUNDS.map((gradient, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setSelectedGradient(gradient)}
-                    className={cn(
-                      "h-5 w-5 rounded-sm border transition-all",
-                      "bg-gradient-to-b",
-                      gradient,
-                      selectedGradient === gradient ? "border-primary scale-110" : "border-transparent opacity-60 hover:opacity-100"
-                    )}
-                    aria-label={`Seleccionar fondo ${index + 1}`}
-                  />
-                ))}
-              </div>
-            </div>
-
-            <div className="flex gap-1.5 pt-0.5">
-              <Button
-                variant="outline"
-                onClick={handleDownloadImage}
-                disabled={isExporting}
-                className="flex-1 h-7 rounded-full text-[10px]"
-              >
-                {isExporting ? (
-                  <Loader2 className="mr-1 h-2.5 w-2.5 animate-spin" />
-                ) : (
-                  <Download className="mr-1 h-2.5 w-2.5" />
-                )}
-                Descargar
-              </Button>
-              
-              <Button
-                variant="default"
-                onClick={handleShareImage}
-                disabled={isExporting}
-                className="flex-1 h-7 rounded-full text-[10px]"
-              >
-                {isExporting ? (
-                  <Loader2 className="mr-1 h-2.5 w-2.5 animate-spin" />
-                ) : (
-                  <Share2 className="mr-1 h-2.5 w-2.5" />
-                )}
-                Compartir
-              </Button>
-            </div>
-          </div>
-        </div>
-      </Dialog>
+      {data && (
+        <VerseImageCreator
+          open={isImageModalOpen}
+          onOpenChange={setIsImageModalOpen}
+          text={data.text}
+          reference={data.reference}
+          theme={data.theme}
+          abbr={selectedBible?.abbr || "RVR1960"}
+        />
+      )}
     </div>
   )
 }

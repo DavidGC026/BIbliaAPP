@@ -5,7 +5,7 @@ const csp = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https: http:",
   "font-src 'self' data:",
-  "connect-src 'self' https://biblia2.dvguzman.com https://static.cloudflareinsights.com",
+  "connect-src 'self' https://biblia2.dvguzman.com https://static.cloudflareinsights.com https://images.unsplash.com",
   "frame-ancestors 'self'",
 ].join("; ")
 
