@@ -18,7 +18,7 @@ export async function POST(
       return NextResponse.json({ error: "ID de publicación inválido" }, { status: 400 })
     }
 
-    await likePost(postId, session.userId)
+    await likePost(session.userId, postId)
     return NextResponse.json({ success: true })
   } catch (err) {
     return NextResponse.json(

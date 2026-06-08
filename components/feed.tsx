@@ -368,28 +368,44 @@ function FeedPostCard({ post, onLikeToggle }: { post: any, onLikeToggle: (id: nu
           )}
 
           {/* New Comment Input */}
-          <div className="flex gap-2 items-center">
-            <div className="size-7 rounded-full bg-primary/10 shrink-0 flex items-center justify-center">
-              <UserAvatarPlaceholder />
+          <div className="flex flex-col gap-2">
+            <div className="flex gap-2 items-center">
+              <div className="size-7 rounded-full bg-primary/10 shrink-0 flex items-center justify-center">
+                <UserAvatarPlaceholder />
+              </div>
+              <div className="flex-1 relative">
+                <input
+                  type="text"
+                  placeholder="Escribe un comentario..."
+                  className="w-full bg-muted/40 border border-border/50 rounded-full pl-4 pr-10 py-1.5 text-sm focus:outline-none focus:border-primary/50"
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleCommentSubmit()
+                  }}
+                />
+                <button 
+                  onClick={handleCommentSubmit}
+                  disabled={!newComment.trim() || isSubmitting}
+                  className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1 text-primary hover:bg-primary/10 rounded-full disabled:opacity-50 transition-colors"
+                >
+                  {isSubmitting ? <Loader2 className="size-3.5 animate-spin" /> : <Send className="size-3.5" />}
+                </button>
+              </div>
             </div>
-            <div className="flex-1 relative">
-              <input
-                type="text"
-                placeholder="Escribe un comentario..."
-                className="w-full bg-muted/40 border border-border/50 rounded-full pl-4 pr-10 py-1.5 text-sm focus:outline-none focus:border-primary/50"
-                value={newComment}
-                onChange={(e) => setNewComment(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleCommentSubmit()
-                }}
-              />
-              <button 
-                onClick={handleCommentSubmit}
-                disabled={!newComment.trim() || isSubmitting}
-                className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1 text-primary hover:bg-primary/10 rounded-full disabled:opacity-50 transition-colors"
-              >
-                {isSubmitting ? <Loader2 className="size-3.5 animate-spin" /> : <Send className="size-3.5" />}
-              </button>
+            
+            {/* Quick Emojis */}
+            <div className="flex gap-1.5 ml-9">
+              {['👍', '❤️', '🙏', '🙌', '😊', '🔥', '👏', '🕊️'].map(emoji => (
+                <button
+                  key={emoji}
+                  onClick={() => setNewComment(prev => prev + emoji)}
+                  className="text-sm hover:bg-muted p-1 rounded transition-colors"
+                  type="button"
+                >
+                  {emoji}
+                </button>
+              ))}
             </div>
           </div>
         </div>
