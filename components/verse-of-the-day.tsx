@@ -50,14 +50,22 @@ const GRADIENT_BACKGROUNDS = [
 type TextSize = "sm" | "md" | "lg"
 
 const TEXT_SIZE_CLASSES: Record<TextSize, string> = {
-  sm: "text-lg md:text-xl lg:text-2xl",
-  md: "text-xl md:text-2xl lg:text-3xl",
-  lg: "text-2xl md:text-3xl lg:text-4xl",
+  sm: "text-base md:text-lg lg:text-xl",
+  md: "text-lg md:text-xl lg:text-2xl",
+  lg: "text-xl md:text-2xl lg:text-3xl",
 }
 
 const DEFAULT_THEME_COLOR = "bg-primary/10 text-primary border-primary/20"
 
+import { createPortal } from "react-dom"
+
 function Dialog({ open, onOpenChange, children }: { open: boolean; onOpenChange: (open: boolean) => void; children: React.ReactNode }) {
+  const [mounted, setMounted] = React.useState(false)
+
+  React.useEffect(() => {
+    setMounted(true)
+  }, [])
+
   React.useEffect(() => {
     if (open) {
       document.body.style.overflow = "hidden"
@@ -67,16 +75,17 @@ function Dialog({ open, onOpenChange, children }: { open: boolean; onOpenChange:
     }
   }, [open])
 
-  if (!open) return null
+  if (!open || !mounted) return null
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center" role="dialog" aria-modal="true">
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center" role="dialog" aria-modal="true">
       <div 
         className="absolute inset-0 bg-black/60 backdrop-blur-sm" 
         onClick={() => onOpenChange(false)}
       />
-      <div className="relative z-10 mx-4 w-full max-w-sm">{children}</div>
-    </div>
+      <div className="relative z-10 mx-4 w-full max-w-xs">{children}</div>
+    </div>,
+    document.body
   )
 }
 
@@ -94,29 +103,29 @@ const VerseImageCard = React.forwardRef<HTMLDivElement, {
     <div 
       ref={ref}
       className={cn(
-        "relative flex h-[600px] w-[340px] flex-col items-center justify-center rounded-3xl p-8",
+        "relative flex aspect-[9/16] w-[240px] flex-col items-center justify-center rounded-xl p-3",
         "bg-gradient-to-b",
         gradient
       )}
     >
-      <div className="absolute inset-0 rounded-3xl bg-black/10" />
+      <div className="absolute inset-0 rounded-xl bg-black/15" />
       <div className="relative z-10 flex flex-col items-center justify-center text-center">
         <span className={cn(
-          "mb-6 inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-xs font-medium tracking-wider",
+          "mb-3 inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[10px] font-medium tracking-wider",
           themeClass
         )}>
-          <Quote className="h-4 w-4" />
+          <Quote className="h-3 w-3" />
           {theme.toUpperCase()}
         </span>
         
         <p className={cn(
-          "font-serif italic leading-relaxed tracking-tight text-white/95 mb-6 max-w-xs",
+          "font-serif italic leading-relaxed tracking-tight text-white/95 mb-3 px-3",
           TEXT_SIZE_CLASSES[textSize]
         )}>
           "{text}"
         </p>
         
-        <p className="text-sm font-medium tracking-wide text-white/70">
+        <p className="text-[10px] font-medium tracking-wide text-white/70">
           — RVR1960 | {reference}
         </p>
       </div>
@@ -309,16 +318,16 @@ export function VerseOfTheDay() {
       </div>
 
       <Dialog open={isImageModalOpen} onOpenChange={setIsImageModalOpen}>
-        <div className="flex flex-col items-center gap-6">
-          <div className="flex w-full items-center justify-between rounded-t-3xl bg-background/80 p-4 backdrop-blur-xl">
-            <h2 className="text-lg font-semibold">Vista Previa</h2>
+        <div className="flex flex-col items-center gap-3 bg-card/90 rounded-xl overflow-hidden">
+          <div className="flex w-full items-center justify-between p-3 border-b border-border/50">
+            <h2 className="text-sm font-semibold">Vista Previa</h2>
             <Button
               variant="ghost"
               size="icon"
               onClick={() => setIsImageModalOpen(false)}
-              className="h-8 w-8 rounded-full"
+              className="h-6 w-6 rounded-full"
             >
-              <X className="h-4 w-4" />
+              <X className="h-3 w-3" />
             </Button>
           </div>
           
@@ -332,35 +341,35 @@ export function VerseOfTheDay() {
             textSize={textSize}
           />
 
-          <div className="w-full space-y-4 rounded-b-3xl bg-background/80 p-4 backdrop-blur-xl">
-            <div className="flex items-center justify-center gap-2">
-              <Type className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs font-medium text-muted-foreground mr-2">Tamaño:</span>
+          <div className="w-full space-y-2.5 p-3">
+            <div className="flex items-center justify-center gap-1.5">
+              <Type className="h-3 w-3 text-muted-foreground" />
+              <span className="text-[10px] font-medium text-muted-foreground">Tamaño:</span>
               {(["sm", "md", "lg"] as TextSize[]).map((size) => (
                 <Button
                   key={size}
                   variant={textSize === size ? "default" : "ghost"}
                   size="sm"
                   onClick={() => setTextSize(size)}
-                  className="h-7 px-3 text-xs"
+                  className="h-5 px-1.5 text-[9px]"
                 >
-                  {size === "sm" ? "Pequeño" : size === "md" ? "Mediano" : "Grande"}
+                  {size === "sm" ? "P" : size === "md" ? "M" : "G"}
                 </Button>
               ))}
             </div>
 
-            <div className="space-y-2">
-              <p className="text-xs font-medium text-muted-foreground text-center">Fondo</p>
-              <div className="flex flex-wrap justify-center gap-2">
+            <div className="space-y-1">
+              <p className="text-[9px] font-medium text-muted-foreground text-center uppercase">Fondo</p>
+              <div className="flex flex-wrap justify-center gap-1">
                 {GRADIENT_BACKGROUNDS.map((gradient, index) => (
                   <button
                     key={index}
                     onClick={() => setSelectedGradient(gradient)}
                     className={cn(
-                      "h-8 w-8 rounded-lg border-2 transition-all",
+                      "h-5 w-5 rounded-sm border transition-all",
                       "bg-gradient-to-b",
                       gradient,
-                      selectedGradient === gradient ? "border-primary scale-110" : "border-transparent opacity-70 hover:opacity-100"
+                      selectedGradient === gradient ? "border-primary scale-110" : "border-transparent opacity-60 hover:opacity-100"
                     )}
                     aria-label={`Seleccionar fondo ${index + 1}`}
                   />
@@ -368,17 +377,17 @@ export function VerseOfTheDay() {
               </div>
             </div>
 
-            <div className="flex gap-3 pt-2">
+            <div className="flex gap-1.5 pt-0.5">
               <Button
                 variant="outline"
                 onClick={handleDownloadImage}
                 disabled={isExporting}
-                className="flex-1 h-10 rounded-full"
+                className="flex-1 h-7 rounded-full text-[10px]"
               >
                 {isExporting ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className="mr-1 h-2.5 w-2.5 animate-spin" />
                 ) : (
-                  <Download className="mr-2 h-4 w-4" />
+                  <Download className="mr-1 h-2.5 w-2.5" />
                 )}
                 Descargar
               </Button>
@@ -387,12 +396,12 @@ export function VerseOfTheDay() {
                 variant="default"
                 onClick={handleShareImage}
                 disabled={isExporting}
-                className="flex-1 h-10 rounded-full"
+                className="flex-1 h-7 rounded-full text-[10px]"
               >
                 {isExporting ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className="mr-1 h-2.5 w-2.5 animate-spin" />
                 ) : (
-                  <Share2 className="mr-2 h-4 w-4" />
+                  <Share2 className="mr-1 h-2.5 w-2.5" />
                 )}
                 Compartir
               </Button>
