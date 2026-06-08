@@ -4,6 +4,7 @@ import * as React from "react"
 import { useState, useEffect } from "react"
 import useSWR from "swr"
 import { fetcher } from "@/lib/fetcher"
+import { VerseOfTheDay } from "@/components/verse-of-the-day"
 import { 
   BookOpen, 
   BookText, 
@@ -22,27 +23,7 @@ interface DashboardProps {
   setActiveTab: (tab: string) => void
 }
 
-const INSPIRED_VERSES = [
-  { text: "Porque de tal manera amó Dios al mundo, que ha dado a su Hijo unigénito, para que todo aquel que en él cree, no se pierda, mas tenga vida eterna.", ref: "Juan 3:16", bg: "from-amber-500/10 to-orange-500/10 border-amber-500/20" },
-  { text: "Jehová es mi pastor; nada me faltará. En lugares de delicados pastos me hará descansar; Junto a aguas de reposo me pastoreará.", ref: "Salmo 23:1-2", bg: "from-emerald-500/10 to-teal-500/10 border-emerald-500/20" },
-  { text: "Y sabemos que a los que aman a Dios, todas las cosas les ayudan a bien, esto es, a los que conforme a su propósito son llamados.", ref: "Romanos 8:28", bg: "from-blue-500/10 to-indigo-500/10 border-blue-500/20" },
-  { text: "Pero los que esperan a Jehová tendrán nuevas fuerzas; levantarán alas como las águilas; correrán, y no se cansarán; caminarán, y no se fatigarán.", ref: "Isaías 40:31", bg: "from-purple-500/10 to-pink-500/10 border-purple-500/20" },
-  { text: "No temas, porque yo estoy contigo; no desmayes, porque yo soy tu Dios que te esfuerzo; siempre te ayudaré, siempre te sustentaré con la diestra de mi justicia.", ref: "Isaías 41:10", bg: "from-cyan-500/10 to-blue-500/10 border-cyan-500/20" },
-  { text: "Mi paz os dejo, mi paz os doy; yo no os la doy como el mundo la da. No se turbe vuestro corazón, ni tenga miedo.", ref: "Juan 14:27", bg: "from-rose-500/10 to-pink-500/10 border-rose-500/20" },
-  { text: "Mira que te mando que te esfuerces y seas valiente; no temas ni desmayes, porque Jehová tu Dios estará contigo en dondequiera que vayas.", ref: "Josué 1:9", bg: "from-orange-500/10 to-red-500/10 border-orange-500/20" },
-  { text: "Todo lo puedo en Cristo que me fortalece.", ref: "Filipenses 4:13", bg: "from-violet-500/10 to-purple-500/10 border-violet-500/20" }
-]
-
 export function Dashboard({ userName, setActiveTab }: DashboardProps) {
-  const [dailyVerse, setDailyVerse] = useState(INSPIRED_VERSES[0])
-
-  useEffect(() => {
-    // Select daily verse based on day of month
-    const day = new Date().getDate()
-    const index = day % INSPIRED_VERSES.length
-    setDailyVerse(INSPIRED_VERSES[index])
-  }, [])
-
   // Fetch devotionals
   const { data: devData } = useSWR("/api/devotionals", fetcher)
   const devotionals = devData?.devotionals ?? []
@@ -64,19 +45,8 @@ export function Dashboard({ userName, setActiveTab }: DashboardProps) {
         </p>
       </div>
 
-      {/* Versículo del Día */}
-      <div className={`rounded-2xl border bg-gradient-to-r p-6 md:p-8 shadow-sm transition-all hover:shadow-md ${dailyVerse.bg}`}>
-        <div className="flex items-center gap-2 text-xs font-semibold text-primary uppercase tracking-wider mb-3">
-          <Calendar className="size-4" />
-          <span>Versículo del Día</span>
-        </div>
-        <p className="text-lg md:text-xl font-medium font-serif leading-relaxed text-foreground/90">
-          “{dailyVerse.text}”
-        </p>
-        <p className="mt-3 text-sm font-semibold text-primary">
-          — {dailyVerse.ref}
-        </p>
-      </div>
+      {/* Nuevo Versículo del Día Temático */}
+      <VerseOfTheDay />
 
       {/* Grid Estadísticas */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">

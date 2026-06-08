@@ -13,6 +13,12 @@ interface BibleBook {
   chapters?: number
 }
 
+interface BibleVersion {
+  id: number
+  abbr: string
+  name: string
+}
+
 interface VerseRef {
   book_name: string
   book_id: number
@@ -23,7 +29,11 @@ interface VerseRef {
 }
 
 export function ReferencesExplorer() {
-  const { data: booksData, isLoading: isLoadingBooks } = useSWR<{ books: BibleBook[] }>("/api/books?bible=1", fetcher)
+  const { data: biblesData } = useSWR<{ bibles: BibleVersion[] }>("/api/bibles", fetcher)
+  const bibles = biblesData?.bibles || []
+  
+  const [selectedBibleId, setSelectedBibleId] = useState<number>(149)
+  const { data: booksData, isLoading: isLoadingBooks } = useSWR<{ books: BibleBook[] }>(`/api/books?bible=${selectedBibleId}`, fetcher)
   
   const [selectedBook, setSelectedBook] = useState<number>(1)
   const [selectedChapter, setSelectedChapter] = useState<number>(1)
@@ -33,12 +43,20 @@ export function ReferencesExplorer() {
   // pero para mantenerlo simple asumiremos un máximo estándar y permitiremos que el usuario introduzca números.
   
   const { data: refsData, isLoading: isLoadingRefs, error } = useSWR<{ references: VerseRef[] }>(
-    `/api/references?bookId=${selectedBook}&chapter=${selectedChapter}&verse=${selectedVerse}`,
+    `/api/references?bookId=${selectedBook}&chapter=${selectedChapter}&verse=${selectedVerse}&bibleId=${selectedBibleId}`,
+    fetcher
+  )
+
+  const { data: chapterData } = useSWR<{ verses: { verse: number; text: string }[] }>(
+    `/api/verses?bible=${selectedBibleId}&book=${selectedBook}&chapter=${selectedChapter}`,
     fetcher
   )
 
   const books = booksData?.books || []
   const references = refsData?.references || []
+  
+  const sourceVerseText = chapterData?.verses?.find(v => Number(v.verse) === selectedVerse)?.text
+  const selectedBookName = books.find(b => b.bookId === selectedBook)?.bookName
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto animate-fade-in">
@@ -55,7 +73,19 @@ export function ReferencesExplorer() {
       </div>
 
       <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+          <div>
+            <label className="block text-sm font-medium text-muted-foreground mb-1">Versión</label>
+            <select
+              className="w-full bg-background border border-border rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary focus:outline-none"
+              value={selectedBibleId}
+              onChange={(e) => setSelectedBibleId(Number(e.target.value))}
+            >
+              {bibles.map(b => (
+                <option key={b.id} value={b.id}>{b.name} ({b.abbr})</option>
+              ))}
+            </select>
+          </div>
           <div>
             <label className="block text-sm font-medium text-muted-foreground mb-1">Libro</label>
             <select
@@ -94,6 +124,17 @@ export function ReferencesExplorer() {
             />
           </div>
         </div>
+
+        {/* Source Verse Display */}
+        {sourceVerseText && (
+          <div className="mb-8 p-4 bg-primary/5 rounded-xl border border-primary/10">
+            <h3 className="text-sm font-semibold text-primary mb-2 flex items-center gap-2">
+              <BookOpen className="size-4" />
+              Versículo a comparar ({selectedBookName} {selectedChapter}:{selectedVerse})
+            </h3>
+            <p className="text-foreground/90 font-medium italic text-lg">"{sourceVerseText}"</p>
+          </div>
+        )}
 
         <div>
           <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
