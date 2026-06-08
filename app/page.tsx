@@ -14,6 +14,11 @@ import { SearchAdvanced } from "@/components/search-advanced"
 import { UserManagement } from "@/components/user-management"
 import { ReadingPlans } from "@/components/reading-plans"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { PrayerRequests } from "@/components/prayer-requests"
+import { Groups } from "@/components/groups"
+import { Activity } from "@/components/activity"
+import { Statistics } from "@/components/statistics"
+import { Favorites } from "@/components/favorites"
 import { 
   BookOpen, 
   LayoutDashboard, 
@@ -25,7 +30,11 @@ import {
   User,
   Users,
   Calendar,
-  Flame
+  Flame,
+  Activity as ActivityIcon,
+  BarChart2,
+  Star,
+  HeartHandshake
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -74,8 +83,8 @@ export default function Page() {
     } else {
       // Default configurations
       return user.role === "admin"
-        ? ["dashboard", "reading", "notebook", "devotionals", "search", "plans", "users"]
-        : ["reading", "notebook", "plans"]
+        ? ["dashboard", "reading", "notebook", "prayers", "devotionals", "groups", "favorites", "activity", "statistics", "search", "plans", "users"]
+        : ["reading", "notebook", "prayers", "devotionals", "groups", "favorites", "activity", "statistics", "plans"]
     }
   }, [user])
 
@@ -133,9 +142,14 @@ export default function Page() {
   // Define tab navigation structure
   const allNavItems = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { id: "reading", label: "Lectura", icon: BookOpen },
-    { id: "notebook", label: "Libreta", icon: BookText },
+    { id: "reading", label: "Leer", icon: BookOpen },
+    { id: "prayers", label: "Oración", icon: HeartHandshake },
     { id: "devotionals", label: "Diario", icon: Heart },
+    { id: "groups", label: "Grupos", icon: Users },
+    { id: "notebook", label: "Notas", icon: BookText },
+    { id: "favorites", label: "Favoritos", icon: Star },
+    { id: "activity", label: "Actividad", icon: ActivityIcon },
+    { id: "statistics", label: "Estadísticas", icon: BarChart2 },
     { id: "plans", label: "Planes", icon: Calendar },
     { id: "search", label: "Buscar", icon: Search },
     { id: "users", label: "Usuarios", icon: Users }
@@ -330,6 +344,26 @@ export default function Page() {
 
           {activeTab === "search" && allowedSections.includes("search") && (
             <SearchAdvanced onSelectVerse={handleSelectVerse} />
+          )}
+
+          {activeTab === "prayers" && allowedSections.includes("prayers") && (
+            <PrayerRequests />
+          )}
+
+          {activeTab === "groups" && allowedSections.includes("groups") && (
+            <Groups />
+          )}
+
+          {activeTab === "activity" && allowedSections.includes("activity") && (
+            <Activity />
+          )}
+
+          {activeTab === "statistics" && allowedSections.includes("statistics") && (
+            <Statistics />
+          )}
+
+          {activeTab === "favorites" && allowedSections.includes("favorites") && (
+            <Favorites />
           )}
 
           {activeTab === "users" && allowedSections.includes("users") && (

@@ -15,7 +15,7 @@ import { fetcher } from "@/lib/fetcher"
 import type { Book, Verse, NoteLink, BibleVersion } from "@/lib/types"
 import { NotePanel } from "./note-panel"
 import { NotebookSidebar } from "./notebook-sidebar"
-import { FileText, Plus, ChevronLeft, ChevronRight, Search, X, Loader2, Copy, Share2, LogOut } from "lucide-react"
+import { FileText, Plus, ChevronLeft, ChevronRight, Search, X, Loader2, Copy, Share2, LogOut, Star } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const bookAbbrMap: Record<number, string> = {
@@ -350,6 +350,22 @@ export function BibleReader({
   )
   const verses = versesData?.verses ?? []
 
+  // Register reading activity
+  useEffect(() => {
+    if (verses.length > 0 && bookId) {
+      // Small timeout to simulate actual reading before registering
+      const timer = setTimeout(() => {
+        fetch("/api/activity", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ bookId, chaptersCount: 1, versesCount: verses.length })
+        }).catch(console.error)
+      }, 5000) // 5 seconds in the chapter registers it
+
+      return () => clearTimeout(timer)
+    }
+  }, [verses.length, bookId, chapter])
+
   const linksKey = bookId ? `/api/links?book=${bookId}&chapter=${chapter}` : null
   const { data: linksData, mutate: mutateLinks } = useSWR<{ links: NoteLink[] }>(
     linksKey,
@@ -484,10 +500,29 @@ export function BibleReader({
       await mutateHighlights()
       setSelectedVerses([]) // Clear selection after highlighting
     } catch (err) {
-      console.error(err)
-      alert("Error al guardar destacados.")
+      console.error("Error al guardar destacados:", err)
+      alert("No se pudo guardar el destacado.")
     }
-  }, [bookId, chapter, selectedVerses, mutateHighlights])
+  }, [selectedVerses, bookId, chapter, mutateHighlights])
+
+  const handleFavoriteSelection = useCallback(async () => {
+    if (selectedVerses.length === 0) return
+    try {
+      // Add each selected verse to favorites
+      await Promise.all(selectedVerses.map(v => 
+        fetch("/api/favorites", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ bibleId, bookId, chapter, verse: v })
+        })
+      ))
+      alert("¡Versículos agregados a favoritos!")
+      setSelectedVerses([])
+    } catch (err) {
+      console.error("Error al guardar favorito:", err)
+      alert("No se pudo guardar en favoritos.")
+    }
+  }, [selectedVerses, bibleId, bookId, chapter])
 
   const highlightMatch = useCallback((text: string, query: string) => {
     if (!query || !query.trim()) return <span>{text}</span>
@@ -1318,6 +1353,15 @@ export function BibleReader({
             >
               <Copy className="size-3.5" />
               <span className="hidden sm:inline">Copiar</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleFavoriteSelection}
+              className="h-8 rounded-full text-amber-500 hover:text-amber-600 hover:bg-amber-50 border-amber-200 text-xs font-semibold px-2 sm:px-3 gap-1 shadow-sm cursor-pointer"
+            >
+              <Star className="size-3.5 fill-amber-500/20" />
+              <span className="hidden sm:inline">Favorito</span>
             </Button>
             <Button
               variant="ghost"

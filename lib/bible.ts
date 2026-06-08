@@ -422,7 +422,7 @@ export async function listNotebookNotes(notebookId: number, userId?: number): Pr
   await ensureDbTables()
   if (userId) {
     const [rows] = await getPool().query<RowDataPacket[]>(
-      `SELECT n.id, n.notebook_id AS notebookId, n.title, n.content, n.created_at AS createdAt, n.updated_at AS updatedAt
+      `SELECT n.id, n.notebook_id AS notebookId, n.title, n.content, n.tags, n.created_at AS createdAt, n.updated_at AS updatedAt
        FROM bible_notebook_notes n
        JOIN bible_notebooks b ON n.notebook_id = b.id
        WHERE n.notebook_id = ? AND b.user_id = ?
@@ -432,7 +432,7 @@ export async function listNotebookNotes(notebookId: number, userId?: number): Pr
     return rows
   } else {
     const [rows] = await getPool().query<RowDataPacket[]>(
-      `SELECT id, notebook_id AS notebookId, title, content, created_at AS createdAt, updated_at AS updatedAt
+      `SELECT id, notebook_id AS notebookId, title, content, tags, created_at AS createdAt, updated_at AS updatedAt
        FROM bible_notebook_notes
        WHERE notebook_id = ?
        ORDER BY id DESC`,
@@ -442,11 +442,11 @@ export async function listNotebookNotes(notebookId: number, userId?: number): Pr
   }
 }
 
-export async function createNotebookNote(notebookId: number, title: string, content: string): Promise<number> {
+export async function createNotebookNote(notebookId: number, title: string, content: string, tags: string = '[]'): Promise<number> {
   await ensureDbTables()
   const [result] = await getPool().query<ResultSetHeader>(
-    `INSERT INTO bible_notebook_notes (notebook_id, title, content) VALUES (?, ?, ?)`,
-    [notebookId, title, content]
+    `INSERT INTO bible_notebook_notes (notebook_id, title, content, tags) VALUES (?, ?, ?, ?)`,
+    [notebookId, title, content, tags]
   )
   return result.insertId
 }
@@ -455,7 +455,7 @@ export async function getNotebookNote(id: number, userId?: number): Promise<any 
   await ensureDbTables()
   if (userId) {
     const [rows] = await getPool().query<RowDataPacket[]>(
-      `SELECT n.id, n.notebook_id AS notebookId, n.title, n.content, n.created_at AS createdAt, n.updated_at AS updatedAt
+      `SELECT n.id, n.notebook_id AS notebookId, n.title, n.content, n.tags, n.created_at AS createdAt, n.updated_at AS updatedAt
        FROM bible_notebook_notes n
        JOIN bible_notebooks b ON n.notebook_id = b.id
        WHERE n.id = ? AND b.user_id = ?`,
@@ -475,12 +475,19 @@ export async function getNotebookNote(id: number, userId?: number): Promise<any 
   }
 }
 
-export async function updateNotebookNote(id: number, title: string, content: string): Promise<void> {
+export async function updateNotebookNote(id: number, title: string, content: string, tags?: string): Promise<void> {
   await ensureDbTables()
-  await getPool().query(
-    `UPDATE bible_notebook_notes SET title = ?, content = ? WHERE id = ?`,
-    [title, content, id]
-  )
+  if (tags !== undefined) {
+    await getPool().query(
+      `UPDATE bible_notebook_notes SET title = ?, content = ?, tags = ? WHERE id = ?`,
+      [title, content, tags, id]
+    )
+  } else {
+    await getPool().query(
+      `UPDATE bible_notebook_notes SET title = ?, content = ? WHERE id = ?`,
+      [title, content, id]
+    )
+  }
 }
 
 export async function deleteNotebookNote(id: number): Promise<void> {

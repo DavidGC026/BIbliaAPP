@@ -46,7 +46,7 @@ export async function PUT(
     if (isNaN(idNum)) {
       return NextResponse.json({ error: "ID de nota inválido." }, { status: 400 })
     }
-    const { title, content } = await req.json()
+    const { title, content, tags } = await req.json()
     if (!title || !title.trim()) {
       return NextResponse.json({ error: "El título es obligatorio." }, { status: 400 })
     }
@@ -57,7 +57,12 @@ export async function PUT(
       return NextResponse.json({ error: "Nota no encontrada o no autorizada." }, { status: 404 })
     }
 
-    await updateNotebookNote(idNum, title.trim(), content ?? "")
+    let tagsStr: string | undefined = undefined
+    if (tags !== undefined) {
+      tagsStr = Array.isArray(tags) ? JSON.stringify(tags) : String(tags)
+    }
+
+    await updateNotebookNote(idNum, title.trim(), content ?? "", tagsStr)
     return NextResponse.json({ ok: true })
   } catch (err) {
     return NextResponse.json(

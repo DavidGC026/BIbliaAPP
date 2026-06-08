@@ -23,7 +23,15 @@ import {
   FileText,
   Loader2,
   FolderPlus,
+  Tag
 } from "lucide-react"
+
+const AVAILABLE_TAGS = [
+  { id: "fe", label: "Fe", color: "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200" },
+  { id: "familia", label: "Familia", color: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200" },
+  { id: "adoracion", label: "Adoración", color: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200" },
+  { id: "crecimiento", label: "Crecimiento", color: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200" }
+]
 
 interface Notebook {
   id: number
@@ -38,11 +46,12 @@ interface NotebookNote {
   content: string
   createdAt: string
   updatedAt: string
+  tags?: string
 }
 
 interface NotebookSidebarProps {
-  editingNote: { id: number; title: string; content: string } | null
-  setEditingNote: (note: { id: number; title: string; content: string } | null) => void
+  editingNote: { id: number; title: string; content: string; tags?: string } | null
+  setEditingNote: (note: { id: number; title: string; content: string; tags?: string } | null) => void
   onSessionExpired: () => void
 }
 
@@ -115,6 +124,7 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired 
           id: editingNote.id,
           title: noteDetails.note.title,
           content: noteDetails.note.content || "",
+          tags: noteDetails.note.tags || "[]",
         })
       }
     }
@@ -250,7 +260,7 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired 
           "Content-Type": "application/json",
           ...(token ? { "Authorization": `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({ title: editingNote.title, content: editingNote.content }),
+        body: JSON.stringify({ title: editingNote.title, content: editingNote.content, tags: editingNote.tags }),
       })
       if (!res.ok) {
         const data = await res.json()
@@ -349,6 +359,27 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired 
             placeholder="Título de la nota"
             className="border-none bg-transparent px-0 text-lg font-bold focus-visible:ring-0"
           />
+
+          <div className="flex flex-wrap gap-2">
+            <Tag className="size-4 text-muted-foreground mt-0.5" />
+            {AVAILABLE_TAGS.map(tag => {
+              let currentTags: string[] = []
+              try { currentTags = editingNote.tags ? JSON.parse(editingNote.tags) : [] } catch {}
+              const isActive = currentTags.includes(tag.id)
+              return (
+                <button
+                  key={tag.id}
+                  onClick={() => {
+                    const newTags = isActive ? currentTags.filter((t: string) => t !== tag.id) : [...currentTags, tag.id]
+                    setEditingNote({ ...editingNote, tags: JSON.stringify(newTags) })
+                  }}
+                  className={`text-xs px-2 py-0.5 rounded-full font-medium transition-all ${isActive ? tag.color + ' ring-1 ring-primary/50 font-bold shadow-sm' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}
+                >
+                  {tag.label}
+                </button>
+              )
+            })}
+          </div>
 
           <div className="relative flex-1">
             {noteDetailsLoading ? (
@@ -570,6 +601,21 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired 
                       <p className="truncate text-sm font-medium text-foreground">
                         {note.title || "Sin título"}
                       </p>
+                      
+                      <div className="flex gap-1 mt-1 mb-1.5">
+                        {(() => {
+                          try {
+                            const noteTags = note.tags ? JSON.parse(note.tags) : []
+                            if (noteTags.length === 0) return null
+                            return noteTags.map((tId: string) => {
+                              const tg = AVAILABLE_TAGS.find(x => x.id === tId)
+                              if (!tg) return null
+                              return <span key={tId} className={`text-[9px] px-1.5 py-0.5 rounded-sm font-semibold ${tg.color}`}>{tg.label}</span>
+                            })
+                          } catch { return null }
+                        })()}
+                      </div>
+
                       <p className="truncate text-xs text-muted-foreground">
                         {note.content
                           ? note.content.substring(0, 60).replace(/[#>*\n]/g, "") +
