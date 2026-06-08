@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getPool } from "@/lib/mysql"
+import { getSession } from "@/lib/auth"
 
 export async function GET(req: NextRequest) {
   try {
@@ -11,23 +12,36 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Parámetros inválidos." }, { status: 400 })
     }
 
-    // Ensure database table exists before querying
+    const session = getSession(req)
+    if (!session) {
+      return NextResponse.json({ error: "No autorizado." }, { status: 401 })
+    }
+
+    // Ensure database tables exist
     await getPool().query(`
       CREATE TABLE IF NOT EXISTS bible_verse_highlights (
         id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL DEFAULT 0,
         book_id INT NOT NULL,
         chapter INT NOT NULL,
         verse INT NOT NULL,
         color VARCHAR(50) NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        UNIQUE KEY uniq_verse_highlight (book_id, chapter, verse)
+        UNIQUE KEY uniq_verse_user_highlight (user_id, book_id, chapter, verse)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
     `)
 
+    try {
+      await getPool().query('ALTER TABLE bible_verse_highlights ADD COLUMN user_id INT NOT NULL DEFAULT 0 AFTER id')
+      await getPool().query('ALTER TABLE bible_verse_highlights DROP INDEX uniq_verse_highlight')
+      await getPool().query('ALTER TABLE bible_verse_highlights ADD UNIQUE KEY uniq_verse_user_highlight (user_id, book_id, chapter, verse)')
+      await getPool().query('UPDATE bible_verse_highlights SET user_id = ? WHERE user_id = 0', [session.userId])
+    } catch (e) {}
+
     const [rows] = await getPool().query(
-      "SELECT verse, color FROM bible_verse_highlights WHERE book_id = ? AND chapter = ?",
-      [bookId, chapter]
+      "SELECT verse, color FROM bible_verse_highlights WHERE user_id = ? AND book_id = ? AND chapter = ?",
+      [session.userId, bookId, chapter]
     )
 
     return NextResponse.json({ highlights: rows })
@@ -47,34 +61,47 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Parámetros inválidos." }, { status: 400 })
     }
 
-    // Ensure database table exists
+    const session = getSession(req)
+    if (!session) {
+      return NextResponse.json({ error: "No autorizado." }, { status: 401 })
+    }
+
+    // Ensure database tables exist
     await getPool().query(`
       CREATE TABLE IF NOT EXISTS bible_verse_highlights (
         id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL DEFAULT 0,
         book_id INT NOT NULL,
         chapter INT NOT NULL,
         verse INT NOT NULL,
         color VARCHAR(50) NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        UNIQUE KEY uniq_verse_highlight (book_id, chapter, verse)
+        UNIQUE KEY uniq_verse_user_highlight (user_id, book_id, chapter, verse)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
     `)
+
+    try {
+      await getPool().query('ALTER TABLE bible_verse_highlights ADD COLUMN user_id INT NOT NULL DEFAULT 0 AFTER id')
+      await getPool().query('ALTER TABLE bible_verse_highlights DROP INDEX uniq_verse_highlight')
+      await getPool().query('ALTER TABLE bible_verse_highlights ADD UNIQUE KEY uniq_verse_user_highlight (user_id, book_id, chapter, verse)')
+      await getPool().query('UPDATE bible_verse_highlights SET user_id = ? WHERE user_id = 0', [session.userId])
+    } catch (e) {}
 
     if (!color) {
       // Delete highlights for specified verses
       await getPool().query(
-        `DELETE FROM bible_verse_highlights WHERE book_id = ? AND chapter = ? AND verse IN (${verses.map(() => "?").join(",")})`,
-        [bookId, chapter, ...verses]
+        `DELETE FROM bible_verse_highlights WHERE user_id = ? AND book_id = ? AND chapter = ? AND verse IN (${verses.map(() => "?").join(",")})`,
+        [session.userId, bookId, chapter, ...verses]
       )
     } else {
       // Upsert highlights
       for (const verse of verses) {
         await getPool().query(
-          `INSERT INTO bible_verse_highlights (book_id, chapter, verse, color)
-           VALUES (?, ?, ?, ?)
+          `INSERT INTO bible_verse_highlights (user_id, book_id, chapter, verse, color)
+           VALUES (?, ?, ?, ?, ?)
            ON DUPLICATE KEY UPDATE color = ?`,
-          [bookId, chapter, verse, color, color]
+          [session.userId, bookId, chapter, verse, color, color]
         )
       }
     }

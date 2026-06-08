@@ -19,6 +19,7 @@ import { Groups } from "@/components/groups"
 import { Activity } from "@/components/activity"
 import { Statistics } from "@/components/statistics"
 import { Favorites } from "@/components/favorites"
+import { HighlightsManager } from "@/components/highlights-manager"
 import { 
   BookOpen, 
   LayoutDashboard, 
@@ -34,7 +35,8 @@ import {
   Activity as ActivityIcon,
   BarChart2,
   Star,
-  HeartHandshake
+  HeartHandshake,
+  Highlighter
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -83,8 +85,8 @@ export default function Page() {
     } else {
       // Default configurations
       return user.role === "admin"
-        ? ["dashboard", "reading", "notebook", "prayers", "devotionals", "groups", "favorites", "activity", "statistics", "search", "plans", "users"]
-        : ["reading", "notebook", "prayers", "devotionals", "groups", "favorites", "activity", "statistics", "plans"]
+        ? ["dashboard", "reading", "search", "notebook", "favorites", "highlights", "plans", "prayers", "devotionals", "groups", "activity", "statistics", "users"]
+        : ["reading", "search", "notebook", "favorites", "highlights", "plans", "prayers", "devotionals", "groups", "activity", "statistics"]
     }
   }, [user])
 
@@ -141,18 +143,22 @@ export default function Page() {
 
   // Define tab navigation structure
   const allNavItems = [
-    { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { id: "reading", label: "Leer", icon: BookOpen },
-    { id: "prayers", label: "Oración", icon: HeartHandshake },
-    { id: "devotionals", label: "Diario", icon: Heart },
-    { id: "groups", label: "Grupos", icon: Users },
-    { id: "notebook", label: "Notas", icon: BookText },
-    { id: "favorites", label: "Favoritos", icon: Star },
-    { id: "activity", label: "Actividad", icon: ActivityIcon },
-    { id: "statistics", label: "Estadísticas", icon: BarChart2 },
-    { id: "plans", label: "Planes", icon: Calendar },
-    { id: "search", label: "Buscar", icon: Search },
-    { id: "users", label: "Usuarios", icon: Users }
+    { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, section: "PRINCIPAL" },
+    { id: "reading", label: "Leer", icon: BookOpen, section: "PRINCIPAL" },
+    { id: "search", label: "Buscar", icon: Search, section: "PRINCIPAL" },
+    
+    { id: "notebook", label: "Notas", icon: BookText, section: "PERSONAL" },
+    { id: "favorites", label: "Favoritos", icon: Star, section: "PERSONAL" },
+    { id: "highlights", label: "Subrayados", icon: Highlighter, section: "PERSONAL" },
+    { id: "plans", label: "Planes", icon: Calendar, section: "PERSONAL" },
+
+    { id: "prayers", label: "Oración", icon: HeartHandshake, section: "VIDA ESPIRITUAL" },
+    { id: "devotionals", label: "Diario", icon: Heart, section: "VIDA ESPIRITUAL" },
+    { id: "groups", label: "Grupos", icon: Users, section: "VIDA ESPIRITUAL" },
+
+    { id: "activity", label: "Actividad", icon: ActivityIcon, section: "GENERAL" },
+    { id: "statistics", label: "Estadísticas", icon: BarChart2, section: "GENERAL" },
+    { id: "users", label: "Usuarios", icon: Users, section: "GENERAL" }
   ]
 
   // Filter allowed navigation links
@@ -195,24 +201,36 @@ export default function Page() {
           </div>
 
           {/* Navigation links */}
-          <nav className="flex-1 px-4 space-y-1">
-            {desktopNavItems.map((item) => {
-              const Icon = item.icon
-              const isActive = activeTab === item.id
+          <nav className="flex-1 px-4 space-y-5 pb-4">
+            {["PRINCIPAL", "PERSONAL", "VIDA ESPIRITUAL", "GENERAL"].map(section => {
+              const sectionItems = desktopNavItems.filter(item => item.section === section)
+              if (sectionItems.length === 0) return null
+              
               return (
-                <button
-                  key={item.id}
-                  onClick={() => setActiveTab(item.id)}
-                  className={cn(
-                    "flex items-center gap-3 w-full px-4 py-2.5 rounded-xl text-sm font-medium transition-all group cursor-pointer",
-                    isActive 
-                      ? "bg-primary text-primary-foreground shadow-md shadow-primary/10" 
-                      : "text-muted-foreground hover:bg-accent/40 hover:text-foreground"
-                  )}
-                >
-                  <Icon className={cn("size-4 shrink-0 transition-transform group-hover:scale-110", isActive ? "" : "text-muted-foreground group-hover:text-primary")} />
-                  <span>{item.label}</span>
-                </button>
+                <div key={section} className="space-y-1">
+                  <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider px-3 mb-2">
+                    {section}
+                  </h3>
+                  {sectionItems.map((item) => {
+                    const Icon = item.icon
+                    const isActive = activeTab === item.id
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => setActiveTab(item.id)}
+                        className={cn(
+                          "flex items-center gap-3 w-full px-4 py-2 rounded-xl text-sm font-medium transition-all group cursor-pointer",
+                          isActive 
+                            ? "bg-primary text-primary-foreground shadow-md shadow-primary/10" 
+                            : "text-muted-foreground hover:bg-accent/40 hover:text-foreground"
+                        )}
+                      >
+                        <Icon className={cn("size-4 shrink-0 transition-transform group-hover:scale-110", isActive ? "" : "text-muted-foreground group-hover:text-primary")} />
+                        <span>{item.label}</span>
+                      </button>
+                    )
+                  })}
+                </div>
               )
             })}
           </nav>
@@ -364,6 +382,10 @@ export default function Page() {
 
           {activeTab === "favorites" && allowedSections.includes("favorites") && (
             <Favorites />
+          )}
+
+          {activeTab === "highlights" && allowedSections.includes("highlights") && (
+            <HighlightsManager />
           )}
 
           {activeTab === "users" && allowedSections.includes("users") && (
