@@ -17,14 +17,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No se encontró ningún archivo" }, { status: 400 })
     }
 
-    // Check size limit (5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      return NextResponse.json({ error: "El archivo es demasiado grande (máx 5MB)" }, { status: 400 })
+    // Check size limit (10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      return NextResponse.json({ error: "El archivo es demasiado grande (máx 10MB)" }, { status: 400 })
     }
 
-    // Check mime type
-    if (!file.type.startsWith("image/")) {
-      return NextResponse.json({ error: "El archivo debe ser una imagen" }, { status: 400 })
+    // Check mime type (reject videos, allow images, pdfs, docs)
+    if (file.type.startsWith("video/")) {
+      return NextResponse.json({ error: "No se permiten archivos de video por ahora" }, { status: 400 })
     }
 
     const bytes = await file.arrayBuffer()

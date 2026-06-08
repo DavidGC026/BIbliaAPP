@@ -31,7 +31,8 @@ import {
   FileText,
   Calendar,
   MoreHorizontal,
-  Upload
+  Upload,
+  Paperclip
 } from "lucide-react"
 
 const AVAILABLE_TAGS = [
@@ -106,6 +107,7 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired 
   const [configCover, setConfigCover] = useState("grad-purple")
   const [customCoverUrl, setCustomCoverUrl] = useState("")
   const [isUploadingCover, setIsUploadingCover] = useState(false)
+  const [isUploadingAttachment, setIsUploadingAttachment] = useState(false)
   const [savingNotebook, setSavingNotebook] = useState(false)
   const [deletingNotebook, setDeletingNotebook] = useState(false)
 
@@ -523,21 +525,77 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired 
                 })}
               </div>
 
-              {/* Interactive verse insertion button */}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  if (insertBooks.length > 0 && !insertBookId) {
-                    setInsertBookId(insertBooks[0].bookId)
-                  }
-                  setShowInsertVerseModal(true)
-                }}
-                className="h-8 gap-1.5 text-xs bg-primary/5 hover:bg-primary/10 border-primary/20 text-primary active:scale-95"
-              >
-                <BookOpen className="size-3.5" />
-                <span>Insertar Versículo</span>
-              </Button>
+              <div className="flex gap-2 items-center">
+                <input
+                  type="file"
+                  accept="image/*,.pdf,.doc,.docx,.txt"
+                  className="hidden"
+                  id="attachment-upload"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0]
+                    if (!file) return
+                    setIsUploadingAttachment(true)
+                    try {
+                      const formData = new FormData()
+                      formData.append("file", file)
+                      const res = await fetch("/api/upload", {
+                        method: "POST",
+                        body: formData
+                      })
+                      if (!res.ok) throw new Error("Error al subir archivo")
+                      const data = await res.json()
+                      
+                      const isImage = file.type.startsWith("image/")
+                      const markdownLink = isImage 
+                        ? `\n\n![${file.name}](${data.url})\n\n`
+                        : `\n\n[📄 ${file.name}](${data.url})\n\n`
+                        
+                      const start = textareaRef.current?.selectionStart ?? editingNote.content.length
+                      const end = textareaRef.current?.selectionEnd ?? editingNote.content.length
+                      const textBefore = editingNote.content.substring(0, start)
+                      const textAfter = editingNote.content.substring(end)
+                      
+                      setEditingNote({
+                        ...editingNote,
+                        content: textBefore + markdownLink + textAfter
+                      })
+                    } catch (err) {
+                      console.error(err)
+                      alert("Hubo un problema al adjuntar el archivo")
+                    } finally {
+                      setIsUploadingAttachment(false)
+                      e.target.value = "" // Reset input
+                    }
+                  }}
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={isUploadingAttachment}
+                  onClick={() => document.getElementById("attachment-upload")?.click()}
+                  className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-foreground active:scale-95"
+                  title="Adjuntar imagen o PDF"
+                >
+                  {isUploadingAttachment ? <Loader2 className="size-3.5 animate-spin" /> : <Paperclip className="size-3.5" />}
+                  <span className="hidden sm:inline-block">Adjuntar</span>
+                </Button>
+
+                {/* Interactive verse insertion button */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    if (insertBooks.length > 0 && !insertBookId) {
+                      setInsertBookId(insertBooks[0].bookId)
+                    }
+                    setShowInsertVerseModal(true)
+                  }}
+                  className="h-8 gap-1.5 text-xs bg-primary/5 hover:bg-primary/10 border-primary/20 text-primary active:scale-95"
+                >
+                  <BookOpen className="size-3.5" />
+                  <span className="hidden sm:inline-block">Versículo</span>
+                </Button>
+              </div>
             </div>
           </div>
 
