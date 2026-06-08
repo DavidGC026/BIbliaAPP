@@ -41,6 +41,14 @@ const EXPORT_SIZES: Record<AspectRatio, { width: number; height: number }> = {
 const PREVIEW_MAX_HEIGHT = 480
 const PREVIEW_MAX_WIDTH = 270
 
+const SWATCH_GRID =
+  "grid grid-cols-4 gap-1.5 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 2xl:grid-cols-10"
+
+const SWATCH_BTN =
+  "flex flex-col items-center gap-0.5 rounded-lg p-1 border transition-all min-w-0"
+
+const SWATCH_LABEL = "text-[8px] font-medium text-white/65 truncate w-full text-center leading-tight"
+
 interface CardProps {
   text: string
   reference: string
@@ -584,21 +592,21 @@ export function VerseImageCreator({ open, onOpenChange, text, reference, abbr = 
                     <Palette className="h-3.5 w-3.5 text-primary" />
                     <span className="text-[11px] font-bold uppercase tracking-wider text-white/70">Colores</span>
                   </div>
-                  <div className="grid grid-cols-4 gap-2">
+                  <div className={SWATCH_GRID}>
                     {GRADIENT_PRESETS.map((preset) => (
                       <button
                         key={preset.id}
                         onClick={() => selectGradient(preset)}
                         title={preset.name}
                         className={cn(
-                          "flex flex-col items-center gap-1 rounded-xl p-1.5 border transition-all",
+                          SWATCH_BTN,
                           backgroundMode === "gradient" && selectedGradient.id === preset.id
-                            ? "border-primary ring-2 ring-primary/40 scale-[1.03]"
+                            ? "border-primary ring-1 ring-primary/50"
                             : "border-white/10 hover:border-white/25",
                         )}
                       >
-                        <div className="w-full aspect-square rounded-lg" style={{ background: preset.swatch }} />
-                        <span className="text-[9px] font-medium text-white/70 truncate w-full text-center">{preset.name}</span>
+                        <div className="w-full aspect-square rounded-md min-h-0" style={{ background: preset.swatch }} />
+                        <span className={SWATCH_LABEL}>{preset.name}</span>
                       </button>
                     ))}
                   </div>
@@ -610,33 +618,34 @@ export function VerseImageCreator({ open, onOpenChange, text, reference, abbr = 
                     <ImageIcon className="h-3.5 w-3.5 text-primary" />
                     <span className="text-[11px] font-bold uppercase tracking-wider text-white/70">Fotos</span>
                   </div>
-                  <div className="grid grid-cols-4 gap-2">
+                  <div className={SWATCH_GRID}>
                     <button
                       onClick={() => fileInputRef.current?.click()}
-                      className="flex flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-white/20 bg-white/5 hover:bg-white/10 aspect-[3/4] transition-all"
+                      className={cn(SWATCH_BTN, "justify-center aspect-[4/5] border-dashed border-white/20 bg-white/5 hover:bg-white/10")}
                     >
-                      <Upload className="h-5 w-5 text-white/60" />
-                      <span className="text-[9px] text-white/60">Subir</span>
+                      <Upload className="h-3.5 w-3.5 text-white/55 shrink-0" />
+                      <span className={SWATCH_LABEL}>Subir</span>
                     </button>
                     <input type="file" accept="image/*" ref={fileInputRef} className="hidden" onChange={handleLocalImageUpload} />
 
                     {isLoadingImages ? (
-                      <div className="col-span-3 flex items-center justify-center aspect-[3/4] rounded-xl bg-white/5">
-                        <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                      <div className="col-span-3 md:col-span-5 xl:col-span-9 flex items-center justify-center aspect-[4/5] rounded-lg bg-white/5">
+                        <Loader2 className="h-4 w-4 animate-spin text-primary" />
                       </div>
                     ) : (
-                      unsplashImages.slice(0, 7).map((img) => (
+                      unsplashImages.map((img) => (
                         <button
                           key={img.id}
                           onClick={() => handleSelectUnsplashImage(img.url, img.id)}
                           className={cn(
-                            "relative rounded-xl overflow-hidden border aspect-[3/4] transition-all",
+                            SWATCH_BTN,
+                            "p-0 overflow-hidden aspect-[4/5]",
                             backgroundMode === "photo" && selectedUnsplashId === img.id
-                              ? "border-primary ring-2 ring-primary/40"
+                              ? "border-primary ring-1 ring-primary/50"
                               : "border-white/10 hover:border-white/25",
                           )}
                         >
-                          <img src={img.thumb} alt="" className="object-cover h-full w-full" />
+                          <img src={img.thumb} alt="" className="object-cover h-full w-full rounded-md" />
                         </button>
                       ))
                     )}
