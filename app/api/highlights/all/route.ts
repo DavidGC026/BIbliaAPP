@@ -36,7 +36,7 @@ export async function GET(req: NextRequest) {
         h.id, h.book_id, h.chapter, h.verse, h.color, h.created_at, h.bible_id,
         bb.name AS book_name,
         (SELECT bv.text FROM bible_verses bv WHERE bv.idBook = h.book_id AND bv.chapter = h.chapter AND bv.verse = h.verse AND bv.idBible = h.bible_id LIMIT 1) as text,
-        (SELECT b.abbr FROM bible_bibles b WHERE b.idBible = h.bible_id LIMIT 1) as bible_abbr
+        (SELECT b.abreviation FROM bible_bibles b WHERE b.idBible = h.bible_id LIMIT 1) as bible_abbr
       FROM bible_verse_highlights h
       JOIN bible_books bb ON h.book_id = bb.idBook
       WHERE h.user_id = ?

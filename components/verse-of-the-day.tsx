@@ -11,7 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 
 interface BibleVersion {
-  id: number
+  bibleId: number
   abbr: string
   name: string
 }
@@ -53,7 +53,7 @@ export function VerseOfTheDay() {
     fetcher
   )
 
-  const selectedBible = bibles.find(b => b.id === selectedBibleId)
+  const selectedBible = bibles.find(b => b.bibleId === selectedBibleId)
 
   const handleShare = async () => {
     if (!data) return
@@ -131,9 +131,9 @@ export function VerseOfTheDay() {
                 <DropdownMenuContent align="center" className="w-[200px] rounded-xl border-primary/10 bg-background/80 backdrop-blur-xl">
                   {bibles.map(b => (
                     <DropdownMenuItem 
-                      key={b.id} 
-                      className={cn("rounded-lg cursor-pointer", selectedBibleId === b.id && "bg-primary/10 font-bold text-primary")}
-                      onClick={() => setSelectedBibleId(b.id)}
+                      key={b.bibleId} 
+                      className={cn("rounded-lg cursor-pointer", selectedBibleId === b.bibleId && "bg-primary/10 font-bold text-primary")}
+                      onClick={() => setSelectedBibleId(b.bibleId)}
                     >
                       {b.name} ({b.abbr})
                     </DropdownMenuItem>

@@ -14,7 +14,7 @@ interface BibleBook {
 }
 
 interface BibleVersion {
-  id: number
+  bibleId: number
   abbr: string
   name: string
 }
@@ -82,7 +82,7 @@ export function ReferencesExplorer() {
               onChange={(e) => setSelectedBibleId(Number(e.target.value))}
             >
               {bibles.map(b => (
-                <option key={b.id} value={b.id}>{b.name} ({b.abbr})</option>
+                <option key={b.bibleId} value={b.bibleId}>{b.name} ({b.abbr})</option>
               ))}
             </select>
           </div>
