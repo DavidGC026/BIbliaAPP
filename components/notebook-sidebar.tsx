@@ -7,13 +7,7 @@ import { fetcher } from "@/lib/fetcher"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+import { cn } from "@/lib/utils"
 import {
   Plus,
   Trash2,
@@ -23,7 +17,14 @@ import {
   FileText,
   Loader2,
   FolderPlus,
-  Tag
+  Tag,
+  Book,
+  Edit2,
+  Sparkles,
+  Search,
+  ChevronRight,
+  Calendar,
+  MoreHorizontal
 } from "lucide-react"
 
 const AVAILABLE_TAGS = [
@@ -33,9 +34,25 @@ const AVAILABLE_TAGS = [
   { id: "crecimiento", label: "Crecimiento", color: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200" }
 ]
 
+const PRESET_COVERS = [
+  { id: "grad-purple", label: "Púrpura Imperial", class: "bg-gradient-to-br from-indigo-950 via-purple-900 to-rose-800" },
+  { id: "grad-blue", label: "Cielo Nocturno", class: "bg-gradient-to-br from-slate-950 via-blue-950 to-indigo-900" },
+  { id: "grad-ocean", label: "Océano Profundo", class: "bg-gradient-to-br from-blue-950 via-cyan-900 to-teal-800" },
+  { id: "grad-emerald", label: "Bosque Místico", class: "bg-gradient-to-br from-emerald-950 via-teal-950 to-emerald-900" },
+  { id: "grad-gold", label: "Escritura Antigua", class: "bg-gradient-to-br from-stone-900 via-amber-950 to-amber-900" },
+  { id: "grad-rose", label: "Gracia Divina", class: "bg-gradient-to-br from-stone-950 via-rose-950 to-pink-900" }
+]
+
+interface BibleVersion {
+  bibleId: number
+  abbr: string
+  name: string
+}
+
 interface Notebook {
   id: number
   name: string
+  coverImage?: string | null
   createdAt: string
 }
 
@@ -71,10 +88,25 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired 
   const notebooks = notebooksData?.notebooks ?? []
 
   const [activeNotebookId, setActiveNotebookId] = useState<number | null>(null)
-  const [newNotebookName, setNewNotebookName] = useState("")
-  const [isCreatingNotebook, setIsCreatingNotebook] = useState(false)
-  const [creatingNotebook, setCreatingNotebook] = useState(false)
+  
+  // Modales y Edición de Libretas
+  const [showConfigModal, setShowConfigModal] = useState(false)
+  const [modalMode, setModalMode] = useState<"create" | "edit">("create")
+  const [configName, setConfigName] = useState("")
+  const [configCover, setConfigCover] = useState("grad-purple")
+  const [customCoverUrl, setCustomCoverUrl] = useState("")
+  const [savingNotebook, setSavingNotebook] = useState(false)
   const [deletingNotebook, setDeletingNotebook] = useState(false)
+
+  // Modal de inserción interactiva de versículos
+  const [showInsertVerseModal, setShowInsertVerseModal] = useState(false)
+  const [insertBibleId, setInsertBibleId] = useState<number>(149)
+  const [insertBookId, setInsertBookId] = useState<number | null>(null)
+  const [insertChapter, setInsertChapter] = useState<number>(1)
+  const [selectedVerses, setSelectedVerses] = useState<{ verse: number; text: string }[]>([])
+
+  // Filtros de búsqueda
+  const [searchQuery, setSearchQuery] = useState("")
 
   const notesKey = activeNotebookId ? `/api/notebooks/${activeNotebookId}/notes` : null
   const { data: notesData, mutate: mutateNotes, isLoading: notesLoading, error: notesError } = useSWR<{ notes: NotebookNote[] }>(
@@ -82,6 +114,47 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired 
     fetcher
   )
   const notes = notesData?.notes ?? []
+
+  // SWR queries for inserting verses
+  const { data: insertBiblesData } = useSWR<{ bibles: BibleVersion[] }>(
+    showInsertVerseModal ? "/api/bibles" : null,
+    fetcher
+  )
+  const insertBibles = insertBiblesData?.bibles ?? []
+
+  const { data: insertBooksData } = useSWR<{ books: { bookId: number; bookName: string; chapters: number }[] }>(
+    showInsertVerseModal && insertBibleId ? `/api/books?bible=${insertBibleId}` : null,
+    fetcher
+  )
+  const insertBooks = insertBooksData?.books ?? []
+
+  const { data: insertVersesData } = useSWR<{ verses: { id: number; verse: number; text: string }[] }>(
+    showInsertVerseModal && insertBibleId && insertBookId && insertChapter 
+      ? `/api/verses?bible=${insertBibleId}&book=${insertBookId}&chapter=${insertChapter}` 
+      : null,
+    fetcher
+  )
+  const insertVerses = insertVersesData?.verses ?? []
+
+  // Auto-select first book when books load
+  useEffect(() => {
+    if (insertBooks.length > 0 && !insertBookId) {
+      setInsertBookId(insertBooks[0].bookId)
+    }
+  }, [insertBooks, insertBookId])
+
+  const handleInsertBibleChange = (bibleId: number) => {
+    setInsertBibleId(bibleId)
+    setInsertBookId(null)
+    setInsertChapter(1)
+    setSelectedVerses([])
+  }
+
+  const handleInsertBookChange = (bookId: number) => {
+    setInsertBookId(bookId)
+    setInsertChapter(1)
+    setSelectedVerses([])
+  }
 
   useEffect(() => {
     if (notebooksError && (notebooksError.status === 401 || notebooksError.status === 403)) {
@@ -97,7 +170,6 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired 
     }
   }, [notesError, onSessionExpired])
 
-  // Si la libreta activa ya no existe (p. ej. tras eliminarla), limpiar estado
   useEffect(() => {
     if (notesError?.status === 404 && activeNotebookId) {
       setActiveNotebookId(null)
@@ -130,72 +202,68 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired 
     }
   }, [noteDetails, editingNote?.id])
 
-  // Auto-focus textarea when verse is appended
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
-  // Mantener libreta activa sincronizada con la lista real
-  useEffect(() => {
-    if (!notebooksData) return
-
-    if (notebooks.length === 0) {
-      if (activeNotebookId !== null) setActiveNotebookId(null)
-      return
-    }
-
-    if (activeNotebookId === null || !notebooks.some((n) => n.id === activeNotebookId)) {
-      setActiveNotebookId(notebooks[0].id)
-    }
-  }, [notebooks, activeNotebookId, notebooksData])
-
-  async function handleCreateNotebook() {
-    if (!newNotebookName.trim() || creatingNotebook) return
-    setCreatingNotebook(true)
+  // Manejar creación/edición de libreta
+  async function handleSaveNotebook() {
+    if (!configName.trim() || savingNotebook) return
+    setSavingNotebook(true)
     const token = localStorage.getItem("biblia_token")
+    const coverToSave = customCoverUrl.trim() || configCover
+
     try {
-      const res = await fetch("/api/notebooks", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { "Authorization": `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({ name: newNotebookName.trim() }),
-      })
-      const data = await res.json()
-      if (res.status === 401 || res.status === 403) {
-        localStorage.removeItem("biblia_token")
-        onSessionExpired()
-        return
+      if (modalMode === "create") {
+        const res = await fetch("/api/notebooks", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({ name: configName.trim(), coverImage: coverToSave }),
+        })
+        const data = await res.json()
+        if (res.status === 401 || res.status === 403) {
+          localStorage.removeItem("biblia_token")
+          onSessionExpired()
+          return
+        }
+        if (!res.ok) throw new Error(data.error)
+        await mutateNotebooks()
+        setActiveNotebookId(data.id)
+      } else {
+        if (!activeNotebookId) return
+        const res = await fetch(`/api/notebooks/${activeNotebookId}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({ name: configName.trim(), coverImage: coverToSave }),
+        })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error)
+        await mutateNotebooks()
       }
-      if (!res.ok) throw new Error(data.error)
-      await mutateNotebooks()
-      setActiveNotebookId(data.id)
-      setNewNotebookName("")
-      setIsCreatingNotebook(false)
+      setShowConfigModal(false)
+      setConfigName("")
+      setCustomCoverUrl("")
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Error al crear libreta")
+      alert(e instanceof Error ? e.message : "Error al procesar libreta")
     } finally {
-      setCreatingNotebook(false)
+      setSavingNotebook(false)
     }
   }
 
-  async function handleDeleteNotebook() {
-    if (!activeNotebookId || deletingNotebook) return
-    const currentNotebook = notebooks.find((n) => n.id === activeNotebookId)
-    if (!confirm(`¿Estás seguro de eliminar la libreta "${currentNotebook?.name}" y todas sus notas?`)) {
+  async function handleDeleteNotebook(notebookId: number, name: string, event?: React.MouseEvent) {
+    event?.stopPropagation()
+    if (!confirm(`¿Estás seguro de eliminar la libreta "${name}" y todas sus notas?`)) {
       return
     }
-
-    const deletedId = activeNotebookId
-    setActiveNotebookId(null)
-    setEditingNote(null)
-    setIsCreatingNote(false)
-    setIsCreatingNotebook(false)
-    void mutateNotes(undefined, { revalidate: false })
 
     setDeletingNotebook(true)
     const token = localStorage.getItem("biblia_token")
     try {
-      const res = await fetch(`/api/notebooks/${deletedId}`, {
+      const res = await fetch(`/api/notebooks/${notebookId}`, {
         method: "DELETE",
         headers: {
           ...(token ? { "Authorization": `Bearer ${token}` } : {}),
@@ -206,24 +274,20 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired 
         throw new Error(data.error)
       }
 
-      const updated = await mutateNotebooks()
-      const remaining = updated?.notebooks ?? []
-      if (remaining.length === 0) {
+      if (activeNotebookId === notebookId) {
         setActiveNotebookId(null)
-        setIsCreatingNotebook(true)
-      } else {
-        setActiveNotebookId(remaining[0].id)
+        setEditingNote(null)
       }
+      await mutateNotebooks()
     } catch (e) {
       alert(e instanceof Error ? e.message : "Error al eliminar libreta")
-      await mutateNotebooks()
     } finally {
       setDeletingNotebook(false)
     }
   }
 
   async function handleCreateNote() {
-    if (!hasValidNotebook || !activeNotebookId || !newNoteTitle.trim()) return
+    if (!activeNotebookId || !newNoteTitle.trim()) return
     const token = localStorage.getItem("biblia_token")
     try {
       const res = await fetch(`/api/notebooks/${activeNotebookId}/notes`, {
@@ -303,14 +367,63 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired 
     }
   }
 
+  // Componente de Portada de Libro
+  function BookCover({ title, coverImage, className = "", onClick }: { title: string, coverImage?: string | null, className?: string, onClick?: () => void }) {
+    const preset = PRESET_COVERS.find(c => c.id === coverImage)
+    
+    const style = preset && 'url' in preset
+      ? { backgroundImage: `url(${preset.url})` } 
+      : coverImage && coverImage.startsWith("http") 
+        ? { backgroundImage: `url(${coverImage})` } 
+        : {}
+
+    const bgClass = preset ? preset.class : (coverImage && !coverImage.startsWith("http") ? coverImage : "bg-gradient-to-br from-primary/80 to-primary-foreground/90")
+
+    return (
+      <div 
+        onClick={onClick}
+        className={cn(
+          "relative w-32 h-44 rounded-r-xl shadow-lg overflow-hidden transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 active:scale-95 group cursor-pointer flex flex-col justify-between p-3.5 text-white border-l-[6px] border-black/30",
+          bgClass,
+          className
+        )}
+        style={{
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          ...style
+        }}
+      >
+        <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-transparent to-black/15 pointer-events-none" />
+        <div className="absolute top-0 bottom-0 left-0 w-[2px] bg-white/25 pointer-events-none" />
+        
+        <div className="mt-1 text-[11px] font-extrabold leading-snug line-clamp-4 drop-shadow-md uppercase tracking-wider font-serif">
+          {title}
+        </div>
+
+        <div className="flex items-center justify-between mt-auto pt-2 border-t border-white/20">
+          <Book className="size-3.5 opacity-80" />
+          <span className="text-[8px] font-bold tracking-widest uppercase opacity-75">
+            ESTUDIO
+          </span>
+        </div>
+      </div>
+    )
+  }
+
   const selectedNotebook = notebooks.find((n) => n.id === activeNotebookId)
-  const hasValidNotebook = activeNotebookId !== null && notebooks.some((n) => n.id === activeNotebookId)
+  const selectedBookObj = insertBooks.find(b => b.bookId === insertBookId)
+  const selectedBibleObj = insertBibles.find(b => b.bibleId === insertBibleId)
+
+  const filteredNotes = notes.filter(n => 
+    n.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    n.content.toLowerCase().includes(searchQuery.toLowerCase())
+  )
 
   // Note Editor view
   if (editingNote) {
     return (
-      <div className="flex h-full flex-col">
-        <header className="flex items-center justify-between gap-2 border-b border-border px-4 py-3 bg-card/40">
+      <div className="flex h-full flex-col bg-card/10">
+        <header className="sticky top-0 z-10 flex items-center justify-between gap-2 border-b border-border/80 px-4 py-3 bg-card/80 backdrop-blur-md shrink-0">
           <Button
             variant="ghost"
             size="sm"
@@ -318,12 +431,12 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired 
               setEditingNote(null)
               setSavedAt(null)
             }}
-            className="h-8 gap-1.5 px-2"
+            className="h-8 gap-1.5 px-2 text-muted-foreground hover:text-foreground"
           >
             <ArrowLeft className="size-4" />
             <span>Volver</span>
           </Button>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
             <Button
               variant="ghost"
               size="icon"
@@ -333,14 +446,14 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired 
             >
               <Trash2 className="size-4" />
             </Button>
-            <span className="text-xs text-muted-foreground">
-              {savedAt ? `Guardado ${savedAt}` : "Cambios sin guardar"}
+            <span className="text-[11px] text-muted-foreground font-medium">
+              {savedAt ? `Guardado ${savedAt}` : "Sin guardar"}
             </span>
             <Button
               onClick={handleSaveNote}
               disabled={savingNote}
               size="sm"
-              className="h-8 gap-1.5"
+              className="h-8 gap-1.5 bg-primary/90 hover:bg-primary shadow-sm"
             >
               {savingNote ? (
                 <Loader2 className="size-4 animate-spin" />
@@ -352,46 +465,74 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired 
           </div>
         </header>
 
-        <div className="flex flex-1 flex-col gap-3 p-4 overflow-hidden">
-          <Input
-            value={editingNote.title}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditingNote({ ...editingNote, title: e.target.value })}
-            placeholder="Título de la nota"
-            className="border-none bg-transparent px-0 text-lg font-bold focus-visible:ring-0"
-          />
+        {/* Scrollable editor — toolbar scrolls away, textarea fills the screen */}
+        <div className="flex-1 overflow-y-auto">
+          {/* Toolbar: title + tags + insert verse */}
+          <div className="px-5 pt-5 pb-4 space-y-3 border-b border-border/15">
+            <Input
+              value={editingNote.title}
+              onChange={(e) => setEditingNote({ ...editingNote, title: e.target.value })}
+              placeholder="Título de la nota"
+              className="border-none bg-transparent px-0 text-2xl font-bold focus-visible:ring-0 placeholder:text-muted-foreground/40 text-foreground"
+            />
 
-          <div className="flex flex-wrap gap-2">
-            <Tag className="size-4 text-muted-foreground mt-0.5" />
-            {AVAILABLE_TAGS.map(tag => {
-              let currentTags: string[] = []
-              try { currentTags = editingNote.tags ? JSON.parse(editingNote.tags) : [] } catch {}
-              const isActive = currentTags.includes(tag.id)
-              return (
-                <button
-                  key={tag.id}
-                  onClick={() => {
-                    const newTags = isActive ? currentTags.filter((t: string) => t !== tag.id) : [...currentTags, tag.id]
-                    setEditingNote({ ...editingNote, tags: JSON.stringify(newTags) })
-                  }}
-                  className={`text-xs px-2 py-0.5 rounded-full font-medium transition-all ${isActive ? tag.color + ' ring-1 ring-primary/50 font-bold shadow-sm' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}
-                >
-                  {tag.label}
-                </button>
-              )
-            })}
+            <div className="flex flex-wrap gap-2 items-center justify-between">
+              <div className="flex flex-wrap gap-2 items-center">
+                <Tag className="size-4 text-muted-foreground/60 shrink-0" />
+                {AVAILABLE_TAGS.map(tag => {
+                  let currentTags: string[] = []
+                  try { currentTags = editingNote.tags ? JSON.parse(editingNote.tags) : [] } catch {}
+                  const isActive = currentTags.includes(tag.id)
+                  return (
+                    <button
+                      key={tag.id}
+                      onClick={() => {
+                        const newTags = isActive ? currentTags.filter((t: string) => t !== tag.id) : [...currentTags, tag.id]
+                        setEditingNote({ ...editingNote, tags: JSON.stringify(newTags) })
+                      }}
+                      className={cn(
+                        "text-xs px-2.5 py-0.5 rounded-full font-medium transition-all active:scale-95 cursor-pointer",
+                        isActive 
+                          ? tag.color + ' ring-1 ring-primary/45 font-bold shadow-sm' 
+                          : 'bg-muted/60 text-muted-foreground hover:bg-muted'
+                      )}
+                    >
+                      {tag.label}
+                    </button>
+                  )
+                })}
+              </div>
+
+              {/* Interactive verse insertion button */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (insertBooks.length > 0 && !insertBookId) {
+                    setInsertBookId(insertBooks[0].bookId)
+                  }
+                  setShowInsertVerseModal(true)
+                }}
+                className="h-8 gap-1.5 text-xs bg-primary/5 hover:bg-primary/10 border-primary/20 text-primary active:scale-95"
+              >
+                <BookOpen className="size-3.5" />
+                <span>Insertar Versículo</span>
+              </Button>
+            </div>
           </div>
 
-          <div className="relative flex-1">
+          {/* Writing area — fills entire remaining viewport height */}
+          <div className="px-5 pt-4 pb-20">
             {noteDetailsLoading ? (
-              <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-                <Loader2 className="mr-2 size-4 animate-spin" />
+              <div className="flex items-center justify-center h-64 text-sm text-muted-foreground">
+                <Loader2 className="mr-2 size-4 animate-spin text-primary" />
                 Cargando nota...
               </div>
             ) : (
               <Textarea
                 ref={textareaRef}
                 value={editingNote.content}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setEditingNote({ ...editingNote, content: e.target.value })}
+                onChange={(e) => setEditingNote({ ...editingNote, content: e.target.value })}
                 onDragOver={(e) => {
                   e.preventDefault()
                   e.dataTransfer.dropEffect = "copy"
@@ -411,234 +552,660 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired 
                     })
                   }
                 }}
-                placeholder="Comienza a escribir. Haz clic en el botón '+' o arrastra los versículos de la Biblia aquí para insertarlos..."
-                className="h-full w-full resize-none border-none bg-transparent px-0 py-1 font-sans text-base leading-relaxed focus-visible:ring-0"
+                placeholder="Escribe tu reflexión aquí..."
+                style={{ minHeight: "calc(100svh - 160px)" }}
+                className="w-full resize-none border-none bg-transparent px-0 py-2 font-sans text-xl leading-loose focus-visible:ring-0 focus-visible:ring-offset-0 text-foreground"
               />
             )}
           </div>
-
-          <div className="rounded-md bg-accent/30 px-3 py-2.5 text-xs text-muted-foreground flex items-center gap-2">
-            <BookOpen className="size-3.5 text-primary shrink-0" />
-            <p>
-              <strong>Tip:</strong> Puedes insertar versículos directamente haciendo clic en el icono 
-              <span className="mx-1 font-bold inline-flex items-center justify-center size-4 bg-primary/10 text-primary rounded text-[10px]">+</span>
-              del lector de la Biblia a la izquierda.
-            </p>
-          </div>
         </div>
+
+        {/* Insert Verse Modal */}
+        {showInsertVerseModal && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-card border border-border rounded-2xl w-full max-w-2xl h-[80vh] flex flex-col shadow-2xl overflow-hidden animate-scale-in">
+              <div className="flex items-center justify-between p-4 border-b border-border/60 bg-muted/20">
+                <h3 className="font-extrabold text-base text-foreground flex items-center gap-2">
+                  <BookOpen className="size-5 text-primary" />
+                  <span>Insertar Versículos</span>
+                </h3>
+                <button 
+                  onClick={() => {
+                    setShowInsertVerseModal(false)
+                    setSelectedVerses([])
+                  }}
+                  className="text-xs text-muted-foreground hover:text-foreground font-semibold px-2.5 py-1 bg-muted rounded-full transition-colors"
+                >
+                  Cerrar
+                </button>
+              </div>
+
+              {/* Modal Body */}
+              <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
+                {/* Selectors Panel */}
+                <div className="w-full md:w-1/3 p-4 border-b md:border-b-0 md:border-r border-border/60 space-y-4 overflow-y-auto bg-muted/5">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Versión de la Biblia</label>
+                    <select
+                      value={insertBibleId}
+                      onChange={(e) => handleInsertBibleChange(Number(e.target.value))}
+                      className="w-full h-10 rounded-lg border border-border bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                    >
+                      {insertBibles.map((b) => (
+                        <option key={b.bibleId} value={b.bibleId}>
+                          {b.name} ({b.abbr})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Libro</label>
+                    <select
+                      value={insertBookId || ""}
+                      onChange={(e) => handleInsertBookChange(Number(e.target.value))}
+                      className="w-full h-10 rounded-lg border border-border bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                    >
+                      {insertBooks.map((b) => (
+                        <option key={b.bookId} value={b.bookId}>
+                          {b.bookName}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Capítulo</label>
+                    <select
+                      value={insertChapter}
+                      onChange={(e) => {
+                        setInsertChapter(Number(e.target.value))
+                        setSelectedVerses([])
+                      }}
+                      className="w-full h-10 rounded-lg border border-border bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                    >
+                      {Array.from({ length: selectedBookObj?.chapters || 1 }, (_, i) => i + 1).map((ch) => (
+                        <option key={ch} value={ch}>
+                          Capítulo {ch}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Verses Scrollable list */}
+                <div className="flex-1 p-4 overflow-y-auto space-y-3">
+                  <div className="flex items-center justify-between border-b border-border/30 pb-2 mb-2">
+                    <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Selecciona los Versículos</label>
+                    {insertVerses.length > 0 && (
+                      <button
+                        onClick={() => {
+                          if (selectedVerses.length === insertVerses.length) {
+                            setSelectedVerses([])
+                          } else {
+                            setSelectedVerses(insertVerses.map(v => ({ verse: v.verse, text: v.text })))
+                          }
+                        }}
+                        className="text-[10px] font-bold text-primary hover:underline"
+                      >
+                        {selectedVerses.length === insertVerses.length ? "Deseleccionar Todo" : "Seleccionar Todo"}
+                      </button>
+                    )}
+                  </div>
+
+                  {insertVerses.length === 0 ? (
+                    <div className="flex items-center justify-center h-48 text-xs text-muted-foreground">
+                      Cargando versículos...
+                    </div>
+                  ) : (
+                    <div className="space-y-2.5">
+                      {insertVerses.map((v) => {
+                        const isChecked = selectedVerses.some(sv => sv.verse === v.verse)
+                        return (
+                          <div 
+                            key={v.id} 
+                            onClick={() => {
+                              if (isChecked) {
+                                setSelectedVerses(selectedVerses.filter(sv => sv.verse !== v.verse))
+                              } else {
+                                setSelectedVerses([...selectedVerses, { verse: v.verse, text: v.text }].sort((a, b) => a.verse - b.verse))
+                              }
+                            }}
+                            className={cn(
+                              "flex items-start gap-3 p-2.5 rounded-lg border cursor-pointer transition-all active:scale-[0.99]",
+                              isChecked 
+                                ? "bg-primary/5 border-primary/30" 
+                                : "bg-card hover:bg-muted/40 border-border/40"
+                            )}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              readOnly
+                              className="mt-1 size-4 rounded border-gray-300 text-primary focus:ring-primary accent-primary shrink-0"
+                            />
+                            <div className="text-xs leading-relaxed text-foreground">
+                              <span className="font-extrabold text-primary mr-1.5">{v.verse}</span>
+                              {v.text}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="p-4 border-t border-border/60 bg-muted/20 flex justify-end gap-2.5">
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    setShowInsertVerseModal(false)
+                    setSelectedVerses([])
+                  }}
+                  className="h-9 px-4 text-xs font-semibold"
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={() => {
+                    if (selectedVerses.length === 0) return
+                    const bookName = selectedBookObj?.bookName || "Libro"
+                    const bibleAbbr = selectedBibleObj?.abbr || "RVR1960"
+                    
+                    const verseNumbers = selectedVerses.map(v => v.verse)
+                    const minVerse = Math.min(...verseNumbers)
+                    const maxVerse = Math.max(...verseNumbers)
+                    const isRange = maxVerse - minVerse === verseNumbers.length - 1
+                    const verseRefStr = isRange && verseNumbers.length > 1
+                      ? `${minVerse}-${maxVerse}`
+                      : verseNumbers.join(",")
+                    
+                    const reference = `${bookName} ${insertChapter}:${verseRefStr}`
+                    const versesText = selectedVerses.map(v => `**${v.verse}** ${v.text}`).join(" ")
+                    
+                    const formattedText = `\n> **${reference} (${bibleAbbr})**\n> ${versesText}\n\n`
+                    
+                    const start = textareaRef.current?.selectionStart ?? editingNote.content.length
+                    const end = textareaRef.current?.selectionEnd ?? editingNote.content.length
+                    const textBefore = editingNote.content.substring(0, start)
+                    const textAfter = editingNote.content.substring(end)
+                    
+                    setEditingNote({
+                      ...editingNote,
+                      content: textBefore + formattedText + textAfter
+                    })
+                    
+                    setShowInsertVerseModal(false)
+                    setSelectedVerses([])
+                  }}
+                  disabled={selectedVerses.length === 0}
+                  className="h-9 px-4 text-xs font-semibold bg-primary hover:bg-primary/95 text-primary-foreground shadow-md"
+                >
+                  Insertar ({selectedVerses.length} seleccionados)
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     )
   }
 
-  // Notebook & Note List view
-  return (
-    <div className="flex h-full flex-col">
-      <header className="flex flex-col gap-3 border-b border-border p-4 bg-card/20">
-        <div className="flex flex-col gap-2">
-          <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Mi Cuaderno
-          </label>
+  // 1. Bookshelf Grid Mode (if no active notebook)
+  if (activeNotebookId === null) {
+    return (
+      <div className="flex flex-col h-full bg-card/20 overflow-hidden relative">
+        <header className="flex items-center justify-between border-b border-border/60 p-4 bg-card/30 backdrop-blur-md">
           <div className="flex items-center gap-2">
-            {isCreatingNotebook ? (
-              <div className="flex w-full items-center gap-2">
-                <Input
-                  value={newNotebookName}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewNotebookName(e.target.value)}
-                  placeholder="Nombre de libreta"
-                  className="h-9"
-                  autoFocus
-                  onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
-                    if (e.key === "Enter") handleCreateNotebook()
-                    if (e.key === "Escape") setIsCreatingNotebook(false)
-                  }}
-                />
-                <Button size="sm" onClick={handleCreateNotebook} disabled={creatingNotebook}>
-                  {creatingNotebook ? (
-                    <Loader2 className="size-4 animate-spin" />
-                  ) : (
-                    "Crear"
-                  )}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => setIsCreatingNotebook(false)}
+            <Book className="size-5 text-primary" />
+            <h2 className="text-lg font-bold text-foreground tracking-tight">Mis Libretas</h2>
+          </div>
+          <Button 
+            onClick={() => {
+              setModalMode("create")
+              setConfigName("")
+              setConfigCover("grad-purple")
+              setCustomCoverUrl("")
+              setShowConfigModal(true)
+            }}
+            size="sm"
+            className="gap-1.5 bg-primary/90 hover:bg-primary shadow-md active:scale-95"
+          >
+            <FolderPlus className="size-4" />
+            <span>Nueva Libreta</span>
+          </Button>
+        </header>
+
+        {/* Bookshelf Scrollable area */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          {notebooks.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-64 text-center space-y-3">
+              <div className="size-16 rounded-full bg-primary/5 flex items-center justify-center border border-primary/10 text-primary/40">
+                <Book className="size-8" />
+              </div>
+              <div className="max-w-xs space-y-1">
+                <h3 className="font-bold text-foreground">Tu estantería está vacía</h3>
+                <p className="text-xs text-muted-foreground">Crea tu primera libreta para comenzar a tomar apuntes y devocionales de estudio.</p>
+              </div>
+              <Button 
+                onClick={() => {
+                  setModalMode("create")
+                  setConfigName("")
+                  setConfigCover("grad-purple")
+                  setCustomCoverUrl("")
+                  setShowConfigModal(true)
+                }}
+                size="sm"
+                className="gap-1.5 mt-2"
+              >
+                <Plus className="size-4" />
+                Crear Libreta
+              </Button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6 justify-items-center">
+              {notebooks.map((n) => (
+                <div key={n.id} className="flex flex-col items-center gap-2 group relative">
+                  
+                  {/* Floating Action Menu */}
+                  <div className="absolute top-2 right-2 z-10 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-black/45 backdrop-blur-[2px] rounded-lg p-0.5">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setModalMode("edit")
+                        setActiveNotebookId(n.id)
+                        setConfigName(n.name)
+                        setConfigCover(n.coverImage || "grad-purple")
+                        if (n.coverImage && n.coverImage.startsWith("http")) {
+                          setCustomCoverUrl(n.coverImage)
+                        } else {
+                          setCustomCoverUrl("")
+                        }
+                        setShowConfigModal(true)
+                      }}
+                      className="p-1 text-white hover:text-primary transition-colors"
+                      title="Editar libreta"
+                    >
+                      <Edit2 className="size-3.5" />
+                    </button>
+                    <button
+                      onClick={(e) => handleDeleteNotebook(n.id, n.name, e)}
+                      className="p-1 text-white hover:text-destructive transition-colors"
+                      title="Eliminar libreta"
+                    >
+                      <Trash2 className="size-3.5" />
+                    </button>
+                  </div>
+
+                  <BookCover 
+                    title={n.name}
+                    coverImage={n.coverImage}
+                    onClick={() => setActiveNotebookId(n.id)}
+                  />
+                  
+                  <span className="text-xs font-bold text-foreground text-center truncate w-28 drop-shadow-sm">
+                    {n.name}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Config Modal (Create or Edit Notebook) */}
+        {showConfigModal && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-card border border-border rounded-2xl w-full max-w-md p-6 space-y-4 shadow-2xl animate-scale-in">
+              <div className="flex items-center justify-between">
+                <h3 className="font-extrabold text-base text-foreground flex items-center gap-1.5">
+                  <Sparkles className="size-4 text-primary animate-pulse" />
+                  {modalMode === "create" ? "Nueva Libreta de Estudio" : "Editar Libreta"}
+                </h3>
+                <button 
+                  onClick={() => setShowConfigModal(false)}
+                  className="text-xs text-muted-foreground hover:text-foreground font-semibold px-2 py-1 bg-muted rounded-full transition-colors"
+                >
+                  Cerrar
+                </button>
+              </div>
+
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Nombre del Cuaderno</label>
+                  <Input 
+                    value={configName}
+                    onChange={(e) => setConfigName(e.target.value)}
+                    placeholder="Ej. Apuntes de Proverbios, Teología..."
+                    className="h-10"
+                    autoFocus
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Portada Prediseñada</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {PRESET_COVERS.map(cover => (
+                      <button
+                        key={cover.id}
+                        onClick={() => {
+                          setConfigCover(cover.id)
+                          setCustomCoverUrl("")
+                        }}
+                        className={cn(
+                          "h-10 rounded-lg text-[10px] font-bold text-white transition-all overflow-hidden relative border border-transparent shadow-sm flex items-center justify-center p-1",
+                          cover.class,
+                          configCover === cover.id && !customCoverUrl ? "ring-2 ring-primary border-white" : "opacity-85 hover:opacity-100"
+                        )}
+                      >
+                        {cover.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">O URL de Imagen de Portada (Opcional)</label>
+                  <Input 
+                    value={customCoverUrl}
+                    onChange={(e) => setCustomCoverUrl(e.target.value)}
+                    placeholder="https://images.unsplash.com/..."
+                    className="h-10 text-xs"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-2 flex justify-end gap-2.5">
+                <Button 
+                  variant="ghost" 
+                  onClick={() => setShowConfigModal(false)}
+                  className="h-9 px-4 text-xs font-semibold"
                 >
                   Cancelar
                 </Button>
+                <Button 
+                  onClick={handleSaveNotebook}
+                  disabled={savingNotebook || !configName.trim()}
+                  className="h-9 px-4 text-xs font-semibold bg-primary hover:bg-primary/90 shadow-md"
+                >
+                  {savingNotebook ? <Loader2 className="size-4 animate-spin" /> : "Guardar Libreta"}
+                </Button>
               </div>
-            ) : (
-              <>
-                <Select
-                  value={hasValidNotebook ? String(activeNotebookId) : ""}
-                  onValueChange={(val) => val && setActiveNotebookId(Number(val))}
-                  disabled={deletingNotebook || notebooks.length === 0}
-                >
-                  <SelectTrigger className="flex-1">
-                    <SelectValue placeholder={deletingNotebook ? "Eliminando..." : "Elige un cuaderno"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {notebooks.map((n) => (
-                      <SelectItem key={n.id} value={String(n.id)}>
-                        {n.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setIsCreatingNotebook(true)}
-                  title="Nueva Libreta"
-                >
-                  <FolderPlus className="size-4" />
-                </Button>
-                {hasValidNotebook && (
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={handleDeleteNotebook}
-                    disabled={deletingNotebook}
-                    className="text-destructive hover:bg-destructive/10"
-                    title="Eliminar Libreta"
-                  >
-                    {deletingNotebook ? (
-                      <Loader2 className="size-4 animate-spin" />
-                    ) : (
-                      <Trash2 className="size-4" />
-                    )}
-                  </Button>
-                )}
-              </>
-            )}
-          </div>
-        </div>
-      </header>
-
-      {/* Note list for active notebook */}
-      <div className="flex-1 overflow-auto p-4">
-        {deletingNotebook ? (
-          <div className="flex h-48 flex-col items-center justify-center text-center text-muted-foreground">
-            <Loader2 className="mb-2 size-8 animate-spin text-primary" />
-            <p className="text-sm">Eliminando libreta...</p>
-          </div>
-        ) : !hasValidNotebook ? (
-          <div className="flex h-48 flex-col items-center justify-center gap-3 text-center text-muted-foreground">
-            <BookOpen className="size-8 text-muted-foreground/50" />
-            <p className="text-sm">No tienes libretas. Crea una nueva para empezar.</p>
-            {!isCreatingNotebook && (
-              <Button size="sm" onClick={() => setIsCreatingNotebook(true)} className="gap-1.5">
-                <FolderPlus className="size-4" />
-                Nueva libreta
-              </Button>
-            )}
-          </div>
-        ) : (
-          <div className="flex flex-col gap-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-medium text-foreground">
-                Notas en {selectedNotebook?.name}
-              </h3>
-              {isCreatingNote ? (
-                <div className="flex items-center gap-2">
-                  <Input
-                    value={newNoteTitle}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewNoteTitle(e.target.value)}
-                    placeholder="Título de la nota"
-                    className="h-8 text-xs w-36"
-                    autoFocus
-                    onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
-                      if (e.key === "Enter") handleCreateNote()
-                      if (e.key === "Escape") setIsCreatingNote(false)
-                    }}
-                  />
-                  <Button size="sm" className="h-8 px-2 text-xs" onClick={handleCreateNote}>
-                    +
-                  </Button>
-                </div>
-              ) : (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setIsCreatingNote(true)}
-                  className="h-8 gap-1 text-xs"
-                >
-                  <Plus className="size-3.5" />
-                  <span>Nueva Nota</span>
-                </Button>
-              )}
             </div>
-
-            {notesLoading ? (
-              <p className="text-xs text-muted-foreground">Cargando notas...</p>
-            ) : notes.length === 0 ? (
-              <div className="rounded-lg border border-dashed border-border p-6 text-center text-muted-foreground">
-                <FileText className="mx-auto mb-2 size-6 opacity-40" />
-                <p className="text-xs">No hay notas en esta libreta.</p>
-                <Button
-                  variant="link"
-                  onClick={() => setIsCreatingNote(true)}
-                  className="mt-1 h-auto text-xs p-0"
-                >
-                  Crea tu primera nota
-                </Button>
-              </div>
-            ) : (
-              <ul className="space-y-2">
-                {notes.map((note) => (
-                  <li
-                    key={note.id}
-                    onClick={() =>
-                      setEditingNote({
-                        id: note.id,
-                        title: note.title,
-                        content: note.content,
-                      })
-                    }
-                    className="group flex items-center justify-between gap-3 rounded-lg border border-border bg-card/50 p-3 hover:bg-accent/40 cursor-pointer transition-colors"
-                  >
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-foreground">
-                        {note.title || "Sin título"}
-                      </p>
-                      
-                      <div className="flex gap-1 mt-1 mb-1.5">
-                        {(() => {
-                          try {
-                            const noteTags = note.tags ? JSON.parse(note.tags) : []
-                            if (noteTags.length === 0) return null
-                            return noteTags.map((tId: string) => {
-                              const tg = AVAILABLE_TAGS.find(x => x.id === tId)
-                              if (!tg) return null
-                              return <span key={tId} className={`text-[9px] px-1.5 py-0.5 rounded-sm font-semibold ${tg.color}`}>{tg.label}</span>
-                            })
-                          } catch { return null }
-                        })()}
-                      </div>
-
-                      <p className="truncate text-xs text-muted-foreground">
-                        {note.content
-                          ? note.content.substring(0, 60).replace(/[#>*\n]/g, "") +
-                            (note.content.length > 60 ? "..." : "")
-                          : "Nota vacía"}
-                      </p>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="size-7 shrink-0 text-muted-foreground hover:text-destructive sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
-                      onClick={(e: React.MouseEvent<HTMLButtonElement>) => handleDeleteNote(note.id, note.title, e)}
-                      aria-label={`Eliminar nota ${note.title}`}
-                    >
-                      <Trash2 className="size-4" />
-                    </Button>
-                  </li>
-                ))}
-              </ul>
-            )}
           </div>
         )}
       </div>
+    )
+  }
+
+  // 2. Notebook Interior / Note List Mode (when activeNotebookId is selected)
+  return (
+    <div className="flex flex-col h-full bg-card/25 overflow-hidden">
+      <header className="flex flex-col gap-3 border-b border-border/60 p-4 bg-card/40 backdrop-blur-md">
+        <div className="flex items-center justify-between">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setActiveNotebookId(null)
+              setSearchQuery("")
+            }}
+            className="h-8 gap-1.5 px-2 text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeft className="size-4" />
+            <span>Volver a Estantería</span>
+          </Button>
+
+          <div className="flex items-center gap-1.5">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => {
+                setModalMode("edit")
+                setConfigName(selectedNotebook?.name || "")
+                setConfigCover(selectedNotebook?.coverImage || "grad-purple")
+                if (selectedNotebook?.coverImage && selectedNotebook.coverImage.startsWith("http")) {
+                  setCustomCoverUrl(selectedNotebook.coverImage)
+                } else {
+                  setCustomCoverUrl("")
+                }
+                setShowConfigModal(true)
+              }}
+              className="size-8"
+              title="Configurar Libreta"
+            >
+              <Edit2 className="size-3.5" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => selectedNotebook && handleDeleteNotebook(selectedNotebook.id, selectedNotebook.name)}
+              className="size-8 text-destructive hover:bg-destructive/10"
+              title="Eliminar Libreta"
+            >
+              <Trash2 className="size-3.5" />
+            </Button>
+          </div>
+        </div>
+
+        {/* Selected Notebook info and Note Creator */}
+        <div className="flex items-center gap-3.5 pt-1">
+          <BookCover 
+            title={selectedNotebook?.name || ""}
+            coverImage={selectedNotebook?.coverImage}
+            className="w-12 h-16 shrink-0 shadow pointer-events-none"
+          />
+          <div className="min-w-0 flex-1">
+            <h2 className="text-base font-extrabold text-foreground truncate tracking-tight">{selectedNotebook?.name}</h2>
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              {notes.length} {notes.length === 1 ? "nota" : "notas"} escritas
+            </p>
+          </div>
+
+          <div className="shrink-0">
+            {isCreatingNote ? (
+              <div className="flex items-center gap-1.5 animate-scale-in">
+                <Input
+                  value={newNoteTitle}
+                  onChange={(e) => setNewNoteTitle(e.target.value)}
+                  placeholder="Título..."
+                  className="h-8 text-xs w-32 md:w-40"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleCreateNote()
+                    if (e.key === "Escape") setIsCreatingNote(false)
+                  }}
+                />
+                <Button size="sm" className="h-8 px-2.5 text-xs bg-primary hover:bg-primary/95" onClick={handleCreateNote}>
+                  +
+                </Button>
+              </div>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsCreatingNote(true)}
+                className="h-8 gap-1 text-xs border-dashed"
+              >
+                <Plus className="size-3.5" />
+                <span>Nueva Nota</span>
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Notebook search bar */}
+        <div className="relative mt-1">
+          <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground/60" />
+          <Input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Buscar apuntes o contenido..."
+            className="h-9 pl-9 pr-4 text-xs bg-card/30"
+          />
+        </div>
+      </header>
+
+      {/* Notes list */}
+      <div className="flex-1 overflow-y-auto p-4">
+        {notesLoading ? (
+          <div className="flex h-32 items-center justify-center text-xs text-muted-foreground gap-2">
+            <Loader2 className="size-4 animate-spin text-primary" />
+            <span>Cargando notas de la libreta...</span>
+          </div>
+        ) : filteredNotes.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-border p-8 text-center text-muted-foreground space-y-2">
+            <FileText className="mx-auto size-7 opacity-35 text-primary" />
+            <p className="text-xs">No hay notas que coincidan.</p>
+            <Button
+              variant="link"
+              onClick={() => setIsCreatingNote(true)}
+              className="h-auto text-xs p-0 text-primary font-bold hover:underline"
+            >
+              Crea una nueva nota
+            </Button>
+          </div>
+        ) : (
+          <ul className="space-y-2.5">
+            {filteredNotes.map((note) => (
+              <li
+                key={note.id}
+                onClick={() =>
+                  setEditingNote({
+                    id: note.id,
+                    title: note.title,
+                    content: note.content,
+                  })
+                }
+                className="group flex flex-col gap-2 rounded-xl border border-border/50 bg-card/30 p-3.5 hover:bg-accent/40 cursor-pointer transition-all hover:scale-[1.01] hover:shadow-sm"
+              >
+                <div className="flex items-start justify-between gap-3 min-w-0">
+                  <div className="min-w-0 flex-1">
+                    <h4 className="truncate text-sm font-bold text-foreground tracking-tight">
+                      {note.title || "Sin título"}
+                    </h4>
+                  </div>
+                  <button
+                    onClick={(e) => handleDeleteNote(note.id, note.title, e)}
+                    className="size-6 shrink-0 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive flex items-center justify-center transition-colors"
+                  >
+                    <Trash2 className="size-3.5" />
+                  </button>
+                </div>
+
+                <div className="flex gap-1.5 flex-wrap">
+                  {(() => {
+                    try {
+                      const noteTags = note.tags ? JSON.parse(note.tags) : []
+                      if (noteTags.length === 0) return null
+                      return noteTags.map((tId: string) => {
+                        const tg = AVAILABLE_TAGS.find(x => x.id === tId)
+                        if (!tg) return null
+                        return <span key={tId} className={cn("text-[9px] px-2 py-0.5 rounded-full font-bold shadow-xs", tg.color)}>{tg.label}</span>
+                      })
+                    } catch { return null }
+                  })()}
+                </div>
+
+                <p className="line-clamp-2 text-xs text-muted-foreground/80 leading-relaxed">
+                  {note.content
+                    ? note.content.substring(0, 100).replace(/[#>*\n]/g, " ") +
+                      (note.content.length > 100 ? "..." : "")
+                    : "Nota vacía"}
+                </p>
+
+                <div className="flex items-center gap-1.5 pt-1.5 border-t border-border/30 mt-0.5 text-[10px] text-muted-foreground/60 font-semibold">
+                  <Calendar className="size-3" />
+                  <span>Actualizado: {new Date(note.updatedAt).toLocaleDateString()}</span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      {/* Config Modal (Create or Edit Notebook) */}
+      {showConfigModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-card border border-border rounded-2xl w-full max-w-md p-6 space-y-4 shadow-2xl animate-scale-in">
+            <div className="flex items-center justify-between">
+              <h3 className="font-extrabold text-base text-foreground flex items-center gap-1.5">
+                <Sparkles className="size-4 text-primary animate-pulse" />
+                {modalMode === "create" ? "Nueva Libreta de Estudio" : "Editar Libreta"}
+              </h3>
+              <button 
+                onClick={() => setShowConfigModal(false)}
+                className="text-xs text-muted-foreground hover:text-foreground font-semibold px-2 py-1 bg-muted rounded-full transition-colors"
+              >
+                Cerrar
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Nombre del Cuaderno</label>
+                <Input 
+                  value={configName}
+                  onChange={(e) => setConfigName(e.target.value)}
+                  placeholder="Ej. Apuntes de Proverbios, Teología..."
+                  className="h-10"
+                  autoFocus
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Portada Prediseñada</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {PRESET_COVERS.map(cover => (
+                    <button
+                      key={cover.id}
+                      onClick={() => {
+                        setConfigCover(cover.id)
+                        setCustomCoverUrl("")
+                      }}
+                      className={cn(
+                        "h-10 rounded-lg text-[10px] font-bold text-white transition-all overflow-hidden relative border border-transparent shadow-sm flex items-center justify-center p-1",
+                        cover.class,
+                        configCover === cover.id && !customCoverUrl ? "ring-2 ring-primary border-white" : "opacity-85 hover:opacity-100"
+                      )}
+                    >
+                      {cover.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">O URL de Imagen de Portada (Opcional)</label>
+                <Input 
+                  value={customCoverUrl}
+                  onChange={(e) => setCustomCoverUrl(e.target.value)}
+                  placeholder="https://images.unsplash.com/..."
+                  className="h-10 text-xs"
+                />
+              </div>
+            </div>
+
+            <div className="pt-2 flex justify-end gap-2.5">
+              <Button 
+                variant="ghost" 
+                onClick={() => setShowConfigModal(false)}
+                className="h-9 px-4 text-xs font-semibold"
+              >
+                Cancelar
+              </Button>
+              <Button 
+                onClick={handleSaveNotebook}
+                disabled={savingNotebook || !configName.trim()}
+                className="h-9 px-4 text-xs font-semibold bg-primary hover:bg-primary/90 shadow-md"
+              >
+                {savingNotebook ? <Loader2 className="size-4 animate-spin" /> : "Guardar Libreta"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

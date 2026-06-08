@@ -77,6 +77,16 @@ export async function ensureDbTables(): Promise<void> {
     await pool.query(`ALTER TABLE bible_notebooks ADD COLUMN user_id INT DEFAULT NULL`)
   } catch (_) {}
 
+  // Add cover_image to notebooks
+  try {
+    await pool.query(`ALTER TABLE bible_notebooks ADD COLUMN cover_image VARCHAR(500) DEFAULT NULL`)
+  } catch (_) {}
+
+  // Add tags to notebook notes
+  try {
+    await pool.query(`ALTER TABLE bible_notebook_notes ADD COLUMN tags TEXT DEFAULT NULL`)
+  } catch (_) {}
+
   // Migrate legacy Joplin schema → local note storage
   try {
     await pool.query(`ALTER TABLE bible_note_links ADD COLUMN user_id INT DEFAULT NULL`)
@@ -375,25 +385,40 @@ export async function listNotebooks(userId?: number): Promise<any[]> {
   await ensureDbTables()
   if (userId) {
     const [rows] = await getPool().query<RowDataPacket[]>(
-      `SELECT id, name, created_at AS createdAt FROM bible_notebooks WHERE user_id = ? ORDER BY id DESC`,
+      `SELECT id, name, cover_image AS coverImage, created_at AS createdAt FROM bible_notebooks WHERE user_id = ? ORDER BY id DESC`,
       [userId]
     )
     return rows
   } else {
     const [rows] = await getPool().query<RowDataPacket[]>(
-      `SELECT id, name, created_at AS createdAt FROM bible_notebooks WHERE user_id IS NULL ORDER BY id DESC`
+      `SELECT id, name, cover_image AS coverImage, created_at AS createdAt FROM bible_notebooks WHERE user_id IS NULL ORDER BY id DESC`
     )
     return rows
   }
 }
 
-export async function createNotebook(name: string, userId?: number): Promise<number> {
+export async function createNotebook(name: string, userId?: number, coverImage?: string | null): Promise<number> {
   await ensureDbTables()
   const [result] = await getPool().query<ResultSetHeader>(
-    `INSERT INTO bible_notebooks (name, user_id) VALUES (?, ?)`,
-    [name, userId || null]
+    `INSERT INTO bible_notebooks (name, user_id, cover_image) VALUES (?, ?, ?)`,
+    [name, userId || null, coverImage || null]
   )
   return result.insertId
+}
+
+export async function updateNotebook(id: number, name: string, coverImage: string | null, userId?: number): Promise<void> {
+  await ensureDbTables()
+  if (userId) {
+    await getPool().query(
+      `UPDATE bible_notebooks SET name = ?, cover_image = ? WHERE id = ? AND user_id = ?`,
+      [name, coverImage, id, userId]
+    )
+  } else {
+    await getPool().query(
+      `UPDATE bible_notebooks SET name = ?, cover_image = ? WHERE id = ?`,
+      [name, coverImage, id]
+    )
+  }
 }
 
 export async function deleteNotebook(id: number, userId?: number): Promise<void> {
@@ -409,8 +434,8 @@ export async function getNotebook(id: number, userId?: number): Promise<any | nu
   await ensureDbTables()
   const [rows] = await getPool().query<RowDataPacket[]>(
     userId
-      ? `SELECT id, name FROM bible_notebooks WHERE id = ? AND user_id = ?`
-      : `SELECT id, name FROM bible_notebooks WHERE id = ?`,
+      ? `SELECT id, name, cover_image AS coverImage FROM bible_notebooks WHERE id = ? AND user_id = ?`
+      : `SELECT id, name, cover_image AS coverImage FROM bible_notebooks WHERE id = ?`,
     userId ? [id, userId] : [id]
   )
   if (rows.length === 0) return null
@@ -509,7 +534,7 @@ export async function getUserByEmail(email: string): Promise<any | null> {
 export async function getUserById(id: number): Promise<any | null> {
   await ensureDbTables()
   const [rows] = await getPool().query<RowDataPacket[]>(
-    `SELECT id, name, email, role, allowed_sections AS allowedSections, streak_count AS streakCount, last_active_date AS lastActiveDate FROM users WHERE id = ?`,
+    `SELECT id, name, email, username, role, allowed_sections AS allowedSections, streak_count AS streakCount, last_active_date AS lastActiveDate FROM users WHERE id = ?`,
     [id]
   )
   if (rows.length === 0) return null
@@ -780,4 +805,152 @@ export async function updateAllReadersPermissions(allowedSections: string[]): Pr
     [allowedVal]
   )
   return result.affectedRows
+}
+
+// ----------------------------------------------------------------------------
+// SOCIAL FEED & PROFILES
+// ----------------------------------------------------------------------------
+
+export async function generateUsername(name: string, userId: number): Promise<string> {
+  const normalized = name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z]/g, "")
+  const uniqueChars = Array.from(new Set(normalized)).join("")
+  let prefix = uniqueChars
+  while (prefix.length < 6) {
+    prefix += prefix // repeat if less than 6 unique chars
+  }
+  return `${prefix.substring(0, 6)}${userId}`
+}
+
+export async function ensureUsernames(): Promise<void> {
+  const pool = getPool()
+  const [users] = await pool.query<RowDataPacket[]>("SELECT id, name FROM users WHERE username IS NULL")
+  for (const user of users) {
+    const username = await generateUsername(user.name, user.id)
+    await pool.query("UPDATE users SET username = ? WHERE id = ?", [username, user.id])
+  }
+}
+
+export async function getUserByUsername(username: string): Promise<any | null> {
+  const [rows] = await getPool().query<RowDataPacket[]>(
+    `SELECT id, name, email, role, username, streak_count AS streakCount, last_active_date AS lastActiveDate 
+     FROM users WHERE username = ?`,
+    [username]
+  )
+  return rows[0] || null
+}
+
+export async function createFeedPost(
+  userId: number,
+  type: "verse" | "devotional" | "note" | "custom",
+  content: string,
+  verseRef: string | null = null,
+  verseText: string | null = null,
+  isPublic: boolean = true
+): Promise<number> {
+  const [result] = await getPool().query<ResultSetHeader>(
+    `INSERT INTO feed_posts (user_id, type, content, verse_ref, verse_text, is_public) 
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    [userId, type, content, verseRef, verseText, isPublic ? 1 : 0]
+  )
+  return result.insertId
+}
+
+export async function deleteFeedPost(postId: number, userId: number): Promise<void> {
+  await getPool().query(`DELETE FROM feed_posts WHERE id = ? AND user_id = ?`, [postId, userId])
+}
+
+export async function getFeed(userId: number, type: 'following' | 'explore' = 'following', limit = 20, offset = 0): Promise<any[]> {
+  const whereClause = type === 'explore' 
+    ? "fp.is_public = 1" 
+    : "fp.is_public = 1 AND (fp.user_id = ? OR fp.user_id IN (SELECT followed_id FROM user_follows WHERE follower_id = ?))"
+  
+  const queryParams = type === 'explore'
+    ? [userId, limit, offset]
+    : [userId, userId, userId, limit, offset]
+
+  const [rows] = await getPool().query<RowDataPacket[]>(
+    `SELECT fp.*, u.name as user_name, u.username as user_username,
+            (SELECT COUNT(*) FROM feed_likes WHERE post_id = fp.id) as like_count,
+            EXISTS(SELECT 1 FROM feed_likes WHERE post_id = fp.id AND user_id = ?) as is_liked
+     FROM feed_posts fp
+     JOIN users u ON fp.user_id = u.id
+     WHERE ${whereClause}
+     ORDER BY fp.created_at DESC
+     LIMIT ? OFFSET ?`,
+    queryParams
+  )
+  return rows
+}
+
+export async function getPublicProfile(username: string, currentUserId: number): Promise<any | null> {
+  const user = await getUserByUsername(username)
+  if (!user) return null
+
+  const pool = getPool()
+  const [[{ followersCount }]] = await pool.query<RowDataPacket[]>("SELECT COUNT(*) as followersCount FROM user_follows WHERE followed_id = ?", [user.id])
+  const [[{ followingCount }]] = await pool.query<RowDataPacket[]>("SELECT COUNT(*) as followingCount FROM user_follows WHERE follower_id = ?", [user.id])
+  const [[{ isFollowing }]] = await pool.query<RowDataPacket[]>("SELECT COUNT(*) as isFollowing FROM user_follows WHERE follower_id = ? AND followed_id = ?", [currentUserId, user.id])
+
+  return {
+    ...user,
+    followersCount,
+    followingCount,
+    isFollowing: isFollowing > 0
+  }
+}
+
+export async function followUser(followerId: number, followedId: number): Promise<void> {
+  if (followerId === followedId) return
+  await getPool().query(`INSERT IGNORE INTO user_follows (follower_id, followed_id) VALUES (?, ?)`, [followerId, followedId])
+}
+
+export async function unfollowUser(followerId: number, followedId: number): Promise<void> {
+  await getPool().query(`DELETE FROM user_follows WHERE follower_id = ? AND followed_id = ?`, [followerId, followedId])
+}
+
+export async function getFollowers(userId: number): Promise<any[]> {
+  const [rows] = await getPool().query<RowDataPacket[]>(
+    `SELECT u.id, u.name, u.username 
+     FROM user_follows uf
+     JOIN users u ON uf.follower_id = u.id
+     WHERE uf.followed_id = ?
+     ORDER BY uf.created_at DESC`,
+    [userId]
+  )
+  return rows
+}
+
+export async function getFollowing(userId: number): Promise<any[]> {
+  const [rows] = await getPool().query<RowDataPacket[]>(
+    `SELECT u.id, u.name, u.username 
+     FROM user_follows uf
+     JOIN users u ON uf.followed_id = u.id
+     WHERE uf.follower_id = ?
+     ORDER BY uf.created_at DESC`,
+    [userId]
+  )
+  return rows
+}
+
+export async function likePost(userId: number, postId: number): Promise<void> {
+  await getPool().query(`INSERT IGNORE INTO feed_likes (user_id, post_id) VALUES (?, ?)`, [userId, postId])
+}
+
+export async function unlikePost(userId: number, postId: number): Promise<void> {
+  await getPool().query(`DELETE FROM feed_likes WHERE user_id = ? AND post_id = ?`, [userId, postId])
+}
+
+export async function getUserPosts(authorId: number, currentUserId: number, limit = 20, offset = 0): Promise<any[]> {
+  const [rows] = await getPool().query<RowDataPacket[]>(
+    `SELECT fp.*, u.name as user_name, u.username as user_username,
+            (SELECT COUNT(*) FROM feed_likes WHERE post_id = fp.id) as like_count,
+            EXISTS(SELECT 1 FROM feed_likes WHERE post_id = fp.id AND user_id = ?) as is_liked
+     FROM feed_posts fp
+     JOIN users u ON fp.user_id = u.id
+     WHERE fp.user_id = ? AND (fp.is_public = 1 OR fp.user_id = ?)
+     ORDER BY fp.created_at DESC
+     LIMIT ? OFFSET ?`,
+    [currentUserId, authorId, currentUserId, limit, offset]
+  )
+  return rows
 }

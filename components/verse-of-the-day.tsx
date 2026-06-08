@@ -121,12 +121,10 @@ export function VerseOfTheDay() {
             {/* Controles de Acción */}
             <div className="flex flex-wrap items-center justify-center gap-3">
               <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="h-10 rounded-full border-primary/20 bg-background/50 px-4 shadow-sm backdrop-blur-md hover:bg-accent/50 dark:bg-zinc-900/50">
-                    <BookOpen className="mr-2 h-4 w-4 text-primary" />
-                    <span className="font-medium">{selectedBible?.abbr || "Versión"}</span>
-                    <ChevronDown className="ml-2 h-4 w-4 opacity-50" />
-                  </Button>
+                <DropdownMenuTrigger className="inline-flex items-center justify-center rounded-full border border-primary/20 bg-background/50 px-4 py-2 text-sm font-medium shadow-sm backdrop-blur-md hover:bg-accent/50 dark:bg-zinc-900/50 text-foreground cursor-pointer h-10">
+                  <BookOpen className="mr-2 h-4 w-4 text-primary" />
+                  <span className="font-medium">{selectedBible?.abbr || "Versión"}</span>
+                  <ChevronDown className="ml-2 h-4 w-4 opacity-50" />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="center" className="w-[200px] rounded-xl border-primary/10 bg-background/80 backdrop-blur-xl">
                   {bibles.map(b => (
