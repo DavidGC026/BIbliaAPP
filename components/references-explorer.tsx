@@ -43,7 +43,7 @@ export function ReferencesExplorer() {
   // pero para mantenerlo simple asumiremos un máximo estándar y permitiremos que el usuario introduzca números.
   
   const { data: refsData, isLoading: isLoadingRefs, error } = useSWR<{ references: VerseRef[] }>(
-    `/api/references?bookId=${selectedBook}&chapter=${selectedChapter}&verse=${selectedVerse}&bibleId=${selectedBibleId}`,
+    `/api/references?bookId=${selectedBook}&chapter=${selectedChapter}&verse=${selectedVerse}&bible=${selectedBibleId}`,
     fetcher
   )
 
