@@ -4,6 +4,7 @@ import { Suspense } from "react"
 import {
   Activity as ActivityIcon,
   BarChart2,
+  BookMarked,
   BookOpen,
   BookText,
   Calendar,
@@ -33,6 +34,7 @@ import { ProfileSection } from "@/components/profile-section"
 import { ReadingPlans } from "@/components/reading-plans"
 import { ReferencesExplorer } from "@/components/references-explorer"
 import { SearchAdvanced } from "@/components/search-advanced"
+import { StrongDictionary } from "@/components/strong-dictionary"
 import { Statistics } from "@/components/statistics"
 import { UserManagement } from "@/components/user-management"
 import { APP_SECTION_CATALOG, type AppSectionId } from "./catalog"
@@ -102,6 +104,12 @@ registerAppSectionComplete({
   ...meta("references"),
   icon: LinkIcon,
   render: () => <ReferencesExplorer />,
+})
+
+registerAppSectionComplete({
+  ...meta("dictionary"),
+  icon: BookMarked,
+  render: () => <StrongDictionary />,
 })
 
 registerAppSectionComplete({

@@ -31,9 +31,50 @@ export function verifyToken(token: string): UserSession | null {
   }
 }
 
+const LEGACY_SALT = "biblia-salt-2026"
+
+// Formato nuevo: scrypt$<salt-hex>$<hash-hex> (sal aleatoria por usuario)
 export function hashPassword(password: string): string {
-  const salt = "biblia-salt-2026"
-  return crypto.createHmac("sha256", salt).update(password).digest("hex")
+  const salt = crypto.randomBytes(16).toString("hex")
+  const hash = crypto.scryptSync(password, salt, 32).toString("hex")
+  return `scrypt$${salt}$${hash}`
+}
+
+function safeEqual(a: string, b: string): boolean {
+  const bufA = Buffer.from(a)
+  const bufB = Buffer.from(b)
+  if (bufA.length !== bufB.length) return false
+  return crypto.timingSafeEqual(bufA, bufB)
+}
+
+/**
+ * Verifica una contraseña contra el hash almacenado, aceptando tanto el
+ * formato nuevo (scrypt) como los formatos antiguos (HMAC/SHA-256 con sal fija)
+ * para no romper cuentas existentes.
+ */
+export function verifyPassword(password: string, storedHash: string): boolean {
+  if (!storedHash) return false
+
+  if (storedHash.startsWith("scrypt$")) {
+    const [, salt, hash] = storedHash.split("$")
+    if (!salt || !hash) return false
+    const candidate = crypto.scryptSync(password, salt, 32).toString("hex")
+    return safeEqual(candidate, hash)
+  }
+
+  // Formatos legados (64 hex): HMAC con sal fija y variantes SHA-256
+  const legacyCandidates = [
+    crypto.createHmac("sha256", LEGACY_SALT).update(password).digest("hex"),
+    crypto.createHash("sha256").update(password + LEGACY_SALT).digest("hex"),
+    crypto.createHash("sha256").update(LEGACY_SALT + password).digest("hex"),
+    crypto.createHash("sha256").update(password).digest("hex"),
+  ]
+  return legacyCandidates.some((candidate) => safeEqual(candidate, storedHash))
+}
+
+/** Indica si el hash almacenado usa un formato legado y conviene re-hashear. */
+export function needsRehash(storedHash: string): boolean {
+  return !storedHash.startsWith("scrypt$")
 }
 
 export function generateSecureToken(): string {

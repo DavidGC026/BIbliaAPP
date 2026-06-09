@@ -294,6 +294,63 @@ export async function ensureDbTables(): Promise<void> {
     );
   }
 
+  // Diccionarios bíblicos (esquema multi-diccionario: Strong y futuros)
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS bible_dictionaries (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      slug VARCHAR(50) UNIQUE NOT NULL,
+      name VARCHAR(150) NOT NULL,
+      language VARCHAR(50) DEFAULT NULL,
+      source VARCHAR(255) DEFAULT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `)
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS bible_dictionary_entries (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      dictionary_id INT NOT NULL,
+      code VARCHAR(20) NOT NULL,
+      lemma VARCHAR(150) DEFAULT NULL,
+      transliteration VARCHAR(150) DEFAULT NULL,
+      definition LONGTEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      UNIQUE KEY uniq_dict_code (dictionary_id, code),
+      KEY idx_code (code),
+      FULLTEXT KEY ft_search (lemma, transliteration, definition),
+      FOREIGN KEY (dictionary_id) REFERENCES bible_dictionaries(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `)
+
+  // Definición traducida al español (ver scripts/translate_dictionary.ts)
+  try {
+    await pool.query(
+      `ALTER TABLE bible_dictionary_entries ADD COLUMN definition_es LONGTEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL`,
+    )
+  } catch (_) {}
+
+  // Migrar datos del importador legado (bible_strong_dictionary) al esquema nuevo
+  try {
+    const [legacy] = await pool.query<RowDataPacket[]>(
+      `SELECT COUNT(*) AS total FROM bible_strong_dictionary`,
+    )
+    if (Number(legacy[0]?.total ?? 0) > 0) {
+      await pool.query(
+        `INSERT IGNORE INTO bible_dictionaries (slug, name, language, source)
+         VALUES ('strong', 'Diccionario Strong', 'Griego / Hebreo', 'OpenScriptures')`,
+      )
+      await pool.query(
+        `INSERT IGNORE INTO bible_dictionary_entries (dictionary_id, code, lemma, transliteration, definition)
+         SELECT d.id, s.strong_code, s.lemma, s.transliteration, s.definition
+         FROM bible_strong_dictionary s
+         CROSS JOIN bible_dictionaries d
+         WHERE d.slug = 'strong'`,
+      )
+    }
+  } catch (_) {
+    // bible_strong_dictionary puede no existir; no es un error
+  }
+
   // Insert a default admin user if no users exist
   const [users] = await pool.query<RowDataPacket[]>("SELECT id FROM users LIMIT 1")
   if (users.length === 0) {

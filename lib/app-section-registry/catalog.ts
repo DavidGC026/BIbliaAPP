@@ -59,6 +59,15 @@ export const APP_SECTION_CATALOG: AppSectionDefinition[] = [
     defaultForReader: true,
   },
   {
+    id: "dictionary",
+    label: "Diccionario bíblico",
+    navLabel: "Diccionario",
+    groupId: "ESTUDIO",
+    groupLabel: "Estudio bíblico",
+    guestAccess: true,
+    defaultForReader: true,
+  },
+  {
     id: "library",
     label: "Libros",
     navLabel: "Libros",

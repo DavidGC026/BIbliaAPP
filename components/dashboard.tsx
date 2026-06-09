@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import useSWR from "swr"
-import { fetcher } from "@/lib/fetcher"
+import { fetcher, type FetcherError } from "@/lib/fetcher"
 import { VerseOfTheDay } from "@/components/verse-of-the-day"
 import {
   BookOpen,
@@ -27,10 +27,25 @@ interface DashboardProps {
 }
 
 export function Dashboard({ userName, isGuest = false, setActiveTab, onLoginRequest }: DashboardProps) {
-  const { data: devData } = useSWR(isGuest ? null : "/api/devotionals", fetcher)
-  const { data: notebooksData } = useSWR(isGuest ? null : "/api/notebooks", fetcher)
+  const { data: devData, error: devError } = useSWR(isGuest ? null : "/api/devotionals", fetcher, {
+    shouldRetryOnError: false,
+  })
+  const { data: notebooksData, error: notebooksError } = useSWR(isGuest ? null : "/api/notebooks", fetcher, {
+    shouldRetryOnError: false,
+  })
   const devotionals = devData?.devotionals ?? []
   const notebooks = notebooksData?.notebooks ?? []
+
+  // Si la sesión expiró (401), pedir login de nuevo en vez de mostrar datos vacíos
+  const sessionExpired =
+    (devError as FetcherError | undefined)?.status === 401 ||
+    (notebooksError as FetcherError | undefined)?.status === 401
+
+  React.useEffect(() => {
+    if (sessionExpired) {
+      onLoginRequest?.()
+    }
+  }, [sessionExpired, onLoginRequest])
 
   const handleProtectedAction = (tab: string) => {
     if (isGuest) {

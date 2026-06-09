@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getUserByEmail } from "@/lib/bible"
-import { hashPassword, generateToken } from "@/lib/auth"
+import { getUserByEmail, updateUserPassword } from "@/lib/bible"
+import { hashPassword, verifyPassword, needsRehash, generateToken } from "@/lib/auth"
 
 export async function POST(req: NextRequest) {
   try {
@@ -22,12 +22,20 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const passwordHash = hashPassword(password)
-    if (user.password !== passwordHash) {
+    if (!verifyPassword(password, user.password)) {
       return NextResponse.json(
         { error: "Credenciales incorrectas." },
         { status: 401 },
       )
+    }
+
+    // Migrar hashes con formato antiguo al nuevo formato scrypt
+    if (needsRehash(user.password)) {
+      try {
+        await updateUserPassword(user.id, hashPassword(password))
+      } catch {
+        // No bloquear el login si falla la migración del hash
+      }
     }
 
     if (!user.emailVerified && user.role !== "admin") {

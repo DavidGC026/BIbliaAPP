@@ -36,6 +36,13 @@ function getInitialDeepLink() {
   return loadReaderDeepLink()
 }
 
+// Deep link al diccionario: /?strong=G25
+function hasStrongDeepLink() {
+  if (typeof window === "undefined") return false
+  const code = new URLSearchParams(window.location.search).get("strong")
+  return !!code && /^[gh]\d+$/i.test(code)
+}
+
 interface UserProfile {
   id: number
   name: string
@@ -65,6 +72,7 @@ export default function Page() {
 
   // Navigation tabs
   const [activeTab, setActiveTab] = useState<string>(() => {
+    if (hasStrongDeepLink()) return "dictionary"
     const deepLink = getInitialDeepLink()
     return deepLink || isReaderDeepLinkLocked() ? "reading" : "dashboard"
   })
@@ -126,6 +134,7 @@ export default function Page() {
   // Set default tab based on user role and permissions (never override a shared verse link)
   useEffect(() => {
     if (isReaderDeepLinkLocked()) return
+    if (hasStrongDeepLink()) return
 
     const deepLink = loadReaderDeepLink()
     if (deepLink) {
