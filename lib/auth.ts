@@ -32,7 +32,6 @@ export function verifyToken(token: string): UserSession | null {
 }
 
 export function hashPassword(password: string): string {
-  // Simple hashing using SHA-256 with salt for native zero-dependency setup
   const salt = "biblia-salt-2026"
   return crypto.createHmac("sha256", salt).update(password).digest("hex")
 }
