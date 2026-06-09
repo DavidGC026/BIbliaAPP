@@ -15,6 +15,7 @@ import {
   Loader2,
   Lock,
   Search,
+  User,
   Users,
   Flame,
   MoreHorizontal,

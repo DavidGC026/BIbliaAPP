@@ -9,6 +9,9 @@ __v0_jsx-dev-runtime.ts
 # Environment variables
 .env*.local
 
+# Docs con credenciales / infra privada (solo local, no subir)
+docs/infra-privada.md
+
 # Common ignores
 node_modules
 .next/
@@ -17,3 +20,6 @@ node_modules
 #extras
 public
 public/uploads
+
+#scripts
+scripts
