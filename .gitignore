@@ -16,6 +16,7 @@ docs/infra-privada.md
 node_modules
 .next/
 .DS_Store
+tsconfig.tsbuildinfo
 
 #extras
 public
