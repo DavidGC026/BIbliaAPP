@@ -22,7 +22,8 @@ import {
   Trash2,
   Reply,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  X
 } from "lucide-react"
 import { ProfileSection } from "./profile-section"
 
@@ -60,10 +61,17 @@ function buildCommentTree(flat: CommentData[]): CommentNode[] {
   return roots
 }
 
+interface PendingAttachment {
+  name: string
+  url: string
+  isImage: boolean
+}
+
 export function Feed({ currentUserId }: { currentUserId: number }) {
   const [activeTab, setActiveTab] = useState<"following" | "explore">("following")
   const [isComposing, setIsComposing] = useState(false)
   const [newPostContent, setNewPostContent] = useState("")
+  const [attachments, setAttachments] = useState<PendingAttachment[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
 
@@ -77,19 +85,26 @@ export function Feed({ currentUserId }: { currentUserId: number }) {
   const posts = feedData?.feed || []
 
   const handleCreatePost = async () => {
-    if (!newPostContent.trim()) return
+    if (!newPostContent.trim() && attachments.length === 0) return
     setIsSubmitting(true)
     try {
+      // El markdown de los adjuntos se agrega al publicar, no se muestra en el textarea
+      const attachmentMarkdown = attachments
+        .map((a) => (a.isImage ? `![${a.name}](${a.url})` : `[📄 ${a.name}](${a.url})`))
+        .join("\n\n")
+      const content = [newPostContent.trim(), attachmentMarkdown].filter(Boolean).join("\n\n")
+
       await fetch("/api/feed/posts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           type: "custom",
-          content: newPostContent.trim(),
+          content,
           isPublic: true
         })
       })
       setNewPostContent("")
+      setAttachments([])
       setIsComposing(false)
       mutateFeed()
     } catch (e) {
@@ -175,12 +190,12 @@ export function Feed({ currentUserId }: { currentUserId: number }) {
         <div className="max-w-2xl mx-auto space-y-4">
           
           {/* Compose Box (Always visible at top for quick posting) */}
-          <div className="bg-card rounded-xl border border-border/50 p-4 shadow-sm mb-6">
-            <div className="flex gap-3">
+          <div className="bg-card rounded-xl border border-border/50 p-4 shadow-sm mb-6 overflow-hidden">
+            <div className="flex gap-3 min-w-0">
               <div className="size-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                 <UserAvatarPlaceholder />
               </div>
-              <div className="flex-1">
+              <div className="flex-1 min-w-0">
                 {isComposing ? (
                   <div className="space-y-3 animate-fade-in">
                     <Textarea
@@ -188,9 +203,41 @@ export function Feed({ currentUserId }: { currentUserId: number }) {
                       value={newPostContent}
                       onChange={(e) => setNewPostContent(e.target.value)}
                       placeholder="¿Qué Dios te ha enseñado hoy?"
-                      className="min-h-[100px] resize-none border-border/50 focus-visible:ring-primary/30"
+                      className="min-h-[100px] w-full resize-none border-border/50 focus-visible:ring-primary/30 break-words"
                     />
-                    <div className="flex gap-2 w-full sm:w-auto">
+
+                    {/* Previews de adjuntos (en vez de markdown crudo en el textarea) */}
+                    {attachments.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {attachments.map((att, i) => (
+                          <div
+                            key={`${att.url}-${i}`}
+                            className="relative group rounded-lg border border-border/50 overflow-hidden bg-muted/20"
+                          >
+                            {att.isImage ? (
+                              <img
+                                src={att.url}
+                                alt={att.name}
+                                className="size-20 object-cover"
+                              />
+                            ) : (
+                              <div className="flex items-center gap-2 px-3 py-2 max-w-44">
+                                <Paperclip className="size-4 text-primary shrink-0" />
+                                <span className="text-xs text-foreground truncate">{att.name}</span>
+                              </div>
+                            )}
+                            <button
+                              onClick={() => setAttachments(prev => prev.filter((_, idx) => idx !== i))}
+                              className="absolute top-1 right-1 size-5 flex items-center justify-center rounded-full bg-background/90 text-muted-foreground hover:text-rose-500 border border-border/50 shadow-sm transition-colors"
+                              title="Quitar adjunto"
+                            >
+                              <X className="size-3" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
                     <input
                       type="file"
                       accept="image/*,.pdf,.doc,.docx,.txt"
@@ -209,13 +256,12 @@ export function Feed({ currentUserId }: { currentUserId: number }) {
                           })
                           if (!res.ok) throw new Error("Error al subir archivo")
                           const data = await res.json()
-                          
-                          const isImage = file.type.startsWith("image/")
-                          const markdownLink = isImage 
-                            ? `\n\n![${file.name}](${data.url})`
-                            : `\n\n[📄 ${file.name}](${data.url})`
-                            
-                          setNewPostContent(prev => prev + markdownLink)
+
+                          setAttachments(prev => [...prev, {
+                            name: file.name,
+                            url: data.url,
+                            isImage: file.type.startsWith("image/")
+                          }])
                         } catch (err) {
                           console.error(err)
                           alert("Hubo un problema al adjuntar el archivo")
@@ -225,34 +271,42 @@ export function Feed({ currentUserId }: { currentUserId: number }) {
                         }
                       }}
                     />
-                    <Button 
-                      variant="outline" 
-                      onClick={() => document.getElementById("feed-attachment-upload")?.click()}
-                      disabled={isUploading}
-                      className="flex-1 sm:flex-none"
-                    >
-                      {isUploading ? <Loader2 className="size-4 animate-spin mr-2" /> : <Paperclip className="size-4 mr-2" />}
-                      Adjuntar
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      onClick={() => {
-                        setIsComposing(false)
-                        setNewPostContent("")
-                      }}
-                      className="flex-1 sm:flex-none"
-                    >
-                      Cancelar
-                    </Button>
-                    <Button 
-                      onClick={handleCreatePost}
-                      disabled={!newPostContent.trim() || isSubmitting || isUploading}
-                      className="flex-1 sm:flex-none bg-primary hover:bg-primary/90 gap-2"
-                    >
-                      {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : <MessageSquare className="size-4" />}
-                      Publicar
-                    </Button>
-                  </div>
+
+                    {/* Acciones: iconos compactos a la izquierda, publicar a la derecha */}
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => document.getElementById("feed-attachment-upload")?.click()}
+                        disabled={isUploading}
+                        className="shrink-0 gap-1.5"
+                      >
+                        {isUploading ? <Loader2 className="size-4 animate-spin" /> : <ImageIcon className="size-4" />}
+                        <span className="hidden sm:inline">Adjuntar</span>
+                      </Button>
+                      <div className="flex-1" />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setIsComposing(false)
+                          setNewPostContent("")
+                          setAttachments([])
+                        }}
+                        className="shrink-0"
+                      >
+                        Cancelar
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={handleCreatePost}
+                        disabled={(!newPostContent.trim() && attachments.length === 0) || isSubmitting || isUploading}
+                        className="shrink-0 bg-primary hover:bg-primary/90 gap-1.5"
+                      >
+                        {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
+                        Publicar
+                      </Button>
+                    </div>
                   </div>
                 ) : (
                   <div 
