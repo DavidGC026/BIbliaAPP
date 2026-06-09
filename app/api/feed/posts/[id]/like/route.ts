@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getSession } from "@/lib/auth"
-import { likePost, unlikePost } from "@/lib/bible"
+import { likePost, unlikePost, getPostAuthor, createNotification, getUserById } from "@/lib/bible"
+import { emitNotification } from "@/lib/notification-bus"
 
 export async function POST(
   req: NextRequest,
@@ -19,6 +20,22 @@ export async function POST(
     }
 
     await likePost(session.userId, postId)
+
+    try {
+      const postAuthorId = await getPostAuthor(postId)
+      if (postAuthorId != null && postAuthorId !== session.userId) {
+        const actor = await getUserById(session.userId)
+        await createNotification(postAuthorId, session.userId, "like", postId)
+        emitNotification(postAuthorId, {
+          type: "like",
+          postId,
+          actorName: actor?.name || "Alguien",
+        })
+      }
+    } catch (notifyErr) {
+      console.error("Error creando notificación de like:", notifyErr)
+    }
+
     return NextResponse.json({ success: true })
   } catch (err) {
     return NextResponse.json(

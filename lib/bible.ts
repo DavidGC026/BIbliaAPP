@@ -322,6 +322,40 @@ export async function ensureDbTables(): Promise<void> {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   `)
 
+  // Hilos de comentarios anidados (estilo Reddit) en el feed
+  try {
+    await pool.query(`ALTER TABLE feed_comments ADD COLUMN parent_id INT DEFAULT NULL`)
+  } catch (_) {}
+  try {
+    await pool.query(`ALTER TABLE feed_comments ADD COLUMN is_deleted TINYINT(1) DEFAULT 0`)
+  } catch (_) {}
+  try {
+    await pool.query(`ALTER TABLE feed_comments ADD KEY idx_post_parent (post_id, parent_id)`)
+  } catch (_) {}
+  try {
+    await pool.query(
+      `ALTER TABLE feed_comments ADD CONSTRAINT fk_comment_parent FOREIGN KEY (parent_id) REFERENCES feed_comments(id) ON DELETE CASCADE`,
+    )
+  } catch (_) {}
+
+  // Notificaciones del feed (comentarios, respuestas, likes, follows)
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS feed_notifications (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      user_id INT NOT NULL,
+      actor_id INT NOT NULL,
+      type ENUM('comment','reply','like','follow') NOT NULL,
+      post_id INT DEFAULT NULL,
+      comment_id INT DEFAULT NULL,
+      read_at TIMESTAMP NULL DEFAULT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      KEY idx_user_unread (user_id, read_at, created_at),
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+      FOREIGN KEY (post_id) REFERENCES feed_posts(id) ON DELETE CASCADE,
+      FOREIGN KEY (comment_id) REFERENCES feed_comments(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+  `)
+
   // Definición traducida al español (ver scripts/translate_dictionary.ts)
   try {
     await pool.query(
@@ -1109,26 +1143,125 @@ export async function getUserPosts(authorId: number, currentUserId: number, limi
 // Feed Comments
 // ------------------------------------------------------------------------------------------------
 
-export async function addComment(postId: number, userId: number, content: string): Promise<number> {
+export async function addComment(
+  postId: number,
+  userId: number,
+  content: string,
+  parentId: number | null = null,
+): Promise<number> {
   const [result] = await getPool().query<ResultSetHeader>(
-    `INSERT INTO feed_comments (post_id, user_id, content) VALUES (?, ?, ?)`,
-    [postId, userId, content]
+    `INSERT INTO feed_comments (post_id, user_id, content, parent_id) VALUES (?, ?, ?, ?)`,
+    [postId, userId, content, parentId]
   )
   return result.insertId
 }
 
-export async function getComments(postId: number): Promise<any[]> {
+/** Devuelve el comentario (id, post_id, user_id) si existe y no está borrado. */
+export async function getCommentById(commentId: number): Promise<any | null> {
   const [rows] = await getPool().query<RowDataPacket[]>(
-    `SELECT fc.*, u.name as user_name, u.username as user_username
+    `SELECT id, post_id, user_id, is_deleted FROM feed_comments WHERE id = ?`,
+    [commentId]
+  )
+  return rows[0] ?? null
+}
+
+export async function getComments(postId: number): Promise<any[]> {
+  // Lista plana con parent_id; el cliente arma el árbol.
+  // Los borrados conservan su lugar en el hilo pero sin contenido ni autor.
+  const [rows] = await getPool().query<RowDataPacket[]>(
+    `SELECT fc.id, fc.post_id, fc.parent_id, fc.created_at, fc.is_deleted,
+            IF(fc.is_deleted, NULL, fc.user_id) as user_id,
+            IF(fc.is_deleted, '', fc.content) as content,
+            IF(fc.is_deleted, '', u.name) as user_name,
+            IF(fc.is_deleted, '', u.username) as user_username
      FROM feed_comments fc
      JOIN users u ON fc.user_id = u.id
      WHERE fc.post_id = ?
-     ORDER BY fc.created_at ASC`,
+     ORDER BY fc.created_at ASC, fc.id ASC`,
     [postId]
   )
   return rows
 }
 
-export async function deleteComment(commentId: number, userId: number): Promise<void> {
-  await getPool().query(`DELETE FROM feed_comments WHERE id = ? AND user_id = ?`, [commentId, userId])
+/** Soft delete: conserva la estructura del hilo (las respuestas hijas sobreviven). */
+export async function deleteComment(commentId: number, userId: number): Promise<boolean> {
+  const [result] = await getPool().query<ResultSetHeader>(
+    `UPDATE feed_comments SET is_deleted = 1 WHERE id = ? AND user_id = ?`,
+    [commentId, userId]
+  )
+  return result.affectedRows > 0
+}
+
+export async function getPostAuthor(postId: number): Promise<number | null> {
+  const [rows] = await getPool().query<RowDataPacket[]>(
+    `SELECT user_id FROM feed_posts WHERE id = ?`,
+    [postId]
+  )
+  return rows[0]?.user_id ?? null
+}
+
+// ------------------------------------------------------------------------------------------------
+// Feed Notifications
+// ------------------------------------------------------------------------------------------------
+
+export type NotificationType = "comment" | "reply" | "like" | "follow"
+
+export async function createNotification(
+  userId: number,
+  actorId: number,
+  type: NotificationType,
+  postId: number | null = null,
+  commentId: number | null = null,
+): Promise<number | null> {
+  // Nunca notificarse a uno mismo
+  if (userId === actorId) return null
+  const [result] = await getPool().query<ResultSetHeader>(
+    `INSERT INTO feed_notifications (user_id, actor_id, type, post_id, comment_id)
+     VALUES (?, ?, ?, ?, ?)`,
+    [userId, actorId, type, postId, commentId]
+  )
+  return result.insertId
+}
+
+export async function getNotifications(
+  userId: number,
+  onlyUnread = false,
+  limit = 30,
+): Promise<{ notifications: any[]; unreadCount: number }> {
+  const pool = getPool()
+  const [rows] = await pool.query<RowDataPacket[]>(
+    `SELECT n.id, n.type, n.post_id, n.comment_id, n.read_at, n.created_at,
+            u.name as actor_name, u.username as actor_username,
+            LEFT(fp.content, 80) as post_preview
+     FROM feed_notifications n
+     JOIN users u ON n.actor_id = u.id
+     LEFT JOIN feed_posts fp ON n.post_id = fp.id
+     WHERE n.user_id = ? ${onlyUnread ? "AND n.read_at IS NULL" : ""}
+     ORDER BY n.created_at DESC, n.id DESC
+     LIMIT ?`,
+    [userId, limit]
+  )
+  const [[{ unreadCount }]] = await pool.query<RowDataPacket[]>(
+    `SELECT COUNT(*) as unreadCount FROM feed_notifications WHERE user_id = ? AND read_at IS NULL`,
+    [userId]
+  )
+  return { notifications: rows, unreadCount: Number(unreadCount) }
+}
+
+export async function markNotificationsRead(
+  userId: number,
+  ids: number[] | "all",
+): Promise<void> {
+  if (ids === "all") {
+    await getPool().query(
+      `UPDATE feed_notifications SET read_at = NOW() WHERE user_id = ? AND read_at IS NULL`,
+      [userId]
+    )
+    return
+  }
+  if (ids.length === 0) return
+  await getPool().query(
+    `UPDATE feed_notifications SET read_at = NOW() WHERE user_id = ? AND id IN (?)`,
+    [userId, ids]
+  )
 }

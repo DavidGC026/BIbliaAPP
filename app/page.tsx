@@ -9,6 +9,7 @@ import { ConnectionBanner } from "@/components/connection-banner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { NotificationBell } from "@/components/notification-bell"
 import { 
   LogOut,
   LogIn,
@@ -415,7 +416,15 @@ export default function Page() {
                     <p className="text-[10px] text-muted-foreground truncate">{user?.email}</p>
                   </div>
                 </div>
-                <ThemeToggle />
+                <div className="flex items-center">
+                  {allowedSections.includes("feed") && (
+                    <NotificationBell
+                      onNavigateToFeed={() => setActiveTab("feed")}
+                      dropDirection="up"
+                    />
+                  )}
+                  <ThemeToggle />
+                </div>
               </div>
               <button
                 onClick={handleLogout}
@@ -472,6 +481,9 @@ export default function Page() {
             >
               <Users className="size-4.5" />
             </button>
+          )}
+          {!isGuest && allowedSections.includes("feed") && (
+            <NotificationBell onNavigateToFeed={() => setActiveTab("feed")} />
           )}
           <ThemeToggle />
           {isGuest ? (

@@ -19,9 +19,46 @@ import {
   Send,
   Image as ImageIcon,
   Paperclip,
-  Trash2
+  Trash2,
+  Reply,
+  ChevronDown,
+  ChevronRight
 } from "lucide-react"
 import { ProfileSection } from "./profile-section"
+
+// ------------------------------------------------------------------
+// Hilos de comentarios anidados (estilo Reddit)
+// ------------------------------------------------------------------
+
+interface CommentData {
+  id: number
+  parent_id: number | null
+  user_id: number | null
+  user_name: string
+  user_username: string
+  content: string
+  created_at: string
+  is_deleted: number
+}
+
+interface CommentNode extends CommentData {
+  replies: CommentNode[]
+}
+
+// Tope visual de sangría: más profundo se muestra al mismo nivel
+// (sangría infinita destruye el layout en móvil)
+const MAX_INDENT_DEPTH = 4
+
+function buildCommentTree(flat: CommentData[]): CommentNode[] {
+  const map = new Map<number, CommentNode>(flat.map((c) => [c.id, { ...c, replies: [] }]))
+  const roots: CommentNode[] = []
+  for (const node of map.values()) {
+    const parent = node.parent_id != null ? map.get(node.parent_id) : undefined
+    if (parent) parent.replies.push(node)
+    else roots.push(node)
+  }
+  return roots
+}
 
 export function Feed({ currentUserId }: { currentUserId: number }) {
   const [activeTab, setActiveTab] = useState<"following" | "explore">("following")
@@ -274,6 +311,106 @@ export function Feed({ currentUserId }: { currentUserId: number }) {
   )
 }
 
+function CommentThread({
+  node,
+  depth,
+  currentUserId,
+  onReply,
+  onDelete,
+}: {
+  node: CommentNode
+  depth: number
+  currentUserId: number
+  onReply: (id: number, name: string) => void
+  onDelete: (id: number) => void
+}) {
+  const [collapsed, setCollapsed] = useState(false)
+  const isDeleted = !!node.is_deleted
+  const hasReplies = node.replies.length > 0
+  const indent = depth > 0 && depth <= MAX_INDENT_DEPTH
+
+  return (
+    <div className={cn(indent && "ml-4 pl-3 border-l border-border/40")}>
+      <div className="flex gap-2">
+        <div className="size-6 rounded-full bg-primary/20 flex items-center justify-center font-bold text-primary text-[10px] shrink-0 mt-0.5">
+          {isDeleted ? "×" : node.user_name.charAt(0).toUpperCase()}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div
+            className={cn(
+              "rounded-2xl rounded-tl-none px-3 py-2 text-sm border border-border/20 inline-block max-w-full",
+              isDeleted ? "bg-muted/10" : "bg-muted/30"
+            )}
+          >
+            {isDeleted ? (
+              <p className="text-muted-foreground/60 italic text-xs">[comentario eliminado]</p>
+            ) : (
+              <>
+                <div className="font-bold text-xs text-foreground mb-0.5">
+                  {node.user_name}
+                  {depth > MAX_INDENT_DEPTH && node.parent_id != null && (
+                    <span className="font-normal text-muted-foreground ml-1.5">↳ respuesta</span>
+                  )}
+                </div>
+                <p className="text-foreground/90 whitespace-pre-wrap break-words">{node.content}</p>
+              </>
+            )}
+          </div>
+
+          {/* Acciones del comentario */}
+          <div className="flex items-center gap-3 mt-0.5 ml-1">
+            {!isDeleted && (
+              <button
+                onClick={() => onReply(node.id, node.user_name)}
+                className="flex items-center gap-1 text-[10px] font-semibold text-muted-foreground hover:text-primary transition-colors"
+              >
+                <Reply className="size-3" />
+                Responder
+              </button>
+            )}
+            {!isDeleted && node.user_id === currentUserId && (
+              <button
+                onClick={() => onDelete(node.id)}
+                className="text-[10px] font-semibold text-muted-foreground hover:text-rose-500 transition-colors"
+              >
+                Eliminar
+              </button>
+            )}
+            {hasReplies && (
+              <button
+                onClick={() => setCollapsed(!collapsed)}
+                className="flex items-center gap-0.5 text-[10px] font-semibold text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {collapsed ? <ChevronRight className="size-3" /> : <ChevronDown className="size-3" />}
+                {node.replies.length} {node.replies.length === 1 ? "respuesta" : "respuestas"}
+              </button>
+            )}
+            <span className="text-[10px] text-muted-foreground/60">
+              {new Date(node.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+            </span>
+          </div>
+
+          {/* Respuestas anidadas */}
+          {hasReplies && !collapsed && (
+            <div className="mt-2 space-y-2">
+              {node.replies.map((reply) => (
+                <CommentThread
+                  key={reply.id}
+                  node={reply}
+                  depth={depth + 1}
+                  currentUserId={currentUserId}
+                  onReply={onReply}
+                  onDelete={onDelete}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function UserAvatarPlaceholder() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="size-5">
@@ -296,13 +433,18 @@ function FeedPostCard({
   const [showComments, setShowComments] = useState(false)
   const [newComment, setNewComment] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
-  
-  const { data: commentsData, mutate: mutateComments, isLoading: commentsLoading } = useSWR<{ comments: any[] }>(
+  const [replyTo, setReplyTo] = useState<{ id: number; name: string } | null>(null)
+
+  const { data: commentsData, mutate: mutateComments, isLoading: commentsLoading } = useSWR<{ comments: CommentData[] }>(
     showComments ? `/api/feed/posts/${post.id}/comments` : null,
     fetcher
   )
-  
-  const comments = commentsData?.comments || []
+
+  const commentTree = React.useMemo(
+    () => buildCommentTree(commentsData?.comments || []),
+    [commentsData]
+  )
+  const hasComments = (commentsData?.comments?.length ?? 0) > 0
 
   const handleCommentSubmit = async () => {
     if (!newComment.trim() || isSubmitting) return
@@ -311,15 +453,30 @@ function FeedPostCard({
       await fetch(`/api/feed/posts/${post.id}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: newComment.trim() })
+        body: JSON.stringify({
+          content: newComment.trim(),
+          parentId: replyTo?.id ?? null
+        })
       })
       setNewComment("")
+      setReplyTo(null)
       mutateComments()
-      // We could ideally mutate the post comment_count in the parent here, but a reload handles it.
     } catch (e) {
       console.error(e)
     } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  const handleDeleteComment = async (commentId: number) => {
+    if (!confirm("¿Eliminar este comentario? Las respuestas se conservarán.")) return
+    try {
+      const res = await fetch(`/api/feed/comments/${commentId}`, { method: "DELETE" })
+      if (!res.ok) throw new Error("Failed")
+      mutateComments()
+    } catch (e) {
+      console.error(e)
+      alert("No se pudo eliminar el comentario")
     }
   }
 
@@ -458,25 +615,22 @@ function FeedPostCard({
       {/* Comments Section */}
       {showComments && (
         <div className="mt-4 pt-4 border-t border-border/30 animate-fade-in space-y-4">
-          {/* Comments List */}
+          {/* Comments Thread (anidado) */}
           {commentsLoading ? (
             <div className="flex justify-center p-4">
               <Loader2 className="size-5 animate-spin text-primary" />
             </div>
-          ) : comments.length > 0 ? (
+          ) : hasComments ? (
             <div className="space-y-3">
-              {comments.map((comment) => (
-                <div key={comment.id} className="flex gap-2">
-                  <div className="size-6 rounded-full bg-primary/20 flex items-center justify-center font-bold text-primary text-[10px] shrink-0 mt-0.5">
-                    {comment.user_name.charAt(0).toUpperCase()}
-                  </div>
-                  <div className="bg-muted/30 rounded-2xl rounded-tl-none px-3 py-2 text-sm max-w-[85%] border border-border/20">
-                    <div className="font-bold text-xs text-foreground mb-0.5">
-                      {comment.user_name}
-                    </div>
-                    <p className="text-foreground/90 whitespace-pre-wrap">{comment.content}</p>
-                  </div>
-                </div>
+              {commentTree.map((node) => (
+                <CommentThread
+                  key={node.id}
+                  node={node}
+                  depth={0}
+                  currentUserId={currentUserId}
+                  onReply={(id, name) => setReplyTo({ id, name })}
+                  onDelete={handleDeleteComment}
+                />
               ))}
             </div>
           ) : (
@@ -485,6 +639,19 @@ function FeedPostCard({
 
           {/* New Comment Input */}
           <div className="flex flex-col gap-2">
+            {replyTo && (
+              <div className="flex items-center justify-between ml-9 px-3 py-1.5 bg-primary/5 border border-primary/20 rounded-lg text-xs">
+                <span className="text-muted-foreground">
+                  Respondiendo a <strong className="text-primary">{replyTo.name}</strong>
+                </span>
+                <button
+                  onClick={() => setReplyTo(null)}
+                  className="font-semibold text-muted-foreground hover:text-foreground"
+                >
+                  Cancelar
+                </button>
+              </div>
+            )}
             <div className="flex gap-2 items-center">
               <div className="size-7 rounded-full bg-primary/10 shrink-0 flex items-center justify-center">
                 <UserAvatarPlaceholder />
@@ -492,7 +659,7 @@ function FeedPostCard({
               <div className="flex-1 relative">
                 <input
                   type="text"
-                  placeholder="Escribe un comentario..."
+                  placeholder={replyTo ? `Responde a ${replyTo.name}...` : "Escribe un comentario..."}
                   className="w-full bg-muted/40 border border-border/50 rounded-full pl-4 pr-10 py-1.5 text-sm focus:outline-none focus:border-primary/50"
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}

@@ -83,4 +83,4 @@ El script traduce sección por sección conservando las etiquetas `Strong:`/`KJV
 - Definiciones parseadas en secciones (Definición / Traducciones KJV / Derivación).
 - Los códigos Strong dentro de las definiciones (`H031`, `G25`...) son enlaces que cargan esa entrada.
 - Filtro griego/hebreo, selector de diccionario (si hay más de uno) y paginación.
-- Las definiciones Strong están en inglés (fuente OpenScriptures).
+- Las definiciones se muestran en español (traducidas con LibreTranslate), con fallback al inglés original.
