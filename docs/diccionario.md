@@ -58,6 +58,25 @@ VALUES ('mi-diccionario', 'Mi Diccionario', 'Español', 'Fuente');
 
 El texto bíblico actual (`bible_verses.text`) es texto plano en español **sin etiquetado Strong palabra a palabra**, por lo que no es posible tocar una palabra del lector y saltar a su entrada. Para habilitarlo haría falta importar una versión etiquetada (p. ej. RVR con números Strong) o una tabla de concordancia `versículo ↔ código`. El deep link `?strong=` ya deja lista la mitad del camino.
 
+## Traducción al español
+
+Las definiciones originales de OpenScriptures están en inglés. Se traducen al español con una instancia local de LibreTranslate y se guardan en la columna `definition_es` (el original en inglés se conserva en `definition`). La API devuelve el español cuando existe, con fallback al inglés.
+
+```bash
+# 1. Levantar LibreTranslate (solo modelos en/es)
+docker run -d --name biblia-libretranslate -p 127.0.0.1:5567:5000 \
+  -e LT_LOAD_ONLY=en,es --restart unless-stopped libretranslate/libretranslate
+
+# 2. Traducir (reanudable: solo procesa filas con definition_es IS NULL)
+cd /home/david/proyectos/BibliaAPP
+npx tsx scripts/translate_dictionary.ts
+
+# 3. (Opcional) apagar LibreTranslate al terminar
+docker rm -f biblia-libretranslate
+```
+
+El script traduce sección por sección conservando las etiquetas `Strong:`/`KJV:`/`Derivation:` que la UI parsea. Si reimportas el diccionario y aparecen entradas nuevas, basta volver a correr el script.
+
 ## UI (`components/strong-dictionary.tsx`)
 
 - Estado inicial sin listado completo: ejemplos clicables + botón "Explorar todo el diccionario".

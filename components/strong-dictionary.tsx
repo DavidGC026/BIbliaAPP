@@ -163,8 +163,8 @@ export function StrongDictionary() {
           <BookMarked className="size-7 text-primary" />
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Diccionario Strong de griego y hebreo (definiciones en inglés). Busca por código (G25,
-          H430), palabra original, transliteración o significado.
+          Diccionario Strong de griego y hebreo. Busca por código (G25, H430), palabra original,
+          transliteración o significado.
         </p>
       </div>
 
