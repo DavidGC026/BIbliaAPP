@@ -385,6 +385,11 @@ export async function ensureDbTables(): Promise<void> {
     // bible_strong_dictionary puede no existir; no es un error
   }
 
+  // Anuncios oficiales en el feed (pastores / administradores)
+  try {
+    await pool.query(`ALTER TABLE feed_posts ADD COLUMN is_announcement TINYINT(1) DEFAULT 0`)
+  } catch (_) {}
+
   // Insert a default admin user if no users exist
   const [users] = await pool.query<RowDataPacket[]>("SELECT id FROM users LIMIT 1")
   if (users.length === 0) {
@@ -1027,12 +1032,13 @@ export async function createFeedPost(
   content: string,
   verseRef: string | null = null,
   verseText: string | null = null,
-  isPublic: boolean = true
+  isPublic: boolean = true,
+  isAnnouncement: boolean = false,
 ): Promise<number> {
   const [result] = await getPool().query<ResultSetHeader>(
-    `INSERT INTO feed_posts (user_id, type, content, verse_ref, verse_text, is_public) 
-     VALUES (?, ?, ?, ?, ?, ?)`,
-    [userId, type, content, verseRef, verseText, isPublic ? 1 : 0]
+    `INSERT INTO feed_posts (user_id, type, content, verse_ref, verse_text, is_public, is_announcement) 
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [userId, type, content, verseRef, verseText, isPublic ? 1 : 0, isAnnouncement ? 1 : 0],
   )
   return result.insertId
 }
@@ -1058,9 +1064,23 @@ export async function getFeed(userId: number, type: 'following' | 'explore' = 'f
      FROM feed_posts fp
      JOIN users u ON fp.user_id = u.id
      WHERE ${whereClause}
-     ORDER BY fp.created_at DESC
+     ORDER BY fp.is_announcement DESC, fp.created_at DESC
      LIMIT ? OFFSET ?`,
     queryParams
+  )
+  return rows
+}
+
+export async function getAnnouncements(limit = 5): Promise<any[]> {
+  await ensureDbTables()
+  const [rows] = await getPool().query<RowDataPacket[]>(
+    `SELECT fp.*, u.name as user_name, u.username as user_username
+     FROM feed_posts fp
+     JOIN users u ON fp.user_id = u.id
+     WHERE fp.is_announcement = 1 AND fp.is_public = 1
+     ORDER BY fp.created_at DESC
+     LIMIT ?`,
+    [limit],
   )
   return rows
 }

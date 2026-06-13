@@ -1,0 +1,77 @@
+import { type NextRequest, NextResponse } from "next/server"
+import { getSession } from "@/lib/auth"
+import {
+  createEvent,
+  deleteEvent,
+  listEventsWithUserRsvp,
+  listUpcomingEvents,
+  setEventRsvp,
+} from "@/lib/church-events"
+
+export async function GET(req: NextRequest) {
+  try {
+    const user = getSession(req)
+    if (user) {
+      const events = await listEventsWithUserRsvp(user.userId)
+      return NextResponse.json({ events })
+    }
+    const events = await listUpcomingEvents()
+    return NextResponse.json({ events })
+  } catch (err) {
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "Error desconocido" },
+      { status: 500 },
+    )
+  }
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const user = getSession(req)
+    if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 })
+
+    const body = await req.json()
+    const isAdmin = user.role === "admin"
+
+    if (body.action === "rsvp") {
+      const { eventId, status } = body
+      if (!eventId || !status) return NextResponse.json({ error: "Faltan campos" }, { status: 400 })
+      await setEventRsvp(eventId, user.userId, status)
+      return NextResponse.json({ success: true })
+    }
+
+    const { title, description, startTime, endTime, location, category } = body
+    if (!title?.trim() || !startTime) {
+      return NextResponse.json({ error: "Título y fecha requeridos" }, { status: 400 })
+    }
+
+    const id = await createEvent(
+      user.userId,
+      { title, description, startTime, endTime, location, category },
+      isAdmin,
+    )
+    return NextResponse.json({ success: true, id })
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Error desconocido"
+    const status = message.includes("administradores") ? 403 : 500
+    return NextResponse.json({ error: message }, { status })
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const user = getSession(req)
+    if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 })
+
+    const eventId = req.nextUrl.searchParams.get("id")
+    if (!eventId) return NextResponse.json({ error: "ID requerido" }, { status: 400 })
+
+    await deleteEvent(parseInt(eventId, 10), user.userId, user.role === "admin")
+    return NextResponse.json({ success: true })
+  } catch (err) {
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "Error desconocido" },
+      { status: 500 },
+    )
+  }
+}

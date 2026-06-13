@@ -21,20 +21,25 @@ import { Button } from "@/components/ui/button"
 
 interface DashboardProps {
   userName?: string
+  userRole?: string
   isGuest?: boolean
   setActiveTab: (tab: string) => void
   onLoginRequest?: () => void
 }
 
-export function Dashboard({ userName, isGuest = false, setActiveTab, onLoginRequest }: DashboardProps) {
+export function Dashboard({ userName, isGuest = false, userRole, setActiveTab, onLoginRequest }: DashboardProps) {
   const { data: devData, error: devError } = useSWR(isGuest ? null : "/api/devotionals", fetcher, {
     shouldRetryOnError: false,
   })
   const { data: notebooksData, error: notebooksError } = useSWR(isGuest ? null : "/api/notebooks", fetcher, {
     shouldRetryOnError: false,
   })
+  const { data: announcementsData } = useSWR("/api/feed/announcements", fetcher)
+  const { data: eventsData } = useSWR("/api/events", fetcher)
   const devotionals = devData?.devotionals ?? []
   const notebooks = notebooksData?.notebooks ?? []
+  const announcements = announcementsData?.announcements ?? []
+  const upcomingEvents = (eventsData?.events ?? []).slice(0, 3)
 
   // Si la sesión expiró (401), pedir login de nuevo en vez de mostrar datos vacíos
   const sessionExpired =
@@ -93,6 +98,59 @@ export function Dashboard({ userName, isGuest = false, setActiveTab, onLoginRequ
       )}
 
       <VerseOfTheDay />
+
+      {announcements.length > 0 && (
+        <div className="space-y-3">
+          <h2 className="text-lg font-bold text-foreground">Anuncios oficiales</h2>
+          <div className="flex gap-3 overflow-x-auto pb-2">
+            {announcements.slice(0, 5).map((a: { id: number; content: string; user_name: string; created_at: string }) => (
+              <div
+                key={a.id}
+                className="min-w-[260px] max-w-xs shrink-0 rounded-xl border border-amber-500/25 bg-amber-500/5 p-4 shadow-sm"
+              >
+                <p className="text-[10px] font-bold uppercase text-amber-700 dark:text-amber-400 tracking-wider">
+                  Anuncio · {a.user_name}
+                </p>
+                <p className="text-sm mt-2 line-clamp-3 whitespace-pre-wrap">{a.content}</p>
+                <p className="text-[10px] text-muted-foreground mt-2">
+                  {new Date(a.created_at).toLocaleDateString()}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {upcomingEvents.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-bold text-foreground">Próximos eventos</h2>
+            <button
+              type="button"
+              onClick={() => handleProtectedAction("calendar")}
+              className="text-xs font-semibold text-primary hover:underline"
+            >
+              Ver calendario →
+            </button>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {upcomingEvents.map((ev: { id: number; title: string; start_time: string; category: string }) => (
+              <button
+                key={ev.id}
+                type="button"
+                onClick={() => handleProtectedAction("calendar")}
+                className="rounded-xl border border-border bg-card p-4 text-left hover:border-violet-500/30 transition-colors"
+              >
+                <p className="text-xs font-bold uppercase text-violet-600">{ev.category}</p>
+                <p className="font-semibold mt-1 line-clamp-2">{ev.title}</p>
+                <p className="text-xs text-muted-foreground mt-2">
+                  {new Date(ev.start_time).toLocaleString("es", { dateStyle: "medium", timeStyle: "short" })}
+                </p>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {!isGuest && (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">

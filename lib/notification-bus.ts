@@ -17,7 +17,7 @@ bus.setMaxListeners(0)
 globalStore.__notifBus = bus
 
 export interface NotificationEvent {
-  type: "comment" | "reply" | "like" | "follow" | "connected"
+  type: "comment" | "reply" | "like" | "follow" | "connected" | "prayer_intercession"
   postId?: number | null
   commentId?: number | null
   actorName?: string

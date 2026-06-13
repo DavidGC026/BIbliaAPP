@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
-    const { type, content, verseRef, verseText, isPublic } = body
+    const { type, content, verseRef, verseText, isPublic, isAnnouncement } = body
 
     if (!type || !content) {
       return NextResponse.json({ error: "Faltan campos requeridos" }, { status: 400 })
@@ -22,7 +22,8 @@ export async function POST(req: NextRequest) {
       content,
       verseRef || null,
       verseText || null,
-      isPublic !== undefined ? isPublic : true
+      isPublic !== undefined ? isPublic : true,
+      session.role === "admin" && !!isAnnouncement,
     )
 
     return NextResponse.json({ success: true, postId })

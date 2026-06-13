@@ -6,6 +6,7 @@ import useSWR from "swr"
 import { fetcher } from "@/lib/fetcher"
 import { AuthModal } from "@/components/auth-modal"
 import { ConnectionBanner } from "@/components/connection-banner"
+import { GroupJoinModal } from "@/components/group-join-modal"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -25,6 +26,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { loadReaderDeepLink, lockReaderDeepLink, isReaderDeepLinkLocked } from "@/lib/bible-url"
+import { loadPendingGroupJoin, clearPendingGroupJoin } from "@/lib/group-invite"
 import { GUEST_SECTIONS, resolveAllowedSections } from "@/lib/app-sections"
 import {
   AppSectionOutlet,
@@ -87,6 +89,16 @@ export default function Page() {
     () => !!getInitialDeepLink() || isReaderDeepLinkLocked(),
   )
 
+  const [pendingGroupJoinCode, setPendingGroupJoinCode] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null
+    return loadPendingGroupJoin()
+  })
+  const [showGroupJoinModal, setShowGroupJoinModal] = useState(() => {
+    if (typeof window === "undefined") return false
+    return !!loadPendingGroupJoin()
+  })
+  const [navGroupId, setNavGroupId] = useState<number | null>(null)
+
   const applyDeepLink = useCallback((deepLink: NonNullable<ReturnType<typeof loadReaderDeepLink>>) => {
     lockReaderDeepLink()
     setHasPendingDeepLink(true)
@@ -126,6 +138,40 @@ export default function Page() {
     return resolveAllowedSections(user)
   }, [isGuest, user])
 
+  function handleClearNavGroupId() {
+    setNavGroupId(null)
+  }
+
+  const handleGroupJoined = useCallback((groupId: number) => {
+    clearPendingGroupJoin()
+    setPendingGroupJoinCode(null)
+    setShowGroupJoinModal(false)
+    setNavGroupId(groupId)
+    setActiveTab("groups")
+  }, [])
+
+  const handleCloseGroupJoinModal = useCallback(() => {
+    clearPendingGroupJoin()
+    setPendingGroupJoinCode(null)
+    setShowGroupJoinModal(false)
+  }, [])
+
+  // Detect group invite deep link on mount
+  useEffect(() => {
+    const code = loadPendingGroupJoin()
+    if (code) {
+      setPendingGroupJoinCode(code)
+      setShowGroupJoinModal(true)
+    }
+  }, [])
+
+  // After login, re-show join modal if there was a pending invite
+  useEffect(() => {
+    if (!isLoading && user && pendingGroupJoinCode && !showGroupJoinModal) {
+      setShowGroupJoinModal(true)
+    }
+  }, [isLoading, user, pendingGroupJoinCode, showGroupJoinModal])
+
   // Apply shared verse links on mount
   useEffect(() => {
     const deepLink = loadReaderDeepLink()
@@ -136,6 +182,7 @@ export default function Page() {
   useEffect(() => {
     if (isReaderDeepLinkLocked()) return
     if (hasStrongDeepLink()) return
+    if (pendingGroupJoinCode) return
 
     const deepLink = loadReaderDeepLink()
     if (deepLink) {
@@ -153,7 +200,7 @@ export default function Page() {
         setActiveTab(allowedSections[0])
       }
     }
-  }, [isGuest, user, allowedSections, applyDeepLink])
+  }, [isGuest, user, allowedSections, applyDeepLink, pendingGroupJoinCode])
 
   async function handleLogout() {
     if (!confirm("¿Estás seguro de cerrar sesión?")) return
@@ -420,6 +467,7 @@ export default function Page() {
                   {allowedSections.includes("feed") && (
                     <NotificationBell
                       onNavigateToFeed={() => setActiveTab("feed")}
+                      onNavigateToPrayers={() => setActiveTab("prayers")}
                       dropDirection="up"
                     />
                   )}
@@ -483,7 +531,10 @@ export default function Page() {
             </button>
           )}
           {!isGuest && allowedSections.includes("feed") && (
-            <NotificationBell onNavigateToFeed={() => setActiveTab("feed")} />
+            <NotificationBell
+              onNavigateToFeed={() => setActiveTab("feed")}
+              onNavigateToPrayers={() => setActiveTab("prayers")}
+            />
           )}
           <ThemeToggle />
           {isGuest ? (
@@ -524,6 +575,8 @@ export default function Page() {
             handleSelectVerse={handleSelectVerse}
             notebookEditingNote={notebookEditingNote}
             setNotebookEditingNote={setNotebookEditingNote}
+            navGroupId={navGroupId}
+            handleClearNavGroupId={handleClearNavGroupId}
           />
         </div>
       </div>
@@ -623,6 +676,19 @@ export default function Page() {
             setShowAuthModal(false)
             mutate()
           }}
+        />
+      )}
+
+      {showGroupJoinModal && pendingGroupJoinCode && (
+        <GroupJoinModal
+          inviteCode={pendingGroupJoinCode}
+          isGuest={isGuest}
+          onClose={handleCloseGroupJoinModal}
+          onLoginRequest={() => {
+            setShowGroupJoinModal(false)
+            openLogin()
+          }}
+          onJoined={handleGroupJoined}
         />
       )}
 

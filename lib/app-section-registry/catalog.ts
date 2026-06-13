@@ -174,6 +174,30 @@ export const APP_SECTION_CATALOG: AppSectionDefinition[] = [
     },
   },
   {
+    id: "calendar",
+    label: "Calendario",
+    navLabel: "Calendario",
+    groupId: "ESPIRITUAL",
+    groupLabel: "Vida espiritual",
+    defaultForReader: true,
+    loginPrompt: {
+      title: "Calendario de la iglesia",
+      description: "Consulta cultos, reuniones y eventos de la congregación.",
+    },
+  },
+  {
+    id: "discipleship",
+    label: "Discipulado",
+    navLabel: "Discipulado",
+    groupId: "ESPIRITUAL",
+    groupLabel: "Vida espiritual",
+    defaultForReader: true,
+    loginPrompt: {
+      title: "Discipulado",
+      description: "Solicita un mentor y crece en tu caminar espiritual.",
+    },
+  },
+  {
     id: "activity",
     label: "Actividad",
     navLabel: "Actividad",

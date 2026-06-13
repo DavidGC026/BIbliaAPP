@@ -1,99 +1,83 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getPool } from "@/lib/mysql"
 import { getSession } from "@/lib/auth"
+import {
+  createPrayer,
+  deletePrayer,
+  listUserPrayers,
+  updatePrayerStatus,
+} from "@/lib/prayers"
 
 export async function GET(req: NextRequest) {
   try {
-    const user = await getSession(req)
+    const user = getSession(req)
     if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 })
 
-    const [rows] = await getPool().query<any[]>(
-      "SELECT * FROM bible_prayer_requests WHERE user_id = ? ORDER BY created_at DESC",
-      [user.userId]
-    )
-
-    return NextResponse.json({ prayers: rows })
+    const prayers = await listUserPrayers(user.userId)
+    return NextResponse.json({ prayers })
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Error desconocido" },
-      { status: 500 }
+      { status: 500 },
     )
   }
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const user = await getSession(req)
+    const user = getSession(req)
     if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 })
 
-    const { title, description } = await req.json()
-    if (!title) return NextResponse.json({ error: "Título requerido" }, { status: 400 })
+    const { title, description, visibility, groupId } = await req.json()
+    if (!title?.trim()) return NextResponse.json({ error: "Título requerido" }, { status: 400 })
 
-    const [result] = await getPool().query<any>(
-      "INSERT INTO bible_prayer_requests (user_id, title, description, status) VALUES (?, ?, ?, 'active')",
-      [user.userId, title, description || ""]
+    const id = await createPrayer(
+      user.userId,
+      title.trim(),
+      description || "",
+      visibility === "group" ? "group" : "private",
+      groupId,
     )
-
-    return NextResponse.json({ id: result.insertId, title, description, status: "active" })
+    return NextResponse.json({ id, title, description, status: "active", visibility })
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Error desconocido" },
-      { status: 500 }
+      { status: 500 },
     )
   }
 }
 
 export async function PUT(req: NextRequest) {
   try {
-    const user = await getSession(req)
+    const user = getSession(req)
     if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 })
 
     const { id, status } = await req.json()
-    if (!id || !status) return NextResponse.json({ error: "Faltan campos requeridos" }, { status: 400 })
+    if (!id || !status) return NextResponse.json({ error: "Faltan campos" }, { status: 400 })
 
-    const answeredAt = status === "answered" ? new Date() : null
-
-    const [result] = await getPool().query<any>(
-      "UPDATE bible_prayer_requests SET status = ?, answered_at = ? WHERE id = ? AND user_id = ?",
-      [status, answeredAt, id, user.userId]
-    )
-
-    if (result.affectedRows === 0) {
-       return NextResponse.json({ error: "Petición no encontrada o no autorizada" }, { status: 404 })
-    }
-
+    await updatePrayerStatus(user.userId, id, status)
     return NextResponse.json({ success: true })
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Error desconocido" },
-      { status: 500 }
+      { status: 404 },
     )
   }
 }
 
 export async function DELETE(req: NextRequest) {
   try {
-    const user = await getSession(req)
+    const user = getSession(req)
     if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 })
 
-    const { searchParams } = new URL(req.url)
-    const id = searchParams.get("id")
+    const id = req.nextUrl.searchParams.get("id")
     if (!id) return NextResponse.json({ error: "ID requerido" }, { status: 400 })
 
-    const [result] = await getPool().query<any>(
-      "DELETE FROM bible_prayer_requests WHERE id = ? AND user_id = ?",
-      [id, user.userId]
-    )
-
-    if (result.affectedRows === 0) {
-       return NextResponse.json({ error: "Petición no encontrada o no autorizada" }, { status: 404 })
-    }
-
+    await deletePrayer(user.userId, parseInt(id, 10))
     return NextResponse.json({ success: true })
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Error desconocido" },
-      { status: 500 }
+      { status: 404 },
     )
   }
 }

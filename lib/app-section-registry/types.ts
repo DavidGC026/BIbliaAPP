@@ -24,6 +24,8 @@ export interface SectionRenderContext {
   handleSelectVerse: (bookId: number, chapter: number, verse?: number, bibleId?: number) => void
   notebookEditingNote: { id: number; title: string; content: string } | null
   setNotebookEditingNote: (note: { id: number; title: string; content: string } | null) => void
+  navGroupId: number | null
+  handleClearNavGroupId: () => void
 }
 
 export type SectionLayout = "plain" | "fullscreen" | "card" | "notebook"

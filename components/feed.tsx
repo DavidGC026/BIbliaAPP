@@ -67,10 +67,11 @@ interface PendingAttachment {
   isImage: boolean
 }
 
-export function Feed({ currentUserId }: { currentUserId: number }) {
+export function Feed({ currentUserId, userRole }: { currentUserId: number; userRole?: string }) {
   const [activeTab, setActiveTab] = useState<"following" | "explore">("following")
   const [isComposing, setIsComposing] = useState(false)
   const [newPostContent, setNewPostContent] = useState("")
+  const [isAnnouncement, setIsAnnouncement] = useState(false)
   const [attachments, setAttachments] = useState<PendingAttachment[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
@@ -82,7 +83,10 @@ export function Feed({ currentUserId }: { currentUserId: number }) {
     `/api/feed?type=${activeTab}`,
     fetcher
   )
+  const { data: announcementsData } = useSWR<{ announcements: any[] }>("/api/feed/announcements", fetcher)
   const posts = feedData?.feed || []
+  const announcements = announcementsData?.announcements ?? []
+  const isAdmin = userRole === "admin"
 
   const handleCreatePost = async () => {
     if (!newPostContent.trim() && attachments.length === 0) return
@@ -100,11 +104,13 @@ export function Feed({ currentUserId }: { currentUserId: number }) {
         body: JSON.stringify({
           type: "custom",
           content,
-          isPublic: true
+          isPublic: true,
+          isAnnouncement: isAdmin && isAnnouncement,
         })
       })
       setNewPostContent("")
       setAttachments([])
+      setIsAnnouncement(false)
       setIsComposing(false)
       mutateFeed()
     } catch (e) {
@@ -273,6 +279,17 @@ export function Feed({ currentUserId }: { currentUserId: number }) {
                     />
 
                     {/* Acciones: iconos compactos a la izquierda, publicar a la derecha */}
+                    {isAdmin && (
+                      <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={isAnnouncement}
+                          onChange={(e) => setIsAnnouncement(e.target.checked)}
+                          className="rounded border-border"
+                        />
+                        Marcar como anuncio oficial
+                      </label>
+                    )}
                     <div className="flex items-center gap-2">
                       <Button
                         variant="outline"
@@ -292,6 +309,7 @@ export function Feed({ currentUserId }: { currentUserId: number }) {
                           setIsComposing(false)
                           setNewPostContent("")
                           setAttachments([])
+                          setIsAnnouncement(false)
                         }}
                         className="shrink-0"
                       >
@@ -319,6 +337,26 @@ export function Feed({ currentUserId }: { currentUserId: number }) {
               </div>
             </div>
           </div>
+
+          {/* Anuncios destacados */}
+          {announcements.length > 0 && activeTab === "following" && (
+            <div className="mb-6 space-y-2">
+              <h3 className="text-sm font-bold text-foreground">Anuncios oficiales</h3>
+              <div className="flex gap-3 overflow-x-auto pb-1">
+                {announcements.slice(0, 4).map((a: any) => (
+                  <div
+                    key={a.id}
+                    className="min-w-[220px] shrink-0 rounded-xl border border-amber-500/30 bg-amber-500/5 p-3"
+                  >
+                    <p className="text-[10px] font-bold text-amber-700 dark:text-amber-400 uppercase">
+                      {a.user_name}
+                    </p>
+                    <p className="text-sm mt-1 line-clamp-3">{a.content}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Posts List */}
           {feedLoading ? (
@@ -559,7 +597,15 @@ function FeedPostCard({
   }
 
   return (
-    <div className="bg-card p-4 md:p-5 rounded-xl border border-border/50 shadow-sm hover:shadow-md transition-shadow animate-fade-in">
+    <div className={cn(
+      "bg-card p-4 md:p-5 rounded-xl border shadow-sm hover:shadow-md transition-shadow animate-fade-in",
+      post.is_announcement ? "border-amber-500/40 bg-amber-500/5" : "border-border/50",
+    )}>
+      {post.is_announcement && (
+        <p className="text-[10px] font-bold uppercase text-amber-700 dark:text-amber-400 tracking-wider mb-2">
+          📢 Anuncio oficial
+        </p>
+      )}
       {/* Post Header */}
       <div className="flex items-center gap-3 mb-3">
         <div className="size-10 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary text-sm shrink-0 cursor-pointer hover:opacity-80">

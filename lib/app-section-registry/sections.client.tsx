@@ -17,6 +17,7 @@ import {
   Search,
   Star,
   User,
+  UserPlus,
   Users,
 } from "lucide-react"
 import { Activity } from "@/components/activity"
@@ -26,6 +27,8 @@ import { Devotionals } from "@/components/devotionals"
 import { Favorites } from "@/components/favorites"
 import { Feed } from "@/components/feed"
 import { Groups } from "@/components/groups"
+import { ChurchCalendar } from "@/components/church-calendar"
+import { Discipleship } from "@/components/discipleship"
 import { HighlightsManager } from "@/components/highlights-manager"
 import { NotebookSidebar } from "@/components/notebook-sidebar"
 import { PersonalLibrary } from "@/components/personal-library"
@@ -60,6 +63,7 @@ registerAppSectionComplete({
   render: (ctx) => (
     <Dashboard
       userName={ctx.user?.name}
+      userRole={ctx.user?.role}
       isGuest={ctx.isGuest}
       setActiveTab={ctx.setActiveTab}
       onLoginRequest={ctx.openLogin}
@@ -91,7 +95,7 @@ registerAppSectionComplete({
   requiresUser: true,
   layout: "card",
   suspenseFallback: "Cargando Feed...",
-  render: (ctx) => <Feed currentUserId={ctx.user!.id} />,
+  render: (ctx) => <Feed currentUserId={ctx.user!.id} userRole={ctx.user!.role} />,
 })
 
 registerAppSectionComplete({
@@ -188,7 +192,26 @@ registerAppSectionComplete({
 registerAppSectionComplete({
   ...meta("groups"),
   icon: Users,
-  render: () => <Groups />,
+  render: (ctx) => (
+    <Groups
+      initialGroupId={ctx.navGroupId}
+      onClearInitialGroupId={ctx.handleClearNavGroupId}
+    />
+  ),
+})
+
+registerAppSectionComplete({
+  ...meta("calendar"),
+  icon: Calendar,
+  requiresUser: true,
+  render: (ctx) => <ChurchCalendar isAdmin={ctx.user!.role === "admin"} />,
+})
+
+registerAppSectionComplete({
+  ...meta("discipleship"),
+  icon: UserPlus,
+  requiresUser: true,
+  render: (ctx) => <Discipleship currentUserId={ctx.user!.id} />,
 })
 
 registerAppSectionComplete({

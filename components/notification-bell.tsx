@@ -4,12 +4,12 @@ import * as React from "react"
 import { useState, useEffect, useRef } from "react"
 import useSWR from "swr"
 import { fetcher } from "@/lib/fetcher"
-import { Bell, Heart, MessageSquare, Reply, UserPlus, Loader2, CheckCheck } from "lucide-react"
+import { Bell, Heart, MessageSquare, Reply, UserPlus, Loader2, CheckCheck, HeartHandshake } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface Notification {
   id: number
-  type: "comment" | "reply" | "like" | "follow"
+  type: "comment" | "reply" | "like" | "follow" | "prayer_intercession"
   post_id: number | null
   comment_id: number | null
   read_at: string | null
@@ -24,6 +24,7 @@ const TYPE_CONFIG = {
   reply: { icon: Reply, label: "respondió a tu comentario", color: "text-sky-500" },
   like: { icon: Heart, label: "le gustó tu publicación", color: "text-rose-500" },
   follow: { icon: UserPlus, label: "comenzó a seguirte", color: "text-emerald-500" },
+  prayer_intercession: { icon: HeartHandshake, label: "se unió a orar por tu petición", color: "text-amber-600" },
 } as const
 
 /**
@@ -67,9 +68,11 @@ function useNotificationStream(onEvent: () => void) {
 
 export function NotificationBell({
   onNavigateToFeed,
+  onNavigateToPrayers,
   dropDirection = "down",
 }: {
   onNavigateToFeed?: () => void
+  onNavigateToPrayers?: () => void
   dropDirection?: "down" | "up"
 }) {
   const [open, setOpen] = useState(false)
@@ -131,7 +134,9 @@ export function NotificationBell({
         body: JSON.stringify({ ids: [notification.id] }),
       }).then(() => mutate())
     }
-    if (notification.post_id != null) {
+    if (notification.type === "prayer_intercession") {
+      onNavigateToPrayers?.()
+    } else if (notification.post_id != null) {
       onNavigateToFeed?.()
     }
   }
