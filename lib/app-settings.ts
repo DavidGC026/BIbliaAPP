@@ -1,6 +1,7 @@
 import type { RowDataPacket, ResultSetHeader } from "mysql2"
 import { ensureGroupTables } from "./groups"
 import { getPool } from "./mysql"
+import { runOnce } from "./once-async"
 
 export interface AppSettings {
   church_name: string
@@ -15,6 +16,10 @@ const DEFAULT_SETTINGS: AppSettings = {
 }
 
 export async function ensureAppSettingsTable(): Promise<void> {
+  return runOnce("ensureAppSettingsTable", _ensureAppSettingsTable)
+}
+
+async function _ensureAppSettingsTable(): Promise<void> {
   await ensureGroupTables()
   const pool = getPool()
   await pool.query(`

@@ -69,7 +69,8 @@ export default function Page() {
   )
 
   const user = data?.user ?? null
-  const isGuest = !isLoading && !user
+  const isResolvingSession = isLoading
+  const isGuest = !user
 
   const { data: churchData } = useSWR<{ settings: { church_name: string; church_logo_url: string | null } }>(
     user ? "/api/church-settings" : null,
@@ -239,8 +240,8 @@ export default function Page() {
     setHasPendingDeepLink(false)
   }
 
-  // Render loading screen (skip while opening a shared verse link)
-  if (isLoading && !hasPendingDeepLink) {
+  // Pantalla de carga solo para deep links al lector (evita flash incorrecto)
+  if (isResolvingSession && hasPendingDeepLink) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-background text-muted-foreground">
         <Loader2 className="size-10 animate-spin text-primary mb-4" />
@@ -476,6 +477,10 @@ export default function Page() {
                     <NotificationBell
                       onNavigateToFeed={() => setActiveTab("feed")}
                       onNavigateToPrayers={() => setActiveTab("prayers")}
+                      onNavigateToGroup={(groupId) => {
+                        setNavGroupId(groupId)
+                        setActiveTab("groups")
+                      }}
                       dropDirection="up"
                     />
                   )}
@@ -542,6 +547,10 @@ export default function Page() {
             <NotificationBell
               onNavigateToFeed={() => setActiveTab("feed")}
               onNavigateToPrayers={() => setActiveTab("prayers")}
+              onNavigateToGroup={(groupId) => {
+                setNavGroupId(groupId)
+                setActiveTab("groups")
+              }}
             />
           )}
           <ThemeToggle />

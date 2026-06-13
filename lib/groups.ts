@@ -4,6 +4,7 @@ import { ensureDbTables } from "./bible"
 import { isGroupAdmin, isValidGroupRole, normalizeGroupRole, type GroupRole } from "./group-roles"
 import { canViewUserAvatar } from "./media-privacy"
 import { getPool } from "./mysql"
+import { runOnce } from "./once-async"
 
 export function generateInviteCode(): string {
   return crypto.randomBytes(4).toString("hex").toUpperCase()
@@ -29,6 +30,10 @@ async function backfillMissingInviteCodes(): Promise<void> {
 }
 
 export async function ensureGroupTables(): Promise<void> {
+  return runOnce("ensureGroupTables", _ensureGroupTables)
+}
+
+async function _ensureGroupTables(): Promise<void> {
   await ensureDbTables()
   const pool = getPool()
 

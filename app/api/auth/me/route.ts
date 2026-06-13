@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getUserById, updateUserStreak } from "@/lib/bible"
 import { getSession } from "@/lib/auth"
+import { processGroupEventRemindersThrottled } from "@/lib/group-events"
 
 export async function GET(req: NextRequest) {
   try {
@@ -9,7 +10,8 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ user: null })
     }
 
-    await updateUserStreak(session.userId)
+    processGroupEventRemindersThrottled().catch(() => {})
+    updateUserStreak(session.userId).catch(() => {})
     const user = await getUserById(session.userId)
     if (!user) {
       return NextResponse.json(

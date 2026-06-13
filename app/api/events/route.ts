@@ -7,16 +7,31 @@ import {
   listUpcomingEvents,
   setEventRsvp,
 } from "@/lib/church-events"
+import { listUserGroupEventsAcrossGroups } from "@/lib/group-events"
+
+function mergeCalendarEvents(churchEvents: Record<string, unknown>[], groupEvents: Record<string, unknown>[]) {
+  const merged = [
+    ...churchEvents.map((e) => ({ ...e, source: "church" as const })),
+    ...groupEvents.map((e) => ({ ...e, source: "group" as const, category: "grupo" })),
+  ]
+  merged.sort(
+    (a, b) => new Date(a.start_time as string).getTime() - new Date(b.start_time as string).getTime(),
+  )
+  return merged
+}
 
 export async function GET(req: NextRequest) {
   try {
     const user = getSession(req)
     if (user) {
-      const events = await listEventsWithUserRsvp(user.userId)
-      return NextResponse.json({ events })
+      const [churchEvents, groupEvents] = await Promise.all([
+        listEventsWithUserRsvp(user.userId),
+        listUserGroupEventsAcrossGroups(user.userId),
+      ])
+      return NextResponse.json({ events: mergeCalendarEvents(churchEvents, groupEvents) })
     }
     const events = await listUpcomingEvents()
-    return NextResponse.json({ events })
+    return NextResponse.json({ events: events.map((e) => ({ ...e, source: "church" })) })
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Error desconocido" },

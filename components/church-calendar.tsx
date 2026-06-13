@@ -7,7 +7,7 @@ import { fetcher } from "@/lib/fetcher"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Calendar, Plus, Loader2, MapPin, Trash2, Check } from "lucide-react"
+import { Calendar, Plus, Loader2, MapPin, Trash2, Check, Users } from "lucide-react"
 
 const CATEGORIES = [
   { id: "culto", label: "Culto" },
@@ -96,7 +96,7 @@ export function ChurchCalendar({ isAdmin = false }: ChurchCalendarProps) {
             Calendario <Calendar className="size-7 text-violet-500" />
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Actividades y eventos de la congregación
+            Eventos de la congregación y de tus grupos
             {churchName && churchName !== "BibliaAPP" ? ` · ${churchName}` : ""}
           </p>
           {churchLogo && (
@@ -153,34 +153,77 @@ export function ChurchCalendar({ isAdmin = false }: ChurchCalendarProps) {
         <div className="text-center py-16 rounded-2xl border border-dashed border-border">
           <Calendar className="size-12 mx-auto text-muted-foreground/30 mb-3" />
           <h3 className="font-bold text-lg">No hay eventos próximos</h3>
+          <p className="text-sm text-muted-foreground mt-1">
+            Los eventos de la iglesia y de tus grupos aparecerán aquí.
+          </p>
         </div>
       ) : (
         <div className="space-y-4">
-          {events.map((ev: any) => (
-            <div key={ev.id} className="rounded-xl border border-border bg-card p-5 shadow-sm">
+          {events.map((ev: {
+            id: number
+            source?: "church" | "group"
+            title: string
+            description?: string
+            image_url?: string | null
+            start_time: string
+            end_time?: string | null
+            location?: string
+            category?: string
+            group_name?: string
+            going_count?: number
+            my_rsvp?: string
+          }) => {
+            const isGroup = ev.source === "group"
+            const eventKey = `${ev.source ?? "church"}-${ev.id}`
+            return (
+            <div key={eventKey} className="rounded-xl border border-border bg-card overflow-hidden shadow-sm">
+              {ev.image_url && (
+                <img src={ev.image_url} alt="" className="w-full max-h-48 object-cover" />
+              )}
+              <div className="p-5">
               <div className="flex justify-between items-start gap-4">
-                <div>
-                  <span className="text-[10px] font-bold uppercase bg-violet-500/10 text-violet-600 px-2 py-0.5 rounded-full">
-                    {CATEGORIES.find((c) => c.id === ev.category)?.label ?? ev.category}
-                  </span>
+                <div className="min-w-0">
+                  {isGroup ? (
+                    <span className="text-[10px] font-bold uppercase bg-blue-500/10 text-blue-600 px-2 py-0.5 rounded-full inline-flex items-center gap-1">
+                      <Users className="size-3" />
+                      {ev.group_name ?? "Grupo"}
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-bold uppercase bg-violet-500/10 text-violet-600 px-2 py-0.5 rounded-full">
+                      {CATEGORIES.find((c) => c.id === ev.category)?.label ?? ev.category}
+                    </span>
+                  )}
                   <h3 className="font-bold text-lg mt-2">{ev.title}</h3>
-                  {ev.description && <p className="text-sm text-muted-foreground mt-1">{ev.description}</p>}
+                  {ev.description && <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap">{ev.description}</p>}
                   <p className="text-sm text-muted-foreground mt-2">
                     {new Date(ev.start_time).toLocaleString("es", { dateStyle: "full", timeStyle: "short" })}
+                    {ev.end_time && (
+                      <span>
+                        {" "}– {new Date(ev.end_time).toLocaleTimeString("es", { timeStyle: "short" })}
+                      </span>
+                    )}
                   </p>
                   {ev.location && (
                     <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
-                      <MapPin className="size-3.5" /> {ev.location}
+                      <MapPin className="size-3.5 shrink-0" /> {ev.location}
                     </p>
                   )}
-                  <p className="text-xs text-muted-foreground mt-2">{ev.going_count ?? 0} confirmados</p>
+                  {!isGroup && (
+                    <p className="text-xs text-muted-foreground mt-2">{ev.going_count ?? 0} confirmados</p>
+                  )}
+                  {isGroup && (
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Evento del grupo · edítalo desde Grupos → Calendario
+                    </p>
+                  )}
                 </div>
-                {isAdmin && (
-                  <Button size="sm" variant="ghost" className="text-destructive" onClick={() => handleDelete(ev.id)}>
+                {isAdmin && !isGroup && (
+                  <Button size="sm" variant="ghost" className="text-destructive shrink-0" onClick={() => handleDelete(ev.id)}>
                     <Trash2 className="size-4" />
                   </Button>
                 )}
               </div>
+              {!isGroup && (
               <div className="flex gap-2 mt-4 flex-wrap">
                 {(["going", "maybe", "declined"] as const).map((s) => (
                   <Button
@@ -195,8 +238,11 @@ export function ChurchCalendar({ isAdmin = false }: ChurchCalendarProps) {
                   </Button>
                 ))}
               </div>
+              )}
+              </div>
             </div>
-          ))}
+            )
+          })}
         </div>
       )}
     </div>

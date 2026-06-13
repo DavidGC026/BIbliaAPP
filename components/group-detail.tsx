@@ -11,6 +11,7 @@ import { buildGroupJoinUrl, buildGroupQrImageUrl } from "@/lib/group-invite"
 import {
   GROUP_ROLE_LABELS,
   GROUP_ROLES,
+  canManageGroupEvents,
   getGroupRoleLabel,
   isGroupAdmin,
   type GroupRole,
@@ -18,8 +19,10 @@ import {
 import { cn } from "@/lib/utils"
 import { GroupVisual } from "@/components/group-visual"
 import { GroupAppearanceEditor } from "@/components/group-appearance-editor"
+import { GroupCalendar } from "@/components/group-calendar"
 import { UserAvatar } from "@/components/user-avatar"
 import {
+  Calendar,
   Users,
   ArrowLeft,
   Copy,
@@ -49,15 +52,16 @@ interface Group {
   is_official_church?: number
 }
 
-type TabId = "invite" | "members" | "study" | "wall" | "discussion" | "prayer"
+type TabId = "wall" | "members" | "study" | "discussion" | "prayer" | "calendar" | "about"
 
 const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
-  { id: "invite", label: "Invitar", icon: UserPlus },
+  { id: "wall", label: "Muro", icon: MessageSquare },
   { id: "members", label: "Miembros", icon: Users },
   { id: "study", label: "Lectura", icon: BookOpen },
-  { id: "wall", label: "Muro", icon: MessageSquare },
   { id: "discussion", label: "Foro", icon: MessageSquare },
   { id: "prayer", label: "Oración", icon: HeartHandshake },
+  { id: "calendar", label: "Calendario", icon: Calendar },
+  { id: "about", label: "Descripción", icon: UserPlus },
 ]
 
 interface GroupDetailProps {
@@ -94,7 +98,7 @@ export function GroupDetail({
   onAppearanceChanged,
   regenerating,
 }: GroupDetailProps) {
-  const [tab, setTab] = useState<TabId>("invite")
+  const [tab, setTab] = useState<TabId>("wall")
   const [copied, setCopied] = useState(false)
   const [postContent, setPostContent] = useState("")
   const [postImageUrl, setPostImageUrl] = useState<string | null>(null)
@@ -103,11 +107,14 @@ export function GroupDetail({
   const [discussContent, setDiscussContent] = useState("")
   const [replyTo, setReplyTo] = useState<number | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [prayerTitle, setPrayerTitle] = useState("")
+  const [prayerDescription, setPrayerDescription] = useState("")
   const [selectedPlanId, setSelectedPlanId] = useState("")
   const [updatingRoleFor, setUpdatingRoleFor] = useState<number | null>(null)
   const [roleError, setRoleError] = useState<string | null>(null)
 
   const isAdmin = isGroupAdmin(group.role)
+  const canManageEvents = canManageGroupEvents(group.role)
 
   const inviteUrl = buildGroupJoinUrl(group.invite_code)
   const qrUrl = buildGroupQrImageUrl(inviteUrl)
@@ -234,6 +241,32 @@ export function GroupDetail({
     }
   }
 
+  async function createGroupPrayer() {
+    if (!prayerTitle.trim()) return
+    setSubmitting(true)
+    try {
+      const res = await fetch("/api/prayers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: prayerTitle.trim(),
+          description: prayerDescription,
+          visibility: "group",
+          groupId: group.id,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Error al publicar")
+      setPrayerTitle("")
+      setPrayerDescription("")
+      mutatePrayers()
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Error al publicar la petición")
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
   async function changeMemberRole(userId: number, role: GroupRole) {
     setUpdatingRoleFor(userId)
     setRoleError(null)
@@ -281,7 +314,7 @@ export function GroupDetail({
   }
 
   return (
-    <div className="space-y-6 animate-fade-in p-1 md:p-4 max-w-3xl mx-auto">
+    <div className="w-full max-w-6xl mx-auto space-y-4 animate-fade-in px-1 md:px-2">
       <button
         onClick={onBack}
         className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
@@ -312,17 +345,17 @@ export function GroupDetail({
             avatarImage={group.avatar_image}
             churchLogoUrl={churchLogoUrl}
             isOfficialChurch={!!group.is_official_church}
-            variant="hero"
+            variant="compact"
           />
-          <div className="px-5 pb-5 pt-14 text-center sm:text-left">
+          <div className="px-4 md:px-6 pb-4 pt-12 md:pt-14">
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-              <div>
-                <h1 className="text-2xl font-extrabold">{group.name}</h1>
-                <p className="text-sm text-muted-foreground mt-1">
+              <div className="min-w-0">
+                <h1 className="text-xl md:text-2xl font-extrabold truncate">{group.name}</h1>
+                <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
                   {group.description || "Sin descripción"}
                 </p>
-                <p className="text-sm text-muted-foreground mt-2 flex items-center justify-center sm:justify-start gap-1.5">
-                  <Users className="size-4" />
+                <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1.5">
+                  <Users className="size-3.5 shrink-0" />
                   {group.member_count} miembros · {getGroupRoleLabel(group.role)}
                 </p>
               </div>
@@ -342,7 +375,7 @@ export function GroupDetail({
         </div>
       )}
 
-      <div className="flex gap-1 overflow-x-auto pb-1">
+      <div className="flex gap-1 overflow-x-auto pb-1 border-b border-border">
         {TABS.map((t) => {
           const Icon = t.icon
           return (
@@ -351,8 +384,10 @@ export function GroupDetail({
               type="button"
               onClick={() => setTab(t.id)}
               className={cn(
-                "flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors",
-                tab === t.id ? "bg-primary text-primary-foreground" : "bg-muted/40 text-muted-foreground hover:text-foreground",
+                "flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium whitespace-nowrap transition-colors border-b-2 -mb-px",
+                tab === t.id
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground",
               )}
             >
               <Icon className="size-4" />
@@ -362,34 +397,56 @@ export function GroupDetail({
         })}
       </div>
 
-      {tab === "invite" && (
-        <div className="rounded-xl border border-border bg-card p-6 shadow-sm space-y-5">
-          <div className="flex flex-col sm:flex-row gap-6 items-center sm:items-start">
-            <div className="rounded-xl border border-border bg-white p-3 shrink-0">
-              <img src={qrUrl} alt="QR invitación" width={200} height={200} className="size-[200px]" />
-            </div>
-            <div className="flex-1 w-full space-y-3">
-              <p className="font-mono text-2xl font-bold tracking-widest">{group.invite_code}</p>
-              <div className="flex gap-2">
-                <Input readOnly value={inviteUrl} className="font-mono text-xs" />
-                <Button variant="outline" onClick={handleCopyLink} className="shrink-0 gap-1.5">
-                  {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
-                  {copied ? "Copiado" : "Copiar"}
-                </Button>
-              </div>
-              {isAdmin && (
-                <Button variant="ghost" size="sm" onClick={onRegenerateCode} disabled={regenerating} className="gap-1.5">
-                  {regenerating ? <Loader2 className="size-3.5 animate-spin" /> : <RefreshCw className="size-3.5" />}
-                  Regenerar código
-                </Button>
-              )}
+      {tab === "about" && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="rounded-xl border border-border bg-card p-5 shadow-sm space-y-4">
+            <h2 className="font-bold text-lg">Sobre el grupo</h2>
+            <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
+              {group.description || "Este grupo aún no tiene descripción."}
+            </p>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground pt-2 border-t border-border">
+              <Users className="size-4" />
+              <span>{group.member_count} miembros</span>
+              <span>·</span>
+              <span>{getGroupRoleLabel(group.role)}</span>
             </div>
           </div>
-          <div className="rounded-lg bg-blue-500/5 border border-blue-500/15 p-4 flex gap-3">
-            <QrCode className="size-5 text-blue-500 shrink-0" />
-            <p className="text-sm text-muted-foreground">
-              Comparte el QR en la reunión de la célula o el enlace por WhatsApp.
-            </p>
+
+          <div className="rounded-xl border border-border bg-card p-5 shadow-sm space-y-4">
+            <h2 className="font-bold text-lg">Invitar al grupo</h2>
+            <div className="flex flex-col sm:flex-row gap-4 items-center sm:items-start">
+              <div className="rounded-lg border border-border bg-white p-2 shrink-0">
+                <img src={qrUrl} alt="QR invitación" width={140} height={140} className="size-[140px]" />
+              </div>
+              <div className="flex-1 w-full space-y-2">
+                <p className="font-mono text-lg font-bold tracking-widest">{group.invite_code}</p>
+                <div className="flex gap-2">
+                  <Input readOnly value={inviteUrl} className="font-mono text-xs" />
+                  <Button variant="outline" onClick={handleCopyLink} className="shrink-0 gap-1.5">
+                    {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
+                    {copied ? "Copiado" : "Copiar"}
+                  </Button>
+                </div>
+                {isAdmin && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={onRegenerateCode}
+                    disabled={regenerating}
+                    className="gap-1.5"
+                  >
+                    {regenerating ? <Loader2 className="size-3.5 animate-spin" /> : <RefreshCw className="size-3.5" />}
+                    Regenerar código
+                  </Button>
+                )}
+              </div>
+            </div>
+            <div className="rounded-lg bg-blue-500/5 border border-blue-500/15 p-3 flex gap-2">
+              <QrCode className="size-4 text-blue-500 shrink-0 mt-0.5" />
+              <p className="text-xs text-muted-foreground">
+                Comparte el QR en la reunión o el enlace por WhatsApp para que más personas se unan.
+              </p>
+            </div>
           </div>
         </div>
       )}
@@ -627,15 +684,42 @@ export function GroupDetail({
         </div>
       )}
 
+      {tab === "calendar" && (
+        <GroupCalendar groupId={group.id} canManage={canManageEvents} />
+      )}
+
       {tab === "prayer" && (
         <div className="space-y-4">
+          <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+            <h3 className="text-sm font-semibold">Nueva petición de oración</h3>
+            <Input
+              value={prayerTitle}
+              onChange={(e) => setPrayerTitle(e.target.value)}
+              placeholder="Título de la petición"
+            />
+            <Textarea
+              value={prayerDescription}
+              onChange={(e) => setPrayerDescription(e.target.value)}
+              placeholder="Describe tu petición para que el grupo ore contigo..."
+              className="min-h-[80px]"
+            />
+            <Button
+              onClick={createGroupPrayer}
+              disabled={submitting || !prayerTitle.trim()}
+              className="gap-2"
+            >
+              {submitting ? <Loader2 className="size-4 animate-spin" /> : <HeartHandshake className="size-4" />}
+              Compartir con el grupo
+            </Button>
+          </div>
+
           {!prayersData ? (
             <div className="py-6 flex justify-center">
               <Loader2 className="size-6 animate-spin text-muted-foreground" />
             </div>
           ) : (prayersData.prayers ?? []).length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-8">
-              No hay peticiones compartidas con este grupo. Comparte una desde la sección Oración.
+            <p className="text-sm text-muted-foreground text-center py-6">
+              Aún no hay peticiones en este grupo. Sé el primero en compartir una.
             </p>
           ) : (
             prayersData.prayers.map((p: {

@@ -1,11 +1,16 @@
 import type { RowDataPacket, ResultSetHeader } from "mysql2"
 import type { AvatarVisibility } from "./avatar-visibility"
 import { getPool } from "./mysql"
+import { runOnce } from "./once-async"
 
 export type { AvatarVisibility } from "./avatar-visibility"
 export { AVATAR_VISIBILITY_LABELS, AVATAR_VISIBILITY_DESCRIPTIONS } from "./avatar-visibility"
 
 export async function ensureUserMediaTables(): Promise<void> {
+  return runOnce("ensureUserMediaTables", _ensureUserMediaTables)
+}
+
+async function _ensureUserMediaTables(): Promise<void> {
   const pool = getPool()
   try {
     await pool.query(`ALTER TABLE users ADD COLUMN avatar_media_id INT DEFAULT NULL`)

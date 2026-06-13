@@ -17,10 +17,13 @@ bus.setMaxListeners(0)
 globalStore.__notifBus = bus
 
 export interface NotificationEvent {
-  type: "comment" | "reply" | "like" | "follow" | "connected" | "prayer_intercession" | "friend_request" | "friend_accepted"
+  type: "comment" | "reply" | "like" | "follow" | "connected" | "prayer_intercession" | "friend_request" | "friend_accepted" | "group_event_reminder"
   postId?: number | null
   commentId?: number | null
   actorName?: string
+  groupEventId?: number | null
+  groupId?: number | null
+  reminderKind?: "1day" | "2hours"
 }
 
 export function emitNotification(userId: number, payload: NotificationEvent) {

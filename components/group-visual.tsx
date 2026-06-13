@@ -9,7 +9,7 @@ interface GroupVisualProps {
   avatarImage?: string | null
   churchLogoUrl?: string | null
   isOfficialChurch?: boolean
-  variant?: "card" | "hero"
+  variant?: "card" | "hero" | "compact"
   className?: string
 }
 
@@ -22,9 +22,61 @@ export function GroupVisual({
   variant = "card",
   className,
 }: GroupVisualProps) {
-  const coverH = variant === "hero" ? "h-40 md:h-52" : "h-28"
-  const avatarSize = variant === "hero" ? "size-24 md:size-28" : "size-16"
-  const avatarOffset = variant === "hero" ? "-mt-12 md:-mt-14" : "-mt-8"
+  const coverH =
+    variant === "hero" ? "h-40 md:h-52" : variant === "compact" ? "h-24 md:h-28" : "h-28"
+  const avatarSize =
+    variant === "hero" ? "size-24 md:size-28" : variant === "compact" ? "size-20 md:size-24" : "size-16"
+  const avatarOffset =
+    variant === "hero" ? "-mt-12 md:-mt-14" : variant === "compact" ? "" : "-mt-8"
+
+  if (variant === "compact") {
+    return (
+      <div className={cn("relative", className)}>
+        <div
+          className={cn(
+            "relative w-full overflow-hidden bg-gradient-to-br from-blue-600/80 via-primary/40 to-indigo-500/30",
+            coverH,
+          )}
+        >
+          {coverImage ? (
+            <img src={coverImage} alt="" className="absolute inset-0 size-full object-cover" />
+          ) : (
+            <div className="absolute inset-0 flex items-center justify-center opacity-20">
+              <Users className="size-14" />
+            </div>
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-background/60 via-transparent to-transparent" />
+          {isOfficialChurch && churchLogoUrl && (
+            <div className="absolute top-2 right-2 size-7 rounded-full bg-background/90 border border-border shadow-sm overflow-hidden flex items-center justify-center">
+              <img src={churchLogoUrl} alt="Iglesia" className="size-full object-contain p-0.5" />
+            </div>
+          )}
+          {isOfficialChurch && !churchLogoUrl && (
+            <div className="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-background/90 border border-border px-2 py-0.5 text-[10px] font-semibold text-primary">
+              <Church className="size-3" />
+              Iglesia
+            </div>
+          )}
+        </div>
+        <div className="absolute bottom-0 left-4 md:left-6 translate-y-1/2">
+          <div
+            className={cn(
+              "rounded-xl border-4 border-background bg-card shadow-md overflow-hidden flex items-center justify-center",
+              avatarSize,
+            )}
+          >
+            {avatarImage ? (
+              <img src={avatarImage} alt={name} className="size-full object-cover" />
+            ) : (
+              <div className="size-full bg-gradient-to-br from-blue-500/30 to-primary/20 flex items-center justify-center">
+                <Users className="size-8 text-primary/70" />
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className={cn("relative", className)}>

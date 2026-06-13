@@ -2,10 +2,15 @@ import type { RowDataPacket, ResultSetHeader } from "mysql2"
 import { createNotification } from "./bible"
 import { emitNotification } from "./notification-bus"
 import { getPool } from "./mysql"
+import { runOnce } from "./once-async"
 
 export type FriendRequestStatus = "pending" | "accepted" | "rejected"
 
 export async function ensureFriendTables(): Promise<void> {
+  return runOnce("ensureFriendTables", _ensureFriendTables)
+}
+
+async function _ensureFriendTables(): Promise<void> {
   const pool = getPool()
   await pool.query(`
     CREATE TABLE IF NOT EXISTS user_friend_requests (

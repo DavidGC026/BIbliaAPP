@@ -2,6 +2,7 @@ import { getPool } from "./mysql"
 import type { Book, Verse, NoteLink, BibleVersion } from "./types"
 import type { RowDataPacket, ResultSetHeader } from "mysql2"
 import crypto from "crypto"
+import { runOnce } from "./once-async"
 
 /**
  * NOTE ON SCHEMA
@@ -17,6 +18,10 @@ import crypto from "crypto"
  */
 
 export async function ensureDbTables(): Promise<void> {
+  return runOnce("ensureDbTables", _ensureDbTables)
+}
+
+async function _ensureDbTables(): Promise<void> {
   const pool = getPool()
   
   // 1. Create users table
@@ -1293,11 +1298,14 @@ export async function getNotifications(
   const pool = getPool()
   const [rows] = await pool.query<RowDataPacket[]>(
     `SELECT n.id, n.type, n.post_id, n.comment_id, n.read_at, n.created_at,
+            n.group_event_id, n.reminder_kind,
             u.name as actor_name, u.username as actor_username,
-            LEFT(fp.content, 80) as post_preview
+            LEFT(fp.content, 80) as post_preview,
+            ge.title as event_title, ge.group_id as event_group_id
      FROM feed_notifications n
      JOIN users u ON n.actor_id = u.id
      LEFT JOIN feed_posts fp ON n.post_id = fp.id
+     LEFT JOIN bible_group_events ge ON n.group_event_id = ge.id
      WHERE n.user_id = ? ${onlyUnread ? "AND n.read_at IS NULL" : ""}
      ORDER BY n.created_at DESC, n.id DESC
      LIMIT ?`,

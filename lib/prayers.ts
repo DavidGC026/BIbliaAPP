@@ -2,8 +2,13 @@ import type { RowDataPacket, ResultSetHeader } from "mysql2"
 import { emitNotification } from "./notification-bus"
 import { ensureGroupTables } from "./groups"
 import { getPool } from "./mysql"
+import { runOnce } from "./once-async"
 
 export async function ensurePrayerTables(): Promise<void> {
+  return runOnce("ensurePrayerTables", _ensurePrayerTables)
+}
+
+async function _ensurePrayerTables(): Promise<void> {
   await ensureGroupTables()
   const pool = getPool()
 

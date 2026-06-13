@@ -4,12 +4,12 @@ import * as React from "react"
 import { useState, useEffect, useRef } from "react"
 import useSWR from "swr"
 import { fetcher } from "@/lib/fetcher"
-import { Bell, Heart, MessageSquare, Reply, UserPlus, Loader2, CheckCheck, HeartHandshake } from "lucide-react"
+import { Bell, Heart, MessageSquare, Reply, UserPlus, Loader2, CheckCheck, HeartHandshake, Calendar } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface Notification {
   id: number
-  type: "comment" | "reply" | "like" | "follow" | "prayer_intercession" | "friend_request" | "friend_accepted"
+  type: "comment" | "reply" | "like" | "follow" | "prayer_intercession" | "friend_request" | "friend_accepted" | "group_event_reminder"
   post_id: number | null
   comment_id: number | null
   read_at: string | null
@@ -17,6 +17,10 @@ interface Notification {
   actor_name: string
   actor_username: string
   post_preview: string | null
+  group_event_id?: number | null
+  reminder_kind?: "1day" | "2hours" | null
+  event_title?: string | null
+  event_group_id?: number | null
 }
 
 const TYPE_CONFIG = {
@@ -27,7 +31,14 @@ const TYPE_CONFIG = {
   prayer_intercession: { icon: HeartHandshake, label: "se unió a orar por tu petición", color: "text-amber-600" },
   friend_request: { icon: UserPlus, label: "te envió una solicitud de amistad", color: "text-blue-500" },
   friend_accepted: { icon: UserPlus, label: "aceptó tu solicitud de amistad", color: "text-emerald-600" },
+  group_event_reminder: { icon: Calendar, label: "", color: "text-violet-500" },
 } as const
+
+function getEventReminderLabel(n: Notification): string {
+  const title = n.event_title || "Evento del grupo"
+  if (n.reminder_kind === "2hours") return `En 2 horas: ${title}`
+  return `Mañana: ${title}`
+}
 
 /**
  * SSE como acelerador + SWR como red de seguridad: si la conexión en tiempo
@@ -71,10 +82,12 @@ function useNotificationStream(onEvent: () => void) {
 export function NotificationBell({
   onNavigateToFeed,
   onNavigateToPrayers,
+  onNavigateToGroup,
   dropDirection = "down",
 }: {
   onNavigateToFeed?: () => void
   onNavigateToPrayers?: () => void
+  onNavigateToGroup?: (groupId: number) => void
   dropDirection?: "down" | "up"
 }) {
   const [open, setOpen] = useState(false)
@@ -138,6 +151,8 @@ export function NotificationBell({
     }
     if (notification.type === "prayer_intercession") {
       onNavigateToPrayers?.()
+    } else if (notification.type === "group_event_reminder" && notification.event_group_id) {
+      onNavigateToGroup?.(notification.event_group_id)
     } else if (notification.post_id != null) {
       onNavigateToFeed?.()
     }
@@ -209,7 +224,13 @@ export function NotificationBell({
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="block text-xs text-foreground">
-                        <strong>{n.actor_name}</strong> {config.label}
+                        {n.type === "group_event_reminder" ? (
+                          <strong>{getEventReminderLabel(n)}</strong>
+                        ) : (
+                          <>
+                            <strong>{n.actor_name}</strong> {config.label}
+                          </>
+                        )}
                       </span>
                       {n.post_preview && (
                         <span className="block text-[11px] text-muted-foreground truncate mt-0.5">

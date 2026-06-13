@@ -1,6 +1,6 @@
 "use client"
 
-import { Suspense } from "react"
+import dynamic from "next/dynamic"
 import {
   Activity as ActivityIcon,
   BarChart2,
@@ -20,28 +20,95 @@ import {
   UserPlus,
   Users,
 } from "lucide-react"
-import { Activity } from "@/components/activity"
-import { BibleReader } from "@/components/bible-reader"
-import { Dashboard } from "@/components/dashboard"
-import { Devotionals } from "@/components/devotionals"
-import { Favorites } from "@/components/favorites"
-import { Feed } from "@/components/feed"
-import { Groups } from "@/components/groups"
-import { ChurchCalendar } from "@/components/church-calendar"
-import { Discipleship } from "@/components/discipleship"
-import { HighlightsManager } from "@/components/highlights-manager"
-import { NotebookSidebar } from "@/components/notebook-sidebar"
-import { PersonalLibrary } from "@/components/personal-library"
-import { PrayerRequests } from "@/components/prayer-requests"
-import { ProfileSection } from "@/components/profile-section"
-import { ReadingPlans } from "@/components/reading-plans"
-import { ReferencesExplorer } from "@/components/references-explorer"
-import { SearchAdvanced } from "@/components/search-advanced"
-import { StrongDictionary } from "@/components/strong-dictionary"
-import { Statistics } from "@/components/statistics"
-import { UserManagement } from "@/components/user-management"
 import { APP_SECTION_CATALOG, type AppSectionId } from "./catalog"
 import { registerAppSectionComplete } from "./store"
+
+function sectionLoading(text: string) {
+  return () => (
+    <div className="p-8 text-center text-sm text-muted-foreground animate-pulse">{text}</div>
+  )
+}
+
+const Dashboard = dynamic(
+  () => import("@/components/dashboard").then((m) => ({ default: m.Dashboard })),
+  { loading: sectionLoading("Cargando inicio...") },
+)
+const BibleReader = dynamic(
+  () => import("@/components/bible-reader").then((m) => ({ default: m.BibleReader })),
+  { loading: sectionLoading("Cargando Biblia...") },
+)
+const Feed = dynamic(
+  () => import("@/components/feed").then((m) => ({ default: m.Feed })),
+  { loading: sectionLoading("Cargando actividad...") },
+)
+const SearchAdvanced = dynamic(
+  () => import("@/components/search-advanced").then((m) => ({ default: m.SearchAdvanced })),
+  { loading: sectionLoading("Cargando búsqueda...") },
+)
+const ReferencesExplorer = dynamic(
+  () => import("@/components/references-explorer").then((m) => ({ default: m.ReferencesExplorer })),
+  { loading: sectionLoading("Cargando referencias...") },
+)
+const StrongDictionary = dynamic(
+  () => import("@/components/strong-dictionary").then((m) => ({ default: m.StrongDictionary })),
+  { loading: sectionLoading("Cargando diccionario...") },
+)
+const PersonalLibrary = dynamic(
+  () => import("@/components/personal-library").then((m) => ({ default: m.PersonalLibrary })),
+  { loading: sectionLoading("Cargando biblioteca...") },
+)
+const NotebookSidebar = dynamic(
+  () => import("@/components/notebook-sidebar").then((m) => ({ default: m.NotebookSidebar })),
+  { loading: sectionLoading("Cargando libreta...") },
+)
+const ProfileSection = dynamic(
+  () => import("@/components/profile-section").then((m) => ({ default: m.ProfileSection })),
+  { loading: sectionLoading("Cargando perfil...") },
+)
+const Favorites = dynamic(
+  () => import("@/components/favorites").then((m) => ({ default: m.Favorites })),
+  { loading: sectionLoading("Cargando favoritos...") },
+)
+const HighlightsManager = dynamic(
+  () => import("@/components/highlights-manager").then((m) => ({ default: m.HighlightsManager })),
+  { loading: sectionLoading("Cargando subrayados...") },
+)
+const ReadingPlans = dynamic(
+  () => import("@/components/reading-plans").then((m) => ({ default: m.ReadingPlans })),
+  { loading: sectionLoading("Cargando planes...") },
+)
+const PrayerRequests = dynamic(
+  () => import("@/components/prayer-requests").then((m) => ({ default: m.PrayerRequests })),
+  { loading: sectionLoading("Cargando oración...") },
+)
+const Devotionals = dynamic(
+  () => import("@/components/devotionals").then((m) => ({ default: m.Devotionals })),
+  { loading: sectionLoading("Cargando devocionales...") },
+)
+const Groups = dynamic(
+  () => import("@/components/groups").then((m) => ({ default: m.Groups })),
+  { loading: sectionLoading("Cargando grupos...") },
+)
+const ChurchCalendar = dynamic(
+  () => import("@/components/church-calendar").then((m) => ({ default: m.ChurchCalendar })),
+  { loading: sectionLoading("Cargando calendario...") },
+)
+const Discipleship = dynamic(
+  () => import("@/components/discipleship").then((m) => ({ default: m.Discipleship })),
+  { loading: sectionLoading("Cargando discipulado...") },
+)
+const Activity = dynamic(
+  () => import("@/components/activity").then((m) => ({ default: m.Activity })),
+  { loading: sectionLoading("Cargando actividad...") },
+)
+const Statistics = dynamic(
+  () => import("@/components/statistics").then((m) => ({ default: m.Statistics })),
+  { loading: sectionLoading("Cargando estadísticas...") },
+)
+const UserManagement = dynamic(
+  () => import("@/components/user-management").then((m) => ({ default: m.UserManagement })),
+  { loading: sectionLoading("Cargando usuarios...") },
+)
 
 function meta(id: AppSectionId) {
   const section = APP_SECTION_CATALOG.find((entry) => entry.id === id)
@@ -51,12 +118,6 @@ function meta(id: AppSectionId) {
   return section
 }
 
-/**
- * Registra icono + componente de cada sección.
- * Metadatos (permisos, invitados, labels): lib/app-section-registry/catalog.ts
- *
- * Guía completa: docs/nuevas-secciones.md
- */
 registerAppSectionComplete({
   ...meta("dashboard"),
   icon: LayoutDashboard,

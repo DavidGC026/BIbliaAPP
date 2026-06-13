@@ -22,6 +22,12 @@ export function isGroupAdmin(role: string): boolean {
   return normalizeGroupRole(role) === "admin"
 }
 
+/** Admin, líder o maestro pueden gestionar eventos del calendario grupal. */
+export function canManageGroupEvents(role: string): boolean {
+  const r = normalizeGroupRole(role)
+  return r === "admin" || r === "lider" || r === "maestro"
+}
+
 export function isValidGroupRole(role: string): role is GroupRole {
   return (GROUP_ROLES as readonly string[]).includes(role)
 }
