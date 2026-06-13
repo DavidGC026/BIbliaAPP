@@ -1,33 +1,111 @@
-# BIbliaAPP
+# BibliaAPP
 
-This is a [Next.js](https://nextjs.org) project bootstrapped with [v0](https://v0.app).
+Aplicación web para lectura bíblica, estudio en comunidad, grupos, oración, calendario de eventos y discipulado. Pensada para congregaciones, células y ministerios cristianos.
 
-## Built with v0
+**Producción:** https://biblia2.dvguzman.com
 
-This repository is linked to a [v0](https://v0.app) project. You can continue developing by visiting the link below -- start new chats to make changes, and v0 will push commits directly to this repo. Every merge to `main` will automatically deploy.
+## Stack
 
-[Continue working on v0 →](https://v0.app/chat/projects/prj_iMbEj3F1q6okWQ1p4V4pjY6FQhJn)
+| Capa | Tecnología |
+|------|------------|
+| Frontend / API | Next.js 16, React 19, Tailwind CSS 4 |
+| Base de datos | MariaDB 11 (`mysql2`) |
+| Autenticación | Tokens propios (AES) + sesión en cookie |
+| Tiempo real | Server-Sent Events (notificaciones) |
+| Despliegue | Docker (`biblia2-app`, puerto **3003**) |
 
-## Getting Started
+## Estructura del proyecto
 
-First, run the development server:
+```text
+app/              # Páginas y API routes (Next.js App Router)
+components/       # UI (lector, grupos, feed, calendario, etc.)
+lib/              # Lógica de negocio, MySQL, auth, grupos, oración…
+public/           # Estáticos y uploads
+docs/             # Documentación local (no se sube a Git; ver .gitignore)
+```
+
+Documentación local útil (en `docs/`, solo en tu servidor):
+
+| Archivo | Contenido |
+|---------|-----------|
+| `docs/actualizar-despliegue.md` | **Cómo actualizar código y reiniciar el contenedor** |
+| `docs/funcionalidades-iglesias.md` | Funcionalidades para iglesias (grupos, oración, calendario…) |
+| `docs/infra-privada.md` | Credenciales, `docker run` completo, Adminer (privado) |
+
+## Desarrollo local
+
+Requisitos: Node.js 20+, MariaDB accesible en `localhost:3306`.
+
+```bash
+cd /home/david/proyectos/BibliaAPP
+npm install
+```
+
+Crea `.env.local` en la raíz (está en `.gitignore`):
+
+```env
+MYSQL_HOST=127.0.0.1
+MYSQL_PORT=3306
+MYSQL_USER=biblia_user
+MYSQL_PASSWORD=<contraseña>
+MYSQL_DATABASE=bibliadb
+APP_URL=http://localhost:3000
+```
+
+Arranca en modo desarrollo:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Abre http://localhost:3000. Los cambios se recargan solos (hot reload).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Actualizar producción (resumen)
 
-## Learn More
+Cuando cambies código y quieras verlo en el dominio público:
 
-To learn more, take a look at the following resources:
+```bash
+cd /home/david/proyectos/BibliaAPP
+docker restart biblia2-app
+docker logs -f biblia2-app          # espera "Ready"
+curl -s http://127.0.0.1:3003/api/health
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-- [v0 Documentation](https://v0.app/docs) - learn about v0 and how to use it.
+Luego abre https://biblia2.dvguzman.com con **Ctrl+Shift+R**.
+
+El contenedor `biblia2-app` monta este directorio en `/app` y, al arrancar, ejecuta `npm ci`, `npm run build` y `next start` en el puerto 3003. Un reinicio vuelve a compilar todo el proyecto.
+
+**Guía detallada:** `docs/actualizar-despliegue.md` (checklist, alternativas, problemas frecuentes).
+
+**Credenciales y comando `docker run` completo:** `docs/infra-privada.md`.
+
+## Scripts npm
+
+| Comando | Uso |
+|---------|-----|
+| `npm run dev` | Desarrollo local con hot reload |
+| `npm run build` | Compilar para producción |
+| `npm run start` | Servir build (puerto 3000 por defecto; en Docker usa `-p 3003`) |
+| `npm run lint` | ESLint |
+
+## Base de datos
+
+No hay migraciones formales (Prisma, etc.). Las tablas se crean o amplían con funciones `ensure*Tables()` en `lib/` la primera vez que la app las necesita.
+
+MariaDB corre en el contenedor `biblia-mariadb` (directorio aparte en el servidor: `/home/david/biblia-mariadb`).
+
+## Funcionalidades principales
+
+- Lector bíblico con notas, resaltados y planes de lectura
+- Comunidad: feed, perfiles, seguidores
+- **Grupos** con invitación por QR / enlace (`?joinGroup=CODIGO`)
+- **Oración intercesora** con visibilidad por grupo
+- **Anuncios oficiales** (admin / pastores)
+- **Calendario de eventos** con RSVP
+- **Discipulado** uno a uno
+
+Detalle en `docs/funcionalidades-iglesias.md`.
+
+## Origen del proyecto
+
+Iniciado con [v0](https://v0.app); el desarrollo continúa en este repositorio.

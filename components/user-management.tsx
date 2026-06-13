@@ -6,6 +6,7 @@ import useSWR from "swr"
 import { fetcher } from "@/lib/fetcher"
 import { DEFAULT_READER_SECTIONS, getSectionLabel, parseAllowedSections } from "@/lib/app-sections"
 import { SectionPermissionsEditor } from "@/components/section-permissions-editor"
+import { ChurchSettingsPanel } from "@/components/church-settings-panel"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { 
@@ -362,6 +363,8 @@ export function UserManagement({ currentUserId }: UserManagementProps) {
           <span>Crear Usuario</span>
         </Button>
       </div>
+
+      <ChurchSettingsPanel />
 
       {isLoading ? (
         <div className="flex h-64 items-center justify-center text-sm text-muted-foreground">

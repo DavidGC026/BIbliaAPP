@@ -160,6 +160,15 @@ export async function ensureDbTables(): Promise<void> {
     await pool.query(`ALTER TABLE users ADD COLUMN password_reset_expires DATETIME DEFAULT NULL`)
   } catch (_) {}
 
+  // Avatar / privacidad de foto de perfil (referenciadas por getUserById y getUserByUsername)
+  try {
+    await pool.query(`ALTER TABLE users ADD COLUMN avatar_media_id INT DEFAULT NULL`)
+  } catch (_) {}
+
+  try {
+    await pool.query(`ALTER TABLE users ADD COLUMN avatar_visibility VARCHAR(20) DEFAULT 'groups'`)
+  } catch (_) {}
+
   // Create reading plans tables
   await pool.query(`
     CREATE TABLE IF NOT EXISTS bible_reading_plans (
@@ -384,6 +393,20 @@ export async function ensureDbTables(): Promise<void> {
   } catch (_) {
     // bible_strong_dictionary puede no existir; no es un error
   }
+
+  try {
+    await pool.query(
+      `ALTER TABLE feed_notifications MODIFY COLUMN type ENUM('comment','reply','like','follow','prayer_intercession','friend_request','friend_accepted') NOT NULL`,
+    )
+  } catch (_) {}
+
+  try {
+    await pool.query(`ALTER TABLE feed_posts ADD COLUMN visibility VARCHAR(20) DEFAULT 'public'`)
+  } catch (_) {}
+
+  try {
+    await pool.query(`ALTER TABLE bible_group_posts ADD COLUMN image_url VARCHAR(500) DEFAULT NULL`)
+  } catch (_) {}
 
   // Anuncios oficiales en el feed (pastores / administradores)
   try {
@@ -721,7 +744,7 @@ export async function updateUserPassword(userId: number, passwordHash: string): 
 export async function getUserById(id: number): Promise<any | null> {
   await ensureDbTables()
   const [rows] = await getPool().query<RowDataPacket[]>(
-    `SELECT id, name, email, username, role, allowed_sections AS allowedSections, streak_count AS streakCount, last_active_date AS lastActiveDate FROM users WHERE id = ?`,
+    `SELECT id, name, email, username, role, allowed_sections AS allowedSections, streak_count AS streakCount, last_active_date AS lastActiveDate, avatar_media_id AS avatarMediaId, avatar_visibility AS avatarVisibility FROM users WHERE id = ?`,
     [id]
   )
   if (rows.length === 0) return null
@@ -1019,7 +1042,8 @@ export async function ensureUsernames(): Promise<void> {
 
 export async function getUserByUsername(username: string): Promise<any | null> {
   const [rows] = await getPool().query<RowDataPacket[]>(
-    `SELECT id, name, email, role, username, streak_count AS streakCount, last_active_date AS lastActiveDate 
+    `SELECT id, name, email, role, username, streak_count AS streakCount, last_active_date AS lastActiveDate,
+            avatar_media_id AS avatarMediaId, avatar_visibility AS avatarVisibility
      FROM users WHERE username = ?`,
     [username]
   )
@@ -1034,11 +1058,12 @@ export async function createFeedPost(
   verseText: string | null = null,
   isPublic: boolean = true,
   isAnnouncement: boolean = false,
+  visibility: string = "public",
 ): Promise<number> {
   const [result] = await getPool().query<ResultSetHeader>(
-    `INSERT INTO feed_posts (user_id, type, content, verse_ref, verse_text, is_public, is_announcement) 
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    [userId, type, content, verseRef, verseText, isPublic ? 1 : 0, isAnnouncement ? 1 : 0],
+    `INSERT INTO feed_posts (user_id, type, content, verse_ref, verse_text, is_public, is_announcement, visibility) 
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [userId, type, content, verseRef, verseText, isPublic ? 1 : 0, isAnnouncement ? 1 : 0, visibility],
   )
   return result.insertId
 }
@@ -1068,7 +1093,16 @@ export async function getFeed(userId: number, type: 'following' | 'explore' = 'f
      LIMIT ? OFFSET ?`,
     queryParams
   )
-  return rows
+
+  const { canViewFeedPost } = await import("./media-privacy")
+  const filtered = []
+  for (const row of rows) {
+    const vis = (row.visibility as string) || (row.is_public ? "public" : "private")
+    if (await canViewFeedPost(userId, row.user_id as number, vis)) {
+      filtered.push(row)
+    }
+  }
+  return filtered
 }
 
 export async function getAnnouncements(limit = 5): Promise<any[]> {
@@ -1094,11 +1128,19 @@ export async function getPublicProfile(username: string, currentUserId: number):
   const [[{ followingCount }]] = await pool.query<RowDataPacket[]>("SELECT COUNT(*) as followingCount FROM user_follows WHERE follower_id = ?", [user.id])
   const [[{ isFollowing }]] = await pool.query<RowDataPacket[]>("SELECT COUNT(*) as isFollowing FROM user_follows WHERE follower_id = ? AND followed_id = ?", [currentUserId, user.id])
 
+  const { getFriendStatus } = await import("./friends")
+  const { canViewUserAvatar } = await import("./media-privacy")
+  const friendStatus = await getFriendStatus(currentUserId, user.id)
+  const canViewAvatar = await canViewUserAvatar(currentUserId, user.id)
+
   return {
     ...user,
     followersCount,
     followingCount,
-    isFollowing: isFollowing > 0
+    isFollowing: isFollowing > 0,
+    friendStatus,
+    canViewAvatar,
+    avatarUrl: canViewAvatar && user.avatarMediaId ? `/api/media/${user.avatarMediaId}` : null,
   }
 }
 
@@ -1224,7 +1266,7 @@ export async function getPostAuthor(postId: number): Promise<number | null> {
 // Feed Notifications
 // ------------------------------------------------------------------------------------------------
 
-export type NotificationType = "comment" | "reply" | "like" | "follow"
+export type NotificationType = "comment" | "reply" | "like" | "follow" | "friend_request" | "friend_accepted"
 
 export async function createNotification(
   userId: number,

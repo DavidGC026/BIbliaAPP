@@ -192,8 +192,10 @@ registerAppSectionComplete({
 registerAppSectionComplete({
   ...meta("groups"),
   icon: Users,
+  requiresUser: true,
   render: (ctx) => (
     <Groups
+      currentUserId={ctx.user!.id}
       initialGroupId={ctx.navGroupId}
       onClearInitialGroupId={ctx.handleClearNavGroupId}
     />

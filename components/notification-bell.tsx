@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils"
 
 interface Notification {
   id: number
-  type: "comment" | "reply" | "like" | "follow" | "prayer_intercession"
+  type: "comment" | "reply" | "like" | "follow" | "prayer_intercession" | "friend_request" | "friend_accepted"
   post_id: number | null
   comment_id: number | null
   read_at: string | null
@@ -25,6 +25,8 @@ const TYPE_CONFIG = {
   like: { icon: Heart, label: "le gustó tu publicación", color: "text-rose-500" },
   follow: { icon: UserPlus, label: "comenzó a seguirte", color: "text-emerald-500" },
   prayer_intercession: { icon: HeartHandshake, label: "se unió a orar por tu petición", color: "text-amber-600" },
+  friend_request: { icon: UserPlus, label: "te envió una solicitud de amistad", color: "text-blue-500" },
+  friend_accepted: { icon: UserPlus, label: "aceptó tu solicitud de amistad", color: "text-emerald-600" },
 } as const
 
 /**

@@ -72,6 +72,7 @@ export function Feed({ currentUserId, userRole }: { currentUserId: number; userR
   const [isComposing, setIsComposing] = useState(false)
   const [newPostContent, setNewPostContent] = useState("")
   const [isAnnouncement, setIsAnnouncement] = useState(false)
+  const [postVisibility, setPostVisibility] = useState("public")
   const [attachments, setAttachments] = useState<PendingAttachment[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
@@ -104,13 +105,15 @@ export function Feed({ currentUserId, userRole }: { currentUserId: number; userR
         body: JSON.stringify({
           type: "custom",
           content,
-          isPublic: true,
+          isPublic: postVisibility === "public",
           isAnnouncement: isAdmin && isAnnouncement,
+          visibility: postVisibility,
         })
       })
       setNewPostContent("")
       setAttachments([])
       setIsAnnouncement(false)
+      setPostVisibility("public")
       setIsComposing(false)
       mutateFeed()
     } catch (e) {
@@ -290,6 +293,22 @@ export function Feed({ currentUserId, userRole }: { currentUserId: number; userR
                         Marcar como anuncio oficial
                       </label>
                     )}
+                    <div>
+                      <label className="text-xs font-semibold text-muted-foreground mb-1 block">
+                        Quién puede ver esta publicación
+                      </label>
+                      <select
+                        value={postVisibility}
+                        onChange={(e) => setPostVisibility(e.target.value)}
+                        className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                      >
+                        <option value="public">Público</option>
+                        <option value="friends">Amigos</option>
+                        <option value="church">Iglesia</option>
+                        <option value="groups">Grupos</option>
+                        <option value="private">Solo yo</option>
+                      </select>
+                    </div>
                     <div className="flex items-center gap-2">
                       <Button
                         variant="outline"
@@ -310,6 +329,7 @@ export function Feed({ currentUserId, userRole }: { currentUserId: number; userR
                           setNewPostContent("")
                           setAttachments([])
                           setIsAnnouncement(false)
+                          setPostVisibility("public")
                         }}
                         className="shrink-0"
                       >

@@ -10,20 +10,22 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
-    const { type, content, verseRef, verseText, isPublic, isAnnouncement } = body
+    const { type, content, verseRef, verseText, isPublic, isAnnouncement, visibility } = body
 
     if (!type || !content) {
       return NextResponse.json({ error: "Faltan campos requeridos" }, { status: 400 })
     }
 
+    const vis = visibility || (isPublic === false ? "private" : "public")
     const postId = await createFeedPost(
       session.userId,
       type,
       content,
       verseRef || null,
       verseText || null,
-      isPublic !== undefined ? isPublic : true,
+      vis === "public",
       session.role === "admin" && !!isAnnouncement,
+      vis,
     )
 
     return NextResponse.json({ success: true, postId })

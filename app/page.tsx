@@ -70,6 +70,14 @@ export default function Page() {
 
   const user = data?.user ?? null
   const isGuest = !isLoading && !user
+
+  const { data: churchData } = useSWR<{ settings: { church_name: string; church_logo_url: string | null } }>(
+    user ? "/api/church-settings" : null,
+    fetcher,
+  )
+  const churchLogo = churchData?.settings?.church_logo_url || "/logo.png"
+  const churchName = churchData?.settings?.church_name || "BibliaAPP"
+
   const [showAuthModal, setShowAuthModal] = useState(false)
   const openLogin = useCallback(() => setShowAuthModal(true), [])
 
@@ -282,13 +290,13 @@ export default function Page() {
           <div className={cn("flex items-center mb-3 px-3", sidebarCollapsed ? "justify-center" : "justify-between gap-2 px-4")}>
             <div className={cn("flex items-center gap-2.5", sidebarCollapsed && "justify-center")}>
               <img
-                src="/logo.png"
-                alt="Logo BibliaAPP"
+                src={churchLogo}
+                alt={`Logo ${churchName}`}
                 className="size-8 rounded-lg object-cover shadow-md shadow-primary/20 shrink-0"
               />
               {!sidebarCollapsed && (
                 <div className="flex flex-col min-w-0">
-                  <h1 className="text-sm font-bold tracking-tight text-foreground leading-none">BibliaAPP</h1>
+                  <h1 className="text-sm font-bold tracking-tight text-foreground leading-none">{churchName}</h1>
                   <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider mt-0.5">
                     {isGuest ? "Visitante" : user?.role === "admin" ? "Administrador" : "Lector"}
                   </p>
@@ -490,8 +498,8 @@ export default function Page() {
       <div className="md:hidden sticky top-0 left-0 right-0 h-12 bg-card/85 border-b border-border flex items-center justify-between px-4 z-40 backdrop-blur-md animate-fade-in">
         <div className="flex items-center gap-2">
           <img 
-            src="/logo.png" 
-            alt="Logo BibliaAPP" 
+            src={churchLogo} 
+            alt={`Logo ${churchName}`} 
             className="size-7 rounded object-cover"
           />
           <span className="text-sm font-bold text-foreground">{activeLabel}</span>

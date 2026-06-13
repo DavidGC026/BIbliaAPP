@@ -8,7 +8,17 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { buildGroupJoinUrl, buildGroupQrImageUrl } from "@/lib/group-invite"
+import {
+  GROUP_ROLE_LABELS,
+  GROUP_ROLES,
+  getGroupRoleLabel,
+  isGroupAdmin,
+  type GroupRole,
+} from "@/lib/group-roles"
 import { cn } from "@/lib/utils"
+import { GroupVisual } from "@/components/group-visual"
+import { GroupAppearanceEditor } from "@/components/group-appearance-editor"
+import { UserAvatar } from "@/components/user-avatar"
 import {
   Users,
   ArrowLeft,
@@ -22,6 +32,8 @@ import {
   HeartHandshake,
   Loader2,
   Send,
+  Pencil,
+  ImagePlus,
 } from "lucide-react"
 
 interface Group {
@@ -32,12 +44,16 @@ interface Group {
   invite_code: string
   member_count: number
   created_at: string
+  cover_image?: string | null
+  avatar_image?: string | null
+  is_official_church?: number
 }
 
-type TabId = "invite" | "study" | "wall" | "discussion" | "prayer"
+type TabId = "invite" | "members" | "study" | "wall" | "discussion" | "prayer"
 
 const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: "invite", label: "Invitar", icon: UserPlus },
+  { id: "members", label: "Miembros", icon: Users },
   { id: "study", label: "Lectura", icon: BookOpen },
   { id: "wall", label: "Muro", icon: MessageSquare },
   { id: "discussion", label: "Foro", icon: MessageSquare },
@@ -46,8 +62,12 @@ const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
 
 interface GroupDetailProps {
   group: Group
+  currentUserId: number
+  churchLogoUrl?: string | null
   onBack: () => void
   onRegenerateCode: () => Promise<void>
+  onRoleChanged: () => void
+  onAppearanceChanged: () => void
   regenerating: boolean
 }
 
@@ -64,14 +84,30 @@ function buildDiscussionTree(
   return roots
 }
 
-export function GroupDetail({ group, onBack, onRegenerateCode, regenerating }: GroupDetailProps) {
+export function GroupDetail({
+  group,
+  currentUserId,
+  churchLogoUrl,
+  onBack,
+  onRegenerateCode,
+  onRoleChanged,
+  onAppearanceChanged,
+  regenerating,
+}: GroupDetailProps) {
   const [tab, setTab] = useState<TabId>("invite")
   const [copied, setCopied] = useState(false)
   const [postContent, setPostContent] = useState("")
+  const [postImageUrl, setPostImageUrl] = useState<string | null>(null)
+  const [uploadingPostImage, setUploadingPostImage] = useState(false)
+  const [editingAppearance, setEditingAppearance] = useState(false)
   const [discussContent, setDiscussContent] = useState("")
   const [replyTo, setReplyTo] = useState<number | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [selectedPlanId, setSelectedPlanId] = useState("")
+  const [updatingRoleFor, setUpdatingRoleFor] = useState<number | null>(null)
+  const [roleError, setRoleError] = useState<string | null>(null)
+
+  const isAdmin = isGroupAdmin(group.role)
 
   const inviteUrl = buildGroupJoinUrl(group.invite_code)
   const qrUrl = buildGroupQrImageUrl(inviteUrl)
@@ -92,8 +128,12 @@ export function GroupDetail({ group, onBack, onRegenerateCode, regenerating }: G
     tab === "prayer" ? `/api/groups/${group.id}/prayers` : null,
     fetcher,
   )
+  const { data: membersData, mutate: mutateMembers } = useSWR(
+    tab === "members" ? `/api/groups/${group.id}/members` : null,
+    fetcher,
+  )
   const { data: allPlans } = useSWR(
-    tab === "study" && group.role === "admin" ? "/api/plans" : null,
+    tab === "study" && isAdmin ? "/api/plans" : null,
     fetcher,
   )
 
@@ -108,21 +148,38 @@ export function GroupDetail({ group, onBack, onRegenerateCode, regenerating }: G
   }
 
   async function postToWall() {
-    if (!postContent.trim()) return
+    if (!postContent.trim() && !postImageUrl) return
     setSubmitting(true)
     try {
       const res = await fetch(`/api/groups/${group.id}/activity`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "post", content: postContent }),
+        body: JSON.stringify({ action: "post", content: postContent, imageUrl: postImageUrl }),
       })
       if (!res.ok) throw new Error()
       setPostContent("")
+      setPostImageUrl(null)
       mutatePosts()
     } catch {
       alert("Error al publicar")
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  async function uploadPostImage(file: File) {
+    setUploadingPostImage(true)
+    try {
+      const fd = new FormData()
+      fd.append("file", file)
+      const res = await fetch("/api/upload", { method: "POST", body: fd })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      setPostImageUrl(data.url)
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Error al subir")
+    } finally {
+      setUploadingPostImage(false)
     }
   }
 
@@ -177,6 +234,26 @@ export function GroupDetail({ group, onBack, onRegenerateCode, regenerating }: G
     }
   }
 
+  async function changeMemberRole(userId: number, role: GroupRole) {
+    setUpdatingRoleFor(userId)
+    setRoleError(null)
+    try {
+      const res = await fetch(`/api/groups/${group.id}/members`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, role }),
+      })
+      const body = await res.json()
+      if (!res.ok) throw new Error(body.error || "Error al cambiar rol")
+      await mutateMembers()
+      onRoleChanged()
+    } catch (err) {
+      setRoleError(err instanceof Error ? err.message : "Error al cambiar rol")
+    } finally {
+      setUpdatingRoleFor(null)
+    }
+  }
+
   const discussionTree = buildDiscussionTree(discussData?.discussions ?? [])
 
   function renderDiscussion(nodes: ReturnType<typeof buildDiscussionTree>, depth = 0) {
@@ -213,19 +290,57 @@ export function GroupDetail({ group, onBack, onRegenerateCode, regenerating }: G
         Volver a mis grupos
       </button>
 
-      <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-extrabold">{group.name}</h1>
-            <p className="text-sm text-muted-foreground mt-1">{group.description || "Sin descripción"}</p>
+      {editingAppearance && isAdmin ? (
+        <GroupAppearanceEditor
+          groupId={group.id}
+          name={group.name}
+          coverImage={group.cover_image ?? null}
+          avatarImage={group.avatar_image ?? null}
+          churchLogoUrl={churchLogoUrl}
+          isOfficialChurch={!!group.is_official_church}
+          onSaved={() => {
+            setEditingAppearance(false)
+            onAppearanceChanged()
+          }}
+          onCancel={() => setEditingAppearance(false)}
+        />
+      ) : (
+        <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+          <GroupVisual
+            name={group.name}
+            coverImage={group.cover_image}
+            avatarImage={group.avatar_image}
+            churchLogoUrl={churchLogoUrl}
+            isOfficialChurch={!!group.is_official_church}
+            variant="hero"
+          />
+          <div className="px-5 pb-5 pt-14 text-center sm:text-left">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+              <div>
+                <h1 className="text-2xl font-extrabold">{group.name}</h1>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {group.description || "Sin descripción"}
+                </p>
+                <p className="text-sm text-muted-foreground mt-2 flex items-center justify-center sm:justify-start gap-1.5">
+                  <Users className="size-4" />
+                  {group.member_count} miembros · {getGroupRoleLabel(group.role)}
+                </p>
+              </div>
+              {isAdmin && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setEditingAppearance(true)}
+                  className="gap-1.5 shrink-0"
+                >
+                  <Pencil className="size-3.5" />
+                  Editar apariencia
+                </Button>
+              )}
+            </div>
           </div>
-          <span className="text-xs font-semibold bg-muted px-2 py-1 rounded-md uppercase">{group.role}</span>
         </div>
-        <p className="text-sm text-muted-foreground mt-3 flex items-center gap-1.5">
-          <Users className="size-4" />
-          {group.member_count} miembros
-        </p>
-      </div>
+      )}
 
       <div className="flex gap-1 overflow-x-auto pb-1">
         {TABS.map((t) => {
@@ -262,7 +377,7 @@ export function GroupDetail({ group, onBack, onRegenerateCode, regenerating }: G
                   {copied ? "Copiado" : "Copiar"}
                 </Button>
               </div>
-              {group.role === "admin" && (
+              {isAdmin && (
                 <Button variant="ghost" size="sm" onClick={onRegenerateCode} disabled={regenerating} className="gap-1.5">
                   {regenerating ? <Loader2 className="size-3.5 animate-spin" /> : <RefreshCw className="size-3.5" />}
                   Regenerar código
@@ -276,6 +391,83 @@ export function GroupDetail({ group, onBack, onRegenerateCode, regenerating }: G
               Comparte el QR en la reunión de la célula o el enlace por WhatsApp.
             </p>
           </div>
+        </div>
+      )}
+
+      {tab === "members" && (
+        <div className="rounded-xl border border-border bg-card p-6 shadow-sm space-y-4">
+          {isAdmin && (
+            <p className="text-sm text-muted-foreground">
+              Como administrador puedes asignar roles a cada miembro del grupo.
+            </p>
+          )}
+          {roleError && (
+            <p className="text-sm text-destructive rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2">
+              {roleError}
+            </p>
+          )}
+          {!membersData ? (
+            <div className="py-6 flex justify-center">
+              <Loader2 className="size-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : (membersData.members ?? []).length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-6">No hay miembros en este grupo.</p>
+          ) : (
+            <div className="space-y-3">
+              {membersData.members.map((m: {
+                user_id: number
+                name: string
+                username: string
+                role: GroupRole
+                joined_at: string
+                avatar_url: string | null
+              }) => (
+                <div
+                  key={m.user_id}
+                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-lg border border-border bg-card/50 p-4"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <UserAvatar name={m.name} avatarUrl={m.avatar_url} size="md" />
+                    <div className="min-w-0">
+                      <p className="font-semibold truncate">
+                        {m.name}
+                        {m.user_id === currentUserId && (
+                          <span className="ml-2 text-xs font-normal text-primary">(Tú)</span>
+                        )}
+                      </p>
+                      <p className="text-xs text-muted-foreground">@{m.username}</p>
+                      <p className="text-[10px] text-muted-foreground mt-1">
+                        Desde {new Date(m.joined_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                  {isAdmin ? (
+                    <div className="flex items-center gap-2 shrink-0">
+                      {updatingRoleFor === m.user_id && (
+                        <Loader2 className="size-4 animate-spin text-muted-foreground" />
+                      )}
+                      <select
+                        value={m.role}
+                        disabled={updatingRoleFor === m.user_id}
+                        onChange={(e) => changeMemberRole(m.user_id, e.target.value as GroupRole)}
+                        className="rounded-lg border border-border bg-background px-3 py-2 text-sm min-w-[160px]"
+                      >
+                        {GROUP_ROLES.map((role) => (
+                          <option key={role} value={role}>
+                            {GROUP_ROLE_LABELS[role]}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  ) : (
+                    <span className="text-xs font-semibold bg-muted px-2 py-1 rounded-md shrink-0">
+                      {getGroupRoleLabel(m.role)}
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -312,7 +504,7 @@ export function GroupDetail({ group, onBack, onRegenerateCode, regenerating }: G
           ) : (
             <p className="text-sm text-muted-foreground">Aún no hay un plan de lectura asignado.</p>
           )}
-          {group.role === "admin" && allPlans?.plans && (
+          {isAdmin && allPlans?.plans && (
             <div className="flex gap-2 pt-2 border-t border-border">
               <select
                 value={selectedPlanId}
@@ -338,18 +530,74 @@ export function GroupDetail({ group, onBack, onRegenerateCode, regenerating }: G
             <Textarea
               value={postContent}
               onChange={(e) => setPostContent(e.target.value)}
-              placeholder="Comparte una reflexión o devocional con el grupo..."
+              placeholder="Comparte una reflexión, devocional o foto con el grupo..."
               className="min-h-[80px]"
             />
-            <Button onClick={postToWall} disabled={submitting} className="gap-2">
-              {submitting ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
-              Publicar
-            </Button>
+            {postImageUrl && (
+              <div className="relative rounded-lg overflow-hidden border border-border max-h-48">
+                <img src={postImageUrl} alt="" className="w-full object-cover max-h-48" />
+                <button
+                  type="button"
+                  onClick={() => setPostImageUrl(null)}
+                  className="absolute top-2 right-2 text-xs bg-background/90 px-2 py-1 rounded-md border"
+                >
+                  Quitar
+                </button>
+              </div>
+            )}
+            <div className="flex gap-2">
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                id="group-wall-image"
+                onChange={(e) => {
+                  const f = e.target.files?.[0]
+                  if (f) uploadPostImage(f)
+                }}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={uploadingPostImage}
+                onClick={() => document.getElementById("group-wall-image")?.click()}
+                className="gap-1.5"
+              >
+                {uploadingPostImage ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <ImagePlus className="size-4" />
+                )}
+                Foto
+              </Button>
+              <Button
+                onClick={postToWall}
+                disabled={submitting || (!postContent.trim() && !postImageUrl)}
+                className="gap-2"
+              >
+                {submitting ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
+                Publicar
+              </Button>
+            </div>
           </div>
-          {(postsData?.posts ?? []).map((p: { id: number; user_name: string; content: string; created_at: string }) => (
-            <div key={p.id} className="rounded-xl border border-border bg-card p-4">
+          {(postsData?.posts ?? []).map((p: {
+            id: number
+            user_name: string
+            content: string
+            image_url: string | null
+            created_at: string
+          }) => (
+            <div key={p.id} className="rounded-xl border border-border bg-card p-4 overflow-hidden">
               <p className="text-xs font-semibold text-muted-foreground">{p.user_name}</p>
-              <p className="text-sm mt-2 whitespace-pre-wrap">{p.content}</p>
+              {p.image_url && (
+                <img
+                  src={p.image_url}
+                  alt=""
+                  className="mt-2 rounded-lg w-full max-h-64 object-cover"
+                />
+              )}
+              {p.content && <p className="text-sm mt-2 whitespace-pre-wrap">{p.content}</p>}
               <p className="text-[10px] text-muted-foreground mt-2">{new Date(p.created_at).toLocaleString()}</p>
             </div>
           ))}

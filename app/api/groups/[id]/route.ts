@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getSession } from "@/lib/auth"
-import { getGroupDetail, regenerateGroupInviteCode } from "@/lib/groups"
+import { getGroupDetail, regenerateGroupInviteCode, updateGroupAppearance } from "@/lib/groups"
 
 export async function GET(
   req: NextRequest,
@@ -45,12 +45,22 @@ export async function PUT(
     }
 
     const body = await req.json()
-    if (body.action !== "regenerate_invite") {
-      return NextResponse.json({ error: "Acción no soportada" }, { status: 400 })
+
+    if (body.action === "regenerate_invite") {
+      const inviteCode = await regenerateGroupInviteCode(groupId, user.userId)
+      return NextResponse.json({ success: true, invite_code: inviteCode })
     }
 
-    const inviteCode = await regenerateGroupInviteCode(groupId, user.userId)
-    return NextResponse.json({ success: true, invite_code: inviteCode })
+    if (body.action === "update_appearance") {
+      await updateGroupAppearance(groupId, user.userId, {
+        cover_image: body.cover_image,
+        avatar_image: body.avatar_image,
+      })
+      const group = await getGroupDetail(groupId, user.userId)
+      return NextResponse.json({ success: true, group })
+    }
+
+    return NextResponse.json({ error: "Acción no soportada" }, { status: 400 })
   } catch (err) {
     const message = err instanceof Error ? err.message : "Error desconocido"
     const status = message.includes("administradores") ? 403 : 500

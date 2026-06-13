@@ -67,7 +67,7 @@ export async function listUserPrayers(userId: number) {
 export async function listGroupPrayers(groupId: number, userId: number) {
   await ensurePrayerTables()
   const [member] = await getPool().query<RowDataPacket[]>(
-    `SELECT id FROM bible_group_members WHERE group_id = ? AND user_id = ? LIMIT 1`,
+    `SELECT user_id FROM bible_group_members WHERE group_id = ? AND user_id = ? LIMIT 1`,
     [groupId, userId],
   )
   if (!member[0]) throw new Error("No eres miembro de este grupo")
@@ -97,7 +97,7 @@ export async function createPrayer(
   if (visibility === "group") {
     if (!groupId) throw new Error("Debes seleccionar un grupo")
     const [member] = await getPool().query<RowDataPacket[]>(
-      `SELECT id FROM bible_group_members WHERE group_id = ? AND user_id = ? LIMIT 1`,
+      `SELECT user_id FROM bible_group_members WHERE group_id = ? AND user_id = ? LIMIT 1`,
       [groupId, userId],
     )
     if (!member[0]) throw new Error("No eres miembro de ese grupo")
@@ -150,7 +150,7 @@ export async function joinPrayerIntercession(
 
   if (prayer[0].visibility === "group" && prayer[0].group_id) {
     const [member] = await pool.query<RowDataPacket[]>(
-      `SELECT id FROM bible_group_members WHERE group_id = ? AND user_id = ? LIMIT 1`,
+      `SELECT user_id FROM bible_group_members WHERE group_id = ? AND user_id = ? LIMIT 1`,
       [prayer[0].group_id, userId],
     )
     if (!member[0]) throw new Error("No tienes acceso a esta petición")

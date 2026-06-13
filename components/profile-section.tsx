@@ -23,6 +23,9 @@ import {
   Heart,
   Share2
 } from "lucide-react"
+import { UserAvatar } from "@/components/user-avatar"
+import { FriendRequestButton } from "@/components/friend-request-button"
+import { PrivacySettings } from "@/components/privacy-settings"
 
 interface ProfileSectionProps {
   currentUserId: number
@@ -116,10 +119,12 @@ export function ProfileSection({ currentUserId, initialUsername }: ProfileSectio
             <div className="px-6 relative -mt-16 sm:-mt-20 shrink-0 pb-6 border-b border-border/30">
               <div className="flex flex-col sm:flex-row gap-4 sm:items-end justify-between">
                 <div className="flex flex-col sm:flex-row gap-4 sm:items-end">
-                  <div className="size-24 sm:size-32 rounded-2xl bg-card border-4 border-background shadow-xl flex items-center justify-center text-4xl font-bold text-primary shrink-0 relative overflow-hidden">
-                    <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-transparent" />
-                    {profile.name.charAt(0).toUpperCase()}
-                  </div>
+                  <UserAvatar
+                    name={profile.name}
+                    avatarUrl={profile.avatarUrl}
+                    size="xl"
+                    className="rounded-2xl border-4 border-background shadow-xl"
+                  />
                   
                   <div className="pb-2">
                     <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">{profile.name}</h2>
@@ -191,21 +196,28 @@ export function ProfileSection({ currentUserId, initialUsername }: ProfileSectio
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3 pb-2">
+                <div className="flex items-center gap-3 pb-2 flex-wrap">
                   {profile.id !== currentUserId && (
-                    <Button 
-                      onClick={handleFollowToggle}
-                      className={cn(
-                        "rounded-full px-6 shadow-md transition-all active:scale-95",
-                        profile.isFollowing ? "bg-muted text-foreground hover:bg-muted/80" : "bg-primary text-primary-foreground hover:bg-primary/90"
-                      )}
-                    >
-                      {profile.isFollowing ? (
-                        <>Siguiendo</>
-                      ) : (
-                        <><UserPlus className="size-4 mr-2" /> Seguir</>
-                      )}
-                    </Button>
+                    <>
+                      <FriendRequestButton
+                        targetUserId={profile.id}
+                        friendStatus={profile.friendStatus || "none"}
+                        onChanged={() => mutateProfile()}
+                      />
+                      <Button
+                        onClick={handleFollowToggle}
+                        className={cn(
+                          "rounded-full px-6 shadow-md transition-all active:scale-95",
+                          profile.isFollowing ? "bg-muted text-foreground hover:bg-muted/80" : "bg-primary text-primary-foreground hover:bg-primary/90"
+                        )}
+                      >
+                        {profile.isFollowing ? (
+                          <>Siguiendo</>
+                        ) : (
+                          <><UserPlus className="size-4 mr-2" /> Seguir</>
+                        )}
+                      </Button>
+                    </>
                   )}
                 </div>
               </div>
@@ -229,6 +241,12 @@ export function ProfileSection({ currentUserId, initialUsername }: ProfileSectio
                 </div>
               </div>
             </div>
+
+            {profile.id === currentUserId && (
+              <div className="px-6 pb-4">
+                <PrivacySettings />
+              </div>
+            )}
 
             {/* Posts */}
             <div className="flex-1 p-6">

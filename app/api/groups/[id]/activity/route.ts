@@ -54,11 +54,13 @@ export async function POST(
     const { id } = await params
     const groupId = parseInt(id, 10)
     const body = await req.json()
-    const { action, content, parentId, planId } = body
+    const { action, content, parentId, planId, imageUrl } = body
 
     if (action === "post") {
-      if (!content?.trim()) return NextResponse.json({ error: "Contenido requerido" }, { status: 400 })
-      const postId = await createGroupPost(groupId, user.userId, content)
+      if (!content?.trim() && !imageUrl) {
+        return NextResponse.json({ error: "Contenido o imagen requerido" }, { status: 400 })
+      }
+      const postId = await createGroupPost(groupId, user.userId, content || "", imageUrl)
       return NextResponse.json({ success: true, id: postId })
     }
 

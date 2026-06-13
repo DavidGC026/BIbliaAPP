@@ -6,6 +6,7 @@ import useSWR from "swr"
 import { fetcher } from "@/lib/fetcher"
 import { Button } from "@/components/ui/button"
 import { Users, Loader2, X, LogIn } from "lucide-react"
+import { GroupVisual } from "@/components/group-visual"
 
 interface GroupPreview {
   id: number
@@ -13,6 +14,9 @@ interface GroupPreview {
   description: string
   member_count: number
   invite_code: string
+  cover_image?: string | null
+  avatar_image?: string | null
+  is_official_church?: number
 }
 
 interface GroupJoinModalProps {
@@ -73,10 +77,7 @@ export function GroupJoinModal({
           <X className="size-4" />
         </button>
 
-        <div className="text-center mb-6">
-          <div className="size-16 bg-blue-500/10 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Users className="size-8" />
-          </div>
+        <div className="text-center mb-4">
           <h2 className="text-2xl font-bold text-foreground">Unirse a un grupo</h2>
           <p className="text-sm text-muted-foreground mt-2">
             Te invitaron a unirte a un grupo de estudio bíblico.
@@ -98,14 +99,24 @@ export function GroupJoinModal({
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="rounded-xl border border-border bg-muted/30 p-4 text-center">
-              <h3 className="font-bold text-lg text-foreground">{group.name}</h3>
-              {group.description && (
-                <p className="text-sm text-muted-foreground mt-2 line-clamp-3">{group.description}</p>
-              )}
-              <p className="text-xs text-muted-foreground mt-3 font-medium">
-                {group.member_count} {group.member_count === 1 ? "miembro" : "miembros"}
-              </p>
+            <div className="rounded-xl border border-border bg-card overflow-hidden">
+              <GroupVisual
+                name={group.name}
+                coverImage={group.cover_image}
+                avatarImage={group.avatar_image}
+                isOfficialChurch={!!group.is_official_church}
+                variant="card"
+              />
+              <div className="px-4 pb-4 pt-10 text-center">
+                <h3 className="font-bold text-lg text-foreground">{group.name}</h3>
+                {group.description && (
+                  <p className="text-sm text-muted-foreground mt-2 line-clamp-3">{group.description}</p>
+                )}
+                <p className="text-xs text-muted-foreground mt-3 font-medium flex items-center justify-center gap-1">
+                  <Users className="size-3.5" />
+                  {group.member_count} {group.member_count === 1 ? "miembro" : "miembros"}
+                </p>
+              </div>
             </div>
 
             {joinError && (

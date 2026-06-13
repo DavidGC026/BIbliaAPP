@@ -1,5 +1,6 @@
 import type { RowDataPacket, ResultSetHeader } from "mysql2"
 import { ensureGroupTables } from "./groups"
+import { isGroupAdmin } from "./group-roles"
 import { getPool } from "./mysql"
 
 export async function ensureGroupFeatureTables(): Promise<void> {
@@ -119,7 +120,7 @@ export async function assignGroupReadingPlan(
   planId: number,
 ): Promise<void> {
   const role = await assertGroupMember(groupId, userId)
-  if (role !== "admin") throw new Error("Solo los administradores pueden asignar planes")
+  if (!isGroupAdmin(role)) throw new Error("Solo los administradores pueden asignar planes")
 
   await getPool().query(
     `INSERT INTO bible_group_reading_plans (group_id, plan_id, assigned_by)
@@ -132,7 +133,7 @@ export async function assignGroupReadingPlan(
 export async function listGroupPosts(groupId: number, userId: number) {
   await assertGroupMember(groupId, userId)
   const [rows] = await getPool().query<RowDataPacket[]>(
-    `SELECT p.id, p.content, p.created_at, u.name AS user_name, u.username AS user_username
+    `SELECT p.id, p.content, p.image_url, p.created_at, u.name AS user_name, u.username AS user_username
      FROM bible_group_posts p
      JOIN users u ON p.user_id = u.id
      WHERE p.group_id = ?
@@ -143,11 +144,16 @@ export async function listGroupPosts(groupId: number, userId: number) {
   return rows
 }
 
-export async function createGroupPost(groupId: number, userId: number, content: string) {
+export async function createGroupPost(
+  groupId: number,
+  userId: number,
+  content: string,
+  imageUrl?: string | null,
+) {
   await assertGroupMember(groupId, userId)
   const [result] = await getPool().query<ResultSetHeader>(
-    `INSERT INTO bible_group_posts (group_id, user_id, content) VALUES (?, ?, ?)`,
-    [groupId, userId, content.trim()],
+    `INSERT INTO bible_group_posts (group_id, user_id, content, image_url) VALUES (?, ?, ?, ?)`,
+    [groupId, userId, content.trim(), imageUrl || null],
   )
   return result.insertId
 }

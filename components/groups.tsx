@@ -13,7 +13,9 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
+import { getGroupRoleLabel, isGroupAdmin } from "@/lib/group-roles"
 import { GroupDetail } from "@/components/group-detail"
+import { GroupVisual } from "@/components/group-visual"
 
 interface Group {
   id: number
@@ -23,16 +25,25 @@ interface Group {
   invite_code: string
   member_count: number
   created_at: string
+  cover_image?: string | null
+  avatar_image?: string | null
+  is_official_church?: number
 }
 
 interface GroupsProps {
+  currentUserId: number
   initialGroupId?: number | null
   onClearInitialGroupId?: () => void
 }
 
-export function Groups({ initialGroupId, onClearInitialGroupId }: GroupsProps) {
+export function Groups({ currentUserId, initialGroupId, onClearInitialGroupId }: GroupsProps) {
   const { data, mutate, isLoading } = useSWR<{ groups: Group[] }>("/api/groups", fetcher)
+  const { data: churchData } = useSWR<{ settings: { church_logo_url: string | null } }>(
+    "/api/church-settings",
+    fetcher,
+  )
   const groups = data?.groups ?? []
+  const churchLogo = churchData?.settings?.church_logo_url
 
   const [isCreating, setIsCreating] = useState(false)
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(initialGroupId ?? null)
@@ -76,7 +87,7 @@ export function Groups({ initialGroupId, onClearInitialGroupId }: GroupsProps) {
   }
 
   async function handleRegenerateCode() {
-    if (!selectedGroup || selectedGroup.role !== "admin") return
+    if (!selectedGroup || !isGroupAdmin(selectedGroup.role)) return
     if (!confirm("¿Regenerar el código? El enlace y QR anteriores dejarán de funcionar.")) return
 
     setRegenerating(true)
@@ -100,8 +111,12 @@ export function Groups({ initialGroupId, onClearInitialGroupId }: GroupsProps) {
     return (
       <GroupDetail
         group={selectedGroup}
+        currentUserId={currentUserId}
+        churchLogoUrl={churchLogo}
         onBack={() => setSelectedGroupId(null)}
         onRegenerateCode={handleRegenerateCode}
+        onRoleChanged={() => mutate()}
+        onAppearanceChanged={() => mutate()}
         regenerating={regenerating}
       />
     )
@@ -182,27 +197,37 @@ export function Groups({ initialGroupId, onClearInitialGroupId }: GroupsProps) {
                   type="button"
                   onClick={() => setSelectedGroupId(g.id)}
                   className={cn(
-                    "p-5 rounded-xl border border-border bg-card shadow-sm hover:shadow-md transition-all text-left",
+                    "rounded-xl border border-border bg-card shadow-sm hover:shadow-md transition-all text-left overflow-hidden",
                     "hover:border-blue-500/30 group cursor-pointer",
                   )}
                 >
-                  <div className="flex justify-between items-start mb-2">
-                    <h3 className="font-bold text-lg group-hover:text-blue-500 transition-colors">
-                      {g.name}
-                    </h3>
-                    <span className="text-xs font-semibold bg-muted px-2 py-1 rounded-md uppercase tracking-wider">
-                      {g.role}
-                    </span>
-                  </div>
-                  <p className="text-sm text-muted-foreground line-clamp-2">
-                    {g.description || "Sin descripción"}
-                  </p>
-                  <div className="mt-4 pt-4 border-t border-border flex justify-between items-center text-xs text-muted-foreground font-medium">
-                    <span className="flex items-center gap-1">
-                      <Users className="size-3.5" />
-                      {g.member_count} {g.member_count === 1 ? "miembro" : "miembros"}
-                    </span>
-                    <span>Ver invitación →</span>
+                  <GroupVisual
+                    name={g.name}
+                    coverImage={g.cover_image}
+                    avatarImage={g.avatar_image}
+                    churchLogoUrl={churchLogo}
+                    isOfficialChurch={!!g.is_official_church}
+                    variant="card"
+                  />
+                  <div className="px-4 pb-4 pt-10">
+                    <div className="flex justify-between items-start mb-1">
+                      <h3 className="font-bold text-lg group-hover:text-blue-500 transition-colors">
+                        {g.name}
+                      </h3>
+                      <span className="text-xs font-semibold bg-muted px-2 py-1 rounded-md tracking-wider shrink-0 ml-2">
+                        {getGroupRoleLabel(g.role)}
+                      </span>
+                    </div>
+                    <p className="text-sm text-muted-foreground line-clamp-2">
+                      {g.description || "Sin descripción"}
+                    </p>
+                    <div className="mt-3 pt-3 border-t border-border flex justify-between items-center text-xs text-muted-foreground font-medium">
+                      <span className="flex items-center gap-1">
+                        <Users className="size-3.5" />
+                        {g.member_count} {g.member_count === 1 ? "miembro" : "miembros"}
+                      </span>
+                      <span>Abrir grupo →</span>
+                    </div>
                   </div>
                 </button>
               ))}

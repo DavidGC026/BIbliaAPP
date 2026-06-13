@@ -23,7 +23,13 @@ interface ChurchCalendarProps {
 
 export function ChurchCalendar({ isAdmin = false }: ChurchCalendarProps) {
   const { data, mutate, isLoading } = useSWR<{ events: any[] }>("/api/events", fetcher)
+  const { data: churchData } = useSWR<{ settings: { church_name: string; church_logo_url: string | null } }>(
+    "/api/church-settings",
+    fetcher,
+  )
   const events = data?.events ?? []
+  const churchLogo = churchData?.settings?.church_logo_url
+  const churchName = churchData?.settings?.church_name
 
   const [isCreating, setIsCreating] = useState(false)
   const [title, setTitle] = useState("")
@@ -91,7 +97,11 @@ export function ChurchCalendar({ isAdmin = false }: ChurchCalendarProps) {
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Actividades y eventos de la congregación
+            {churchName && churchName !== "BibliaAPP" ? ` · ${churchName}` : ""}
           </p>
+          {churchLogo && (
+            <img src={churchLogo} alt="" className="mt-2 size-8 rounded-lg object-contain" />
+          )}
         </div>
         {isAdmin && !isCreating && (
           <Button onClick={() => setIsCreating(true)} className="gap-2">
