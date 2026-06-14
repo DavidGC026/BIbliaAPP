@@ -1,39 +1,82 @@
 import crypto from "crypto"
 
-const SECRET = process.env.JWT_SECRET || "bibliaapp-super-secret-key-2026"
+function getSecret(): string {
+  if (process.env.JWT_SECRET) return process.env.JWT_SECRET
+  if (process.env.NODE_ENV === "production") {
+    const mysqlPassword = process.env.MYSQL_PASSWORD
+    const appUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL
+    if (mysqlPassword && appUrl) {
+      return crypto
+        .createHash("sha256")
+        .update(`jwt:${mysqlPassword}:${appUrl}`)
+        .digest("hex")
+    }
+    throw new Error("JWT_SECRET es obligatorio en producción (o define MYSQL_PASSWORD y APP_URL).")
+  }
+  return "bibliaapp-dev-only-secret"
+}
 
 export interface UserSession {
   userId: number
   role: string
 }
 
-export function generateToken(payload: UserSession): string {
-  const data = JSON.stringify({ ...payload, exp: Date.now() + 7 * 24 * 60 * 60 * 1000 }) // 7 days expiration
-  const cipher = crypto.createCipheriv("aes-256-cbc", crypto.scryptSync(SECRET, "salt", 32), Buffer.alloc(16, 0))
-  let encrypted = cipher.update(data, "utf8", "hex")
-  encrypted += cipher.final("hex")
-  return encrypted
+function deriveKey(): Buffer {
+  return crypto.scryptSync(getSecret(), "salt", 32)
 }
 
-export function verifyToken(token: string): UserSession | null {
+/** Formato nuevo: <iv-hex>:<ciphertext-hex> */
+export function generateToken(payload: UserSession): string {
+  const data = JSON.stringify({
+    ...payload,
+    exp: Date.now() + 7 * 24 * 60 * 60 * 1000,
+  })
+  const iv = crypto.randomBytes(16)
+  const cipher = crypto.createCipheriv("aes-256-cbc", deriveKey(), iv)
+  let encrypted = cipher.update(data, "utf8", "hex")
+  encrypted += cipher.final("hex")
+  return `${iv.toString("hex")}:${encrypted}`
+}
+
+function verifyLegacyToken(token: string): UserSession | null {
   try {
-    const decipher = crypto.createDecipheriv("aes-256-cbc", crypto.scryptSync(SECRET, "salt", 32), Buffer.alloc(16, 0))
+    const decipher = crypto.createDecipheriv(
+      "aes-256-cbc",
+      deriveKey(),
+      Buffer.alloc(16, 0),
+    )
     let decrypted = decipher.update(token, "hex", "utf8")
     decrypted += decipher.final("utf8")
     const payload = JSON.parse(decrypted)
     if (payload.exp < Date.now()) return null
-    return {
-      userId: payload.userId,
-      role: payload.role,
-    }
+    return { userId: payload.userId, role: payload.role }
   } catch {
     return null
   }
 }
 
+export function verifyToken(token: string): UserSession | null {
+  try {
+    if (token.includes(":")) {
+      const [ivHex, encrypted] = token.split(":")
+      if (!ivHex || !encrypted) return null
+      const iv = Buffer.from(ivHex, "hex")
+      if (iv.length !== 16) return null
+      const decipher = crypto.createDecipheriv("aes-256-cbc", deriveKey(), iv)
+      let decrypted = decipher.update(encrypted, "hex", "utf8")
+      decrypted += decipher.final("utf8")
+      const payload = JSON.parse(decrypted)
+      if (payload.exp < Date.now()) return null
+      return { userId: payload.userId, role: payload.role }
+    }
+    return verifyLegacyToken(token)
+  } catch {
+    return verifyLegacyToken(token)
+  }
+}
+
 const LEGACY_SALT = "biblia-salt-2026"
 
-// Formato nuevo: scrypt$<salt-hex>$<hash-hex> (sal aleatoria por usuario)
 export function hashPassword(password: string): string {
   const salt = crypto.randomBytes(16).toString("hex")
   const hash = crypto.scryptSync(password, salt, 32).toString("hex")
@@ -47,11 +90,6 @@ function safeEqual(a: string, b: string): boolean {
   return crypto.timingSafeEqual(bufA, bufB)
 }
 
-/**
- * Verifica una contraseña contra el hash almacenado, aceptando tanto el
- * formato nuevo (scrypt) como los formatos antiguos (HMAC/SHA-256 con sal fija)
- * para no romper cuentas existentes.
- */
 export function verifyPassword(password: string, storedHash: string): boolean {
   if (!storedHash) return false
 
@@ -62,7 +100,6 @@ export function verifyPassword(password: string, storedHash: string): boolean {
     return safeEqual(candidate, hash)
   }
 
-  // Formatos legados (64 hex): HMAC con sal fija y variantes SHA-256
   const legacyCandidates = [
     crypto.createHmac("sha256", LEGACY_SALT).update(password).digest("hex"),
     crypto.createHash("sha256").update(password + LEGACY_SALT).digest("hex"),
@@ -72,7 +109,6 @@ export function verifyPassword(password: string, storedHash: string): boolean {
   return legacyCandidates.some((candidate) => safeEqual(candidate, storedHash))
 }
 
-/** Indica si el hash almacenado usa un formato legado y conviene re-hashear. */
 export function needsRehash(storedHash: string): boolean {
   return !storedHash.startsWith("scrypt$")
 }
@@ -96,7 +132,6 @@ export function getSession(req: Request): UserSession | null {
     const token = authHeader.substring(7)
     return verifyToken(token)
   }
-  // Try cookie
   const cookieHeader = req.headers.get("cookie")
   if (cookieHeader) {
     const match = cookieHeader.match(/session=([^;]+)/)
@@ -105,4 +140,13 @@ export function getSession(req: Request): UserSession | null {
     }
   }
   return null
+}
+
+export function sessionCookieFlags(): string {
+  const base = "Path=/; HttpOnly; SameSite=Lax"
+  const isSecure =
+    process.env.NODE_ENV === "production" ||
+    process.env.APP_URL?.startsWith("https://") ||
+    process.env.NEXT_PUBLIC_APP_URL?.startsWith("https://")
+  return isSecure ? `${base}; Secure` : base
 }

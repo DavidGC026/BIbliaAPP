@@ -43,6 +43,7 @@ export function ChurchSettingsPanel() {
     try {
       const fd = new FormData()
       fd.append("file", file)
+      fd.append("purpose", "church_logo")
       const res = await fetch("/api/upload", { method: "POST", body: fd })
       const body = await res.json()
       if (!res.ok) throw new Error(body.error)

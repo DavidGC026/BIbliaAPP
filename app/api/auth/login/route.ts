@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getUserByEmail, updateUserPassword } from "@/lib/bible"
-import { hashPassword, verifyPassword, needsRehash, generateToken } from "@/lib/auth"
+import { hashPassword, verifyPassword, needsRehash, generateToken, sessionCookieFlags } from "@/lib/auth"
 
 export async function POST(req: NextRequest) {
   try {
@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
 
     response.headers.append(
       "Set-Cookie",
-      `session=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${7 * 24 * 60 * 60}`,
+      `session=${token}; ${sessionCookieFlags()}; Max-Age=${7 * 24 * 60 * 60}`,
     )
 
     return response

@@ -1078,13 +1078,15 @@ export async function deleteFeedPost(postId: number, userId: number): Promise<vo
 }
 
 export async function getFeed(userId: number, type: 'following' | 'explore' = 'following', limit = 20, offset = 0): Promise<any[]> {
-  const whereClause = type === 'explore' 
-    ? "fp.is_public = 1" 
-    : "fp.is_public = 1 AND (fp.user_id = ? OR fp.user_id IN (SELECT followed_id FROM user_follows WHERE follower_id = ?))"
-  
-  const queryParams = type === 'explore'
-    ? [userId, limit, offset]
-    : [userId, userId, userId, limit, offset]
+  const whereClause =
+    type === "explore"
+      ? `(fp.visibility = 'public' OR (fp.visibility IS NULL AND fp.is_public = 1))`
+      : `(fp.user_id = ? OR fp.user_id IN (SELECT followed_id FROM user_follows WHERE follower_id = ?))`
+
+  const queryParams =
+    type === "explore"
+      ? [userId, limit, offset]
+      : [userId, userId, userId, limit, offset]
 
   const [rows] = await getPool().query<RowDataPacket[]>(
     `SELECT fp.*, u.name as user_name, u.username as user_username,
@@ -1110,18 +1112,28 @@ export async function getFeed(userId: number, type: 'following' | 'explore' = 'f
   return filtered
 }
 
-export async function getAnnouncements(limit = 5): Promise<any[]> {
+export async function getAnnouncements(userId: number | null, limit = 5): Promise<any[]> {
   await ensureDbTables()
   const [rows] = await getPool().query<RowDataPacket[]>(
     `SELECT fp.*, u.name as user_name, u.username as user_username
      FROM feed_posts fp
      JOIN users u ON fp.user_id = u.id
-     WHERE fp.is_announcement = 1 AND fp.is_public = 1
+     WHERE fp.is_announcement = 1
      ORDER BY fp.created_at DESC
      LIMIT ?`,
     [limit],
   )
-  return rows
+  const { canViewFeedPost } = await import("./media-privacy")
+  const filtered = []
+  for (const row of rows) {
+    const vis = (row.visibility as string) || (row.is_public ? "public" : "private")
+    if (userId == null) {
+      if (vis === "public") filtered.push(row)
+    } else if (await canViewFeedPost(userId, row.user_id as number, vis)) {
+      filtered.push(row)
+    }
+  }
+  return filtered
 }
 
 export async function getPublicProfile(username: string, currentUserId: number): Promise<any | null> {

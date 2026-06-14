@@ -93,8 +93,13 @@ export async function canViewMedia(
   if (media.kind === "avatar") {
     return canViewUserAvatar(viewerId, media.user_id)
   }
-  if (media.kind === "church_logo" || media.kind === "group") {
+  if (media.kind === "church_logo") {
     return viewerId != null
+  }
+  if (media.kind === "group") {
+    if (viewerId == null) return false
+    if (viewerId === media.user_id) return true
+    return shareAnyGroup(viewerId, media.user_id)
   }
   if (media.visibility === "public") return viewerId != null
   if (viewerId == null) return false

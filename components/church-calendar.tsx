@@ -4,6 +4,7 @@ import * as React from "react"
 import { useState } from "react"
 import useSWR from "swr"
 import { fetcher } from "@/lib/fetcher"
+import { localDatetimeToISO } from "@/lib/datetime"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -48,7 +49,14 @@ export function ChurchCalendar({ isAdmin = false }: ChurchCalendarProps) {
       const res = await fetch("/api/events", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, description, startTime, endTime: endTime || null, location, category }),
+        body: JSON.stringify({
+          title,
+          description,
+          startTime: localDatetimeToISO(startTime),
+          endTime: endTime ? localDatetimeToISO(endTime) : null,
+          location,
+          category,
+        }),
       })
       if (!res.ok) throw new Error((await res.json()).error)
       await mutate()

@@ -1,9 +1,11 @@
 import { type NextRequest, NextResponse } from "next/server"
+import { getSession } from "@/lib/auth"
 import { getAnnouncements } from "@/lib/bible"
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    const announcements = await getAnnouncements(8)
+    const session = getSession(req)
+    const announcements = await getAnnouncements(session?.userId ?? null, 8)
     return NextResponse.json({ announcements })
   } catch (err) {
     return NextResponse.json(

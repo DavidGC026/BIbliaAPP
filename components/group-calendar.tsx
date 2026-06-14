@@ -4,6 +4,7 @@ import * as React from "react"
 import { useState } from "react"
 import useSWR from "swr"
 import { fetcher } from "@/lib/fetcher"
+import { localDatetimeToISO } from "@/lib/datetime"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -36,6 +37,7 @@ export function GroupCalendar({ groupId, canManage }: GroupCalendarProps) {
     try {
       const fd = new FormData()
       fd.append("file", file)
+      fd.append("purpose", "group_event")
       const res = await fetch("/api/upload", { method: "POST", body: fd })
       const body = await res.json()
       if (!res.ok) throw new Error(body.error)
@@ -59,8 +61,8 @@ export function GroupCalendar({ groupId, canManage }: GroupCalendarProps) {
           title,
           description,
           imageUrl,
-          startTime,
-          endTime: endTime || null,
+          startTime: localDatetimeToISO(startTime),
+          endTime: endTime ? localDatetimeToISO(endTime) : null,
           location,
         }),
       })

@@ -6,6 +6,8 @@ import { runOnce } from "./once-async"
 export type { AvatarVisibility } from "./avatar-visibility"
 export { AVATAR_VISIBILITY_LABELS, AVATAR_VISIBILITY_DESCRIPTIONS } from "./avatar-visibility"
 
+export type MediaKind = "avatar" | "group" | "church_logo" | "other"
+
 export async function ensureUserMediaTables(): Promise<void> {
   return runOnce("ensureUserMediaTables", _ensureUserMediaTables)
 }

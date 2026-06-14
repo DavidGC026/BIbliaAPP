@@ -70,7 +70,7 @@ export default function Page() {
 
   const user = data?.user ?? null
   const isResolvingSession = isLoading
-  const isGuest = !user
+  const isGuest = !isLoading && !user
 
   const { data: churchData } = useSWR<{ settings: { church_name: string; church_logo_url: string | null } }>(
     user ? "/api/church-settings" : null,
