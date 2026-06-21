@@ -1299,7 +1299,24 @@ export async function createNotification(
      VALUES (?, ?, ?, ?, ?)`,
     [userId, actorId, type, postId, commentId]
   )
-  return result.insertId
+  const insertId = result.insertId
+
+  import("./expo-push")
+    .then(({ sendPushToUser, pushTitleForType }) =>
+      getPool()
+        .query<RowDataPacket[]>(`SELECT name FROM users WHERE id = ?`, [actorId])
+        .then(([rows]) => {
+          const actorName = (rows[0]?.name as string) || "Alguien"
+          return sendPushToUser(userId, {
+            title: pushTitleForType(type),
+            body: `${actorName} — ${pushTitleForType(type).toLowerCase()}`,
+            data: { type, postId: postId ?? 0, commentId: commentId ?? 0 },
+          })
+        }),
+    )
+    .catch(() => {})
+
+  return insertId
 }
 
 export async function getNotifications(

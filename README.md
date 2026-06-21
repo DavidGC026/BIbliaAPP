@@ -20,8 +20,10 @@ Aplicación web para lectura bíblica, estudio en comunidad, grupos, oración, c
 app/              # Páginas y API routes (Next.js App Router)
 components/       # UI (lector, grupos, feed, calendario, etc.)
 lib/              # Lógica de negocio, MySQL, auth, grupos, oración…
+mobile/           # App React Native (Expo)
+docs-mobile/      # Documentación del cliente móvil
 public/           # Estáticos y uploads
-docs/             # Documentación local (no se sube a Git; ver .gitignore)
+docs/             # Documentación local web (no se sube a Git; ver .gitignore)
 ```
 
 Documentación local útil (en `docs/`, solo en tu servidor):
@@ -87,6 +89,27 @@ El contenedor `biblia2-app` monta este directorio en `/app` y, al arrancar, ejec
 | `npm run build` | Compilar para producción |
 | `npm run start` | Servir build (puerto 3000 por defecto; en Docker usa `-p 3003`) |
 | `npm run lint` | ESLint |
+
+## App móvil (React Native / Expo)
+
+La carpeta `mobile/` contiene la app Android (y iOS) con **Expo Router**, conectada a la misma API del backend Next.js.
+
+**Documentación completa:** [`docs-mobile/README.md`](docs-mobile/README.md) · APK de prueba: `mobile/releases/BibliaAPP-1.0.0-release.apk`
+
+```bash
+cd mobile
+npm install
+npm run android   # emulador o dispositivo Android con Expo Go / dev build
+npm run start     # menú de desarrollo Expo
+```
+
+Por defecto usa la API de producción (`https://biblia2.dvguzman.com`). Para apuntar a tu servidor local:
+
+```bash
+EXPO_PUBLIC_API_URL=http://192.168.x.x:3000 npm run start
+```
+
+Pantallas incluidas en v1.0.0: Inicio (versículo del día), Lector bíblico, Comunidad (feed), Grupos y Perfil con login por token Bearer.
 
 ## Base de datos
 
