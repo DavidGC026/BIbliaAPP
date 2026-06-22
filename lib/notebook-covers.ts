@@ -1,3 +1,5 @@
+import { htmlToPlainText, isNoteHtml } from "@/lib/note-content"
+
 export const NOTE_TAGS = [
   { id: "fe", label: "Fe", color: "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200" },
   { id: "familia", label: "Familia", color: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200" },
@@ -15,7 +17,8 @@ export function parseNoteTags(raw?: string): string[] {
   }
 }
 
-import { htmlToPlainText, isNoteHtml } from "@/lib/note-content"
+export function stripNotePreview(content: string, max = 100) {
+  const plain = isNoteHtml(content)
     ? htmlToPlainText(content)
     : content
         .replace(/!\[.*?\]\(.*?\)/g, "[imagen]")
