@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import { stripNotePreview, NOTE_TAGS, parseNoteTags } from "@/lib/notebook-covers"
 import { NoteContent, NoteRichEditor, requestEditorHtml } from "@/components/note-rich-editor"
+import { defaultNoteTitle, insertHtmlIntoNoteContent } from "@/lib/note-content"
 import { 
   ChevronRight, 
   Plus, 
@@ -312,6 +313,7 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
   async function handleSaveNote(contentOverride?: string) {
     if (!editingNote) return
     const contentToSave = contentOverride ?? editingNote.content
+    const titleToSave = defaultNoteTitle(editingNote.title)
     setSavingNote(true)
     const token = localStorage.getItem("biblia_token")
     try {
@@ -321,7 +323,7 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
           "Content-Type": "application/json",
           ...(token ? { "Authorization": `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({ title: editingNote.title, content: contentToSave, tags: editingNote.tags }),
+        body: JSON.stringify({ title: titleToSave, content: contentToSave, tags: editingNote.tags }),
       })
       if (!res.ok) {
         const data = await res.json()
@@ -332,7 +334,7 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
         throw new Error(data.error)
       }
       await mutateNotes()
-      setEditingNote({ ...editingNote, content: contentToSave })
+      setEditingNote({ ...editingNote, title: titleToSave, content: contentToSave })
       setSavedAt(new Date().toLocaleTimeString())
     } catch (e) {
       alert(e instanceof Error ? e.message : "Error al guardar nota")
@@ -497,6 +499,7 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
           ) : (
             <NoteRichEditor
               key={`${editingNote.id}-${noteDetailsLoading ? "loading" : "ready"}`}
+              contentVersion={`${editingNote.id}-${noteDetails?.note?.updatedAt ?? editingNote.content.length}`}
               ref={editorFrameRef}
               content={editingNote.content}
               onChange={(html) => setEditingNote({ ...editingNote, content: html })}
@@ -680,7 +683,7 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
 
                     setEditingNote({
                       ...editingNote,
-                      content: editingNote.content + htmlBlock
+                      content: insertHtmlIntoNoteContent(editingNote.content, htmlBlock),
                     })
                     
                     setShowInsertVerseModal(false)

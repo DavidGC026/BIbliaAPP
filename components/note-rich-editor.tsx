@@ -4,51 +4,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useTheme } from "next-themes"
 import { getEditorHtml } from "@/lib/note-editor-html"
 import { DEFAULT_EDITOR_COLORS, getNoteEditorColors } from "@/lib/note-editor-theme"
-
-function convertMarkdownToHtml(text: string): string {
-  if (!text) return ""
-  if (
-    text.includes("<p>") ||
-    text.includes("<div>") ||
-    text.includes("<blockquote>") ||
-    text.includes("<table>") ||
-    text.includes("<span>") ||
-    text.includes("<b>") ||
-    text.includes("<strong>")
-  ) {
-    return text
-  }
-
-  const lines = text.split("\n")
-  let inQuote = false
-  let html = ""
-
-  lines.forEach((line) => {
-    const cleanLine = line.trim()
-    if (cleanLine.startsWith(">")) {
-      if (!inQuote) {
-        html += "<blockquote>"
-        inQuote = true
-      }
-      const quoteText = cleanLine.substring(1).trim().replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-      html += quoteText + "<br/>"
-    } else {
-      if (inQuote) {
-        html += "</blockquote>"
-        inQuote = false
-      }
-      if (cleanLine === "") {
-        html += "<br/>"
-      } else {
-        const paragraphText = cleanLine.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-        html += `<p>${paragraphText}</p>`
-      }
-    }
-  })
-
-  if (inQuote) html += "</blockquote>"
-  return html
-}
+import { normalizeNoteContentForEditor } from "@/lib/note-content"
 
 interface NoteContentProps {
   content: string
@@ -64,7 +20,7 @@ export function NoteContent({ content, className }: NoteContentProps) {
     const colors = getNoteEditorColors()
     return getEditorHtml(
       colors,
-      convertMarkdownToHtml(content),
+      normalizeNoteContentForEditor(content),
       "Default",
       {},
       true,
@@ -100,18 +56,14 @@ export function NoteContent({ content, className }: NoteContentProps) {
       className={className}
       style={{ width: "100%", height, border: "none", display: "block" }}
       sandbox="allow-scripts allow-same-origin"
-      onLoad={() => {
-        iframeRef.current?.contentWindow?.postMessage(
-          JSON.stringify({ type: "measureHeight" }),
-          "*",
-        )
-      }}
     />
   )
 }
 
 interface NoteRichEditorProps {
   content: string
+  /** Cambia cuando llega la nota del servidor para remontar el iframe con HTML correcto */
+  contentVersion: string
   onChange: (html: string) => void
   onInsertVerse?: () => void
   onInsertDictionary?: () => void
@@ -121,6 +73,7 @@ interface NoteRichEditorProps {
 export const NoteRichEditor = React.forwardRef<HTMLIFrameElement, NoteRichEditorProps>(function NoteRichEditor(
   {
     content,
+    contentVersion,
     onChange,
     onInsertVerse,
     onInsertDictionary,
@@ -130,30 +83,24 @@ export const NoteRichEditor = React.forwardRef<HTMLIFrameElement, NoteRichEditor
 ) {
   const { resolvedTheme } = useTheme()
   const iframeRef = useRef<HTMLIFrameElement>(null)
-  const initialHtmlRef = useRef<string | null>(null)
-  const contentRef = useRef(content)
 
   React.useImperativeHandle(ref, () => iframeRef.current as HTMLIFrameElement)
 
-  if (!initialHtmlRef.current) {
-    initialHtmlRef.current = getEditorHtml(
+  const srcDoc = useMemo(() => {
+    return getEditorHtml(
       getNoteEditorColors(),
-      convertMarkdownToHtml(content),
+      normalizeNoteContentForEditor(content),
       "Default",
       {},
       false,
       DEFAULT_EDITOR_COLORS,
     )
-  }
+  }, [content, contentVersion, resolvedTheme])
 
   const sendAction = useCallback((action: Record<string, unknown>) => {
     const win = iframeRef.current?.contentWindow as (Window & { handleAction?: (s: string) => void }) | null
     win?.handleAction?.(JSON.stringify(action))
   }, [])
-
-  useEffect(() => {
-    contentRef.current = content
-  }, [content])
 
   useEffect(() => {
     const onMessage = (event: MessageEvent) => {
@@ -177,17 +124,12 @@ export const NoteRichEditor = React.forwardRef<HTMLIFrameElement, NoteRichEditor
     return () => window.removeEventListener("message", onMessage)
   }, [onChange, onInsertVerse, onInsertDictionary])
 
-  useEffect(() => {
-    sendAction({ type: "updateContent", value: convertMarkdownToHtml(content) })
-  // ponytail: only refresh editor skin on theme change, not on every keystroke
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [resolvedTheme])
-
   return (
     <iframe
+      key={contentVersion}
       ref={iframeRef}
       title="Editor de nota"
-      srcDoc={initialHtmlRef.current}
+      srcDoc={srcDoc}
       className={className}
       style={{ width: "100%", height: "100%", border: "none", display: "block" }}
       sandbox="allow-scripts allow-same-origin"
@@ -227,4 +169,10 @@ export function requestEditorHtml(iframe: HTMLIFrameElement | null): Promise<str
       JSON.stringify({ type: "getHtml" }),
     )
   })
+}
+
+export function insertHtmlIntoNoteContent(current: string, html: string): string {
+  const base = normalizeNoteContentForEditor(current)
+  if (!base) return html
+  return base + html
 }

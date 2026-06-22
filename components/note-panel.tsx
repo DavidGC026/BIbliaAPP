@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { fetcher } from "@/lib/fetcher"
 import type { JoplinNote } from "@/lib/types"
+import { normalizeVerseNoteForEditor } from "@/lib/note-content"
 import { X, Save, Trash2 } from "lucide-react"
 
 interface NotePanelProps {
@@ -27,7 +28,7 @@ export function NotePanel({ noteId, reference, onClose, onDeleted, onSessionExpi
   const [savedAt, setSavedAt] = useState<string | null>(null)
 
   useEffect(() => {
-    if (data?.note) setBody(data.note.body ?? "")
+    if (data?.note) setBody(normalizeVerseNoteForEditor(data.note.body ?? ""))
   }, [data?.note])
 
   useEffect(() => {

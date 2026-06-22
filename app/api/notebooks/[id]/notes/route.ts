@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { listNotebookNotes, createNotebookNote, getNotebook } from "@/lib/bible"
 import { getSession } from "@/lib/auth"
+import { defaultNoteTitle } from "@/lib/note-content"
 
 export async function GET(
   req: NextRequest,
@@ -55,14 +56,12 @@ export async function POST(
     }
 
     const { title, content } = await req.json()
-    if (!title || !title.trim()) {
-      return NextResponse.json({ error: "El título es obligatorio." }, { status: 400 })
-    }
+    const finalTitle = defaultNoteTitle(title)
 
-    const noteId = await createNotebookNote(idNum, title.trim(), content ?? "")
+    const noteId = await createNotebookNote(idNum, finalTitle, content ?? "")
     return NextResponse.json({
       id: noteId,
-      title: title.trim(),
+      title: finalTitle,
       content: content ?? "",
     })
   } catch (err) {

@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getNotebookNote, updateNotebookNote, deleteNotebookNote } from "@/lib/bible"
 import { getSession } from "@/lib/auth"
+import { defaultNoteTitle } from "@/lib/note-content"
 
 export async function GET(
   req: NextRequest,
@@ -47,9 +48,7 @@ export async function PUT(
       return NextResponse.json({ error: "ID de nota inválido." }, { status: 400 })
     }
     const { title, content, tags } = await req.json()
-    if (!title || !title.trim()) {
-      return NextResponse.json({ error: "El título es obligatorio." }, { status: 400 })
-    }
+    const finalTitle = defaultNoteTitle(title)
 
     // Verify ownership
     const existing = await getNotebookNote(idNum, session.userId)
@@ -62,7 +61,7 @@ export async function PUT(
       tagsStr = Array.isArray(tags) ? JSON.stringify(tags) : String(tags)
     }
 
-    await updateNotebookNote(idNum, title.trim(), content ?? "", tagsStr)
+    await updateNotebookNote(idNum, finalTitle, content ?? "", tagsStr)
     return NextResponse.json({ ok: true })
   } catch (err) {
     return NextResponse.json(

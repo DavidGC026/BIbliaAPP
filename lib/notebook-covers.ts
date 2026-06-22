@@ -15,24 +15,7 @@ export function parseNoteTags(raw?: string): string[] {
   }
 }
 
-function htmlToPlainText(html: string) {
-  return html
-    .replace(/<br\s*\/?>/gi, " ")
-    .replace(/<\/(p|div|li|h[1-6]|blockquote|tr)>/gi, " ")
-    .replace(/<[^>]+>/g, "")
-    .replace(/&nbsp;/gi, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/\s+/g, " ")
-    .trim()
-}
-
-export function stripNotePreview(content: string, max = 100) {
-  const looksHtml = /<[a-z][^>]*>/i.test(content)
-  const plain = looksHtml
+import { htmlToPlainText, isNoteHtml } from "@/lib/note-content"
     ? htmlToPlainText(content)
     : content
         .replace(/!\[.*?\]\(.*?\)/g, "[imagen]")

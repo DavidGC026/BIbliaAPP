@@ -71,6 +71,33 @@ Las secciones **Diario** y **Libros** siguen existiendo por separado en el menú
 
 ---
 
+## Mismo backend, mismo formato
+
+Móvil y web **no usan sistemas distintos**. Ambos guardan en MySQL vía la misma API:
+
+| Tipo | Tabla | API |
+|------|-------|-----|
+| Notas de libreta | `bible_notebook_notes` | `/api/notebooks/...` |
+| Notas de versículo | `bible_note_links` | `/api/links`, `/api/notes/[id]` |
+
+El contenido de libretas en móvil se guarda como **HTML** (editor WebView). La web ahora:
+
+1. **Lee HTML tal cual** — `normalizeNoteContentForEditor()` no reescribe HTML existente.
+2. **Guarda HTML** — el editor enriquecido envía el mismo formato que Android.
+3. **Título opcional** — si falta título, se usa `"Sin título"` (igual que móvil).
+
+Utilidad compartida: `lib/note-content.ts`.
+
+### Sincronización móvil
+
+La app Android guarda primero en SQLite local y sube al servidor con `syncAll()` cuando hay conexión. Para ver en web una nota creada en móvil:
+
+- Debes usar **la misma cuenta**.
+- La app debe tener **conexión** (o sincronizar al volver online).
+- En web, recarga la libreta (vuelve a entrar o refresca).
+
+---
+
 ## Preview en la lista de libretas
 
 Las notas guardadas desde el editor enriquecido usan **HTML**. En la lista del cuaderno, `stripNotePreview()`:

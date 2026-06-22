@@ -12,6 +12,7 @@ import { NotebookSidebar } from "../notebook-sidebar"
 import { VerseImageCreator } from "../verse-image-creator"
 import { FileText, ChevronLeft, ChevronRight, Search } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { insertHtmlIntoNoteContent } from "@/lib/note-content"
 import { VerseText, type HighlightColor } from "./verse-text"
 import { ReaderToolbar } from "./reader-toolbar"
 import { VersionSelector, BookSelector, ChapterSelector } from "./version-selector"
@@ -457,8 +458,8 @@ export function BibleReader({
   }, [isGuest, onLoginRequest, linksByVerse, mutateLinks])
 
   const handleInsertVerseToNote = useCallback((v: Verse) => {
-    const quote = `\n> **${v.bookName} ${v.chapter}:${v.verse}** — ${v.text}\n\n`
-    setEditingNotebookNote(prev => (prev ? { ...prev, content: prev.content + quote } : prev))
+    const htmlBlock = `<blockquote><strong>${v.bookName} ${v.chapter}:${v.verse}</strong><br/>${v.text}</blockquote><p><br></p>`
+    setEditingNotebookNote(prev => (prev ? { ...prev, content: insertHtmlIntoNoteContent(prev.content, htmlBlock) } : prev))
   }, [])
 
   // ------------------------------------------- Acciones sobre la selección
