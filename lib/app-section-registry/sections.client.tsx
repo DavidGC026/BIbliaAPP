@@ -61,6 +61,10 @@ const NotebookSidebar = dynamic(
   () => import("@/components/notebook-sidebar").then((m) => ({ default: m.NotebookSidebar })),
   { loading: sectionLoading("Cargando libreta...") },
 )
+const NotesSection = dynamic(
+  () => import("@/components/notes-section").then((m) => ({ default: m.NotesSection })),
+  { loading: sectionLoading("Cargando notas...") },
+)
 const ProfileSection = dynamic(
   () => import("@/components/profile-section").then((m) => ({ default: m.ProfileSection })),
   { loading: sectionLoading("Cargando perfil...") },
@@ -189,7 +193,7 @@ registerAppSectionComplete({
   layout: "notebook",
   suspenseFallback: "Cargando libreta...",
   render: (ctx) => (
-    <NotebookSidebar
+    <NotesSection
       editingNote={ctx.notebookEditingNote}
       setEditingNote={ctx.setNotebookEditingNote}
       onSessionExpired={() => {

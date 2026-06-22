@@ -27,7 +27,7 @@ function wrapLayout(layout: SectionUIConfig["layout"], content: React.ReactNode)
       )
     case "notebook":
       return (
-        <div className="h-[calc(100vh-8rem)] md:h-[calc(100vh-3rem)] rounded-xl border border-border bg-card/45 shadow-sm backdrop-blur-sm overflow-hidden p-4">
+        <div className="h-[calc(100vh-8rem)] md:h-[calc(100vh-3rem)] rounded-xl border border-border bg-background shadow-sm overflow-hidden">
           {content}
         </div>
       )
