@@ -1,20 +1,9 @@
+import { AppColors } from '@/constants/Colors';
 import {
   getNoteTableCss,
   getNoteTablePickerHtml,
   getNoteTableScript,
-} from "./note-editor-table"
-
-export interface NoteEditorColors {
-  text: string
-  textMuted: string
-  background: string
-  card: string
-  border: string
-  accent: string
-  primary: string
-  primarySoft: string
-  primaryBorder: string
-}
+} from '@/lib/noteEditorTable';
 
 /**
  * Generates the full WYSIWYG editor HTML that runs inside a WebView.
@@ -26,7 +15,7 @@ export interface NoteEditorColors {
  * rendered as a static preview.
  */
 export function getEditorHtml(
-  colors: NoteEditorColors,
+  colors: AppColors,
   initialContent: string,
   activeFont: string,
   base64Fonts: Record<string, string>,
@@ -391,15 +380,6 @@ export function getEditorHtml(
 
   <script>
     (function() {
-      function postToHost(data) {
-        var json = JSON.stringify(data);
-        if (window.ReactNativeWebView) {
-          window.ReactNativeWebView.postMessage(json);
-        } else {
-          window.parent.postMessage(json, '*');
-        }
-      }
-
       var editor = document.getElementById('editor');
       var isReadOnly = ${isReadOnly};
 
@@ -593,7 +573,7 @@ export function getEditorHtml(
         var val = btn.getAttribute('data-val') || null;
 
         if (action === 'openFontModal') {
-          postToHost({ type: 'openFontModal' });
+          window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'openFontModal' }));
           return;
         }
 
@@ -850,13 +830,13 @@ export function getEditorHtml(
 
         document.querySelectorAll('.aux-btn[data-action="insertVerse"]').forEach(function(btn) {
           bindToolbarButton(btn, function() {
-            postToHost({ type: 'openVerseModal' });
+            window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'openVerseModal' }));
           });
         });
 
         document.querySelectorAll('.aux-btn[data-action="insertDictionary"]').forEach(function(btn) {
           bindToolbarButton(btn, function() {
-            postToHost({ type: 'openDictionaryModal' });
+            window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'openDictionaryModal' }));
           });
         });
 
@@ -895,10 +875,10 @@ export function getEditorHtml(
 
       /* ── Notify React Native ────────────────────────── */
       function notifyChange() {
-        postToHost({
+        window.ReactNativeWebView.postMessage(JSON.stringify({
           type: 'onChange',
           html: editor.innerHTML
-        });
+        }));
       }
 
       /* ── Global handler for React Native injectJavaScript ── */
@@ -921,10 +901,10 @@ export function getEditorHtml(
             var d = action.value + '<p><br></p>';
             document.execCommand('insertHTML', false, d);
           } else if (action.type === 'getHtml') {
-            postToHost({
+            window.ReactNativeWebView.postMessage(JSON.stringify({
               type: 'getHtmlResponse',
               html: editor.innerHTML
-            });
+            }));
             return; // Don't trigger onChange
           } else if (action.type === 'updateContent') {
             editor.innerHTML = action.value;
@@ -939,10 +919,10 @@ export function getEditorHtml(
 
           notifyChange();
         } catch (e) {
-          postToHost({
+          window.ReactNativeWebView.postMessage(JSON.stringify({
             type: 'error',
             message: e.message
-          });
+          }));
         }
       };
     })();

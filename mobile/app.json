@@ -1,0 +1,79 @@
+{
+  "expo": {
+    "name": "BibliaAPP",
+    "slug": "bibliaapp",
+    "version": "2.0.7",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "bibliaapp",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.bibliaapp.mobile"
+    },
+    "android": {
+      "package": "com.bibliaapp.mobile",
+      "versionCode": 27,
+      "adaptiveIcon": {
+        "backgroundColor": "#9A6700",
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "backgroundImage": "./assets/images/android-icon-background.png",
+        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/notification-icon.png",
+          "color": "#9A6700"
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/splash-icon.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#FAF8F5"
+        }
+      ],
+      "expo-sharing",
+      "expo-sqlite",
+      [
+        "react-native-android-widget",
+        {
+          "widgets": [
+            {
+              "name": "VerseOfDay",
+              "label": "Versículo del día",
+              "minWidth": "250dp",
+              "minHeight": "110dp",
+              "maxResizeWidth": "530dp",
+              "maxResizeHeight": "220dp",
+              "resizeMode": "horizontal|vertical",
+              "targetCellWidth": 4,
+              "targetCellHeight": 2,
+              "description": "Muestra el versículo bíblico del día con una imagen inspiradora en tu pantalla de inicio",
+              "updatePeriodMillis": 1800000,
+              "widgetFeatures": "reconfigurable"
+            }
+          ]
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "apiUrl": "https://biblia2.dvguzman.com"
+    }
+  }
+}

@@ -1,4 +1,4 @@
-export interface NoteTableThemeColors {
+// ponytail: mirror of ../../lib/note-editor-table.ts — keep both in sync when editing tables UX
   text: string
   textMuted: string
   background: string
@@ -461,10 +461,7 @@ export function getNoteTableScript(isReadOnly: boolean): string {
 
         var tables = editor.querySelectorAll('table');
         tables.forEach(function(table, index) {
-          if (table.closest('.biblia-table-widget') || table.closest('.biblia-table-compact-preview')) return;
-          var block = table.closest('.biblia-table-block');
-          var mountTarget = block || table;
-          if (mountTarget.closest('.biblia-table-widget')) return;
+          if (table.closest('.biblia-table-widget')) return;
           if (!table.classList.contains('biblia-note-table')) table.classList.add('biblia-note-table');
 
           var widget = document.createElement('div');
@@ -501,9 +498,9 @@ export function getNoteTableScript(isReadOnly: boolean): string {
           });
 
           table.classList.add('biblia-table-source');
-          mountTarget.parentNode.insertBefore(widget, mountTarget);
+          table.parentNode.insertBefore(widget, table);
           widget.appendChild(compact);
-          widget.appendChild(mountTarget);
+          widget.appendChild(table);
         });
 
         setTimeout(function() {
