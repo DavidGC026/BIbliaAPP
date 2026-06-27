@@ -26,6 +26,7 @@ interface VerseOfTheDayData {
   verse_start: number
   verse_end: number
   idBible: number
+  backgroundImage?: string | null
 }
 
 const THEME_COLORS: Record<string, string> = {
@@ -84,13 +85,87 @@ export function VerseOfTheDay() {
   }
 
   const themeClass = data?.theme ? (THEME_COLORS[data.theme] || "bg-primary/10 text-primary border-primary/20") : "bg-primary/10 text-primary border-primary/20"
+  const onImage = Boolean(data?.backgroundImage)
+
+  const actionButtons = (
+    <div className="flex flex-wrap items-center justify-center gap-3">
+      <DropdownMenu>
+        <DropdownMenuTrigger className={cn(
+          "inline-flex items-center justify-center rounded-full border px-4 py-2 text-sm font-medium shadow-sm backdrop-blur-md cursor-pointer h-10",
+          onImage ? "border-white/30 bg-white/15 text-white hover:bg-white/25" : "border-primary/20 bg-background/50 hover:bg-accent/50 dark:bg-zinc-900/50 text-foreground",
+        )}>
+          <BookOpen className={cn("mr-2 h-4 w-4", onImage ? "text-white" : "text-primary")} />
+          <span className="font-medium">{selectedBible?.abbr || "Versión"}</span>
+          <ChevronDown className="ml-2 h-4 w-4 opacity-50" />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="center" className="w-[200px] rounded-xl border-primary/10 bg-background/80 backdrop-blur-xl">
+          {bibles.map(b => (
+            <DropdownMenuItem 
+              key={b.bibleId} 
+              className={cn("rounded-lg cursor-pointer", selectedBibleId === b.bibleId && "bg-primary/10 font-bold text-primary")}
+              onClick={() => setSelectedBibleId(b.bibleId)}
+            >
+              {b.name} ({b.abbr})
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <Button 
+        variant="outline"
+        onClick={() => setIsImageModalOpen(true)}
+        className={cn("h-10 rounded-full px-5 font-medium shadow-md transition-transform hover:scale-105 active:scale-95", onImage && "border-white/30 bg-white/10 text-white hover:bg-white/20 hover:text-white")}
+      >
+        <ImageIcon className="mr-2 h-4 w-4" />
+        Crear Imagen
+      </Button>
+
+      <Button 
+        variant="default" 
+        onClick={handleShare}
+        className="h-10 rounded-full px-5 font-medium shadow-md transition-transform hover:scale-105 active:scale-95"
+      >
+        <Share2 className="mr-2 h-4 w-4" />
+        Compartir
+      </Button>
+    </div>
+  )
 
   return (
-    <div className="relative overflow-hidden rounded-2xl border bg-background/50 p-6 md:p-8 shadow-sm backdrop-blur-xl dark:bg-zinc-950/50">
+    <div className={cn("relative mx-auto w-full overflow-hidden rounded-2xl border shadow-sm", onImage ? "max-w-md" : "bg-background/50 backdrop-blur-xl dark:bg-zinc-950/50")}>
+      {onImage ? (
+        <div className="relative aspect-[3/4] w-full">
+          <img src={data!.backgroundImage!} alt="" className="absolute inset-0 h-full w-full object-cover" />
+          <div className="absolute inset-0 bg-black/45" />
+          <div className="relative z-10 flex h-full flex-col items-center justify-center p-6 md:p-8 text-center">
+            {isLoading ? (
+              <>
+                <Skeleton className="h-6 w-32 mb-6 rounded-full bg-white/20" />
+                <Skeleton className="h-24 w-full mb-6 bg-white/20" />
+              </>
+            ) : data ? (
+              <>
+                <span className={cn("mb-6 inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium tracking-wide shadow-sm backdrop-blur-sm", themeClass)}>
+                  <Quote className="h-3.5 w-3.5" />
+                  {data.theme.toUpperCase()}
+                </span>
+                <p className="mb-6 max-w-2xl text-xl font-medium leading-relaxed tracking-tight text-white md:text-2xl">
+                  "{data.text}"
+                </p>
+                <p className="mb-8 text-sm font-semibold tracking-wide text-white/85 md:text-base">
+                  — {data.reference}
+                </p>
+                {actionButtons}
+              </>
+            ) : null}
+          </div>
+        </div>
+      ) : (
+    <>
       <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-primary/5 blur-[50px] dark:bg-primary/10" />
       <div className="pointer-events-none absolute -bottom-10 -left-10 h-40 w-40 rounded-full bg-blue-500/5 blur-[50px] dark:bg-blue-500/10" />
 
-      <div className="relative z-10 flex flex-col items-center text-center">
+      <div className="relative z-10 flex flex-col items-center p-6 md:p-8 text-center">
         {isLoading ? (
           <>
             <Skeleton className="h-6 w-32 mb-6 rounded-full" />
@@ -116,47 +191,12 @@ export function VerseOfTheDay() {
               — {data.reference}
             </p>
 
-            <div className="flex flex-wrap items-center justify-center gap-3">
-              <DropdownMenu>
-                <DropdownMenuTrigger className="inline-flex items-center justify-center rounded-full border border-primary/20 bg-background/50 px-4 py-2 text-sm font-medium shadow-sm backdrop-blur-md hover:bg-accent/50 dark:bg-zinc-900/50 text-foreground cursor-pointer h-10">
-                  <BookOpen className="mr-2 h-4 w-4 text-primary" />
-                  <span className="font-medium">{selectedBible?.abbr || "Versión"}</span>
-                  <ChevronDown className="ml-2 h-4 w-4 opacity-50" />
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="center" className="w-[200px] rounded-xl border-primary/10 bg-background/80 backdrop-blur-xl">
-                  {bibles.map(b => (
-                    <DropdownMenuItem 
-                      key={b.bibleId} 
-                      className={cn("rounded-lg cursor-pointer", selectedBibleId === b.bibleId && "bg-primary/10 font-bold text-primary")}
-                      onClick={() => setSelectedBibleId(b.bibleId)}
-                    >
-                      {b.name} ({b.abbr})
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-
-              <Button 
-                variant="outline"
-                onClick={() => setIsImageModalOpen(true)}
-                className="h-10 rounded-full px-5 font-medium shadow-md transition-transform hover:scale-105 active:scale-95"
-              >
-                <ImageIcon className="mr-2 h-4 w-4" />
-                Crear Imagen
-              </Button>
-
-              <Button 
-                variant="default" 
-                onClick={handleShare}
-                className="h-10 rounded-full px-5 font-medium shadow-md transition-transform hover:scale-105 active:scale-95"
-              >
-                <Share2 className="mr-2 h-4 w-4" />
-                Compartir
-              </Button>
-            </div>
+            {actionButtons}
           </>
         ) : null}
       </div>
+    </>
+      )}
 
       {data && (
         <VerseImageCreator

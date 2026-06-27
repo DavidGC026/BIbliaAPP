@@ -80,7 +80,20 @@ export default function Page() {
   const churchName = churchData?.settings?.church_name || "BibliaAPP"
 
   const [showAuthModal, setShowAuthModal] = useState(false)
+  const [googleLinkedBanner, setGoogleLinkedBanner] = useState(false)
   const openLogin = useCallback(() => setShowAuthModal(true), [])
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    const params = new URLSearchParams(window.location.search)
+    if (params.get("googleLinked") === "1") {
+      setGoogleLinkedBanner(true)
+      params.delete("googleLinked")
+      const next = params.toString()
+      const url = next ? `${window.location.pathname}?${next}` : window.location.pathname
+      window.history.replaceState(null, "", url)
+    }
+  }, [])
 
   // Navigation tabs
   const [activeTab, setActiveTab] = useState<string>(() => {
@@ -277,6 +290,20 @@ export default function Page() {
   return (
     <main className="min-h-screen bg-background flex flex-col md:flex-row">
       <ConnectionBanner />
+      {googleLinkedBanner ? (
+        <div className="mx-4 mt-3 rounded-xl border border-emerald-500/25 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-800 dark:text-emerald-200 flex items-start justify-between gap-3">
+          <p>
+            <strong>Cuenta vinculada con Google.</strong> Entraste a la misma cuenta que ya tenías; tus libretas y datos siguen aquí.
+          </p>
+          <button
+            type="button"
+            onClick={() => setGoogleLinkedBanner(false)}
+            className="text-xs font-semibold shrink-0 opacity-70 hover:opacity-100"
+          >
+            Cerrar
+          </button>
+        </div>
+      ) : null}
 
       {/* Desktop Navigation (Collapsible Sidebar) */}
       <aside

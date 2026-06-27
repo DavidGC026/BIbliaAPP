@@ -174,6 +174,11 @@ async function _ensureDbTables(): Promise<void> {
     await pool.query(`ALTER TABLE users ADD COLUMN avatar_visibility VARCHAR(20) DEFAULT 'groups'`)
   } catch (_) {}
 
+  try {
+    await pool.query(`ALTER TABLE users ADD COLUMN google_id VARCHAR(255) DEFAULT NULL`)
+    await pool.query(`ALTER TABLE users ADD UNIQUE KEY uniq_google_id (google_id)`)
+  } catch (_) {}
+
   // Create reading plans tables
   await pool.query(`
     CREATE TABLE IF NOT EXISTS bible_reading_plans (
@@ -665,18 +670,117 @@ export async function deleteNotebookNote(id: number): Promise<void> {
   await getPool().query(`DELETE FROM bible_notebook_notes WHERE id = ?`, [id])
 }
 
+export async function countNotebookNotes(notebookIds: number[]): Promise<number> {
+  if (notebookIds.length === 0) return 0
+  await ensureDbTables()
+  const placeholders = notebookIds.map(() => "?").join(",")
+  const [rows] = await getPool().query<RowDataPacket[]>(
+    `SELECT COUNT(*) AS cnt FROM bible_notebook_notes WHERE notebook_id IN (${placeholders})`,
+    notebookIds,
+  )
+  return Number(rows[0]?.cnt ?? 0)
+}
+
+export async function transferNotebooksFromUser(
+  sourceUserId: number,
+  targetUserId: number,
+  options: { notebookIds?: number[]; move?: boolean } = {},
+): Promise<{ notebooks: number; notes: number }> {
+  if (sourceUserId === targetUserId) {
+    throw new Error("La cuenta origen y destino son la misma.")
+  }
+
+  await ensureDbTables()
+  let sourceNotebooks = await listNotebooks(sourceUserId)
+  if (options.notebookIds?.length) {
+    const allowed = new Set(options.notebookIds)
+    sourceNotebooks = sourceNotebooks.filter((notebook) => allowed.has(notebook.id))
+  }
+
+  if (sourceNotebooks.length === 0) {
+    return { notebooks: 0, notes: 0 }
+  }
+
+  const notebookIds = sourceNotebooks.map((notebook) => notebook.id)
+
+  if (options.move) {
+    const placeholders = notebookIds.map(() => "?").join(",")
+    const notes = await countNotebookNotes(notebookIds)
+    await getPool().query(
+      `UPDATE bible_notebooks SET user_id = ? WHERE user_id = ? AND id IN (${placeholders})`,
+      [targetUserId, sourceUserId, ...notebookIds],
+    )
+    return { notebooks: sourceNotebooks.length, notes }
+  }
+
+  let notesCopied = 0
+  for (const notebook of sourceNotebooks) {
+    const newNotebookId = await createNotebook(
+      notebook.name,
+      targetUserId,
+      notebook.coverImage ?? null,
+    )
+    const notes = await listNotebookNotes(notebook.id, sourceUserId)
+    for (const note of notes) {
+      await createNotebookNote(
+        newNotebookId,
+        note.title,
+        note.content,
+        note.tags ?? "[]",
+      )
+      notesCopied++
+    }
+  }
+
+  return { notebooks: sourceNotebooks.length, notes: notesCopied }
+}
+
 // USER CRUD
 export async function getUserByEmail(email: string): Promise<any | null> {
   await ensureDbTables()
   const [rows] = await getPool().query<RowDataPacket[]>(
-    `SELECT id, name, email, password, role, email_verified AS emailVerified,
-            allowed_sections AS allowedSections, streak_count AS streakCount,
-            last_active_date AS lastActiveDate
+    `SELECT id, name, email, password, role, google_id AS googleId,
+            email_verified AS emailVerified, allowed_sections AS allowedSections,
+            streak_count AS streakCount, last_active_date AS lastActiveDate
      FROM users WHERE email = ?`,
     [email]
   )
   if (rows.length === 0) return null
   return rows[0]
+}
+
+export async function getUserByGoogleId(googleId: string): Promise<any | null> {
+  await ensureDbTables()
+  const [rows] = await getPool().query<RowDataPacket[]>(
+    `SELECT id, name, email, role, google_id AS googleId, email_verified AS emailVerified
+     FROM users WHERE google_id = ?`,
+    [googleId]
+  )
+  if (rows.length === 0) return null
+  return rows[0]
+}
+
+export async function linkUserGoogleId(userId: number, googleId: string): Promise<void> {
+  await ensureDbTables()
+  await getPool().query(
+    `UPDATE users SET google_id = ?, email_verified = 1 WHERE id = ?`,
+    [googleId, userId],
+  )
+}
+
+export async function createGoogleUser(
+  name: string,
+  email: string,
+  googleId: string,
+  passwordHash: string,
+  role = "user",
+): Promise<number> {
+  await ensureDbTables()
+  const [result] = await getPool().query<ResultSetHeader>(
+    `INSERT INTO users (name, email, password, role, google_id, email_verified) VALUES (?, ?, ?, ?, ?, 1)`,
+    [name, email, passwordHash, role, googleId],
+  )
+  return result.insertId
 }
 
 export async function getUserByEmailVerificationToken(token: string): Promise<any | null> {

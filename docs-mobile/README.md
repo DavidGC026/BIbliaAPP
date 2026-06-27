@@ -26,6 +26,7 @@ Documentación del cliente móvil de **BibliaAPP** (React Native + Expo). La app
 | [12-paridad-web-movil.md](./12-paridad-web-movil.md) | Qué falta respecto a la web (22 secciones) |
 | [13-build-apk-release.md](./13-build-apk-release.md) | Compilar e instalar APK release |
 | [14-notas-autoguardado-y-preview.md](./14-notas-autoguardado-y-preview.md) | Auto-guardado al salir del editor y preview de texto en libretas |
+| [15-widget-versiculo-del-dia.md](./15-widget-versiculo-del-dia.md) | Arquitectura, funcionamiento y mejoras recientes del widget de Android |
 
 ---
 

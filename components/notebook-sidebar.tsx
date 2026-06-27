@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, type Dispatch, type SetStateAction } from "react"
 import useSWR from "swr"
 import { fetcher } from "@/lib/fetcher"
 import { Button } from "@/components/ui/button"
@@ -62,7 +62,9 @@ interface NotebookNote {
 
 interface NotebookSidebarProps {
   editingNote: { id: number; title: string; content: string; tags?: string } | null
-  setEditingNote: (note: { id: number; title: string; content: string; tags?: string } | null) => void
+  setEditingNote: React.Dispatch<
+    React.SetStateAction<{ id: number; title: string; content: string; tags?: string } | null>
+  >
   onSessionExpired: () => void
   embedded?: boolean
 }
@@ -179,6 +181,8 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
   const [savingNote, setSavingNote] = useState(false)
   const [savedAt, setSavedAt] = useState<string | null>(null)
   const [previewMode, setPreviewMode] = useState(false)
+  const [contentDirty, setContentDirty] = useState(false)
+  const [editorEpoch, setEditorEpoch] = useState(0)
 
   // Fetch the full note content when a note is selected
   const { data: noteDetails, isLoading: noteDetailsLoading } = useSWR<{ note: NotebookNote }>(
@@ -188,7 +192,7 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
 
   useEffect(() => {
     if (noteDetails?.note && editingNote && noteDetails.note.id === editingNote.id) {
-      if (noteDetails.note.content !== editingNote.content && !savingNote) {
+      if (!contentDirty && noteDetails.note.content !== editingNote.content && !savingNote) {
         setEditingNote({
           id: editingNote.id,
           title: noteDetails.note.title,
@@ -197,9 +201,14 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
         })
       }
     }
-  }, [noteDetails, editingNote?.id])
+  }, [noteDetails, editingNote?.id, contentDirty, savingNote])
 
   const editorFrameRef = useRef<HTMLIFrameElement>(null)
+
+  useEffect(() => {
+    setContentDirty(false)
+    setEditorEpoch(0)
+  }, [editingNote?.id])
 
   // Manejar creación/edición de libreta
   async function handleSaveNotebook() {
@@ -335,6 +344,7 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
       }
       await mutateNotes()
       setEditingNote({ ...editingNote, title: titleToSave, content: contentToSave })
+      setContentDirty(false)
       setSavedAt(new Date().toLocaleTimeString())
     } catch (e) {
       alert(e instanceof Error ? e.message : "Error al guardar nota")
@@ -431,6 +441,8 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
               setEditingNote(null)
               setSavedAt(null)
               setPreviewMode(false)
+              setContentDirty(false)
+              setEditorEpoch(0)
             }}
             className="h-8 gap-1.5 px-2 text-muted-foreground hover:text-foreground"
           >
@@ -468,7 +480,9 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
         <div className="px-4 pt-2 shrink-0">
           <Input
             value={editingNote.title}
-            onChange={(e) => setEditingNote({ ...editingNote, title: e.target.value })}
+            onChange={(e) =>
+              setEditingNote((prev) => (prev ? { ...prev, title: e.target.value } : prev))
+            }
             placeholder="Título de la nota"
             className="border-0 border-b border-border rounded-none bg-transparent px-0 text-2xl font-extrabold focus-visible:ring-0 placeholder:text-muted-foreground/40"
           />
@@ -499,10 +513,13 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
           ) : (
             <NoteRichEditor
               key={`${editingNote.id}-${noteDetailsLoading ? "loading" : "ready"}`}
-              contentVersion={`${editingNote.id}-${noteDetails?.note?.updatedAt ?? editingNote.content.length}`}
+              contentVersion={`${editingNote.id}-${noteDetails?.note?.updatedAt ?? "new"}-${editorEpoch}`}
               ref={editorFrameRef}
               content={editingNote.content}
-              onChange={(html) => setEditingNote({ ...editingNote, content: html })}
+              onChange={(html) => {
+                setContentDirty(true)
+                setEditingNote((prev) => (prev ? { ...prev, content: html } : prev))
+              }}
               onInsertVerse={() => {
                 if (insertBooks.length > 0 && !insertBookId) {
                   setInsertBookId(insertBooks[0].bookId)
@@ -681,11 +698,13 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
 
                     const htmlBlock = `<blockquote><strong>${reference} (${bibleAbbr})</strong><br/>${versesText}</blockquote><p><br></p>`
 
-                    setEditingNote({
-                      ...editingNote,
-                      content: insertHtmlIntoNoteContent(editingNote.content, htmlBlock),
-                    })
-                    
+                    setEditingNote((prev) =>
+                      prev
+                        ? { ...prev, content: insertHtmlIntoNoteContent(prev.content, htmlBlock) }
+                        : prev,
+                    )
+                    setEditorEpoch((e) => e + 1)
+
                     setShowInsertVerseModal(false)
                     setSelectedVerses([])
                   }}

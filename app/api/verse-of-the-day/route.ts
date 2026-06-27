@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getPool } from "@/lib/mysql"
+import { fetchThemeBackgroundImage } from "@/lib/verse-theme-unsplash"
 
 export async function GET(req: NextRequest) {
   try {
@@ -10,6 +11,7 @@ export async function GET(req: NextRequest) {
     const now = new Date()
     const month = Number(searchParams.get("month")) || (now.getMonth() + 1)
     const day = Number(searchParams.get("day")) || now.getDate()
+    const daySeed = month * 31 + day
 
     // 1. Buscar el pasaje programado para hoy
     const [dailyRows]: any = await getPool().query(
@@ -48,6 +50,8 @@ export async function GET(req: NextRequest) {
       ? `${daily.book_name} ${daily.chapter}:${daily.verse_start}`
       : `${daily.book_name} ${daily.chapter}:${daily.verse_start}-${daily.verse_end}`
 
+    const backgroundImage = await fetchThemeBackgroundImage(daily.theme, daySeed)
+
     return NextResponse.json({
       theme: daily.theme,
       reference,
@@ -56,7 +60,8 @@ export async function GET(req: NextRequest) {
       chapter: daily.chapter,
       verse_start: daily.verse_start,
       verse_end: daily.verse_end,
-      idBible
+      idBible,
+      backgroundImage,
     })
 
   } catch (err) {

@@ -26,6 +26,7 @@ import {
 import { UserAvatar } from "@/components/user-avatar"
 import { FriendRequestButton } from "@/components/friend-request-button"
 import { PrivacySettings } from "@/components/privacy-settings"
+import { AccountTransferPanel } from "@/components/account-transfer-panel"
 
 interface ProfileSectionProps {
   currentUserId: number
@@ -243,8 +244,9 @@ export function ProfileSection({ currentUserId, initialUsername }: ProfileSectio
             </div>
 
             {profile.id === currentUserId && (
-              <div className="px-6 pb-4">
+              <div className="px-6 pb-4 space-y-4">
                 <PrivacySettings />
+                <AccountTransferPanel />
               </div>
             )}
 

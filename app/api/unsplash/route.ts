@@ -1,24 +1,41 @@
-import { NextResponse } from "next/server"
+import { type NextRequest, NextResponse } from "next/server"
 
 // Next.js Route Cache config: cache for 1 hour to avoid hitting rate limits
 export const revalidate = 3600
 
-export async function GET() {
+function mapImages(data: { id: string; urls: { regular: string; thumb: string }; user: { name: string; links: { html: string } } }[]) {
+  return data.map((img) => ({
+    id: img.id,
+    url: img.urls.regular,
+    thumb: img.urls.thumb,
+    author: img.user.name,
+    authorUrl: img.user.links.html,
+  }))
+}
+
+export async function GET(req: NextRequest) {
   try {
     const accessKey = process.env.UNSPLASH_ACCESS_KEY
     if (!accessKey) {
       return NextResponse.json({ error: "No Unsplash API Key found" }, { status: 500 })
     }
 
-    const url = `https://api.unsplash.com/photos/random?query=nature,landscape,mountains,sky&orientation=portrait&count=12`
-    
+    const query = req.nextUrl.searchParams.get("query")?.trim()
+    const orientation = req.nextUrl.searchParams.get("orientation")?.trim() || "portrait"
+    const validOrientations = ["portrait", "landscape", "squarish"]
+    const safeOrientation = validOrientations.includes(orientation) ? orientation : "portrait"
+    const headers = {
+      Authorization: `Client-ID ${accessKey}`,
+      "Accept-Version": "v1",
+    }
+
+    const url = query
+      ? `https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&orientation=${safeOrientation}&per_page=12`
+      : `https://api.unsplash.com/photos/random?query=nature,landscape,mountains,sky&orientation=${safeOrientation}&count=12`
+
     const response = await fetch(url, {
-      headers: {
-        "Authorization": `Client-ID ${accessKey}`,
-        "Accept-Version": "v1"
-      },
-      // Ensure fetch is cached properly by Next.js
-      next: { revalidate: 3600 }
+      headers,
+      next: { revalidate: query ? 300 : 3600 },
     })
 
     if (!response.ok) {
@@ -28,15 +45,7 @@ export async function GET() {
     }
 
     const data = await response.json()
-    
-    // Map data to just what we need to save bandwidth
-    const images = data.map((img: any) => ({
-      id: img.id,
-      url: img.urls.regular,
-      thumb: img.urls.thumb,
-      author: img.user.name,
-      authorUrl: img.user.links.html
-    }))
+    const images = query ? mapImages(data.results ?? []) : mapImages(Array.isArray(data) ? data : [data])
 
     return NextResponse.json({ images })
   } catch (err) {

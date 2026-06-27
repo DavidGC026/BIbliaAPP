@@ -86,16 +86,24 @@ export const NoteRichEditor = React.forwardRef<HTMLIFrameElement, NoteRichEditor
 
   React.useImperativeHandle(ref, () => iframeRef.current as HTMLIFrameElement)
 
+  // ponytail: srcDoc only on contentVersion change — updating `content` while typing must not reload the iframe
+  const initialContentRef = useRef(content)
+  const lastVersionRef = useRef(contentVersion)
+  if (lastVersionRef.current !== contentVersion) {
+    lastVersionRef.current = contentVersion
+    initialContentRef.current = content
+  }
+
   const srcDoc = useMemo(() => {
     return getEditorHtml(
       getNoteEditorColors(),
-      normalizeNoteContentForEditor(content),
+      normalizeNoteContentForEditor(initialContentRef.current),
       "Default",
       {},
       false,
       DEFAULT_EDITOR_COLORS,
     )
-  }, [content, contentVersion, resolvedTheme])
+  }, [contentVersion, resolvedTheme])
 
   const sendAction = useCallback((action: Record<string, unknown>) => {
     const win = iframeRef.current?.contentWindow as (Window & { handleAction?: (s: string) => void }) | null

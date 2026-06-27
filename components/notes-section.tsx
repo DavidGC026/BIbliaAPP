@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, type Dispatch, type SetStateAction } from "react"
 import { SegmentTabs } from "@/components/ui/segment-tabs"
 import { NotebookSidebar } from "@/components/notebook-sidebar"
 import { Devotionals } from "@/components/devotionals"
@@ -16,7 +16,9 @@ const TABS: { key: NotesSectionTab; label: string }[] = [
 
 interface NotesSectionProps {
   editingNote: { id: number; title: string; content: string; tags?: string } | null
-  setEditingNote: (note: { id: number; title: string; content: string; tags?: string } | null) => void
+  setEditingNote: Dispatch<
+    SetStateAction<{ id: number; title: string; content: string; tags?: string } | null>
+  >
   onSessionExpired: () => void
 }
 
