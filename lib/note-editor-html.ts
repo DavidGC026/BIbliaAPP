@@ -1,3 +1,9 @@
+import {
+  getNoteTableCss,
+  getNoteTablePickerHtml,
+  getNoteTableScript,
+} from "./note-editor-table"
+
 export interface NoteEditorColors {
   text: string
   textMuted: string
@@ -114,8 +120,10 @@ export function getEditorHtml(
       overflow: hidden;
     }
     table, th, td { border: 1px solid ${colors.border}; }
-    th, td { padding: 8px 12px; text-align: left; font-size: 14px; }
+    th, td { padding: 8px 12px; text-align: left; font-size: 14px; vertical-align: top; }
     th { background: ${colors.accent}; font-weight: 700; }
+
+    ${getNoteTableCss(colors, isReadOnly)}
 
     blockquote {
       border-left: 3px solid ${colors.primary};
@@ -379,6 +387,8 @@ export function getEditorHtml(
     </div>
   </div>
 
+  ${getNoteTablePickerHtml(isReadOnly)}
+
   <script>
     (function() {
       function postToHost(data) {
@@ -593,9 +603,7 @@ export function getEditorHtml(
         }
 
         if (action === 'insertTable') {
-          insertHtmlAtSelection('<table><thead><tr><th>Columna 1</th><th>Columna 2</th></tr></thead><tbody><tr><td>&nbsp;</td><td>&nbsp;</td></tr><tr><td>&nbsp;</td><td>&nbsp;</td></tr></tbody></table><p><br></p>');
-          notifyChange();
-          scrollCaretIntoView();
+          openTablePicker();
           return;
         }
 
@@ -875,6 +883,13 @@ export function getEditorHtml(
 
         // Initial active states
         setTimeout(updateActiveStates, 100);
+        initTablePicker();
+      }
+
+      ${getNoteTableScript(isReadOnly)}
+
+      if (isReadOnly) {
+        wrapTablesForReadOnly();
       }
 
       /* ── Notify React Native ────────────────────────── */
