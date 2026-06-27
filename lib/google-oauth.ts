@@ -10,15 +10,40 @@ import {
 export const GOOGLE_OAUTH_STATE_COOKIE = "google_oauth_state"
 export const MOBILE_GOOGLE_REDIRECT = "bibliaapp://auth/google"
 
-export type GoogleOAuthPlatform = "web" | "mobile"
+export type GoogleOAuthPlatform = "web" | "mobile" | "desktop"
 
-export function buildGoogleOAuthState(platform: GoogleOAuthPlatform): string {
-  return `${platform}:${crypto.randomBytes(24).toString("hex")}`
+export function buildGoogleOAuthState(
+  platform: GoogleOAuthPlatform,
+  desktopPort?: number,
+): string {
+  const nonce = crypto.randomBytes(24).toString("hex")
+  if (platform === "desktop" && desktopPort) {
+    return `desktop:${desktopPort}:${nonce}`
+  }
+  return `${platform}:${nonce}`
 }
 
 export function parseGoogleOAuthPlatform(state: string | null): GoogleOAuthPlatform {
+  if (state?.startsWith("desktop:")) return "desktop"
   if (state?.startsWith("mobile:")) return "mobile"
   return "web"
+}
+
+export function parseDesktopOAuthPort(state: string | null): number | undefined {
+  if (!state?.startsWith("desktop:")) return undefined
+  const port = Number.parseInt(state.split(":")[1] ?? "", 10)
+  return Number.isFinite(port) && port >= 1024 && port <= 65535 ? port : undefined
+}
+
+export function buildDesktopOAuthRedirect(
+  port: number,
+  params: Record<string, string>,
+): string {
+  const url = new URL(`http://127.0.0.1:${port}/callback`)
+  for (const [key, value] of Object.entries(params)) {
+    url.searchParams.set(key, value)
+  }
+  return url.toString()
 }
 
 export function getGoogleOAuthConfig() {

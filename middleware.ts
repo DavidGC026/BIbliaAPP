@@ -15,14 +15,27 @@ function allowedOrigins(): string[] {
   return Array.from(origins)
 }
 
+// Orígenes de la webview de los clientes Tauri (escritorio). En Linux/macOS
+// el origin es tauri://localhost; en Windows http(s)://tauri.localhost.
+// Se autentican por Bearer token, no por cookies, así que reflejarlos es seguro.
+function isTauriOrigin(origin: string): boolean {
+  return (
+    origin.startsWith("tauri://") ||
+    /^https?:\/\/tauri\.localhost$/.test(origin)
+  )
+}
+
+function isAllowedOrigin(origin: string): boolean {
+  return allowedOrigins().includes(origin) || isTauriOrigin(origin)
+}
+
 function corsHeaders(request: NextRequest): Record<string, string> {
   const origin = request.headers.get("origin")
-  const allowed = allowedOrigins()
   const headers: Record<string, string> = {
     "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, Authorization, x-joplin-session",
   }
-  if (origin && allowed.includes(origin)) {
+  if (origin && isAllowedOrigin(origin)) {
     headers["Access-Control-Allow-Origin"] = origin
     headers["Vary"] = "Origin"
   }

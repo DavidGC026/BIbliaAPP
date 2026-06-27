@@ -1,0 +1,73 @@
+# BibliaAPP — cliente de escritorio (Tauri)
+# Uso: cd desktop/packaging/arch && makepkg -si
+
+pkgname=bibliaapp-desktop
+pkgver=0.1.0
+pkgrel=1
+pkgdesc="Lectura bíblica, comunidad y grupos — cliente de escritorio BibliaAPP"
+arch=('x86_64')
+url="https://biblia2.dvguzman.com"
+license=('custom')
+depends=(
+  'webkit2gtk-4.1'
+  'gtk3'
+  'glib2'
+  'libsoup3'
+  'libappindicator-gtk3'
+  'librsvg'
+  'hicolor-icon-theme'
+)
+makedepends=(
+  'base-devel'
+  'curl'
+  'wget'
+  'file'
+  'openssl'
+  'appmenu-gtk-module'
+  'nodejs'
+  'npm'
+  'rust'
+)
+source=()
+sha256sums=()
+
+build() {
+  cd "$startdir/../../"
+  # ponytail: si ya compilaste con npm run build:arch, empaqueta sin recompilar
+  if [[ -f src-tauri/target/release/bibliaapp-desktop ]]; then
+    echo ">> Binario existente, omitiendo rebuild"
+    return 0
+  fi
+  npm ci
+  npm run build:arch
+}
+
+package() {
+  cd "$startdir/../../"
+
+  install -Dm755 \
+    "src-tauri/target/release/bibliaapp-desktop" \
+    "$pkgdir/usr/bin/bibliaapp-desktop"
+
+  install -Dm644 /dev/stdin "$pkgdir/usr/share/applications/bibliaapp-desktop.desktop" <<EOF
+[Desktop Entry]
+Name=BibliaAPP
+Comment=Lectura bíblica y comunidad
+Exec=bibliaapp-desktop
+Icon=bibliaapp
+Terminal=false
+Type=Application
+Categories=Education;Spirituality;
+StartupWMClass=bibliaapp
+EOF
+
+  for size in 16 32 48 128 256; do
+    icon="$startdir/../../src-tauri/icons/${size}x${size}.png"
+    if [[ -f "$icon" ]]; then
+      install -Dm644 "$icon" "$pkgdir/usr/share/icons/hicolor/${size}x${size}/apps/bibliaapp.png"
+    elif [[ -f "$startdir/../../app-icon.png" ]]; then
+      install -Dm644 "$startdir/../../app-icon.png" \
+        "$pkgdir/usr/share/icons/hicolor/${size}x${size}/apps/bibliaapp.png"
+    fi
+  done
+}

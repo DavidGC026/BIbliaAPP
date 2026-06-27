@@ -2,13 +2,28 @@ import { type NextRequest, NextResponse } from "next/server"
 import { generateToken, getAppUrl, sessionCookieFlags } from "@/lib/auth"
 import {
   authenticateGoogleProfile,
+  buildDesktopOAuthRedirect,
   exchangeGoogleCode,
   GOOGLE_OAUTH_STATE_COOKIE,
   MOBILE_GOOGLE_REDIRECT,
+  parseDesktopOAuthPort,
   parseGoogleOAuthPlatform,
+  type GoogleOAuthPlatform,
 } from "@/lib/google-oauth"
 
-function authErrorRedirect(message: string, platform: "web" | "mobile"): NextResponse {
+function authErrorRedirect(
+  message: string,
+  platform: GoogleOAuthPlatform,
+  state: string | null,
+): NextResponse {
+  if (platform === "desktop") {
+    const port = parseDesktopOAuthPort(state)
+    if (port) {
+      return NextResponse.redirect(
+        buildDesktopOAuthRedirect(port, { error: message }),
+      )
+    }
+  }
   if (platform === "mobile") {
     const url = new URL(MOBILE_GOOGLE_REDIRECT)
     url.searchParams.set("error", message)
@@ -21,9 +36,23 @@ function authErrorRedirect(message: string, platform: "web" | "mobile"): NextRes
 
 function authSuccessRedirect(
   token: string,
-  platform: "web" | "mobile",
+  platform: GoogleOAuthPlatform,
+  state: string | null,
   linkedExistingAccount = false,
 ): NextResponse {
+  if (platform === "desktop") {
+    const port = parseDesktopOAuthPort(state)
+    if (port) {
+      const params: Record<string, string> = { token }
+      if (linkedExistingAccount) params.linked = "1"
+      const response = NextResponse.redirect(buildDesktopOAuthRedirect(port, params))
+      response.headers.append(
+        "Set-Cookie",
+        `${GOOGLE_OAUTH_STATE_COOKIE}=; ${sessionCookieFlags()}; Max-Age=0`,
+      )
+      return response
+    }
+  }
   if (platform === "mobile") {
     const url = new URL(MOBILE_GOOGLE_REDIRECT)
     url.searchParams.set("token", token)
@@ -67,29 +96,30 @@ export async function GET(req: NextRequest) {
   try {
     const error = searchParams.get("error")
     if (error) {
-      return authErrorRedirect("Inicio de sesión con Google cancelado.", platform)
+      return authErrorRedirect("Inicio de sesión con Google cancelado.", platform, state)
     }
 
     const code = searchParams.get("code")
     if (!code || !state) {
-      return authErrorRedirect("Respuesta de Google incompleta.", platform)
+      return authErrorRedirect("Respuesta de Google incompleta.", platform, state)
     }
 
     const cookieHeader = req.headers.get("cookie") || ""
     const stateMatch = cookieHeader.match(new RegExp(`${GOOGLE_OAUTH_STATE_COOKIE}=([^;]+)`))
     const savedState = stateMatch?.[1]
     if (!savedState || savedState !== state) {
-      return authErrorRedirect("Sesión OAuth inválida. Inténtalo de nuevo.", platform)
+      return authErrorRedirect("Sesión OAuth inválida. Inténtalo de nuevo.", platform, state)
     }
 
     const profile = await exchangeGoogleCode(code)
     const user = await authenticateGoogleProfile(profile)
     const token = generateToken({ userId: user.id, role: user.role })
-    return authSuccessRedirect(token, platform, user.linkedExistingAccount)
+    return authSuccessRedirect(token, platform, state, user.linkedExistingAccount)
   } catch (err) {
     return authErrorRedirect(
       err instanceof Error ? err.message : "Error al iniciar sesión con Google",
       platform,
+      state,
     )
   }
 }
