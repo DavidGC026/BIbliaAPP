@@ -1,4 +1,5 @@
-// ponytail: mirror of ../../lib/note-editor-table.ts — keep both in sync when editing tables UX
+// ponytail: mirror of ../../lib/note-editor-table.ts
+
 export interface NoteTableThemeColors {
   text: string
   textMuted: string
@@ -94,8 +95,8 @@ export function getNoteTableCss(colors: NoteTableThemeColors, isReadOnly: boolea
       max-width: 120px;
     }
     .biblia-table-source { display: none !important; }
-    .biblia-table-block .biblia-table-handle { display: none !important; }
-    .biblia-table-block { border: none; background: transparent; margin: 12px 0; }
+    .biblia-content-block .biblia-block-handle { display: none !important; }
+    .biblia-content-block { border: none; background: transparent; margin: 12px 0; }
 
     .biblia-table-overlay {
       position: fixed;
@@ -241,19 +242,21 @@ export function getNoteTableCss(colors: NoteTableThemeColors, isReadOnly: boolea
       color: #fff;
     }
 
-    .biblia-table-block {
+    .biblia-table-block,
+    .biblia-verse-block,
+    .biblia-dict-block {
       margin: 14px 0;
       border: 1px solid ${colors.border};
       border-radius: 12px;
       overflow: hidden;
       background: ${colors.card};
     }
-    .biblia-table-block.is-selected {
+    .biblia-content-block.is-selected {
       outline: 2px solid ${colors.primary};
       outline-offset: 1px;
       box-shadow: 0 0 0 3px ${colors.primarySoft};
     }
-    .biblia-table-handle {
+    .biblia-block-handle {
       display: flex;
       align-items: center;
       gap: 6px;
@@ -263,7 +266,7 @@ export function getNoteTableCss(colors: NoteTableThemeColors, isReadOnly: boolea
       user-select: none;
       -webkit-user-select: none;
     }
-    .biblia-table-grip {
+    .biblia-block-grip {
       border: none;
       background: ${colors.accent};
       color: ${colors.textMuted};
@@ -275,7 +278,7 @@ export function getNoteTableCss(colors: NoteTableThemeColors, isReadOnly: boolea
       letter-spacing: -1px;
       flex-shrink: 0;
     }
-    .biblia-table-label {
+    .biblia-block-label {
       font-size: 11px;
       font-weight: 800;
       color: ${colors.textMuted};
@@ -285,12 +288,14 @@ export function getNoteTableCss(colors: NoteTableThemeColors, isReadOnly: boolea
       overflow: hidden;
       text-overflow: ellipsis;
     }
-    .biblia-table-actions {
+    .biblia-block-actions {
       display: flex;
       gap: 4px;
       flex-shrink: 0;
+      flex-wrap: wrap;
+      justify-content: flex-end;
     }
-    .biblia-table-btn {
+    .biblia-block-btn {
       border: none;
       background: ${colors.accent};
       color: ${colors.text};
@@ -300,7 +305,7 @@ export function getNoteTableCss(colors: NoteTableThemeColors, isReadOnly: boolea
       border-radius: 6px;
       white-space: nowrap;
     }
-    .biblia-table-btn[data-table-action="delete"] {
+    .biblia-block-btn[data-block-action="delete"] {
       color: #dc2626;
     }
     .biblia-table-block > table.biblia-note-table {
@@ -308,6 +313,17 @@ export function getNoteTableCss(colors: NoteTableThemeColors, isReadOnly: boolea
       border: none;
       border-radius: 0;
       width: 100%;
+    }
+    .biblia-verse-block > blockquote.biblia-verse-quote {
+      margin: 0;
+      border-left: none;
+      border-radius: 0;
+      background: transparent;
+    }
+    .biblia-dict-block > aside.biblia-dict-entry {
+      margin: 0;
+      border: none;
+      border-radius: 0;
     }
     `
     }
@@ -393,15 +409,59 @@ export function getNoteTableScript(isReadOnly: boolean): string {
         return 'Tabla ' + cols + '×' + rows;
       }
 
-      function buildTableHandleHtml(label) {
-        return '<div class="biblia-table-handle" contenteditable="false">' +
-          '<button type="button" class="biblia-table-grip" data-table-action="select" contenteditable="false">⋮⋮</button>' +
-          '<span class="biblia-table-label">' + label + '</span>' +
-          '<div class="biblia-table-actions">' +
-          '<button type="button" class="biblia-table-btn" data-table-action="copy" contenteditable="false">Copiar</button>' +
-          '<button type="button" class="biblia-table-btn" data-table-action="cut" contenteditable="false">Cortar</button>' +
-          '<button type="button" class="biblia-table-btn" data-table-action="delete" contenteditable="false">Eliminar</button>' +
+      function buildBlockHandleHtml(icon, label) {
+        return '<div class="biblia-block-handle" contenteditable="false">' +
+          '<button type="button" class="biblia-block-grip" data-block-action="select" contenteditable="false">' + icon + '</button>' +
+          '<span class="biblia-block-label">' + label + '</span>' +
+          '<div class="biblia-block-actions">' +
+          '<button type="button" class="biblia-block-btn" data-block-action="up" contenteditable="false">↑</button>' +
+          '<button type="button" class="biblia-block-btn" data-block-action="down" contenteditable="false">↓</button>' +
+          '<button type="button" class="biblia-block-btn" data-block-action="copy" contenteditable="false">Copiar</button>' +
+          '<button type="button" class="biblia-block-btn" data-block-action="cut" contenteditable="false">Cortar</button>' +
+          '<button type="button" class="biblia-block-btn" data-block-action="delete" contenteditable="false">Eliminar</button>' +
           '</div></div>';
+      }
+
+      function buildTableHandleHtml(label) {
+        return buildBlockHandleHtml('⊞', label);
+      }
+
+      function verseLabelFromBlockquote(bq) {
+        if (!bq) return 'Versículo';
+        var strong = bq.querySelector('strong');
+        if (strong && strong.textContent) return strong.textContent.trim().slice(0, 72);
+        var t = (bq.textContent || '').trim().replace(/\\s+/g, ' ');
+        return t.slice(0, 60) || 'Versículo';
+      }
+
+      function dictLabelFromAside(aside) {
+        if (!aside) return 'Diccionario';
+        var code = aside.getAttribute('data-strong') || '';
+        var lemmaEl = aside.querySelector('.biblia-dict-lemma');
+        var lemma = lemmaEl ? lemmaEl.textContent.trim() : '';
+        return code ? code + (lemma ? ' · ' + lemma : '') : 'Diccionario Strong';
+      }
+
+      function buildVerseBlockHtml(innerHtml) {
+        var tmp = document.createElement('div');
+        tmp.innerHTML = '<blockquote class="biblia-verse-quote" contenteditable="false">' + innerHtml + '</blockquote>';
+        var bq = tmp.querySelector('blockquote');
+        return '<div class="biblia-content-block biblia-verse-block">' +
+          buildBlockHandleHtml('📖', verseLabelFromBlockquote(bq)) +
+          bq.outerHTML + '</div><p><br></p>';
+      }
+
+      function buildDictBlockHtml(asideHtml) {
+        var tmp = document.createElement('div');
+        tmp.innerHTML = asideHtml;
+        var aside = tmp.querySelector('aside.biblia-dict-entry') || tmp.firstElementChild;
+        if (aside) {
+          aside.classList.add('biblia-dict-entry');
+          aside.setAttribute('contenteditable', 'false');
+        }
+        return '<div class="biblia-content-block biblia-dict-block">' +
+          buildBlockHandleHtml('📚', dictLabelFromAside(aside)) +
+          (aside ? aside.outerHTML : asideHtml) + '</div><p><br></p>';
       }
 
       function buildTableHtml(cols, rows, withHeader) {
@@ -410,7 +470,7 @@ export function getNoteTableScript(isReadOnly: boolean): string {
         tmp.innerHTML = tableHtml;
         var table = tmp.querySelector('table');
         var label = table ? tableBlockLabel(table) : 'Tabla';
-        return '<div class="biblia-table-block">' + buildTableHandleHtml(label) + tableHtml + '</div><p><br></p>';
+        return '<div class="biblia-content-block biblia-table-block">' + buildTableHandleHtml(label) + tableHtml + '</div><p><br></p>';
       }
 
       ${
@@ -463,7 +523,7 @@ export function getNoteTableScript(isReadOnly: boolean): string {
         var tables = editor.querySelectorAll('table');
         tables.forEach(function(table, index) {
           if (table.closest('.biblia-table-widget') || table.closest('.biblia-table-compact-preview')) return;
-          var block = table.closest('.biblia-table-block');
+          var block = table.closest('.biblia-content-block');
           var mountTarget = block || table;
           if (mountTarget.closest('.biblia-table-widget')) return;
           if (!table.classList.contains('biblia-note-table')) table.classList.add('biblia-note-table');
@@ -587,41 +647,92 @@ export function getNoteTableScript(isReadOnly: boolean): string {
         });
       }
 
-      var selectedTableBlock = null;
-      var tableClipboardHtml = null;
+      var selectedContentBlock = null;
+      var contentBlockClipboardHtml = null;
 
-      function clearTableBlockSelection() {
-        if (selectedTableBlock) selectedTableBlock.classList.remove('is-selected');
-        selectedTableBlock = null;
+      function clearContentBlockSelection() {
+        if (selectedContentBlock) selectedContentBlock.classList.remove('is-selected');
+        selectedContentBlock = null;
+      }
+
+      function blockMainNode(block) {
+        if (!block) return null;
+        return block.querySelector('table, blockquote.biblia-verse-quote, aside.biblia-dict-entry, blockquote, aside');
       }
 
       function wrapTableElement(table) {
-        if (table.closest('.biblia-table-block')) return;
+        if (table.closest('.biblia-content-block')) return;
         if (!table.classList.contains('biblia-note-table')) table.classList.add('biblia-note-table');
         var block = document.createElement('div');
-        block.className = 'biblia-table-block';
+        block.className = 'biblia-content-block biblia-table-block';
         block.innerHTML = buildTableHandleHtml(tableBlockLabel(table));
         table.parentNode.insertBefore(block, table);
         block.appendChild(table);
       }
 
-      function wrapTablesForEdit() {
-        var tables = editor.querySelectorAll('table');
-        tables.forEach(function(table) {
+      function wrapVerseElement(blockquote) {
+        if (blockquote.closest('.biblia-content-block')) return;
+        blockquote.classList.add('biblia-verse-quote');
+        blockquote.setAttribute('contenteditable', 'false');
+        var block = document.createElement('div');
+        block.className = 'biblia-content-block biblia-verse-block';
+        block.innerHTML = buildBlockHandleHtml('📖', verseLabelFromBlockquote(blockquote));
+        blockquote.parentNode.insertBefore(block, blockquote);
+        block.appendChild(blockquote);
+      }
+
+      function wrapDictElement(aside) {
+        if (aside.closest('.biblia-content-block')) return;
+        aside.classList.add('biblia-dict-entry');
+        aside.setAttribute('contenteditable', 'false');
+        var block = document.createElement('div');
+        block.className = 'biblia-content-block biblia-dict-block';
+        block.innerHTML = buildBlockHandleHtml('📚', dictLabelFromAside(aside));
+        aside.parentNode.insertBefore(block, aside);
+        block.appendChild(aside);
+      }
+
+      function wrapAllContentBlocks() {
+        editor.querySelectorAll('table').forEach(function(table) {
           if (table.closest('.biblia-table-widget') || table.closest('.biblia-table-compact-preview')) return;
           wrapTableElement(table);
         });
+        editor.querySelectorAll('blockquote').forEach(function(bq) {
+          if (bq.closest('.biblia-table-compact-preview') || bq.closest('.biblia-content-block')) return;
+          wrapVerseElement(bq);
+        });
+        editor.querySelectorAll('aside.biblia-dict-entry').forEach(function(aside) {
+          if (aside.closest('.biblia-content-block')) return;
+          wrapDictElement(aside);
+        });
       }
 
-      function selectTableBlock(block) {
-        clearTableBlockSelection();
-        selectedTableBlock = block;
+      function moveContentBlock(block, direction) {
+        if (!block || !block.parentNode) return;
+        var sibling = direction === 'up' ? block.previousElementSibling : block.nextElementSibling;
+        while (sibling && sibling.tagName === 'P' && !(sibling.textContent || '').replace(/\\u200B/g, '').trim()) {
+          sibling = direction === 'up' ? sibling.previousElementSibling : sibling.nextElementSibling;
+        }
+        if (!sibling) return;
+        if (direction === 'up') {
+          block.parentNode.insertBefore(block, sibling);
+        } else {
+          block.parentNode.insertBefore(sibling, block);
+        }
+        selectContentBlock(block);
+        notifyChange();
+        scrollCaretIntoView();
+      }
+
+      function selectContentBlock(block) {
+        clearContentBlockSelection();
+        selectedContentBlock = block;
         block.classList.add('is-selected');
-        var table = block.querySelector('table');
-        if (!table) return;
+        var main = blockMainNode(block);
+        if (!main) return;
         try {
           var range = document.createRange();
-          range.selectNode(table);
+          range.selectNode(main);
           var sel = window.getSelection();
           if (sel) {
             sel.removeAllRanges();
@@ -630,65 +741,71 @@ export function getNoteTableScript(isReadOnly: boolean): string {
         } catch (e) {}
       }
 
-      function removeTableBlock(block) {
+      function removeContentBlock(block) {
         if (!block || !block.parentNode) return;
         block.remove();
-        clearTableBlockSelection();
+        clearContentBlockSelection();
         notifyChange();
         scrollCaretIntoView();
       }
 
-      function copyTableBlock(block) {
-        var table = block.querySelector('table');
-        if (!table) return;
-        tableClipboardHtml = table.outerHTML;
-        selectTableBlock(block);
+      function copyContentBlock(block) {
+        var main = blockMainNode(block);
+        if (!main) return;
+        contentBlockClipboardHtml = main.outerHTML;
+        selectContentBlock(block);
         try { document.execCommand('copy'); } catch (e) {}
       }
 
-      function cutTableBlock(block) {
-        copyTableBlock(block);
-        removeTableBlock(block);
+      function cutContentBlock(block) {
+        copyContentBlock(block);
+        removeContentBlock(block);
       }
 
-      function handleTableBlockAction(block, action) {
+      function handleContentBlockAction(block, action) {
         if (!block) return;
-        if (action === 'select') selectTableBlock(block);
-        else if (action === 'copy') copyTableBlock(block);
-        else if (action === 'cut') cutTableBlock(block);
-        else if (action === 'delete') removeTableBlock(block);
+        if (action === 'select') selectContentBlock(block);
+        else if (action === 'up') moveContentBlock(block, 'up');
+        else if (action === 'down') moveContentBlock(block, 'down');
+        else if (action === 'copy') copyContentBlock(block);
+        else if (action === 'cut') cutContentBlock(block);
+        else if (action === 'delete') removeContentBlock(block);
       }
 
-      function initTableBlocks() {
-        wrapTablesForEdit();
-        if (editor._bibliaTableBlocksInit) return;
-        editor._bibliaTableBlocksInit = true;
+      function initContentBlocks() {
+        wrapAllContentBlocks();
+        if (editor._bibliaContentBlocksInit) return;
+        editor._bibliaContentBlocksInit = true;
 
         editor.addEventListener('click', function(e) {
-          var actionBtn = e.target.closest('[data-table-action]');
+          var actionBtn = e.target.closest('[data-block-action]');
           if (actionBtn) {
             e.preventDefault();
             e.stopPropagation();
-            var block = actionBtn.closest('.biblia-table-block');
-            handleTableBlockAction(block, actionBtn.getAttribute('data-table-action'));
+            var block = actionBtn.closest('.biblia-content-block');
+            handleContentBlockAction(block, actionBtn.getAttribute('data-block-action'));
             return;
           }
-          if (e.target.closest('.biblia-table-handle')) {
+          if (e.target.closest('.biblia-block-handle')) {
             e.preventDefault();
-            var block = e.target.closest('.biblia-table-block');
-            if (block) selectTableBlock(block);
+            var block = e.target.closest('.biblia-content-block');
+            if (block) selectContentBlock(block);
             return;
           }
-          if (!e.target.closest('.biblia-table-block')) clearTableBlockSelection();
+          if (!e.target.closest('.biblia-content-block')) clearContentBlockSelection();
         });
 
         editor.addEventListener('keydown', function(e) {
-          if (!selectedTableBlock) return;
+          if (!selectedContentBlock) return;
           if (e.key === 'Backspace' || e.key === 'Delete') {
             e.preventDefault();
-            removeTableBlock(selectedTableBlock);
+            removeContentBlock(selectedContentBlock);
           }
         });
+      }
+
+      function initTableBlocks() {
+        initContentBlocks();
       }
       `
       }

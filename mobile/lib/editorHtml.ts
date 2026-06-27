@@ -895,11 +895,9 @@ export function getEditorHtml(
               editor.style.fontFamily = action.value === 'Default' ? 'system-ui, sans-serif' : "'" + action.value + "', sans-serif";
             }
           } else if (action.type === 'insertVerse') {
-            var q = '<blockquote>' + action.value + '</blockquote><p><br></p>';
-            document.execCommand('insertHTML', false, q);
+            insertHtmlAtSelection(buildVerseBlockHtml(action.value));
           } else if (action.type === 'insertDictionary') {
-            var d = action.value + '<p><br></p>';
-            document.execCommand('insertHTML', false, d);
+            insertHtmlAtSelection(buildDictBlockHtml(action.value));
           } else if (action.type === 'getHtml') {
             window.ReactNativeWebView.postMessage(JSON.stringify({
               type: 'getHtmlResponse',
