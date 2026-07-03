@@ -32,8 +32,7 @@ export async function GET(req: NextRequest) {
     }
 
     // ponytail: /photos/random con count=30 a veces devuelve 1 solo objeto; search pagina bien
-    const searchQuery =
-      query || "nature landscape mountains sky forest ocean sunset flowers books"
+    const searchQuery = query || "nature landscape books"
     const url = `https://api.unsplash.com/search/photos?query=${encodeURIComponent(searchQuery)}&orientation=${safeOrientation}&per_page=${perPage}&page=${page}`
 
     const response = await fetch(url, {
