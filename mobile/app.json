@@ -2,7 +2,7 @@
   "expo": {
     "name": "BibliaAPP",
     "slug": "bibliaapp",
-    "version": "2.0.10",
+    "version": "3.0.2",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "bibliaapp",
@@ -13,7 +13,7 @@
     },
     "android": {
       "package": "com.bibliaapp.mobile",
-      "versionCode": 30,
+      "versionCode": 33,
       "adaptiveIcon": {
         "backgroundColor": "#9A6700",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -63,7 +63,7 @@
               "targetCellHeight": 2,
               "description": "Muestra el versículo bíblico del día con una imagen inspiradora en tu pantalla de inicio",
               "updatePeriodMillis": 1800000,
-              "widgetFeatures": "reconfigurable"
+              "widgetFeatures": "reconfigurable|configuration_optional"
             }
           ]
         }

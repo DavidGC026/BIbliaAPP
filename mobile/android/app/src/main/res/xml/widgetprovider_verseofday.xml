@@ -15,7 +15,7 @@
 
 
     android:configure="com.bibliaapp.mobile.WidgetConfigurationActivity"
-    android:widgetFeatures="reconfigurable"
+    android:widgetFeatures="reconfigurable|configuration_optional"
 
     android:updatePeriodMillis="1800000"
     android:widgetCategory="home_screen">

@@ -2,6 +2,8 @@
 
 import { FlexWidget, ImageWidget, OverlapWidget, SvgWidget, TextWidget } from 'react-native-android-widget';
 
+import { widgetBackgroundImageSize } from '@/lib/verseImageFormats';
+
 function truncate(text: string, max: number): string {
   const t = text.trim();
   if (t.length <= max) return t;
@@ -20,14 +22,19 @@ export function VerseOfDayWidget({
   theme,
   backgroundImage,
   maxChars = 140,
+  widgetWidth = 360,
+  widgetHeight = 180,
 }: {
   reference: string;
   text: string;
   theme?: string;
   backgroundImage?: string | null;
   maxChars?: number;
+  widgetWidth?: number;
+  widgetHeight?: number;
 }) {
   const hasBg = Boolean(backgroundImage);
+  const bgSize = widgetBackgroundImageSize(widgetWidth, widgetHeight);
 
   /* ── Header row: cross icon + theme label ── */
   const headerRow = theme ? (
@@ -134,9 +141,13 @@ export function VerseOfDayWidget({
   const backgroundLayer = hasBg ? (
     <ImageWidget
       image={backgroundImage as `data:image${string}` | `https:${string}` | `http:${string}`}
-      imageWidth={360}
-      imageHeight={180}
-      style={{ width: 'match_parent', height: 'match_parent' }}
+      imageWidth={bgSize.imageWidth}
+      imageHeight={bgSize.imageHeight}
+      style={{
+        width: 'match_parent',
+        height: 'match_parent',
+        backgroundColor: '#1c1917',
+      }}
       radius={16}
     />
   ) : (

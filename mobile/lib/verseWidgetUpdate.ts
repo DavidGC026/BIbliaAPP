@@ -12,14 +12,18 @@ export async function updateVerseWidget(verse: VerseOfDay): Promise<void> {
   try {
     const { requestWidgetUpdate } = await import('react-native-android-widget');
     const { VerseOfDayWidget } = await import('@/widgets/VerseOfDayWidget');
+    const { maxCharsForWidth } = await import('@/widgets/widget-task-handler');
     await requestWidgetUpdate({
       widgetName: 'VerseOfDay',
-      renderWidget: () =>
+      renderWidget: (info) =>
         VerseOfDayWidget({
           reference: verse.reference,
           text: verse.text,
           theme: verse.theme ?? '',
           backgroundImage,
+          maxChars: maxCharsForWidth(info.width),
+          widgetWidth: info.width,
+          widgetHeight: info.height,
         }),
       widgetNotFound: () => {},
     });

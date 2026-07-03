@@ -48,3 +48,11 @@ export function mergeUnsplashPhotos<T extends { id: string }>(prev: T[], next: T
   const seen = new Set(prev.map((p) => p.id));
   return [...prev, ...next.filter((p) => !seen.has(p.id))];
 }
+
+/** Escala la imagen de fondo al tamaño del widget (dp) para evitar bandas grises al redimensionar. */
+export function widgetBackgroundImageSize(widgetWidth: number, widgetHeight: number) {
+  return {
+    imageWidth: Math.max(Math.round(widgetWidth), 1),
+    imageHeight: Math.max(Math.round(widgetHeight), 1),
+  };
+}

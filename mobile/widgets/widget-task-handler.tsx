@@ -28,7 +28,7 @@ async function toWidgetVerse(verse: VerseOfDay): Promise<WidgetVerse> {
   };
 }
 
-async function loadVerseForWidget(): Promise<WidgetVerse> {
+export async function loadVerseForWidget(): Promise<WidgetVerse> {
   const cached = await getCachedVerseForWidget();
   if (cached && cached.cachedDate === todayLocalStr()) {
     return toWidgetVerse(cached);
@@ -52,14 +52,14 @@ async function loadVerseForWidget(): Promise<WidgetVerse> {
 }
 
 /** Determine max text chars based on widget width */
-function maxCharsForWidth(widgetWidth: number): number {
+export function maxCharsForWidth(widgetWidth: number): number {
   if (widgetWidth >= 400) return 200;
   if (widgetWidth >= 300) return 160;
   return 120;
 }
 
 function renderVerse(props: WidgetTaskHandlerProps, verse: WidgetVerse) {
-  const { width } = props.widgetInfo;
+  const { width, height } = props.widgetInfo;
   const maxChars = maxCharsForWidth(width);
 
   props.renderWidget(
@@ -69,6 +69,8 @@ function renderVerse(props: WidgetTaskHandlerProps, verse: WidgetVerse) {
       theme={verse.theme}
       backgroundImage={verse.backgroundImage}
       maxChars={maxChars}
+      widgetWidth={width}
+      widgetHeight={height}
     />,
   );
 }
