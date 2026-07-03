@@ -106,7 +106,7 @@ export function DevotionalsPanel() {
         const emotion = DEVOTIONAL_EMOTIONS.find((e) => e.name === item.emotion);
         return (
           <Card style={styles.card}>
-            <Pressable onPress={() => router.push(`/devotional/${item.id}`)}>
+            <Pressable onPress={() => router.push(`/devotional/read/${item.id}`)}>
               <View style={styles.cardTop}>
                 <Text style={[styles.cardTitle, { color: colors.text }]} numberOfLines={1}>
                   {item.title}

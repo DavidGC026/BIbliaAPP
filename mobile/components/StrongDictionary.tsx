@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -9,8 +9,10 @@ import {
   View,
 } from 'react-native';
 
+import { StrongLinkifiedText } from '@/components/StrongLinkifiedText';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { useContentPadding } from '@/hooks/useContentPadding';
+import { parseDictionaryDefinition } from '@/lib/dictionary';
 import * as api from '@/lib/api';
 import type { StrongEntry } from '@/lib/types';
 
@@ -24,39 +26,27 @@ const LANG_OPTIONS: { id: Lang; label: string }[] = [
 
 const EXAMPLES = ['G25', 'H430', 'agapao', 'shalom', 'logos'];
 
-function parseDefinition(definition: string): { label: string; text: string }[] {
-  if (!definition) return [];
-  const labelMap: Record<string, string> = {
-    Strong: 'Definición',
-    KJV: 'Traducciones (KJV)',
-    Derivation: 'Derivación',
-  };
-  const sections: { label: string; text: string }[] = [];
-  for (const block of definition.split(/\n\n+/)) {
-    const match = block.match(/^(Strong|KJV|Derivation):\s*([\s\S]*)$/);
-    if (match) {
-      sections.push({ label: labelMap[match[1]] ?? match[1], text: match[2].trim() });
-    } else if (block.trim()) {
-      sections.push({ label: '', text: block.trim() });
-    }
-  }
-  return sections;
-}
-
-export function StrongDictionary() {
+export function StrongDictionary({ initialCode }: { initialCode?: string }) {
   const colors = useThemeColors();
   const contentPadding = useContentPadding();
-  const [query, setQuery] = useState('');
-  const [debounced, setDebounced] = useState('');
+  const [query, setQuery] = useState(initialCode ?? '');
+  const [debounced, setDebounced] = useState(initialCode?.trim() ?? '');
   const [lang, setLang] = useState<Lang>('all');
   const [page, setPage] = useState(1);
   const [browse, setBrowse] = useState(false);
-  const [expanded, setExpanded] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState<string | null>(initialCode?.toUpperCase() ?? null);
   const [entries, setEntries] = useState<StrongEntry[]>([]);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const openCode = useCallback((code: string) => {
+    setQuery(code);
+    setBrowse(false);
+    setExpanded(code.toUpperCase());
+    setPage(1);
+  }, []);
 
   useEffect(() => {
     const t = setTimeout(() => setDebounced(query.trim()), 350);
@@ -66,6 +56,11 @@ export function StrongDictionary() {
   useEffect(() => {
     setPage(1);
   }, [debounced, lang, browse]);
+
+  useEffect(() => {
+    if (!initialCode) return;
+    openCode(initialCode);
+  }, [initialCode, openCode]);
 
   const hasValidQuery = debounced.length >= 2 || /^[gh]\d+$/i.test(debounced);
   const shouldFetch = hasValidQuery || browse;
@@ -129,7 +124,7 @@ export function StrongDictionary() {
               <Pressable
                 key={ex}
                 style={[styles.exampleBtn, { borderColor: colors.border }]}
-                onPress={() => setQuery(ex)}
+                onPress={() => openCode(ex)}
               >
                 <Text style={{ color: colors.primary, fontWeight: '600' }}>{ex}</Text>
               </Pressable>
@@ -186,7 +181,8 @@ export function StrongDictionary() {
           }
           renderItem={({ item }) => {
             const open = expanded === item.strongCode;
-            const sections = parseDefinition(item.definition);
+            const sections = parseDictionaryDefinition(item.definition);
+            const preview = sections[0]?.text ?? item.definition;
             return (
               <Pressable
                 style={[styles.entry, { backgroundColor: colors.card, borderColor: colors.border }]}
@@ -197,6 +193,11 @@ export function StrongDictionary() {
                   <Text style={{ color: colors.text, fontWeight: '600', flex: 1 }}>{item.lemma}</Text>
                   <Text style={{ color: colors.textMuted, fontSize: 13 }}>{item.transliteration}</Text>
                 </View>
+                {!open && preview ? (
+                  <Text style={{ color: colors.textMuted, fontSize: 13, lineHeight: 20 }} numberOfLines={2}>
+                    {preview}
+                  </Text>
+                ) : null}
                 {open ? (
                   <View style={styles.defBody}>
                     {sections.length > 0
@@ -205,13 +206,22 @@ export function StrongDictionary() {
                             {s.label ? (
                               <Text style={{ color: colors.primary, fontWeight: '700', fontSize: 12 }}>{s.label}</Text>
                             ) : null}
-                            <Text style={{ color: colors.text, lineHeight: 22, fontSize: 14 }}>{s.text}</Text>
+                            <StrongLinkifiedText
+                              text={s.text}
+                              style={{ color: colors.text, lineHeight: 22, fontSize: 14 }}
+                              codeStyle={{ color: colors.primary, fontWeight: '700' }}
+                              onCodePress={openCode}
+                            />
                           </View>
                         ))
                       : (
-                        <Text style={{ color: colors.text, lineHeight: 22 }}>{item.definition}</Text>
+                        <StrongLinkifiedText
+                          text={item.definition}
+                          style={{ color: colors.text, lineHeight: 22 }}
+                          codeStyle={{ color: colors.primary, fontWeight: '700' }}
+                          onCodePress={openCode}
+                        />
                       )}
-                    {/* ponytail: códigos Strong en definición no son clicables; buscar manualmente */}
                   </View>
                 ) : null}
               </Pressable>

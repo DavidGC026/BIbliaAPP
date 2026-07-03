@@ -372,6 +372,11 @@ export async function searchDictionary(opts: {
   }>(`/api/dictionary?${params.toString()}`);
 }
 
+export async function getDictionaryEntry(code: string, dict = 'strong') {
+  const params = new URLSearchParams({ dict, code: code.toUpperCase() });
+  return request<{ entry: import('./types').StrongEntry | null }>(`/api/dictionary?${params.toString()}`);
+}
+
 // — Grupos: unirse por código —
 export async function joinGroupByCode(inviteCode: string) {
   return request<{ success: boolean; groupId: number; alreadyMember?: boolean }>(

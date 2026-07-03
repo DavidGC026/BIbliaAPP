@@ -130,6 +130,7 @@ function RootLayoutNav() {
           }}
         />
         <Stack.Screen name="devotional/[id]" options={{ title: 'Diario espiritual' }} />
+        <Stack.Screen name="devotional/read/[id]" options={{ title: 'Devocional' }} />
         <Stack.Screen name="study-book/[id]" options={{ title: 'Libro de estudio' }} />
         <Stack.Screen
           name="events"
