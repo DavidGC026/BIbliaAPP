@@ -24,6 +24,7 @@ import {
   type ImageFormatId,
   bgImageTransform,
   formatById,
+  mergeUnsplashPhotos,
   previewDimensions,
 } from '@/lib/verseImageFormats';
 
@@ -37,11 +38,6 @@ const GRADIENTS = [
 ] as const;
 
 const SEARCH_HINTS = ['naturaleza', 'cielo', 'mar', 'montaña', 'amanecer', 'flores', 'cruz', 'bosque', 'atardecer', 'lluvia'];
-
-function mergePhotos(prev: api.UnsplashImage[], next: api.UnsplashImage[]) {
-  const seen = new Set(prev.map((p) => p.id));
-  return [...prev, ...next.filter((p) => !seen.has(p.id))];
-}
 
 const PREVIEW_MAX_W = 300;
 const PREVIEW_MAX_H = 200;
@@ -109,7 +105,7 @@ export function VerseImageCreatorModal({
         page,
         orientation: formatById(formatId ?? imageFormatRef.current).unsplashOrientation,
       });
-      setUnsplashImages((prev) => (append ? mergePhotos(prev, res.images) : res.images));
+      setUnsplashImages((prev) => (append ? mergeUnsplashPhotos(prev, res.images) : res.images));
       setPhotosPage(page);
       setHasMorePhotos(res.hasMore);
     } catch {
@@ -240,7 +236,7 @@ export function VerseImageCreatorModal({
                     <Image
                       source={{ uri: photoUri }}
                       style={[
-                        StyleSheet.absoluteFillObject,
+                        StyleSheet.absoluteFill,
                         { transform: bgImageTransform(bgPosX, bgPosY, bgZoom, preview.width, preview.height) },
                       ]}
                       resizeMode="cover"

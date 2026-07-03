@@ -84,6 +84,7 @@ export default function NoteEditorScreen() {
   const initialTitleRef = useRef('');
   const initialHtmlRef = useRef<string | null>(null);
   const saveFallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const prevKeyboardHeightRef = useRef(0);
   const saveHtmlPendingRef = useRef(false);
   const commitSaveRef = useRef(false);
   const leaveAfterSaveRef = useRef<Parameters<typeof navigation.dispatch>[0] | null>(null);
@@ -95,10 +96,18 @@ export default function NoteEditorScreen() {
     webViewRef.current?.injectJavaScript(js);
   };
 
-  // Tell the WebView to scroll the caret when the keyboard opens/closes.
+  // Scroll caret when keyboard opens; blur editor on Android when it closes (back button).
   useEffect(() => {
     if (preview) return;
     sendToEditor({ type: 'setKeyboardInset', value: keyboardHeight });
+    if (
+      Platform.OS === 'android' &&
+      prevKeyboardHeightRef.current > 0 &&
+      keyboardHeight === 0
+    ) {
+      sendToEditor({ type: 'blurEditor' });
+    }
+    prevKeyboardHeightRef.current = keyboardHeight;
   }, [keyboardHeight, preview]);
 
   // ── Load color palette favorites ──
@@ -505,7 +514,7 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   previewContainer: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     paddingHorizontal: 16,
   },
   previewBox: {

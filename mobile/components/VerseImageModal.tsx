@@ -26,6 +26,7 @@ import {
   type ImageFormatId,
   bgImageTransform,
   formatById,
+  mergeUnsplashPhotos,
   previewDimensions,
 } from '@/lib/verseImageFormats';
 
@@ -61,11 +62,6 @@ const GRADIENTS: GradientPreset[] = [
 const SEARCH_HINTS = ['naturaleza', 'cielo', 'mar', 'montaña', 'amanecer', 'flores', 'cruz', 'bosque', 'atardecer', 'lluvia'];
 const SERIF = Platform.select({ ios: 'Georgia', android: 'serif', default: 'serif' });
 const AMBER = '#fbbf24';
-
-function mergePhotos(prev: UnsplashImage[], next: UnsplashImage[]) {
-  const seen = new Set(prev.map((p) => p.id));
-  return [...prev, ...next.filter((p) => !seen.has(p.id))];
-}
 
 function autoTextSize(text: string) {
   if (text.length > 220) return 15;
@@ -126,7 +122,7 @@ function VerseImageCard({
         <Image
           source={{ uri: photoUri }}
           style={[
-            StyleSheet.absoluteFillObject,
+            StyleSheet.absoluteFill,
             { transform: bgImageTransform(bgPosX, bgPosY, bgZoom, cardWidth, cardHeight) },
           ]}
           resizeMode="cover"
@@ -322,7 +318,7 @@ export function VerseImageModal({ visible, text, reference, theme, abbr, onClose
         page,
         orientation: formatById(formatId ?? imageFormatRef.current).unsplashOrientation,
       });
-      setPhotos((prev) => (append ? mergePhotos(prev, res.images) : res.images));
+      setPhotos((prev) => (append ? mergeUnsplashPhotos(prev, res.images) : res.images));
       setPhotosPage(page);
       setHasMorePhotos(res.hasMore);
     } catch {

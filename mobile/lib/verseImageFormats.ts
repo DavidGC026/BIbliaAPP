@@ -43,3 +43,8 @@ export function bgImageTransform(posX: number, posY: number, zoom: number, frame
     { translateY: ((50 - posY) / 50) * frameH * extra * 0.5 },
   ];
 }
+
+export function mergeUnsplashPhotos<T extends { id: string }>(prev: T[], next: T[]): T[] {
+  const seen = new Set(prev.map((p) => p.id));
+  return [...prev, ...next.filter((p) => !seen.has(p.id))];
+}

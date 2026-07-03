@@ -687,21 +687,35 @@ export function getEditorHtml(
             if (!sel || sel.rangeCount === 0) return;
             if (!editor.contains(sel.anchorNode)) return;
 
-            var range = sel.getRangeAt(0).cloneRange();
-            var marker = document.createElement('span');
-            marker.textContent = '\\u200B';
-            range.collapse(true);
-            range.insertNode(marker);
-
-            var caretRect = marker.getBoundingClientRect();
+            var originalRange = sel.getRangeAt(0).cloneRange();
             var editorRect = editor.getBoundingClientRect();
             var toolbar = document.getElementById('toolbar');
             var toolbarH = toolbar ? toolbar.offsetHeight : 0;
-
-            var caretTop = caretRect.top - editorRect.top + editor.scrollTop;
-            var caretBottom = caretTop + Math.max(caretRect.height, 20);
             var visibleTop = editor.scrollTop + 16;
             var visibleBottom = editor.scrollTop + editor.clientHeight - toolbarH - 24;
+            var caretTop;
+            var caretBottom;
+            var restoreRange;
+
+            if (originalRange.collapsed) {
+              var marker = document.createElement('span');
+              marker.textContent = '\\u200B';
+              var probe = originalRange.cloneRange();
+              probe.collapse(true);
+              probe.insertNode(marker);
+              var caretRect = marker.getBoundingClientRect();
+              caretTop = caretRect.top - editorRect.top + editor.scrollTop;
+              caretBottom = caretTop + Math.max(caretRect.height, 20);
+              restoreRange = document.createRange();
+              restoreRange.setStartBefore(marker);
+              restoreRange.collapse(true);
+              marker.parentNode.removeChild(marker);
+            } else {
+              var selRect = originalRange.getBoundingClientRect();
+              caretTop = selRect.top - editorRect.top + editor.scrollTop;
+              caretBottom = selRect.bottom - editorRect.top + editor.scrollTop;
+              restoreRange = originalRange;
+            }
 
             if (caretBottom > visibleBottom) {
               editor.scrollTop = caretBottom - editor.clientHeight + toolbarH + 24;
@@ -709,13 +723,9 @@ export function getEditorHtml(
               editor.scrollTop = Math.max(0, caretTop - 16);
             }
 
-            var restore = document.createRange();
-            restore.setStartBefore(marker);
-            restore.collapse(true);
-            marker.parentNode.removeChild(marker);
             sel.removeAllRanges();
-            sel.addRange(restore);
-            savedRange = restore.cloneRange();
+            sel.addRange(restoreRange);
+            savedRange = restoreRange.cloneRange();
           });
         }, 50);
       }
@@ -885,6 +895,32 @@ export function getEditorHtml(
       window.handleAction = function(jsonStr) {
         try {
           var action = JSON.parse(jsonStr);
+
+          if (action.type === 'getHtml') {
+            window.ReactNativeWebView.postMessage(JSON.stringify({
+              type: 'getHtmlResponse',
+              html: editor.innerHTML
+            }));
+            return;
+          }
+          if (action.type === 'updateContent') {
+            editor.innerHTML = action.value;
+            return;
+          }
+          if (action.type === 'updateColors') {
+            colorPalette = action.value;
+            renderColors();
+            return;
+          }
+          if (action.type === 'setKeyboardInset') {
+            if (action.value > 0) scrollCaretIntoView();
+            return;
+          }
+          if (action.type === 'blurEditor') {
+            editor.blur();
+            return;
+          }
+
           editor.focus();
 
           if (action.type === 'setFont') {
@@ -898,21 +934,6 @@ export function getEditorHtml(
             insertHtmlAtSelection(buildVerseBlockHtml(action.value));
           } else if (action.type === 'insertDictionary') {
             insertHtmlAtSelection(buildDictBlockHtml(action.value));
-          } else if (action.type === 'getHtml') {
-            window.ReactNativeWebView.postMessage(JSON.stringify({
-              type: 'getHtmlResponse',
-              html: editor.innerHTML
-            }));
-            return; // Don't trigger onChange
-          } else if (action.type === 'updateContent') {
-            editor.innerHTML = action.value;
-          } else if (action.type === 'updateColors') {
-            colorPalette = action.value;
-            renderColors();
-            return;
-          } else if (action.type === 'setKeyboardInset') {
-            scrollCaretIntoView();
-            return;
           }
 
           notifyChange();

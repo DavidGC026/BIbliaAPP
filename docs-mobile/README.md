@@ -27,6 +27,7 @@ Documentación del cliente móvil de **BibliaAPP** (React Native + Expo). La app
 | [13-build-apk-release.md](./13-build-apk-release.md) | Compilar e instalar APK release |
 | [14-notas-autoguardado-y-preview.md](./14-notas-autoguardado-y-preview.md) | Auto-guardado al salir del editor y preview de texto en libretas |
 | [15-widget-versiculo-del-dia.md](./15-widget-versiculo-del-dia.md) | Arquitectura, funcionamiento y mejoras recientes del widget de Android |
+| [16-editor-webview-teclado-seleccion.md](./16-editor-webview-teclado-seleccion.md) | Corrección de «Seleccionar todo» y foco del teclado en el editor de notas |
 
 ---
 
