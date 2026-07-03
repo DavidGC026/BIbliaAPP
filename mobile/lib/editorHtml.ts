@@ -90,6 +90,9 @@ export function getEditorHtml(
       z-index: 1;
     }
 
+    #editor h1 { font-size: 1.55em; font-weight: 800; margin: 0.6em 0 0.3em; }
+    #editor h2 { font-size: 1.28em; font-weight: 700; margin: 0.6em 0 0.3em; }
+
     #editor:empty:before {
       content: "Escribe aquí tu nota…";
       color: ${colors.textMuted};
@@ -345,6 +348,11 @@ export function getEditorHtml(
 
         <div class="sep"></div>
 
+        <button class="tb" data-action="heading" data-val="h1" style="font-weight:800;">H1</button>
+        <button class="tb" data-action="heading" data-val="h2" style="font-weight:700;">H2</button>
+
+        <div class="sep"></div>
+
         <button class="tb" data-action="bold" style="font-weight:900;">B</button>
         <button class="tb" data-action="italic" style="font-style:italic;">I</button>
         <button class="tb" data-action="underline" style="text-decoration:underline;">U</button>
@@ -363,6 +371,13 @@ export function getEditorHtml(
         <div class="sep"></div>
 
         <button class="tb" data-action="insertTable">⊞</button>
+
+        <div class="sep"></div>
+
+        <button class="tb tb-sz" data-action="selectAll">
+          <span class="letter" style="font-size:14px;">▣</span>
+          <span class="lbl">Todo</span>
+        </button>
       </div>
 
       <!-- Row 2: Colors -->
@@ -389,6 +404,7 @@ export function getEditorHtml(
       var activeSize = '16px';
       var savedRange = null;
       var scrollTimer = null;
+      var keyboardInset = 0;
 
       function saveSelection() {
         var sel = window.getSelection();
@@ -587,6 +603,30 @@ export function getEditorHtml(
           return;
         }
 
+        if (action === 'selectAll') {
+          editor.focus();
+          var allRange = document.createRange();
+          allRange.selectNodeContents(editor);
+          var allSel = window.getSelection();
+          allSel.removeAllRanges();
+          allSel.addRange(allRange);
+          savedRange = allRange.cloneRange();
+          updateActiveStates();
+          return;
+        }
+
+        if (action === 'heading') {
+          editor.focus();
+          restoreSelection();
+          var currentBlock = '';
+          try { currentBlock = String(document.queryCommandValue('formatBlock')).toLowerCase(); } catch (e) {}
+          document.execCommand('formatBlock', false, currentBlock === val ? 'p' : val);
+          updateActiveStates();
+          notifyChange();
+          scrollCaretIntoView();
+          return;
+        }
+
         if (action === 'bold' || action === 'italic' || action === 'underline' || action === 'strikeThrough') {
           toggleInlineFormat(action);
           updateActiveStates();
@@ -686,6 +726,10 @@ export function getEditorHtml(
             var sel = window.getSelection();
             if (!sel || sel.rangeCount === 0) return;
             if (!editor.contains(sel.anchorNode)) return;
+            // Con selección activa no tocamos nada: removeAllRanges/addRange
+            // descarta los manejadores nativos de selección en Android
+            // (rompía "Seleccionar todo" y la selección por pulsación larga).
+            if (!sel.isCollapsed) return;
 
             var originalRange = sel.getRangeAt(0).cloneRange();
             var editorRect = editor.getBoundingClientRect();
@@ -693,29 +737,18 @@ export function getEditorHtml(
             var toolbarH = toolbar ? toolbar.offsetHeight : 0;
             var visibleTop = editor.scrollTop + 16;
             var visibleBottom = editor.scrollTop + editor.clientHeight - toolbarH - 24;
-            var caretTop;
-            var caretBottom;
-            var restoreRange;
-
-            if (originalRange.collapsed) {
-              var marker = document.createElement('span');
-              marker.textContent = '\\u200B';
-              var probe = originalRange.cloneRange();
-              probe.collapse(true);
-              probe.insertNode(marker);
-              var caretRect = marker.getBoundingClientRect();
-              caretTop = caretRect.top - editorRect.top + editor.scrollTop;
-              caretBottom = caretTop + Math.max(caretRect.height, 20);
-              restoreRange = document.createRange();
-              restoreRange.setStartBefore(marker);
-              restoreRange.collapse(true);
-              marker.parentNode.removeChild(marker);
-            } else {
-              var selRect = originalRange.getBoundingClientRect();
-              caretTop = selRect.top - editorRect.top + editor.scrollTop;
-              caretBottom = selRect.bottom - editorRect.top + editor.scrollTop;
-              restoreRange = originalRange;
-            }
+            var marker = document.createElement('span');
+            marker.textContent = '\\u200B';
+            var probe = originalRange.cloneRange();
+            probe.collapse(true);
+            probe.insertNode(marker);
+            var caretRect = marker.getBoundingClientRect();
+            var caretTop = caretRect.top - editorRect.top + editor.scrollTop;
+            var caretBottom = caretTop + Math.max(caretRect.height, 20);
+            var restoreRange = document.createRange();
+            restoreRange.setStartBefore(marker);
+            restoreRange.collapse(true);
+            marker.parentNode.removeChild(marker);
 
             if (caretBottom > visibleBottom) {
               editor.scrollTop = caretBottom - editor.clientHeight + toolbarH + 24;
@@ -812,6 +845,13 @@ export function getEditorHtml(
             btn.classList.remove('active');
           }
         });
+
+        // Heading buttons
+        var blockTag = '';
+        try { blockTag = String(document.queryCommandValue('formatBlock')).toLowerCase(); } catch (e) {}
+        document.querySelectorAll('.tb[data-action="heading"]').forEach(function(btn) {
+          btn.classList.toggle('active', btn.getAttribute('data-val') === blockTag);
+        });
       }
 
       /* ── Apply color to selection ──────────────────── */
@@ -860,6 +900,25 @@ export function getEditorHtml(
         editor.addEventListener('focus', scrollCaretIntoView);
         editor.addEventListener('click', scrollCaretIntoView);
 
+        // Android: al cerrar el teclado con "atrás" el editor conserva el foco,
+        // así que un tap normal ya no vuelve a mostrar el teclado. Forzamos
+        // blur+focus dentro del gesto del usuario para que el IME reaparezca.
+        editor.addEventListener('click', function(e) {
+          if (keyboardInset > 0) return;
+          if (document.activeElement !== editor) return;
+          var t = e.target;
+          if (t && t.closest && t.closest('.biblia-content-block') && !t.closest('td, th')) return;
+          var sel = window.getSelection();
+          if (sel && sel.rangeCount > 0 && !sel.isCollapsed) return;
+          var range = sel && sel.rangeCount > 0 ? sel.getRangeAt(0).cloneRange() : null;
+          editor.blur();
+          editor.focus();
+          if (range) {
+            sel.removeAllRanges();
+            sel.addRange(range);
+          }
+        });
+
         // Track selection changes for active states + save range for toolbar
         document.addEventListener('selectionchange', function() {
           saveSelection();
@@ -884,11 +943,19 @@ export function getEditorHtml(
       }
 
       /* ── Notify React Native ────────────────────────── */
+      // Con debounce: cruzar el puente RN↔WebView con todo el HTML en cada
+      // tecla se nota en notas largas. El guardado real usa getHtml, que lee
+      // innerHTML directamente, así que nunca ve contenido desfasado.
+      var notifyTimer = null;
       function notifyChange() {
-        window.ReactNativeWebView.postMessage(JSON.stringify({
-          type: 'onChange',
-          html: editor.innerHTML
-        }));
+        if (notifyTimer) clearTimeout(notifyTimer);
+        notifyTimer = setTimeout(function() {
+          notifyTimer = null;
+          window.ReactNativeWebView.postMessage(JSON.stringify({
+            type: 'onChange',
+            html: editor.innerHTML
+          }));
+        }, 250);
       }
 
       /* ── Global handler for React Native injectJavaScript ── */
@@ -913,7 +980,8 @@ export function getEditorHtml(
             return;
           }
           if (action.type === 'setKeyboardInset') {
-            if (action.value > 0) scrollCaretIntoView();
+            keyboardInset = action.value || 0;
+            if (keyboardInset > 0) scrollCaretIntoView();
             return;
           }
           if (action.type === 'blurEditor') {

@@ -28,8 +28,12 @@ import {
   isPresetCover,
   resolveCoverForSave,
 } from '@/lib/notebookCovers';
+import { mergeUnsplashPhotos } from '@/lib/verseImageFormats';
 import { resolveMediaUrl } from '@/lib/media';
 import type { UnsplashImage } from '@/lib/types';
+
+const DEFAULT_UNSPLASH_QUERY = 'nature landscape books';
+const SEARCH_HINTS = ['libros', 'naturaleza', 'cielo', 'mar', 'montaña', 'flores', 'cruz', 'bosque', 'atardecer', 'vintage'];
 
 interface NotebookConfigModalProps {
   visible: boolean;
@@ -65,8 +69,32 @@ export function NotebookConfigModal({
   const [customUrl, setCustomUrl] = useState('');
   const [selectedUnsplashId, setSelectedUnsplashId] = useState<string | null>(null);
   const [photos, setPhotos] = useState<UnsplashImage[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeSearch, setActiveSearch] = useState<string | undefined>();
+  const [photosPage, setPhotosPage] = useState(1);
+  const [hasMorePhotos, setHasMorePhotos] = useState(false);
   const [loadingPhotos, setLoadingPhotos] = useState(false);
+  const [loadingMorePhotos, setLoadingMorePhotos] = useState(false);
   const [uploading, setUploading] = useState(false);
+
+  const loadPhotos = useCallback(async (query?: string, page = 1, append = false) => {
+    if (page === 1) setLoadingPhotos(true);
+    else setLoadingMorePhotos(true);
+    try {
+      const effectiveQuery = query?.trim() || DEFAULT_UNSPLASH_QUERY;
+      const res = await api.fetchUnsplashImages(effectiveQuery, { page, orientation: 'portrait' });
+      setPhotos((prev) => (append ? mergeUnsplashPhotos(prev, res.images) : res.images));
+      setPhotosPage(page);
+      setHasMorePhotos(res.hasMore);
+    } catch {
+      if (!append) {
+        Alert.alert('Unsplash', 'No se pudieron cargar fotos. Puedes pegar una URL manualmente.');
+      }
+    } finally {
+      setLoadingPhotos(false);
+      setLoadingMorePhotos(false);
+    }
+  }, []);
 
   useEffect(() => {
     if (!visible) return;
@@ -80,23 +108,19 @@ export function NotebookConfigModal({
       setCustomUrl('');
       setSelectedUnsplashId(null);
     }
-  }, [visible, initialName, initialCover]);
+    setSearchQuery('');
+    setActiveSearch(undefined);
+    setPhotos([]);
+    setPhotosPage(1);
+    setHasMorePhotos(false);
+    loadPhotos(undefined, 1, false);
+  }, [visible, initialName, initialCover, loadPhotos]);
 
-  const loadPhotos = useCallback(async () => {
-    setLoadingPhotos(true);
-    try {
-      const { images } = await api.getUnsplashPhotos();
-      setPhotos(images);
-    } catch {
-      Alert.alert('Unsplash', 'No se pudieron cargar fotos. Puedes pegar una URL manualmente.');
-    } finally {
-      setLoadingPhotos(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (visible && photos.length === 0) loadPhotos();
-  }, [visible, photos.length, loadPhotos]);
+  const runSearch = () => {
+    const q = searchQuery.trim() || undefined;
+    setActiveSearch(q);
+    loadPhotos(q, 1, false);
+  };
 
   const selectPreset = (id: NotebookCoverId) => {
     setPresetId(id);
@@ -191,12 +215,62 @@ export function NotebookConfigModal({
 
             <View style={styles.sectionHeader}>
               <Text style={[styles.label, { color: colors.textMuted, marginBottom: 0 }]}>UNSPLASH</Text>
-              <Pressable onPress={loadPhotos} disabled={loadingPhotos}>
+              <Pressable
+                onPress={() => {
+                  if (hasMorePhotos && !loadingMorePhotos) loadPhotos(activeSearch, photosPage + 1, true);
+                }}
+                disabled={!hasMorePhotos || loadingMorePhotos || loadingPhotos}
+              >
                 <Text style={{ color: colors.primary, fontSize: 12, fontWeight: '700' }}>
-                  {loadingPhotos ? 'Cargando…' : '↻ Más fotos'}
+                  {loadingMorePhotos ? 'Cargando…' : hasMorePhotos ? '↻ Más fotos' : 'Sin más fotos'}
                 </Text>
               </Pressable>
             </View>
+
+            <View style={styles.searchRow}>
+              <TextInput
+                style={[styles.searchInput, { color: colors.text, borderColor: colors.border, borderRadius: radius.lg }]}
+                placeholder="Buscar portada (libros, mar, montaña…)"
+                placeholderTextColor={colors.textMuted}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                onSubmitEditing={runSearch}
+                returnKeyType="search"
+              />
+              <Pressable
+                style={[styles.searchBtn, { backgroundColor: colors.primary, borderRadius: radius.md }]}
+                onPress={runSearch}
+                disabled={loadingPhotos}
+              >
+                <Text style={styles.searchBtnText}>Buscar</Text>
+              </Pressable>
+            </View>
+
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.hintRow}>
+              {SEARCH_HINTS.map((hint) => (
+                <Pressable
+                  key={hint}
+                  style={[
+                    styles.hintChip,
+                    {
+                      borderColor: activeSearch === hint ? colors.primary : colors.border,
+                      backgroundColor: activeSearch === hint ? colors.primarySoft : colors.background,
+                      borderRadius: radius.full,
+                    },
+                  ]}
+                  onPress={() => {
+                    setSearchQuery(hint);
+                    setActiveSearch(hint);
+                    loadPhotos(hint, 1, false);
+                  }}
+                >
+                  <Text style={{ color: activeSearch === hint ? colors.primary : colors.textMuted, fontSize: 11 }}>
+                    {hint}
+                  </Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+
             {loadingPhotos && photos.length === 0 ? (
               <ActivityIndicator color={colors.primary} style={{ marginVertical: 12 }} />
             ) : (
@@ -208,6 +282,7 @@ export function NotebookConfigModal({
                       <Image
                         source={{ uri: img.thumb }}
                         style={[styles.photoThumb, { borderColor: active ? colors.primary : colors.border }]}
+                        resizeMode="cover"
                       />
                     </Pressable>
                   );
@@ -317,8 +392,14 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 },
+  searchRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
+  searchInput: { flex: 1, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14 },
+  searchBtn: { paddingHorizontal: 14, paddingVertical: 10 },
+  searchBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
+  hintRow: { flexDirection: 'row', gap: 8, paddingVertical: 2 },
+  hintChip: { borderWidth: 1, paddingHorizontal: 10, paddingVertical: 5 },
   photoGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  photoCell: { width: '23%', aspectRatio: 3 / 4 },
+  photoCell: { width: '23%', aspectRatio: 3 / 4, borderRadius: 8, overflow: 'hidden' },
   photoThumb: { width: '100%', height: '100%', borderRadius: 8, borderWidth: 2 },
   urlRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
   urlInput: { flex: 1 },

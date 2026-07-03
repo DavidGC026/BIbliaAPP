@@ -31,13 +31,14 @@ export async function GET(req: NextRequest) {
       "Accept-Version": "v1",
     }
 
-    const url = query
-      ? `https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&orientation=${safeOrientation}&per_page=${perPage}&page=${page}`
-      : `https://api.unsplash.com/photos/random?query=nature,landscape,mountains,sky,forest,ocean,sunset,flowers&orientation=${safeOrientation}&count=${perPage}`
+    // ponytail: /photos/random con count=30 a veces devuelve 1 solo objeto; search pagina bien
+    const searchQuery =
+      query || "nature landscape mountains sky forest ocean sunset flowers books"
+    const url = `https://api.unsplash.com/search/photos?query=${encodeURIComponent(searchQuery)}&orientation=${safeOrientation}&per_page=${perPage}&page=${page}`
 
     const response = await fetch(url, {
       headers,
-      next: { revalidate: query ? 300 : 3600 },
+      next: { revalidate: 300 },
     })
 
     if (!response.ok) {
@@ -47,9 +48,9 @@ export async function GET(req: NextRequest) {
     }
 
     const data = await response.json()
-    const images = query ? mapImages(data.results ?? []) : mapImages(Array.isArray(data) ? data : [data])
-    const totalPages = query ? (data.total_pages as number | undefined) ?? 1 : null
-    const hasMore = query ? page < (totalPages ?? 1) : true
+    const images = mapImages(data.results ?? [])
+    const totalPages = (data.total_pages as number | undefined) ?? 1
+    const hasMore = page < totalPages
 
     return NextResponse.json({ images, page, totalPages, hasMore })
   } catch (err) {

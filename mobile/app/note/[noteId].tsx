@@ -61,6 +61,7 @@ export default function NoteEditorScreen() {
   const [content, setContent] = useState('');
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
+  const [saveFlash, setSaveFlash] = useState(false);
   const [preview, setPreview] = useState(false);
   const [verseModalOpen, setVerseModalOpen] = useState(false);
   const [dictionaryModalOpen, setDictionaryModalOpen] = useState(false);
@@ -89,6 +90,10 @@ export default function NoteEditorScreen() {
   const commitSaveRef = useRef(false);
   const leaveAfterSaveRef = useRef<Parameters<typeof navigation.dispatch>[0] | null>(null);
   const autoLeavingRef = useRef(false);
+  // Id real de una nota nueva tras el primer autoguardado: los siguientes
+  // guardados deben actualizarla, no crear otra.
+  const createdIdRef = useRef<number | null>(null);
+  const saveFlashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ── Helper: send action to WebView via injectJavaScript ──
   const sendToEditor = (action: Record<string, any>) => {
@@ -206,7 +211,7 @@ export default function NoteEditorScreen() {
     const trimmedTitle = title.trim();
     const trimmedInitialTitle = initialTitleRef.current.trim();
     const hasContent = noteHasText(content);
-    if (isNew) {
+    if (isNew && createdIdRef.current == null) {
       return trimmedTitle.length > 0 || hasContent;
     }
     return trimmedTitle !== trimmedInitialTitle || content !== initialContentRef.current;
@@ -215,9 +220,9 @@ export default function NoteEditorScreen() {
   const persistNote = useCallback(
     async (
       htmlContent: string,
-      options: { navigateBack?: boolean; silent?: boolean } = {},
+      options: { navigateBack?: boolean; silent?: boolean; showErrors?: boolean } = {},
     ): Promise<boolean> => {
-      const { navigateBack = false, silent = false } = options;
+      const { navigateBack = false, silent = false, showErrors = true } = options;
       if (commitSaveRef.current) return false;
 
       const trimmedTitle = title.trim();
@@ -225,7 +230,7 @@ export default function NoteEditorScreen() {
         Alert.alert('Título requerido', 'Escribe un título para la nota.');
         return false;
       }
-      if (silent && isNew && !trimmedTitle && !noteHasText(htmlContent)) {
+      if (silent && isNew && createdIdRef.current == null && !trimmedTitle && !noteHasText(htmlContent)) {
         return true;
       }
 
@@ -233,14 +238,21 @@ export default function NoteEditorScreen() {
       setSaving(true);
       try {
         const finalTitle = trimmedTitle || 'Sin título';
-        if (isNew) {
+        if (isNew && createdIdRef.current == null) {
           if (Number.isNaN(parsedNotebookId)) throw new Error('Cuaderno no válido');
-          await repo.repoCreateNotebookNote(parsedNotebookId, finalTitle, htmlContent);
+          const created = await repo.repoCreateNotebookNote(parsedNotebookId, finalTitle, htmlContent);
+          createdIdRef.current = created.id;
         } else {
-          await repo.repoUpdateNotebookNote(Number(noteId), finalTitle, htmlContent);
+          const id = isNew ? createdIdRef.current! : Number(noteId);
+          await repo.repoUpdateNotebookNote(id, finalTitle, htmlContent);
         }
         initialContentRef.current = htmlContent;
-        initialTitleRef.current = finalTitle;
+        // Se guarda el título tal cual lo escribió el usuario (no 'Sin título')
+        // para que la comparación de cambios pendientes sea estable.
+        initialTitleRef.current = trimmedTitle;
+        setSaveFlash(true);
+        if (saveFlashTimerRef.current) clearTimeout(saveFlashTimerRef.current);
+        saveFlashTimerRef.current = setTimeout(() => setSaveFlash(false), 2000);
         if (!silent && !isOnline) {
           Alert.alert(
             'Guardado offline',
@@ -250,7 +262,9 @@ export default function NoteEditorScreen() {
         if (navigateBack) router.back();
         return true;
       } catch (err) {
-        if (silent) {
+        if (!showErrors) {
+          // Autoguardado: fallar en silencio, se reintenta en el próximo ciclo.
+        } else if (silent) {
           Alert.alert(
             'No se pudo guardar',
             err instanceof Error ? err.message : 'Revisa tu conexión e inténtalo de nuevo.',
@@ -349,6 +363,23 @@ export default function NoteEditorScreen() {
     return unsubscribe;
   }, [finishPendingLeave, hasUnsavedChanges, navigation, requestEditorHtml]);
 
+  // Autoguardado: tras 4s sin teclear se persiste en silencio, así la nota
+  // sobrevive aunque Android mate la app o se cierre sin pasar por "atrás".
+  useEffect(() => {
+    if (loading || !hasUnsavedChanges()) return;
+    const timer = setTimeout(() => {
+      if (commitSaveRef.current || autoLeavingRef.current) return;
+      void persistNote(content, { silent: true, showErrors: false });
+    }, 4000);
+    return () => clearTimeout(timer);
+  }, [content, title, loading, hasUnsavedChanges, persistNote]);
+
+  useEffect(() => {
+    return () => {
+      if (saveFlashTimerRef.current) clearTimeout(saveFlashTimerRef.current);
+    };
+  }, []);
+
   const togglePreview = () => {
     if (!preview) Keyboard.dismiss();
     setPreview((p) => !p);
@@ -425,6 +456,13 @@ export default function NoteEditorScreen() {
             placeholderTextColor={colors.textMuted}
             value={title}
             onChangeText={setTitle}
+            returnKeyType="next"
+            submitBehavior="submit"
+            onSubmitEditing={() => {
+              webViewRef.current?.injectJavaScript(
+                "(function(){var e=document.getElementById('editor');if(e)e.focus();})();true;",
+              );
+            }}
           />
         </View>
 
@@ -435,6 +473,11 @@ export default function NoteEditorScreen() {
               {preview ? '✏️ Modo Edición' : '👁️ Vista Previa'}
             </Text>
           </Pressable>
+          {saving ? (
+            <Text style={{ color: colors.textMuted, fontSize: 12 }}>Guardando…</Text>
+          ) : saveFlash ? (
+            <Text style={{ color: colors.primary, fontSize: 12, fontWeight: '600' }}>✓ Guardado</Text>
+          ) : null}
         </View>
 
         {/* Content Area — WebView stays mounted so edits survive preview toggle */}
@@ -500,7 +543,9 @@ const styles = StyleSheet.create({
   previewToggleWrapper: {
     paddingHorizontal: 16,
     paddingVertical: 6,
-    alignItems: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   previewToggle: {
     paddingVertical: 4,
