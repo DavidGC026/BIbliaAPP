@@ -7,8 +7,8 @@ ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 OUTDIR="$(cd "$(dirname "$0")" && pwd)"
 PKGDIR=$(mktemp -d)
 BUILD_DATE=$(date +%s)
-PKGVER=0.1.0
-PKGREL=1
+PKGVER=0.2.0
+PKGREL=11
 
 BIN="$ROOT/src-tauri/target/release/bibliaapp-desktop"
 ICON_SRC="$ROOT/app-icon.png"

@@ -2,14 +2,19 @@
 
 import * as React from "react"
 import { useState, useRef } from "react"
-import { Share2, Loader2, Image as ImageIcon, Download, X, Settings2, Layout, Upload, Palette } from "lucide-react"
+import { Share2, Loader2, Image as ImageIcon, Download, X, Settings2, Layout, Upload, Palette, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
+import {
+  IMAGE_FORMATS,
+  type ImageFormatId,
+  bgImageStyle,
+  formatById,
+} from "@/lib/verse-image-formats"
 import { toPng } from "html-to-image"
 import { createPortal } from "react-dom"
 
-type AspectRatio = "1:1" | "3:4" | "9:16"
 type EditorTab = "format" | "backgrounds" | "settings"
 type BackgroundMode = "gradient" | "photo"
 
@@ -32,14 +37,15 @@ const GRADIENT_PRESETS: GradientPreset[] = [
   { id: "earth", name: "Tierra", css: "linear-gradient(160deg, #a16207 0%, #854d0e 35%, #713f12 70%, #292524 100%)", fallback: "#854d0e", swatch: "linear-gradient(135deg, #fcd34d, #a16207)" },
 ]
 
-const EXPORT_SIZES: Record<AspectRatio, { width: number; height: number }> = {
-  "1:1": { width: 1080, height: 1080 },
-  "3:4": { width: 1080, height: 1440 },
-  "9:16": { width: 1080, height: 1920 },
-}
-
 const PREVIEW_MAX_HEIGHT = 480
-const PREVIEW_MAX_WIDTH = 270
+const PREVIEW_MAX_WIDTH = 320
+
+const SEARCH_HINTS = ["naturaleza", "cielo", "mar", "montaña", "amanecer", "flores", "cruz", "bosque", "atardecer", "lluvia"]
+
+function mergeUnsplashImages<T extends { id: string }>(prev: T[], next: T[]): T[] {
+  const seen = new Set(prev.map((i) => i.id))
+  return [...prev, ...next.filter((i) => !seen.has(i.id))]
+}
 
 const SWATCH_GRID =
   "grid grid-cols-4 gap-1.5 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 2xl:grid-cols-10"
@@ -56,9 +62,12 @@ interface CardProps {
   gradient: GradientPreset
   textSize: number
   backgroundImageUrl?: string
-  aspectRatio: AspectRatio
+  imageFormat: ImageFormatId
   overlayOpacity: number
   bgBlur: number
+  bgPosX: number
+  bgPosY: number
+  bgZoom: number
   width: number
   height: number
 }
@@ -70,13 +79,16 @@ function VerseImageCard({
   gradient,
   textSize,
   backgroundImageUrl,
-  aspectRatio,
+  imageFormat,
   overlayOpacity,
   bgBlur,
+  bgPosX,
+  bgPosY,
+  bgZoom,
   width,
   height,
 }: CardProps) {
-  const scale = width / PREVIEW_MAX_WIDTH
+  const scale = width / 270
   const scaledText = Math.round(textSize * scale)
   const pad = width * 0.08
 
@@ -88,7 +100,7 @@ function VerseImageCard({
         position: "relative",
         overflow: "hidden",
         backgroundColor: gradient.fallback,
-        borderRadius: aspectRatio === "9:16" ? 0 : Math.round(16 * scale),
+        borderRadius: imageFormat === "9:16" ? 0 : Math.round(16 * scale),
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
@@ -109,15 +121,7 @@ function VerseImageCard({
         <img
           src={backgroundImageUrl}
           alt=""
-          style={{
-            position: "absolute",
-            inset: 0,
-            width: "100%",
-            height: "100%",
-            objectFit: "cover",
-            filter: bgBlur > 0 ? `blur(${bgBlur * scale}px)` : undefined,
-            transform: bgBlur > 0 ? "scale(1.12)" : undefined,
-          }}
+          style={bgImageStyle(bgPosX, bgPosY, bgZoom, bgBlur, scale)}
         />
       )}
 
@@ -306,19 +310,29 @@ export function VerseImageCreator({ open, onOpenChange, text, reference, abbr = 
   const [backgroundImageUrl, setBackgroundImageUrl] = useState<string | undefined>()
   const [unsplashImages, setUnsplashImages] = useState<any[]>([])
   const [isLoadingImages, setIsLoadingImages] = useState(false)
+  const [isLoadingMoreImages, setIsLoadingMoreImages] = useState(false)
   const [isDownloadingBg, setIsDownloadingBg] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [activeSearch, setActiveSearch] = useState<string | undefined>()
+  const [unsplashPage, setUnsplashPage] = useState(1)
+  const [hasMorePhotos, setHasMorePhotos] = useState(false)
 
-  const [editorTab, setEditorTab] = useState<EditorTab>("backgrounds")
-  const [aspectRatio, setAspectRatio] = useState<AspectRatio>("9:16")
+  const [editorTab, setEditorTab] = useState<EditorTab>("format")
+  const [imageFormat, setImageFormat] = useState<ImageFormatId>("9:16")
   const [textSize, setTextSize] = useState<number>(20)
   const [overlayOpacity, setOverlayOpacity] = useState<number>(35)
   const [bgBlur, setBgBlur] = useState<number>(0)
+  const [bgPosX, setBgPosX] = useState(50)
+  const [bgPosY, setBgPosY] = useState(50)
+  const [bgZoom, setBgZoom] = useState(100)
   const [selectedUnsplashId, setSelectedUnsplashId] = useState<string | null>(null)
 
   const exportRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const imageFormatRef = useRef(imageFormat)
+  imageFormatRef.current = imageFormat
 
-  const exportSize = EXPORT_SIZES[aspectRatio]
+  const exportSize = formatById(imageFormat)
   const previewScale = Math.min(
     PREVIEW_MAX_WIDTH / exportSize.width,
     PREVIEW_MAX_HEIGHT / exportSize.height,
@@ -333,25 +347,75 @@ export function VerseImageCreator({ open, onOpenChange, text, reference, abbr = 
     gradient: selectedGradient,
     textSize,
     backgroundImageUrl: backgroundMode === "photo" ? backgroundImageUrl : undefined,
-    aspectRatio,
+    imageFormat,
     overlayOpacity,
     bgBlur,
+    bgPosX,
+    bgPosY,
+    bgZoom,
     width: exportSize.width,
     height: exportSize.height,
   }
 
-  React.useEffect(() => {
-    if (open && unsplashImages.length === 0) {
-      setIsLoadingImages(true)
-      fetch("/api/unsplash")
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.images) setUnsplashImages(data.images)
-        })
-        .catch((err) => console.error("Error fetching images", err))
-        .finally(() => setIsLoadingImages(false))
+  const loadPhotos = React.useCallback(async (
+    query: string | undefined,
+    page = 1,
+    append = false,
+    formatId?: ImageFormatId,
+  ) => {
+    if (page === 1) setIsLoadingImages(true)
+    else setIsLoadingMoreImages(true)
+    try {
+      const params = new URLSearchParams()
+      if (query?.trim()) params.set("query", query.trim())
+      params.set("orientation", formatById(formatId ?? imageFormatRef.current).unsplashOrientation)
+      if (page > 1) params.set("page", String(page))
+      const res = await fetch(`/api/unsplash?${params}`)
+      const data = await res.json()
+      if (data.images) {
+        setUnsplashImages((prev) => (append ? mergeUnsplashImages(prev, data.images) : data.images))
+        setUnsplashPage(page)
+        setHasMorePhotos(Boolean(data.hasMore))
+      }
+    } catch (err) {
+      console.error("Error fetching images", err)
+      if (!append) setUnsplashImages([])
+    } finally {
+      setIsLoadingImages(false)
+      setIsLoadingMoreImages(false)
     }
-  }, [open, unsplashImages.length])
+  }, [])
+
+  React.useEffect(() => {
+    if (!open) return
+    setSearchQuery("")
+    setActiveSearch(undefined)
+    setUnsplashPage(1)
+    setHasMorePhotos(false)
+    setSelectedUnsplashId(null)
+    setBackgroundMode("gradient")
+    setBackgroundImageUrl(undefined)
+    setBgPosX(50)
+    setBgPosY(50)
+    setBgZoom(100)
+    void loadPhotos(undefined, 1, false)
+  }, [open, loadPhotos])
+
+  const selectFormat = (id: ImageFormatId) => {
+    setImageFormat(id)
+    void loadPhotos(activeSearch, 1, false, id)
+  }
+
+  const runSearch = () => {
+    const q = searchQuery.trim() || undefined
+    setActiveSearch(q)
+    void loadPhotos(q, 1, false)
+  }
+
+  const loadMorePhotos = () => {
+    if (!hasMorePhotos || isLoadingMoreImages) return
+    void loadPhotos(activeSearch, unsplashPage + 1, true)
+  }
 
   React.useEffect(() => {
     if (!open) return
@@ -559,25 +623,25 @@ export function VerseImageCreator({ open, onOpenChange, text, reference, abbr = 
             {editorTab === "format" && (
               <div className="flex flex-col gap-3 py-2">
                 <p className="text-center text-[11px] text-white/50 uppercase tracking-wider font-semibold">Formato de imagen</p>
-                <div className="flex items-center justify-center gap-3">
-                  {([
-                    { ratio: "9:16" as AspectRatio, label: "Historia", hint: "Vertical" },
-                    { ratio: "3:4" as AspectRatio, label: "Retrato", hint: "3:4" },
-                    { ratio: "1:1" as AspectRatio, label: "Cuadrado", hint: "1:1" },
-                  ]).map(({ ratio, label, hint }) => (
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                  {IMAGE_FORMATS.map((format) => (
                     <button
-                      key={ratio}
-                      onClick={() => setAspectRatio(ratio)}
+                      key={format.id}
+                      type="button"
+                      onClick={() => selectFormat(format.id)}
                       className={cn(
-                        "flex flex-col items-center gap-1.5 rounded-xl px-4 py-3 border transition-all",
-                        aspectRatio === ratio
+                        "flex flex-col items-center gap-1.5 rounded-xl px-3 py-2.5 border transition-all min-w-[72px]",
+                        imageFormat === format.id
                           ? "border-primary/60 bg-primary/10 text-primary shadow-lg shadow-primary/10"
                           : "border-white/10 text-white/50 hover:text-white hover:border-white/20",
                       )}
                     >
-                      <div className={cn("border-2 border-current rounded-sm", ratio === "1:1" ? "w-7 h-7" : ratio === "3:4" ? "w-5 h-7" : "w-4 h-8")} />
-                      <span className="text-xs font-bold">{label}</span>
-                      <span className="text-[9px] opacity-60">{hint}</span>
+                      <div
+                        className={cn("border-2 border-current rounded-sm", imageFormat === format.id ? "border-primary" : "")}
+                        style={{ width: format.previewW, height: format.previewH }}
+                      />
+                      <span className="text-xs font-bold">{format.label}</span>
+                      <span className="text-[9px] opacity-60">{format.hint}</span>
                     </button>
                   ))}
                 </div>
@@ -616,8 +680,54 @@ export function VerseImageCreator({ open, onOpenChange, text, reference, abbr = 
                 <div>
                   <div className="flex items-center gap-1.5 mb-2.5">
                     <ImageIcon className="h-3.5 w-3.5 text-primary" />
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-white/70">Fotos</span>
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-white/70">Fotos (Unsplash)</span>
                   </div>
+
+                  <div className="flex gap-2 mb-2">
+                    <div className="relative flex-1 min-w-0">
+                      <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-white/35" />
+                      <input
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && runSearch()}
+                        placeholder="Buscar fondo (mar, cielo, cruz…)"
+                        className="w-full rounded-lg border border-white/10 bg-white/5 py-2 pl-8 pr-3 text-sm text-white placeholder:text-white/35 focus:border-primary/50 focus:outline-none"
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={runSearch}
+                      disabled={isLoadingImages}
+                      className="shrink-0 rounded-lg bg-white/10 text-white hover:bg-white/15"
+                    >
+                      Buscar
+                    </Button>
+                  </div>
+
+                  <div className="flex flex-wrap gap-1.5 mb-3">
+                    {SEARCH_HINTS.map((hint) => (
+                      <button
+                        key={hint}
+                        type="button"
+                        onClick={() => {
+                          setSearchQuery(hint)
+                          setActiveSearch(hint)
+                          void loadPhotos(hint, 1, false)
+                        }}
+                        className={cn(
+                          "rounded-full border px-2.5 py-1 text-[11px] transition-colors",
+                          activeSearch === hint
+                            ? "border-primary/50 bg-primary/10 text-primary"
+                            : "border-white/10 text-white/50 hover:border-white/25 hover:text-white/80",
+                        )}
+                      >
+                        {hint}
+                      </button>
+                    ))}
+                  </div>
+
                   <div className={SWATCH_GRID}>
                     <button
                       onClick={() => fileInputRef.current?.click()}
@@ -650,6 +760,17 @@ export function VerseImageCreator({ open, onOpenChange, text, reference, abbr = 
                       ))
                     )}
                   </div>
+
+                  {hasMorePhotos && !isLoadingImages ? (
+                    <button
+                      type="button"
+                      onClick={loadMorePhotos}
+                      disabled={isLoadingMoreImages}
+                      className="mt-3 w-full rounded-lg border border-white/10 py-2 text-xs font-semibold text-white/70 hover:border-white/20 hover:text-white disabled:opacity-50"
+                    >
+                      {isLoadingMoreImages ? "Cargando más…" : "Cargar más fotos"}
+                    </button>
+                  ) : null}
                 </div>
               </div>
             )}
@@ -660,6 +781,9 @@ export function VerseImageCreator({ open, onOpenChange, text, reference, abbr = 
                   { label: "Tamaño de letra", value: textSize, min: 12, max: 36, step: 1, set: setTextSize, unit: "px" },
                   { label: "Oscurecer fondo", value: overlayOpacity, min: 0, max: 80, step: 5, set: setOverlayOpacity, unit: "%" },
                   { label: "Difuminar foto", value: bgBlur, min: 0, max: 20, step: 1, set: setBgBlur, unit: "px", hide: backgroundMode !== "photo" },
+                  { label: "Zoom del fondo", value: bgZoom, min: 100, max: 200, step: 5, set: setBgZoom, unit: "%", hide: backgroundMode !== "photo" },
+                  { label: "Posición horizontal", value: bgPosX, min: 0, max: 100, step: 5, set: setBgPosX, unit: "%", hide: backgroundMode !== "photo" },
+                  { label: "Posición vertical", value: bgPosY, min: 0, max: 100, step: 5, set: setBgPosY, unit: "%", hide: backgroundMode !== "photo" },
                 ].filter(s => !s.hide).map((s) => (
                   <div key={s.label} className="space-y-2 rounded-xl border border-white/10 bg-white/[0.03] p-4">
                     <div className="flex justify-between items-center">

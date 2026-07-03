@@ -22,6 +22,8 @@ export async function GET(req: NextRequest) {
 
     const query = req.nextUrl.searchParams.get("query")?.trim()
     const orientation = req.nextUrl.searchParams.get("orientation")?.trim() || "portrait"
+    const page = Math.max(1, Number(req.nextUrl.searchParams.get("page")) || 1)
+    const perPage = 30
     const validOrientations = ["portrait", "landscape", "squarish"]
     const safeOrientation = validOrientations.includes(orientation) ? orientation : "portrait"
     const headers = {
@@ -30,8 +32,8 @@ export async function GET(req: NextRequest) {
     }
 
     const url = query
-      ? `https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&orientation=${safeOrientation}&per_page=12`
-      : `https://api.unsplash.com/photos/random?query=nature,landscape,mountains,sky&orientation=${safeOrientation}&count=12`
+      ? `https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&orientation=${safeOrientation}&per_page=${perPage}&page=${page}`
+      : `https://api.unsplash.com/photos/random?query=nature,landscape,mountains,sky,forest,ocean,sunset,flowers&orientation=${safeOrientation}&count=${perPage}`
 
     const response = await fetch(url, {
       headers,
@@ -46,8 +48,10 @@ export async function GET(req: NextRequest) {
 
     const data = await response.json()
     const images = query ? mapImages(data.results ?? []) : mapImages(Array.isArray(data) ? data : [data])
+    const totalPages = query ? (data.total_pages as number | undefined) ?? 1 : null
+    const hasMore = query ? page < (totalPages ?? 1) : true
 
-    return NextResponse.json({ images })
+    return NextResponse.json({ images, page, totalPages, hasMore })
   } catch (err) {
     console.error("Error in Unsplash route:", err)
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 })

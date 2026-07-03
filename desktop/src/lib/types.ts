@@ -8,6 +8,27 @@ export interface User {
   streakCount?: number;
 }
 
+export interface BibleVersion {
+  bibleId: number;
+  abbr: string;
+  name: string;
+}
+
+export interface Book {
+  bookId: number;
+  bookName: string;
+  chapters: number;
+}
+
+export interface Verse {
+  id: number;
+  bookId: number;
+  bookName: string;
+  chapter: number;
+  verse: number;
+  text: string;
+}
+
 export interface VerseOfDay {
   theme: string;
   reference: string;
@@ -20,6 +41,88 @@ export interface VerseOfDay {
   backgroundImage?: string | null;
 }
 
+export interface FeedPost {
+  id: number;
+  content: string;
+  created_at: string;
+  user_name: string;
+  user_username: string | null;
+  like_count: number;
+  comment_count: number;
+  is_liked?: boolean | number;
+  verse_ref?: string | null;
+  verse_text?: string | null;
+}
+
+export interface FeedComment {
+  id: number;
+  post_id: number;
+  parent_id: number | null;
+  user_id: number | null;
+  user_name: string;
+  user_username: string | null;
+  content: string;
+  created_at: string;
+  is_deleted: number;
+}
+
+export interface GroupSummary {
+  id: number;
+  name: string;
+  description: string;
+  role: string;
+  member_count: number;
+  cover_image: string | null;
+  avatar_image: string | null;
+  invite_code?: string;
+}
+
+export interface GroupPrayer {
+  id: number;
+  title: string;
+  description: string;
+  status: string;
+  user_name: string;
+  user_username: string | null;
+  intercessor_count: number;
+  is_interceding: number;
+  created_at: string;
+}
+
+export interface GroupEvent {
+  id: number;
+  group_id: number;
+  title: string;
+  description: string | null;
+  start_time: string;
+  end_time: string | null;
+  location: string | null;
+  creator_name: string;
+}
+
+export interface GroupPost {
+  id: number;
+  content: string;
+  created_at: string;
+  user_name: string;
+  user_username: string | null;
+}
+
+export interface AppNotification {
+  id: number;
+  type: string;
+  post_id: number | null;
+  comment_id: number | null;
+  read_at: string | null;
+  created_at: string;
+  actor_name: string;
+  actor_username: string | null;
+  post_preview: string | null;
+  event_title?: string | null;
+  event_group_id?: number | null;
+  reminder_kind?: "1day" | "2hours" | null;
+}
+
 export interface ChurchSettings {
   church_name: string;
   church_logo_url?: string | null;
@@ -28,4 +131,117 @@ export interface ChurchSettings {
 export interface ApiError {
   error?: string;
   code?: string;
+}
+
+export type BibleTarget = {
+  bookId: number;
+  chapter: number;
+  bibleId?: number;
+};
+
+export interface CrossReference {
+  book_name: string;
+  book_id: number;
+  chapter: number;
+  verse: number;
+  text: string;
+  votos: number;
+}
+
+export interface StrongEntry {
+  strongCode: string;
+  lemma: string;
+  transliteration: string;
+  definition: string;
+}
+
+export interface DictionaryInfo {
+  slug: string;
+  name: string;
+  language: string | null;
+  entryCount: number;
+}
+
+export interface VerseHighlight {
+  verse: number;
+  color: string;
+}
+
+export interface VerseNoteLink {
+  id: number;
+  bookId: number;
+  chapter: number;
+  verse: number;
+  noteContent?: string;
+  createdAt?: string;
+}
+
+export interface UnsplashImage {
+  id: string;
+  url: string;
+  thumb: string;
+  author: string;
+  authorUrl: string;
+}
+
+export interface Favorite {
+  id: number;
+  bible_id: number;
+  book_id: number;
+  book_name: string;
+  chapter: number;
+  verse: number;
+  verse_text: string;
+  created_at: string;
+}
+
+export interface Notebook {
+  id: number;
+  name: string;
+  coverImage?: string | null;
+  createdAt: string;
+}
+
+export interface NotebookNote {
+  id: number;
+  notebookId: number;
+  title: string;
+  content: string;
+  tags?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DevotionalContent {
+  reflection: string;
+  application: string;
+  planId?: number;
+  planDay?: number;
+}
+
+export interface Devotional {
+  id: number;
+  title: string;
+  emotion?: string | null;
+  verseRef?: string | null;
+  content?: DevotionalContent | string;
+  createdAt: string;
+}
+
+export interface ExternalBook {
+  id: number;
+  title: string;
+  author: string;
+  coverImage?: string | null;
+  status?: string;
+  createdAt: string;
+}
+
+export interface BookLog {
+  id: number;
+  title?: string | null;
+  pagesRead?: string | null;
+  chapter?: string | null;
+  reflection?: string | null;
+  createdAt: string;
 }

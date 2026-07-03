@@ -8,7 +8,9 @@ import React, {
 } from "react";
 import * as api from "@/lib/api";
 import { isAuthError } from "@/lib/authError";
+import { setIsOnline } from "@/lib/network";
 import { startGoogleSignIn } from "@/lib/googleAuth";
+import { syncAll } from "@/lib/sync";
 import {
   clearSession,
   loadSession,
@@ -53,6 +55,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await saveSession(sessionToken, nextUser);
       }
       setIsOffline(false);
+      setIsOnline(true);
+      syncAll().catch(() => {});
     },
     [],
   );
@@ -63,6 +67,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(nextUser);
       await persistUser(nextUser);
       setIsOffline(false);
+      setIsOnline(true);
+      syncAll().catch(() => {});
       if (!nextUser) {
         setToken(null);
         await clearSession();
@@ -85,9 +91,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const onOnline = () => {
       setIsOffline(false);
+      setIsOnline(true);
+      syncAll().catch(() => {});
       if (token) refreshUser().catch(() => {});
     };
-    const onOffline = () => setIsOffline(true);
+    const onOffline = () => {
+      setIsOffline(true);
+      setIsOnline(false);
+    };
     window.addEventListener("online", onOnline);
     window.addEventListener("offline", onOffline);
     return () => {
@@ -115,6 +126,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setUser(nextUser);
             await persistUser(nextUser);
             setIsOffline(false);
+            setIsOnline(true);
+            syncAll().catch(() => {});
           } else {
             setUser(null);
             setToken(null);

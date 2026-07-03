@@ -419,9 +419,30 @@ export async function setEventRsvp(eventId: number, status: 'going' | 'maybe' | 
   });
 }
 
+export async function createChurchEvent(event: {
+  title: string;
+  description: string;
+  startTime: string;
+  endTime?: string | null;
+  location: string;
+  category: string;
+}) {
+  return request<{ success: boolean; id: number }>('/api/events', {
+    method: 'POST',
+    body: JSON.stringify(event),
+  });
+}
+
+export async function deleteChurchEvent(id: number) {
+  return request<{ success: boolean }>(`/api/events?id=${id}`, {
+    method: 'DELETE',
+  });
+}
+
+
 // — Imágenes (Unsplash vía backend) —
 export async function getUnsplashPhotos() {
-  return request<{ images: import('./types').UnsplashImage[] }>('/api/unsplash');
+  return fetchUnsplashImages();
 }
 
 export function getImageProxyUrl(imageUrl: string) {
@@ -570,7 +591,23 @@ export type UnsplashImage = {
   authorUrl: string;
 };
 
-export async function fetchUnsplashImages(query?: string) {
-  const q = query?.trim() ? `?query=${encodeURIComponent(query.trim())}` : '';
-  return request<{ images: UnsplashImage[] }>(`/api/unsplash${q}`);
+export type UnsplashSearchResult = {
+  images: UnsplashImage[];
+  page: number;
+  totalPages: number | null;
+  hasMore: boolean;
+};
+
+export async function fetchUnsplashImages(
+  query?: string,
+  opts?: {
+    page?: number;
+    orientation?: 'portrait' | 'landscape' | 'squarish';
+  },
+) {
+  const params = new URLSearchParams();
+  if (query?.trim()) params.set('query', query.trim());
+  params.set('orientation', opts?.orientation ?? 'portrait');
+  if (opts?.page && opts.page > 1) params.set('page', String(opts.page));
+  return request<UnsplashSearchResult>(`/api/unsplash?${params}`);
 }

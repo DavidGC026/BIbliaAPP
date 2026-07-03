@@ -1,0 +1,15 @@
+{
+  "version": "0.2.0",
+  "notes": "Sync offline libretas/notas/resaltados/favoritos; builds Windows + Linux",
+  "pub_date": "2026-06-28T00:00:00Z",
+  "platforms": {
+    "linux-x86_64": {
+      "signature": "REEMPLAZAR_CON_FIRMA_MINISIGN_AL_PUBLICAR",
+      "url": "https://biblia2.dvguzman.com/desktop/releases/BibliaAPP_0.2.0_amd64.AppImage.tar.gz"
+    },
+    "windows-x86_64": {
+      "signature": "REEMPLAZAR_CON_FIRMA_MINISIGN_AL_PUBLICAR",
+      "url": "https://biblia2.dvguzman.com/desktop/releases/BibliaAPP_0.2.0_x64-setup.nsis.zip"
+    }
+  }
+}

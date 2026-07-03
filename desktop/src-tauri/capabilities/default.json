@@ -8,6 +8,9 @@
     "core:event:default",
     "opener:default",
     "store:default",
-    "deep-link:default"
+    "deep-link:default",
+    "sql:default",
+    "sql:allow-execute",
+    "updater:default"
   ]
 }

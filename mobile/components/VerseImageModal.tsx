@@ -1,17 +1,17 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Sharing from 'expo-sharing';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Dimensions,
   Image,
-  ImageBackground,
   Modal,
   Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -21,6 +21,13 @@ import { useAppTheme } from '@/hooks/useAppTheme';
 import { useContentPadding } from '@/hooks/useContentPadding';
 import * as api from '@/lib/api';
 import type { UnsplashImage } from '@/lib/types';
+import {
+  IMAGE_FORMATS,
+  type ImageFormatId,
+  bgImageTransform,
+  formatById,
+  previewDimensions,
+} from '@/lib/verseImageFormats';
 
 interface VerseImageModalProps {
   visible: boolean;
@@ -31,7 +38,6 @@ interface VerseImageModalProps {
   onClose: () => void;
 }
 
-type AspectRatio = '9:16' | '3:4' | '1:1';
 type EditorTab = 'format' | 'backgrounds' | 'settings';
 
 interface GradientPreset {
@@ -52,9 +58,14 @@ const GRADIENTS: GradientPreset[] = [
   { id: 'earth', name: 'Tierra', colors: ['#a16207', '#854d0e', '#713f12', '#292524'], swatch: ['#fcd34d', '#a16207'] },
 ];
 
-const RATIO_VALUE: Record<AspectRatio, number> = { '9:16': 9 / 16, '3:4': 3 / 4, '1:1': 1 };
+const SEARCH_HINTS = ['naturaleza', 'cielo', 'mar', 'montaña', 'amanecer', 'flores', 'cruz', 'bosque', 'atardecer', 'lluvia'];
 const SERIF = Platform.select({ ios: 'Georgia', android: 'serif', default: 'serif' });
 const AMBER = '#fbbf24';
+
+function mergePhotos(prev: UnsplashImage[], next: UnsplashImage[]) {
+  const seen = new Set(prev.map((p) => p.id));
+  return [...prev, ...next.filter((p) => !seen.has(p.id))];
+}
 
 function autoTextSize(text: string) {
   if (text.length > 220) return 15;
@@ -73,7 +84,11 @@ function VerseImageCard({
   overlayOpacity,
   textSize,
   cardWidth,
-  ratio,
+  cardHeight,
+  imageFormat,
+  bgPosX,
+  bgPosY,
+  bgZoom,
   onPhotoLoad,
 }: {
   text: string;
@@ -85,7 +100,11 @@ function VerseImageCard({
   overlayOpacity: number;
   textSize: number;
   cardWidth: number;
-  ratio: AspectRatio;
+  cardHeight: number;
+  imageFormat: ImageFormatId;
+  bgPosX: number;
+  bgPosY: number;
+  bgZoom: number;
   onPhotoLoad?: () => void;
 }) {
   // El diseño replica components/verse-image-creator.tsx: escala todo según el ancho.
@@ -97,16 +116,19 @@ function VerseImageCard({
     <View
       style={{
         width: cardWidth,
-        aspectRatio: RATIO_VALUE[ratio],
+        height: cardHeight,
         overflow: 'hidden',
-        borderRadius: ratio === '9:16' ? 0 : Math.round(16 * scale),
+        borderRadius: imageFormat === '9:16' ? 0 : Math.round(16 * scale),
         backgroundColor: gradient.colors[0],
       }}
     >
       {photoUri ? (
-        <ImageBackground
+        <Image
           source={{ uri: photoUri }}
-          style={StyleSheet.absoluteFill}
+          style={[
+            StyleSheet.absoluteFillObject,
+            { transform: bgImageTransform(bgPosX, bgPosY, bgZoom, cardWidth, cardHeight) },
+          ]}
           resizeMode="cover"
           blurRadius={bgBlur}
           onLoad={onPhotoLoad}
@@ -259,16 +281,26 @@ export function VerseImageModal({ visible, text, reference, theme, abbr, onClose
   const [gradient, setGradient] = useState<GradientPreset>(GRADIENTS[0]);
   const [photos, setPhotos] = useState<UnsplashImage[]>([]);
   const [loadingPhotos, setLoadingPhotos] = useState(false);
+  const [loadingMorePhotos, setLoadingMorePhotos] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeSearch, setActiveSearch] = useState<string | undefined>();
+  const [photosPage, setPhotosPage] = useState(1);
+  const [hasMorePhotos, setHasMorePhotos] = useState(false);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [selectedPhotoId, setSelectedPhotoId] = useState<string | null>(null);
   const [photoReady, setPhotoReady] = useState(false);
-  const [aspectRatio, setAspectRatio] = useState<AspectRatio>('9:16');
+  const [imageFormat, setImageFormat] = useState<ImageFormatId>('9:16');
   const [textSize, setTextSize] = useState(20);
   const [overlayOpacity, setOverlayOpacity] = useState(35);
   const [bgBlur, setBgBlur] = useState(0);
+  const [bgPosX, setBgPosX] = useState(50);
+  const [bgPosY, setBgPosY] = useState(50);
+  const [bgZoom, setBgZoom] = useState(100);
   const [editorTab, setEditorTab] = useState<EditorTab>('backgrounds');
   const [busy, setBusy] = useState(false);
   const cardRef = useRef<View>(null);
+  const imageFormatRef = useRef(imageFormat);
+  imageFormatRef.current = imageFormat;
 
   const isPhoto = !!photoUrl;
 
@@ -277,15 +309,54 @@ export function VerseImageModal({ visible, text, reference, theme, abbr, onClose
     setTextSize(autoTextSize(text));
   }, [visible, text]);
 
+  const loadPhotos = useCallback(async (
+    query: string | undefined,
+    page = 1,
+    append = false,
+    formatId?: ImageFormatId,
+  ) => {
+    if (page === 1) setLoadingPhotos(true);
+    else setLoadingMorePhotos(true);
+    try {
+      const res = await api.fetchUnsplashImages(query, {
+        page,
+        orientation: formatById(formatId ?? imageFormatRef.current).unsplashOrientation,
+      });
+      setPhotos((prev) => (append ? mergePhotos(prev, res.images) : res.images));
+      setPhotosPage(page);
+      setHasMorePhotos(res.hasMore);
+    } catch {
+      if (!append) setPhotos([]);
+    } finally {
+      setLoadingPhotos(false);
+      setLoadingMorePhotos(false);
+    }
+  }, []);
+
   useEffect(() => {
-    if (!visible || photos.length > 0) return;
-    setLoadingPhotos(true);
-    api
-      .getUnsplashPhotos()
-      .then(({ images }) => setPhotos(images))
-      .catch(() => {})
-      .finally(() => setLoadingPhotos(false));
-  }, [visible, photos.length]);
+    if (!visible) return;
+    setSearchQuery('');
+    setActiveSearch(undefined);
+    setPhotosPage(1);
+    setHasMorePhotos(false);
+    loadPhotos(undefined, 1, false);
+  }, [visible, loadPhotos]);
+
+  const runSearch = () => {
+    const q = searchQuery.trim() || undefined;
+    setActiveSearch(q);
+    loadPhotos(q, 1, false);
+  };
+
+  const loadMorePhotos = () => {
+    if (!hasMorePhotos || loadingMorePhotos) return;
+    loadPhotos(activeSearch, photosPage + 1, true);
+  };
+
+  const selectFormat = (id: ImageFormatId) => {
+    setImageFormat(id);
+    loadPhotos(activeSearch, 1, false, id);
+  };
 
   const selectGradient = (g: GradientPreset) => {
     setGradient(g);
@@ -320,8 +391,8 @@ export function VerseImageModal({ visible, text, reference, theme, abbr, onClose
   const screen = Dimensions.get('window');
   const previewMaxW = screen.width - 48;
   const previewMaxH = screen.height * 0.4;
-  const ratioVal = RATIO_VALUE[aspectRatio];
-  const cardWidth = Math.min(previewMaxW, previewMaxH * ratioVal);
+  const format = formatById(imageFormat);
+  const preview = previewDimensions(format, previewMaxW, previewMaxH);
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
@@ -354,8 +425,12 @@ export function VerseImageModal({ visible, text, reference, theme, abbr, onClose
               bgBlur={bgBlur}
               overlayOpacity={overlayOpacity}
               textSize={textSize}
-              cardWidth={cardWidth}
-              ratio={aspectRatio}
+              cardWidth={preview.width}
+              cardHeight={preview.height}
+              imageFormat={imageFormat}
+              bgPosX={bgPosX}
+              bgPosY={bgPosY}
+              bgZoom={bgZoom}
               onPhotoLoad={() => setPhotoReady(true)}
             />
           </View>
@@ -366,29 +441,25 @@ export function VerseImageModal({ visible, text, reference, theme, abbr, onClose
 
           <ScrollView style={styles.panelBody} contentContainerStyle={{ paddingBottom: contentPadding }}>
             {editorTab === 'format' ? (
-              <View style={styles.formatRow}>
-                {([
-                  { ratio: '9:16' as AspectRatio, label: 'Historia', hint: 'Vertical', w: 18, h: 32 },
-                  { ratio: '3:4' as AspectRatio, label: 'Retrato', hint: '3:4', w: 24, h: 32 },
-                  { ratio: '1:1' as AspectRatio, label: 'Cuadrado', hint: '1:1', w: 30, h: 30 },
-                ]).map(({ ratio, label, hint, w, h }) => {
-                  const active = aspectRatio === ratio;
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.formatRow}>
+                {IMAGE_FORMATS.map((fmt) => {
+                  const active = imageFormat === fmt.id;
                   return (
                     <Pressable
-                      key={ratio}
+                      key={fmt.id}
                       style={[
                         styles.formatBtn,
                         { borderColor: active ? colors.primary : 'rgba(255,255,255,0.12)', backgroundColor: active ? 'rgba(251,191,36,0.1)' : 'transparent' },
                       ]}
-                      onPress={() => setAspectRatio(ratio)}
+                      onPress={() => selectFormat(fmt.id)}
                     >
-                      <View style={{ width: w, height: h, borderWidth: 2, borderColor: active ? colors.primary : 'rgba(255,255,255,0.5)', borderRadius: 3 }} />
-                      <Text style={{ color: active ? colors.primary : 'rgba(255,255,255,0.7)', fontWeight: '700', fontSize: 12 }}>{label}</Text>
-                      <Text style={{ color: 'rgba(255,255,255,0.45)', fontSize: 9 }}>{hint}</Text>
+                      <View style={{ width: fmt.previewW, height: fmt.previewH, borderWidth: 2, borderColor: active ? colors.primary : 'rgba(255,255,255,0.5)', borderRadius: 3 }} />
+                      <Text style={{ color: active ? colors.primary : 'rgba(255,255,255,0.7)', fontWeight: '700', fontSize: 12 }}>{fmt.label}</Text>
+                      <Text style={{ color: 'rgba(255,255,255,0.45)', fontSize: 9 }}>{fmt.hint}</Text>
                     </Pressable>
                   );
                 })}
-              </View>
+              </ScrollView>
             ) : null}
 
             {editorTab === 'backgrounds' ? (
@@ -414,23 +485,83 @@ export function VerseImageModal({ visible, text, reference, theme, abbr, onClose
                 </View>
 
                 <View>
-                  <Text style={styles.groupLabel}>FOTOS</Text>
+                  <Text style={styles.groupLabel}>FOTOS (UNSPLASH)</Text>
+
+                  <View style={styles.searchRow}>
+                    <TextInput
+                      style={[styles.searchInput, { borderColor: 'rgba(255,255,255,0.12)', color: '#fff', backgroundColor: 'rgba(255,255,255,0.05)' }]}
+                      placeholder="Buscar fondo (mar, cielo, cruz…)"
+                      placeholderTextColor="rgba(255,255,255,0.35)"
+                      value={searchQuery}
+                      onChangeText={setSearchQuery}
+                      onSubmitEditing={runSearch}
+                      returnKeyType="search"
+                    />
+                    <Pressable
+                      style={[styles.searchBtn, { backgroundColor: colors.primary, borderRadius: radius.md }]}
+                      onPress={runSearch}
+                    >
+                      <Text style={styles.searchBtnText}>Buscar</Text>
+                    </Pressable>
+                  </View>
+
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.hintRow}>
+                    {SEARCH_HINTS.map((hint) => (
+                      <Pressable
+                        key={hint}
+                        style={[
+                          styles.hintChip,
+                          {
+                            borderColor: activeSearch === hint ? colors.primary : 'rgba(255,255,255,0.12)',
+                            backgroundColor: activeSearch === hint ? 'rgba(251,191,36,0.1)' : 'rgba(255,255,255,0.05)',
+                          },
+                        ]}
+                        onPress={() => {
+                          setSearchQuery(hint);
+                          setActiveSearch(hint);
+                          loadPhotos(hint, 1, false);
+                        }}
+                      >
+                        <Text style={{ color: activeSearch === hint ? colors.primary : 'rgba(255,255,255,0.55)', fontSize: 11 }}>
+                          {hint}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </ScrollView>
+
                   {loadingPhotos ? (
                     <ActivityIndicator color={colors.primary} style={{ marginVertical: 16 }} />
                   ) : (
-                    <View style={styles.swatchGrid}>
-                      {photos.map((img) => {
-                        const active = isPhoto && selectedPhotoId === img.id;
-                        return (
-                          <Pressable key={img.id} onPress={() => selectPhoto(img)} style={styles.swatchCell}>
-                            <Image
-                              source={{ uri: img.thumb }}
-                              style={[styles.photoSwatch, { borderColor: active ? colors.primary : 'rgba(255,255,255,0.12)' }]}
-                            />
-                          </Pressable>
-                        );
-                      })}
-                    </View>
+                    <>
+                      <View style={styles.swatchGrid}>
+                        {photos.map((img) => {
+                          const active = isPhoto && selectedPhotoId === img.id;
+                          return (
+                            <Pressable key={img.id} onPress={() => selectPhoto(img)} style={styles.swatchCell}>
+                              <Image
+                                source={{ uri: img.thumb }}
+                                style={[styles.photoSwatch, { borderColor: active ? colors.primary : 'rgba(255,255,255,0.12)' }]}
+                              />
+                            </Pressable>
+                          );
+                        })}
+                      </View>
+                      {hasMorePhotos ? (
+                        <Pressable
+                          style={[styles.loadMoreBtn, { borderColor: 'rgba(255,255,255,0.12)' }]}
+                          onPress={loadMorePhotos}
+                          disabled={loadingMorePhotos}
+                        >
+                          {loadingMorePhotos ? (
+                            <ActivityIndicator color={colors.primary} size="small" />
+                          ) : (
+                            <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: '600' }}>
+                              Cargar más fotos
+                            </Text>
+                          )}
+                        </Pressable>
+                      ) : null}
+                    </>
                   )}
                 </View>
               </View>
@@ -441,7 +572,12 @@ export function VerseImageModal({ visible, text, reference, theme, abbr, onClose
                 <Stepper label="TAMAÑO DE LETRA" value={textSize} unit="" min={12} max={36} step={1} onChange={setTextSize} colors={colors} radius={radius} />
                 <Stepper label="OSCURECER FONDO" value={overlayOpacity} unit="%" min={0} max={80} step={5} onChange={setOverlayOpacity} colors={colors} radius={radius} />
                 {isPhoto ? (
-                  <Stepper label="DIFUMINAR FOTO" value={bgBlur} unit="" min={0} max={20} step={1} onChange={setBgBlur} colors={colors} radius={radius} />
+                  <>
+                    <Stepper label="DIFUMINAR FOTO" value={bgBlur} unit="" min={0} max={20} step={1} onChange={setBgBlur} colors={colors} radius={radius} />
+                    <Stepper label="ZOOM FONDO" value={bgZoom} unit="%" min={100} max={200} step={5} onChange={setBgZoom} colors={colors} radius={radius} />
+                    <Stepper label="POS. HORIZONTAL" value={bgPosX} unit="%" min={0} max={100} step={5} onChange={setBgPosX} colors={colors} radius={radius} />
+                    <Stepper label="POS. VERTICAL" value={bgPosY} unit="%" min={0} max={100} step={5} onChange={setBgPosY} colors={colors} radius={radius} />
+                  </>
                 ) : null}
               </View>
             ) : null}
@@ -502,7 +638,7 @@ const styles = StyleSheet.create({
   },
   grabber: { alignSelf: 'center', width: 40, height: 4, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.15)', marginTop: 8, marginBottom: 4 },
   panelBody: { paddingHorizontal: 16, paddingTop: 8 },
-  formatRow: { flexDirection: 'row', justifyContent: 'center', gap: 12, paddingVertical: 8 },
+  formatRow: { flexDirection: 'row', gap: 10, paddingVertical: 8, paddingHorizontal: 4 },
   formatBtn: { alignItems: 'center', gap: 6, borderWidth: 1, borderRadius: 14, paddingHorizontal: 18, paddingVertical: 14 },
   groupLabel: { color: 'rgba(255,255,255,0.7)', fontSize: 11, fontWeight: '700', letterSpacing: 1, marginBottom: 10 },
   swatchGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
@@ -510,6 +646,20 @@ const styles = StyleSheet.create({
   swatch: { width: 56, height: 56, borderRadius: 10, borderWidth: 2 },
   swatchLabel: { color: 'rgba(255,255,255,0.65)', fontSize: 9, textAlign: 'center' },
   photoSwatch: { width: 56, height: 70, borderRadius: 10, borderWidth: 2 },
+  searchRow: { flexDirection: 'row', gap: 8, alignItems: 'center', marginBottom: 10 },
+  searchInput: { flex: 1, borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14 },
+  searchBtn: { paddingHorizontal: 14, paddingVertical: 10 },
+  searchBtnText: { color: '#1c1917', fontWeight: '700', fontSize: 13 },
+  hintRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },
+  hintChip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5 },
+  loadMoreBtn: {
+    marginTop: 10,
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingVertical: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   settingRow: { borderWidth: 1, padding: 14, gap: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   settingLabel: { fontSize: 11, fontWeight: '700', letterSpacing: 1 },
   stepper: { flexDirection: 'row', alignItems: 'center', gap: 14 },

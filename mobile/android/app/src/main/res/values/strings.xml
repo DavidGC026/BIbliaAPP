@@ -1,5 +1,5 @@
 <resources>
   <string name="app_name">BibliaAPP</string>
-  <string name="widget_verseofday_description" translatable="false">Muestra el versículo bíblico del día en tu pantalla de inicio</string>
+  <string name="widget_verseofday_description" translatable="false">Muestra el versículo bíblico del día con una imagen inspiradora en tu pantalla de inicio</string>
   <string name="expo_splash_screen_resize_mode" translatable="false">contain</string>
 </resources>

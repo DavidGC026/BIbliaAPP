@@ -1,0 +1,42 @@
+---
+description: Convenciones del cliente desktop BibliaAPP (Tauri + React)
+globs: desktop/**/*
+alwaysApply: false
+---
+
+# BibliaAPP Desktop
+
+Cliente Tauri v2 + React SPA. **No accede a MariaDB** — solo REST + Bearer como `mobile/`.
+
+## Patrones
+
+- Portar API desde `mobile/lib/api.ts`; tipos en `desktop/src/lib/types.ts`
+- Sesión: `tauri-plugin-store` (`sessionStore.ts`, `AuthContext.tsx`)
+- Offline biblia: `tauri-plugin-sql` vía `lib/repo.ts`
+- Offline libretas/notas/resaltados/favoritos: `lib/sync.ts` + SQLite (paridad `mobile/lib/offline/*`)
+- OAuth Google: localhost (`start_google_oauth_listener`), no deep link en desktop
+- SSE/notificaciones: fetch con Bearer (`notificationStream.ts`), no EventSource puro
+
+## UI
+
+- Tailwind 4 + paleta OKLCH de la web
+- Componentes mínimos propios (`Button`, `Card`) — no añadir shadcn completo sin pedirlo
+- Navegación por tabs en `App.tsx` (`lib/nav.ts`), sin react-router salvo necesidad
+
+## Empaquetado
+
+- Arch: `npm run pack:arch` → `.pkg.tar.zst`
+- Debian: `npm run pack:deb` → `.deb`
+- Windows: `npm run pack:win` → `.msi` + `.exe` (ver `docs/11-windows.md`)
+- CI: `.github/workflows/desktop-build.yml` (tag `desktop-v*` → release draft)
+- Tras features nuevas, actualizar `06-funcionalidades.md` y `01-changelog.md`
+- Notas: libretas (`/api/notebooks`), diario, libros; diccionario Strong en editor de notas
+- Biblia: referencias cruzadas + diccionario Strong (pestañas en `BiblePage`)
+
+## Versión
+
+Mantener sincronizados: `package.json`, `src-tauri/Cargo.toml`, `tauri.conf.json`, docs.
+
+## Documentación
+
+Índice: `desktop/docs/README.md`. Tras features nuevas, actualizar `06-funcionalidades.md`.

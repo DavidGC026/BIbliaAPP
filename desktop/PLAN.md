@@ -121,51 +121,58 @@ desktop/
 ## 6. Plan por fases
 
 ### Fase 0 — Prerrequisitos por SO (una vez)
-- [ ] Rust (`rustup`) + Node 20+.
-- [ ] **Arch**: `webkit2gtk-4.1 base-devel curl wget file openssl appmenu-gtk-module libappindicator-gtk3 librsvg`.
+- [x] Rust (`rustup`) + Node 20+.
+- [x] **Arch**: `webkit2gtk-4.1 base-devel curl wget file openssl appmenu-gtk-module libappindicator-gtk3 librsvg`.
 - [ ] **Debian**: `libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev`.
-- [ ] **Windows**: WebView2 Runtime (incluido en Win11; Tauri lo bootstrapea) + Microsoft C++ Build Tools.
-- [ ] Verificar backend: `curl -s https://biblia2.dvguzman.com/api/health`.
+- [ ] **Windows**: WebView2 Runtime + Microsoft C++ Build Tools.
+- [x] Verificar backend: `curl -s https://biblia2.dvguzman.com/api/health`.
 
 ### Fase 1 — Scaffold y arranque (MVP de cascarón)
-- [ ] `npm create tauri-app@latest` en `desktop/` (template React + TS + Vite).
-- [ ] Configurar Tailwind 4 + portar paleta OKLCH desde `app/globals.css`.
-- [ ] Integrar shadcn (mismos componentes base que la web).
-- [ ] `tauri dev` abre ventana con pantalla de inicio. ✅ check: la ventana carga.
+- [x] `npm create tauri-app@latest` en `desktop/` (template React + TS + Vite).
+- [x] Configurar Tailwind 4 + portar paleta OKLCH desde `app/globals.css`.
+- [~] Integrar shadcn (mismos componentes base que la web). → UI mínima propia
+- [x] `tauri dev` abre ventana con pantalla de inicio.
 
 ### Fase 2 — Capa de API y auth (paridad con móvil)
-- [ ] Portar `src/lib/config.ts`, `types.ts` y `api.ts` desde `mobile/lib/`.
-- [ ] Login (`POST /api/auth/login`) → guardar token en keychain.
-- [ ] Cliente HTTP con `@tauri-apps/plugin-http` + header Bearer.
-- [ ] `getMe()`, manejo de 401/403 (`EMAIL_NOT_VERIFIED`).
-- [ ] **Check runnable**: pequeño test/self-check de `api.ts` (URL building y parseo), estilo `mobile/lib/offline/__check__.ts`.
+- [x] Portar `src/lib/config.ts`, `types.ts` y `api.ts` desde `mobile/lib/`.
+- [x] Login (`POST /api/auth/login`) → guardar token en store.
+- [~] Cliente HTTP con `@tauri-apps/plugin-http` → usa fetch del WebView
+- [x] Google OAuth localhost + cambios backend `desktop`.
+- [x] `getMe()`, manejo de 401/403 (`EMAIL_NOT_VERIFIED`).
+- [x] **Check runnable**: `src/lib/__check__.ts`.
 
 ### Fase 3 — Pantallas núcleo (paridad móvil v1)
-- [ ] Inicio: versículo del día (`/api/verse-of-the-day`).
-- [ ] Lector: versiones / libros / capítulos / versículos.
-- [ ] Comunidad: feed (`/api/feed`).
-- [ ] Grupos (`/api/groups`).
-- [ ] Perfil + logout.
+- [x] Inicio: versículo del día (`/api/verse-of-the-day`).
+- [x] Lector: versiones / libros / capítulos / versículos.
+- [x] Comunidad: feed (`/api/feed`).
+- [x] Grupos (`/api/groups`).
+- [x] Perfil + logout.
 
 ### Fase 4 — Empaquetado multiplataforma
-- [ ] `tauri.conf.json`: `bundle.targets = ["deb", "appimage", "nsis", "msi"]`.
-- [ ] Iconos (reusar `mobile/assets/images` adaptados a formato desktop).
-- [ ] **Debian**: `tauri build` → `.deb`.
-- [ ] **Arch**: AppImage de `tauri build` + `PKGBUILD` opcional para AUR/instalación local.
-- [ ] **Windows**: build en runner Windows → `.msi` + NSIS `.exe`.
+- [x] `tauri.conf.json`: targets `appimage`, `deb`.
+- [x] Iconos desde `public/logo.png` (`npm run icons`).
+- [x] **Debian**: `.deb` (`npm run pack:deb`).
+- [x] **Arch**: AppImage + PKGBUILD + `.pkg.tar.zst`.
+- [~] **Windows**: build + CI; compilar localmente o vía tag `desktop-v*`.
 - [ ] Verificar instalación limpia en cada SO.
 
 ### Fase 5 — Extras (opcional, post-MVP)
-- [ ] Offline con `tauri-plugin-sql` (biblias descargables, notas) replicando `mobile/lib/offline/*`.
-- [ ] Notificaciones en tiempo real (SSE `/api/notifications/stream`) + notificaciones nativas del SO.
-- [ ] Auto-update con `tauri-plugin-updater`.
-- [ ] Notas, resaltados, favoritos, planes, oración, eventos (resto de la API).
+- [x] Offline SQLite + sync libretas/notas/resaltados/favoritos (paridad móvil).
+- [x] Detalle grupo, comentarios feed, notificaciones SSE.
+- [~] Auto-update (`tauri-plugin-updater` + UI + CI; `latest.json` en producción pendiente).
 
 ---
 
-## 7. CI/CD (opcional)
+## 7. CI/CD (GitHub Actions)
 
-`tauri-action` (GitHub Actions) con matriz `ubuntu-latest` (genera `.deb` + AppImage) y `windows-latest` (genera `.msi`/`.exe`); publica artefactos como release. Arch consume el AppImage o un `PKGBUILD` que apunte al release.
+Workflow: [`.github/workflows/desktop-build.yml`](../.github/workflows/desktop-build.yml)
+
+- Push a `main` (cambios en `desktop/`): compila Linux + Windows
+- Tag `desktop-v*`: release draft en GitHub con artefactos
+
+Secretos opcionales: `TAURI_SIGNING_PRIVATE_KEY`, `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`.
+
+Arch consume el AppImage o el `.pkg.tar.zst` del workflow / release.
 
 ---
 
@@ -178,6 +185,10 @@ desktop/
 
 ---
 
-## 9. Siguiente paso inmediato
+## 9. Estado actual y documentación
 
-Ejecutar Fase 1: scaffolding con `npm create tauri-app@latest` dentro de `desktop/` (React + TS + Vite) y levantar `tauri dev`. ¿Procedo a generarlo?
+**Implementado hasta v0.2.0:** auth, navegación, lector, búsqueda, offline SQLite + sync, feed, grupos, notificaciones, notas/libretas, empaquetado Arch/Debian, CI Windows/Linux.
+
+Documentación completa en [`docs/README.md`](./docs/README.md).
+
+**Siguiente:** publicar `latest.json` firmado en producción; verificar instalación limpia en cada SO.

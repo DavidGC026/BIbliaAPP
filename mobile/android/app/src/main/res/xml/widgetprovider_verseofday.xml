@@ -4,17 +4,18 @@
     android:minHeight="110dp"
     android:targetCellWidth="4"
     android:targetCellHeight="2"
+    android:maxResizeWidth="530dp"
+    android:maxResizeHeight="220dp"
 
-
-
-    android:resizeMode="none"
+    android:resizeMode="horizontal|vertical"
 
     android:description="@string/widget_verseofday_description"
 
     android:initialLayout="@layout/rn_widget"
 
 
-
+    android:configure="com.bibliaapp.mobile.WidgetConfigurationActivity"
+    android:widgetFeatures="reconfigurable"
 
     android:updatePeriodMillis="1800000"
     android:widgetCategory="home_screen">
