@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Card } from "@/components/ui/Card";
+import { ReferencesRainbowMap } from "@/components/ReferencesRainbowMap";
 import * as api from "@/lib/api";
 import { DEFAULT_BIBLE_ID } from "@/lib/config";
 import type { BibleVersion, Book, CrossReference } from "@/lib/types";
@@ -12,6 +13,7 @@ type Props = {
 };
 
 export function ReferencesExplorer({ onOpenReference }: Props) {
+  const [view, setView] = useState<"list" | "map">("list");
   const [bibles, setBibles] = useState<BibleVersion[]>([]);
   const [books, setBooks] = useState<Book[]>([]);
   const [bibleId, setBibleId] = useState(DEFAULT_BIBLE_ID);
@@ -65,6 +67,28 @@ export function ReferencesExplorer({ onOpenReference }: Props) {
 
   const bookName = books.find((b) => b.bookId === bookId)?.bookName ?? "";
 
+  if (view === "map") {
+    return (
+      <div className="mx-auto max-w-5xl space-y-4 p-6">
+        <button
+          type="button"
+          onClick={() => setView("list")}
+          className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+        >
+          ← Volver al explorador
+        </button>
+        <header>
+          <h2 className="text-xl font-bold text-foreground">🌈 Mapa de referencias</h2>
+          <p className="text-sm text-muted-foreground">
+            Cada arco conecta dos capítulos que se citan entre sí. Haz clic en un capítulo para ver
+            sus conexiones.
+          </p>
+        </header>
+        <ReferencesRainbowMap />
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto max-w-5xl space-y-4 p-6">
       <header>
@@ -73,6 +97,20 @@ export function ReferencesExplorer({ onOpenReference }: Props) {
           Versículos relacionados con el pasaje seleccionado.
         </p>
       </header>
+
+      <button
+        type="button"
+        onClick={() => setView("map")}
+        className="flex w-full items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 text-left transition-colors hover:bg-accent/40"
+      >
+        <span className="text-xl" aria-hidden>
+          🌈
+        </span>
+        <span className="flex-1">
+          <span className="block font-semibold text-foreground">Mapa de referencias</span>
+          <span className="block text-xs text-muted-foreground">Toda la Biblia en un vistazo</span>
+        </span>
+      </button>
 
       <Card className="grid gap-3 sm:grid-cols-2">
         <label className="block text-sm sm:col-span-2">

@@ -132,6 +132,10 @@ export async function getCrossReferences(
   );
 }
 
+export async function getChapterArcs() {
+  return request<{ keys: number[]; arcs: number[] }>("/api/references?arcs");
+}
+
 export async function listDictionaries() {
   return request<{ dictionaries: DictionaryInfo[] }>("/api/dictionary?list");
 }
