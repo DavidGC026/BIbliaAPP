@@ -41,12 +41,39 @@ import {
   upsertHighlightsFromServer,
   upsertVerseNotesFromServer,
 } from '@/lib/offline/readerStore';
+import {
+  areCrossRefsDownloaded,
+  deleteCrossReferences,
+  deleteDictionary,
+  downloadCrossReferences,
+  downloadDictionary,
+  getChapterArcs,
+  getCrossRefsDownloadInfo,
+  getDictionaryDownloadInfo,
+  getLocalCrossReferences,
+  getLocalDictionaryEntry,
+  isDictionaryDownloaded,
+  searchLocalDictionary,
+  type StudyDownloadInfo,
+  type StudyDownloadProgress,
+} from '@/lib/offline/studyStore';
 import { syncAll } from '@/lib/sync';
 import { nowIso } from '@/lib/db';
-import type { BibleVersion, Book, Notebook, NotebookNote, Verse } from '@/lib/types';
+import type { BibleVersion, Book, CrossReference, Notebook, NotebookNote, StrongEntry, Verse } from '@/lib/types';
 
 export { downloadBible, deleteDownloadedBible, getDownloadedSize, listLocalBibles, isBibleDownloaded };
-export type { DownloadProgress };
+export {
+  areCrossRefsDownloaded,
+  deleteCrossReferences,
+  deleteDictionary,
+  downloadCrossReferences,
+  downloadDictionary,
+  getChapterArcs,
+  getCrossRefsDownloadInfo,
+  getDictionaryDownloadInfo,
+  isDictionaryDownloaded,
+};
+export type { DownloadProgress, StudyDownloadInfo, StudyDownloadProgress };
 
 /** Online + sesión → trabajar contra el servidor; offline → SQLite. */
 function useRemote(): boolean {
@@ -108,6 +135,62 @@ export async function repoGetVerses(bibleId: number, bookId: number, chapter: nu
   const verses = await getLocalVerses(bibleId, bookId, chapter);
   if (verses.length === 0) throw new Error('Capítulo no disponible offline. Descarga la versión en Perfil → Descargas.');
   return { verses };
+}
+
+export async function repoGetCrossReferences(
+  bibleId: number,
+  bookId: number,
+  chapter: number,
+  verse: number,
+): Promise<{ references: CrossReference[] }> {
+  if (getIsOnline()) {
+    try {
+      return await api.getCrossReferences(bibleId, bookId, chapter, verse);
+    } catch {
+      // Caída puntual del servidor: probar la copia local
+    }
+  }
+  if (await areCrossRefsDownloaded()) {
+    return { references: await getLocalCrossReferences(bibleId, bookId, chapter, verse) };
+  }
+  throw new Error('Referencias no disponibles offline. Descárgalas en Perfil → Descargas.');
+}
+
+export async function repoSearchDictionary(opts: {
+  dict?: string;
+  q?: string;
+  lang?: 'all' | 'greek' | 'hebrew';
+  page?: number;
+  browse?: boolean;
+}): Promise<{ entries: StrongEntry[]; total: number; page: number; pageSize: number; totalPages: number }> {
+  if (getIsOnline()) {
+    try {
+      return await api.searchDictionary(opts);
+    } catch {
+      // Caída puntual del servidor: probar la copia local
+    }
+  }
+  if (await isDictionaryDownloaded(opts.dict ?? 'strong')) {
+    return searchLocalDictionary(opts);
+  }
+  throw new Error('Diccionario no disponible offline. Descárgalo en Perfil → Descargas.');
+}
+
+export async function repoGetDictionaryEntry(
+  code: string,
+  dict = 'strong',
+): Promise<{ entry: StrongEntry | null }> {
+  if (getIsOnline()) {
+    try {
+      return await api.getDictionaryEntry(code, dict);
+    } catch {
+      // Caída puntual del servidor: probar la copia local
+    }
+  }
+  if (await isDictionaryDownloaded(dict)) {
+    return { entry: await getLocalDictionaryEntry(code, dict) };
+  }
+  throw new Error('Diccionario no disponible offline. Descárgalo en Perfil → Descargas.');
 }
 
 async function refreshNotebooksFromServer() {

@@ -24,7 +24,6 @@ import * as api from '@/lib/api';
 import {
   NOTEBOOK_PRESET_COVERS,
   type NotebookCoverId,
-  getPresetCover,
   isPresetCover,
   resolveCoverForSave,
 } from '@/lib/notebookCovers';
@@ -117,7 +116,7 @@ export function NotebookConfigModal({
   }, [visible, initialName, initialCover, loadPhotos]);
 
   const runSearch = () => {
-    const q = searchQuery.trim() || undefined;
+    const q = searchQuery.replace(/\s+/g, ' ').trim() || undefined;
     setActiveSearch(q);
     loadPhotos(q, 1, false);
   };
@@ -196,54 +195,48 @@ export function NotebookConfigModal({
               onChangeText={setName}
             />
 
-            <Text style={[styles.label, { color: colors.textMuted, marginTop: 10 }]}>PORTADA PREDISEÑADA</Text>
-            <View style={styles.presetGrid}>
-              {NOTEBOOK_PRESET_COVERS.map((cover) => {
-                const active = !hasCustom && presetId === cover.id;
-                return (
-                  <Pressable
-                    key={cover.id}
-                    onPress={() => selectPreset(cover.id)}
-                    style={[styles.presetBtn, active && { borderColor: colors.primary, borderWidth: 2 }]}
-                  >
-                    <LinearGradient colors={cover.colors} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
-                    <Text style={styles.presetLabel} numberOfLines={2}>{cover.label}</Text>
-                  </Pressable>
-                );
-              })}
-            </View>
+            <Text style={[styles.label, { color: colors.textMuted, marginTop: 10 }]}>BUSCAR IMAGEN EN UNSPLASH</Text>
+            <TextInput
+              multiline
+              textAlignVertical="top"
+              style={[
+                styles.searchTextarea,
+                { color: colors.text, borderColor: colors.border, borderRadius: radius.lg, backgroundColor: colors.background },
+              ]}
+              placeholder={'Escribe palabras clave para buscar portadas.\nEj. biblioteca vintage, montañas, flores…'}
+              placeholderTextColor={colors.textMuted}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+            <Text style={{ color: colors.textMuted, fontSize: 11, lineHeight: 16 }}>
+              Escribe lo que quieres encontrar y pulsa Buscar. Toca una foto para usarla como portada.
+            </Text>
 
-            <View style={styles.sectionHeader}>
-              <Text style={[styles.label, { color: colors.textMuted, marginBottom: 0 }]}>UNSPLASH</Text>
+            <View style={styles.searchActions}>
               <Pressable
-                onPress={() => {
-                  if (hasMorePhotos && !loadingMorePhotos) loadPhotos(activeSearch, photosPage + 1, true);
-                }}
-                disabled={!hasMorePhotos || loadingMorePhotos || loadingPhotos}
-              >
-                <Text style={{ color: colors.primary, fontSize: 12, fontWeight: '700' }}>
-                  {loadingMorePhotos ? 'Cargando…' : hasMorePhotos ? '↻ Más fotos' : 'Sin más fotos'}
-                </Text>
-              </Pressable>
-            </View>
-
-            <View style={styles.searchRow}>
-              <TextInput
-                style={[styles.searchInput, { color: colors.text, borderColor: colors.border, borderRadius: radius.lg }]}
-                placeholder="Buscar portada (libros, mar, montaña…)"
-                placeholderTextColor={colors.textMuted}
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                onSubmitEditing={runSearch}
-                returnKeyType="search"
-              />
-              <Pressable
-                style={[styles.searchBtn, { backgroundColor: colors.primary, borderRadius: radius.md }]}
+                style={[styles.searchBtn, { backgroundColor: colors.primary, borderRadius: radius.md, flex: 1 }]}
                 onPress={runSearch}
                 disabled={loadingPhotos}
               >
-                <Text style={styles.searchBtnText}>Buscar</Text>
+                {loadingPhotos && photos.length === 0 ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <Text style={styles.searchBtnText}>Buscar en Unsplash</Text>
+                )}
               </Pressable>
+              {hasMorePhotos ? (
+                <Pressable
+                  style={[styles.moreBtn, { borderColor: colors.border, borderRadius: radius.md }]}
+                  onPress={() => loadPhotos(activeSearch, photosPage + 1, true)}
+                  disabled={loadingMorePhotos || loadingPhotos}
+                >
+                  <Text style={{ color: colors.primary, fontSize: 13, fontWeight: '700' }}>
+                    {loadingMorePhotos ? '…' : 'Más'}
+                  </Text>
+                </Pressable>
+              ) : null}
             </View>
 
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.hintRow}>
@@ -273,6 +266,10 @@ export function NotebookConfigModal({
 
             {loadingPhotos && photos.length === 0 ? (
               <ActivityIndicator color={colors.primary} style={{ marginVertical: 12 }} />
+            ) : photos.length === 0 ? (
+              <Text style={{ color: colors.textMuted, fontSize: 13, textAlign: 'center', marginVertical: 12 }}>
+                Sin resultados. Prueba otras palabras o un chip de arriba.
+              </Text>
             ) : (
               <View style={styles.photoGrid}>
                 {photos.map((img) => {
@@ -289,6 +286,23 @@ export function NotebookConfigModal({
                 })}
               </View>
             )}
+
+            <Text style={[styles.label, { color: colors.textMuted, marginTop: 10 }]}>PORTADA PREDISEÑADA</Text>
+            <View style={styles.presetGrid}>
+              {NOTEBOOK_PRESET_COVERS.map((cover) => {
+                const active = !hasCustom && presetId === cover.id;
+                return (
+                  <Pressable
+                    key={cover.id}
+                    onPress={() => selectPreset(cover.id)}
+                    style={[styles.presetBtn, active && { borderColor: colors.primary, borderWidth: 2 }]}
+                  >
+                    <LinearGradient colors={cover.colors} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+                    <Text style={styles.presetLabel} numberOfLines={2}>{cover.label}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
 
             <Text style={[styles.label, { color: colors.textMuted, marginTop: 10 }]}>
               URL DE IMAGEN (OPCIONAL)
@@ -323,7 +337,7 @@ export function NotebookConfigModal({
               </Pressable>
             </View>
             <Text style={{ color: colors.textMuted, fontSize: 11, lineHeight: 16 }}>
-              Elige una foto de Unsplash, pega una URL o sube una imagen desde tu galería. Se guarda la ruta tal cual.
+              También puedes pegar una URL o subir una imagen desde tu galería.
             </Text>
 
             {hasCustom ? (
@@ -391,10 +405,22 @@ const styles = StyleSheet.create({
     textShadowRadius: 2,
     zIndex: 1,
   },
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 },
-  searchRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
-  searchInput: { flex: 1, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14 },
-  searchBtn: { paddingHorizontal: 14, paddingVertical: 10 },
+  searchTextarea: {
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    minHeight: 80,
+    maxHeight: 120,
+  },
+  searchActions: { flexDirection: 'row', gap: 8, alignItems: 'stretch' },
+  searchBtn: { paddingHorizontal: 14, paddingVertical: 12, alignItems: 'center', justifyContent: 'center' },
+  moreBtn: {
+    borderWidth: 1,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   searchBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
   hintRow: { flexDirection: 'row', gap: 8, paddingVertical: 2 },
   hintChip: { borderWidth: 1, paddingHorizontal: 10, paddingVertical: 5 },

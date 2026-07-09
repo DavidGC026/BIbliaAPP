@@ -18,7 +18,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { OfflineBanner } from '@/components/OfflineBanner';
 import { BibleSelectorModal } from '@/components/BibleSelectorModal';
 import { CrossReferencesModal } from '@/components/CrossReferencesModal';
-import { VerseImageCreatorModal } from '@/components/VerseImageCreatorModal';
+import { VerseImageCreator } from '@/components/VerseImageCreator';
 import { useAuth } from '@/context/AuthContext';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useKeyboardHeight } from '@/hooks/useKeyboardHeight';
@@ -624,7 +624,7 @@ export function BibleReader({
       />
 
       {imageCreatorData ? (
-        <VerseImageCreatorModal
+        <VerseImageCreator
           visible={imageCreatorOpen}
           onClose={() => setImageCreatorOpen(false)}
           text={imageCreatorData.text}

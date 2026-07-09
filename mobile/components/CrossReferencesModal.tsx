@@ -12,7 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { useContentPadding } from '@/hooks/useContentPadding';
-import * as api from '@/lib/api';
+import { repoGetCrossReferences } from '@/lib/repo';
 import type { CrossReference } from '@/lib/types';
 
 interface CrossReferencesModalProps {
@@ -46,8 +46,7 @@ export function CrossReferencesModal({
     if (!visible || !bookId || verse === null) return;
     setLoading(true);
     setError(null);
-    api
-      .getCrossReferences(bibleId, bookId, chapter, verse)
+    repoGetCrossReferences(bibleId, bookId, chapter, verse)
       .then(({ references }) => setRefs(references))
       .catch((err) => setError(err instanceof Error ? err.message : 'Error'))
       .finally(() => setLoading(false));

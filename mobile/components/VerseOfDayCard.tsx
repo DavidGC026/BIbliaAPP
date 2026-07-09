@@ -16,7 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
-import { VerseImageModal } from '@/components/VerseImageModal';
+import { VerseImageCreator } from '@/components/VerseImageCreator';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import * as api from '@/lib/api';
 import { DEFAULT_BIBLE_ID } from '@/lib/config';
@@ -205,11 +205,10 @@ export function VerseOfDayCard() {
         </Pressable>
       </Modal>
 
-      <VerseImageModal
+      <VerseImageCreator
         visible={imageModalOpen}
         text={data.text}
         reference={data.reference}
-        theme={data.theme}
         abbr={abbr}
         onClose={() => setImageModalOpen(false)}
       />

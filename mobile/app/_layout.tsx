@@ -150,6 +150,7 @@ function RootLayoutNav() {
         <Stack.Screen name="highlights" options={{ title: 'Subrayados' }} />
         <Stack.Screen name="favorites" options={{ title: 'Favoritos' }} />
         <Stack.Screen name="downloads" options={{ title: 'Descargas' }} />
+        <Stack.Screen name="rainbow" options={{ title: 'Mapa de referencias' }} />
       </Stack>
     </ThemeProvider>
   );

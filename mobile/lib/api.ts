@@ -377,6 +377,25 @@ export async function getDictionaryEntry(code: string, dict = 'strong') {
   return request<{ entry: import('./types').StrongEntry | null }>(`/api/dictionary?${params.toString()}`);
 }
 
+// — Export para descarga offline (filas compactas paginadas) —
+export async function exportDictionary(dict = 'strong', page = 1) {
+  return request<{
+    rows: [string, string | null, string | null, string | null][];
+    total: number;
+    page: number;
+    totalPages: number;
+  }>(`/api/dictionary?export&dict=${encodeURIComponent(dict)}&page=${page}`);
+}
+
+export async function exportCrossReferences(page = 1) {
+  return request<{
+    rows: [number, number, number][];
+    total: number;
+    page: number;
+    totalPages: number;
+  }>(`/api/references?export&page=${page}`);
+}
+
 // — Grupos: unirse por código —
 export async function joinGroupByCode(inviteCode: string) {
   return request<{ success: boolean; groupId: number; alreadyMember?: boolean }>(

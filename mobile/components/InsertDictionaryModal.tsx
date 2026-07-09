@@ -13,7 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { useContentPadding } from '@/hooks/useContentPadding';
-import * as api from '@/lib/api';
+import { repoSearchDictionary } from '@/lib/repo';
 import { parseDictionaryDefinition } from '@/lib/dictionaryInsert';
 import type { StrongEntry } from '@/lib/types';
 
@@ -74,8 +74,7 @@ export function InsertDictionaryModal({ visible, onClose, onInsert }: InsertDict
       return;
     }
     setLoading(true);
-    api
-      .searchDictionary({ q: debounced, lang, page, browse: browse && !hasValidQuery })
+    repoSearchDictionary({ q: debounced, lang, page, browse: browse && !hasValidQuery })
       .then((data) => {
         setEntries(data.entries);
         setTotalPages(data.totalPages);
