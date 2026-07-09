@@ -28,3 +28,5 @@ scripts
 docs
 
 docs-mobile
+# App móvil: tiene su propio repositorio
+mobile/
