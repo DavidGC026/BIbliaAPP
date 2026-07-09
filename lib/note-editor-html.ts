@@ -101,6 +101,9 @@ export function getEditorHtml(
       z-index: 1;
     }
 
+    #editor h1 { font-size: 1.55em; font-weight: 800; margin: 0.6em 0 0.3em; }
+    #editor h2 { font-size: 1.28em; font-weight: 700; margin: 0.6em 0 0.3em; }
+
     #editor:empty:before {
       content: "Escribe aquí tu nota…";
       color: ${colors.textMuted};
@@ -356,6 +359,11 @@ export function getEditorHtml(
 
         <div class="sep"></div>
 
+        <button class="tb" data-action="heading" data-val="h1" style="font-weight:800;">H1</button>
+        <button class="tb" data-action="heading" data-val="h2" style="font-weight:700;">H2</button>
+
+        <div class="sep"></div>
+
         <button class="tb" data-action="bold" style="font-weight:900;">B</button>
         <button class="tb" data-action="italic" style="font-style:italic;">I</button>
         <button class="tb" data-action="underline" style="text-decoration:underline;">U</button>
@@ -374,6 +382,13 @@ export function getEditorHtml(
         <div class="sep"></div>
 
         <button class="tb" data-action="insertTable">⊞</button>
+
+        <div class="sep"></div>
+
+        <button class="tb tb-sz" data-action="selectAll">
+          <span class="letter" style="font-size:14px;">▣</span>
+          <span class="lbl">Todo</span>
+        </button>
       </div>
 
       <!-- Row 2: Colors -->
@@ -607,6 +622,30 @@ export function getEditorHtml(
           return;
         }
 
+        if (action === 'selectAll') {
+          editor.focus();
+          var allRange = document.createRange();
+          allRange.selectNodeContents(editor);
+          var allSel = window.getSelection();
+          allSel.removeAllRanges();
+          allSel.addRange(allRange);
+          savedRange = allRange.cloneRange();
+          updateActiveStates();
+          return;
+        }
+
+        if (action === 'heading') {
+          editor.focus();
+          restoreSelection();
+          var currentBlock = '';
+          try { currentBlock = String(document.queryCommandValue('formatBlock')).toLowerCase(); } catch (e) {}
+          document.execCommand('formatBlock', false, currentBlock === val ? 'p' : val);
+          updateActiveStates();
+          notifyChange();
+          scrollCaretIntoView();
+          return;
+        }
+
         if (action === 'bold' || action === 'italic' || action === 'underline' || action === 'strikeThrough') {
           toggleInlineFormat(action);
           updateActiveStates();
@@ -707,21 +746,29 @@ export function getEditorHtml(
             if (!sel || sel.rangeCount === 0) return;
             if (!editor.contains(sel.anchorNode)) return;
 
-            var range = sel.getRangeAt(0).cloneRange();
-            var marker = document.createElement('span');
-            marker.textContent = '\\u200B';
-            range.collapse(true);
-            range.insertNode(marker);
+            // Con selección activa no tocamos nada: removeAllRanges/addRange
+            // descarta los manejadores nativos de selección en móviles
+            // (rompía "Seleccionar todo" y la selección por pulsación larga).
+            if (!sel.isCollapsed) return;
 
-            var caretRect = marker.getBoundingClientRect();
+            var originalRange = sel.getRangeAt(0).cloneRange();
             var editorRect = editor.getBoundingClientRect();
             var toolbar = document.getElementById('toolbar');
             var toolbarH = toolbar ? toolbar.offsetHeight : 0;
-
-            var caretTop = caretRect.top - editorRect.top + editor.scrollTop;
-            var caretBottom = caretTop + Math.max(caretRect.height, 20);
             var visibleTop = editor.scrollTop + 16;
             var visibleBottom = editor.scrollTop + editor.clientHeight - toolbarH - 24;
+            var marker = document.createElement('span');
+            marker.textContent = '\\u200B';
+            var probe = originalRange.cloneRange();
+            probe.collapse(true);
+            probe.insertNode(marker);
+            var caretRect = marker.getBoundingClientRect();
+            var caretTop = caretRect.top - editorRect.top + editor.scrollTop;
+            var caretBottom = caretTop + Math.max(caretRect.height, 20);
+            var restoreRange = document.createRange();
+            restoreRange.setStartBefore(marker);
+            restoreRange.collapse(true);
+            marker.parentNode.removeChild(marker);
 
             if (caretBottom > visibleBottom) {
               editor.scrollTop = caretBottom - editor.clientHeight + toolbarH + 24;
@@ -729,13 +776,9 @@ export function getEditorHtml(
               editor.scrollTop = Math.max(0, caretTop - 16);
             }
 
-            var restore = document.createRange();
-            restore.setStartBefore(marker);
-            restore.collapse(true);
-            marker.parentNode.removeChild(marker);
             sel.removeAllRanges();
-            sel.addRange(restore);
-            savedRange = restore.cloneRange();
+            sel.addRange(restoreRange);
+            savedRange = restoreRange.cloneRange();
           });
         }, 50);
       }
@@ -822,6 +865,13 @@ export function getEditorHtml(
             btn.classList.remove('active');
           }
         });
+
+        // Heading buttons
+        var blockTag = '';
+        try { blockTag = String(document.queryCommandValue('formatBlock')).toLowerCase(); } catch (e) {}
+        document.querySelectorAll('.tb[data-action="heading"]').forEach(function(btn) {
+          btn.classList.toggle('active', btn.getAttribute('data-val') === blockTag);
+        });
       }
 
       /* ── Apply color to selection ──────────────────── */
@@ -893,18 +943,52 @@ export function getEditorHtml(
         wrapTablesForReadOnly();
       }
 
-      /* ── Notify React Native ────────────────────────── */
+      /* ── Notify host ────────────────────────────────── */
+      // Con debounce: enviar todo el HTML al host en cada tecla se nota en
+      // notas largas. El guardado real usa getHtml, que lee innerHTML
+      // directamente, así que nunca ve contenido desfasado.
+      var notifyTimer = null;
       function notifyChange() {
-        postToHost({
-          type: 'onChange',
-          html: editor.innerHTML
-        });
+        if (notifyTimer) clearTimeout(notifyTimer);
+        notifyTimer = setTimeout(function() {
+          notifyTimer = null;
+          postToHost({
+            type: 'onChange',
+            html: editor.innerHTML
+          });
+        }, 250);
       }
 
       /* ── Global handler for React Native injectJavaScript ── */
       window.handleAction = function(jsonStr) {
         try {
           var action = JSON.parse(jsonStr);
+
+          if (action.type === 'getHtml') {
+            postToHost({
+              type: 'getHtmlResponse',
+              html: editor.innerHTML
+            });
+            return;
+          }
+          if (action.type === 'updateContent') {
+            editor.innerHTML = action.value;
+            return;
+          }
+          if (action.type === 'updateColors') {
+            colorPalette = action.value;
+            renderColors();
+            return;
+          }
+          if (action.type === 'setKeyboardInset') {
+            scrollCaretIntoView();
+            return;
+          }
+          if (action.type === 'blurEditor') {
+            editor.blur();
+            return;
+          }
+
           editor.focus();
 
           if (action.type === 'setFont') {
@@ -918,21 +1002,6 @@ export function getEditorHtml(
             insertHtmlAtSelection(buildVerseBlockHtml(action.value));
           } else if (action.type === 'insertDictionary') {
             insertHtmlAtSelection(buildDictBlockHtml(action.value));
-          } else if (action.type === 'getHtml') {
-            postToHost({
-              type: 'getHtmlResponse',
-              html: editor.innerHTML
-            });
-            return; // Don't trigger onChange
-          } else if (action.type === 'updateContent') {
-            editor.innerHTML = action.value;
-          } else if (action.type === 'updateColors') {
-            colorPalette = action.value;
-            renderColors();
-            return;
-          } else if (action.type === 'setKeyboardInset') {
-            scrollCaretIntoView();
-            return;
           }
 
           notifyChange();

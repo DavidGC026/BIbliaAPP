@@ -30,6 +30,38 @@ export async function GET(req: NextRequest) {
     }
 
     const dict = (params.get("dict") || "strong").trim()
+
+    // Export en bloque para la descarga offline del móvil: filas compactas
+    // [code, lemma, transliteration, definition] paginadas
+    if (params.get("export") !== null) {
+      const exportPage = Math.max(1, Number.parseInt(params.get("page") || "1", 10) || 1)
+      const EXPORT_PAGE_SIZE = 2000
+      const [countRows] = await pool.query<RowDataPacket[]>(
+        `SELECT COUNT(*) AS total
+         FROM bible_dictionary_entries e
+         JOIN bible_dictionaries d ON d.id = e.dictionary_id
+         WHERE d.slug = ?`,
+        [dict],
+      )
+      const total = Number(countRows[0]?.total ?? 0)
+      const [rows] = await pool.query<RowDataPacket[]>(
+        `SELECT e.code, e.lemma, e.transliteration,
+                COALESCE(NULLIF(e.definition_es, ''), e.definition) AS definition
+         FROM bible_dictionary_entries e
+         JOIN bible_dictionaries d ON d.id = e.dictionary_id
+         WHERE d.slug = ?
+         ORDER BY e.id
+         LIMIT ? OFFSET ?`,
+        [dict, EXPORT_PAGE_SIZE, (exportPage - 1) * EXPORT_PAGE_SIZE],
+      )
+      return json({
+        rows: rows.map((r) => [r.code, r.lemma, r.transliteration, r.definition]),
+        total,
+        page: exportPage,
+        totalPages: Math.max(1, Math.ceil(total / EXPORT_PAGE_SIZE)),
+      })
+    }
+
     const q = (params.get("q") || "").trim()
     const lang = params.get("lang") || "all" // all | greek | hebrew
     const page = Math.max(1, Number.parseInt(params.get("page") || "1", 10) || 1)

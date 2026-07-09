@@ -4,8 +4,9 @@ import * as React from "react"
 import { useState, useEffect } from "react"
 import useSWR from "swr"
 import { fetcher } from "@/lib/fetcher"
-import { Loader2, Link as LinkIcon, BookOpen, AlertCircle } from "lucide-react"
+import { Loader2, Link as LinkIcon, BookOpen, AlertCircle, ArrowLeft } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { ReferencesRainbowMap } from "@/components/references-rainbow-map"
 
 interface BibleBook {
   bookId: number
@@ -29,6 +30,7 @@ interface VerseRef {
 }
 
 export function ReferencesExplorer() {
+  const [view, setView] = useState<"list" | "map">("list")
   const { data: biblesData } = useSWR<{ bibles: BibleVersion[] }>("/api/bibles", fetcher)
   const bibles = biblesData?.bibles || []
   
@@ -58,6 +60,33 @@ export function ReferencesExplorer() {
   const sourceVerseText = chapterData?.verses?.find(v => Number(v.verse) === selectedVerse)?.text
   const selectedBookName = books.find(b => b.bookId === selectedBook)?.bookName
 
+  if (view === "map") {
+    return (
+      <div className="fixed inset-0 z-50 flex flex-col bg-background animate-fade-in">
+        <header className="flex items-center gap-3 border-b border-border px-4 py-2 shrink-0">
+          <button
+            type="button"
+            onClick={() => setView("list")}
+            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ArrowLeft className="size-4" />
+            Volver
+          </button>
+          <h1 className="text-sm font-bold tracking-tight text-foreground flex items-center gap-2">
+            <span aria-hidden>🌈</span>
+            Mapa de referencias
+          </h1>
+          <p className="hidden text-xs text-muted-foreground md:block">
+            Cada arco conecta dos capítulos que se citan entre sí · rueda o pellizco para zoom · arrastra para moverte · clic en un capítulo para ver sus conexiones
+          </p>
+        </header>
+        <div className="min-h-0 flex-1">
+          <ReferencesRainbowMap />
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6 max-w-5xl mx-auto animate-fade-in">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
@@ -71,6 +100,18 @@ export function ReferencesExplorer() {
           </p>
         </div>
       </div>
+
+      <button
+        type="button"
+        onClick={() => setView("map")}
+        className="w-full flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3 text-left shadow-sm hover:bg-accent/40 transition-colors"
+      >
+        <span className="text-xl" aria-hidden>🌈</span>
+        <span className="flex-1">
+          <span className="block font-semibold text-foreground">Mapa de referencias</span>
+          <span className="block text-xs text-muted-foreground">Toda la Biblia en un vistazo</span>
+        </span>
+      </button>
 
       <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">

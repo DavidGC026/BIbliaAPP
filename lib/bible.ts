@@ -131,6 +131,20 @@ async function _ensureDbTables(): Promise<void> {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
   `)
 
+  // Lectura bíblica: capítulos/versículos por usuario, libro y día
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS bible_reading_activity (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      user_id INT NOT NULL,
+      date DATE NOT NULL,
+      book_id INT NOT NULL,
+      chapters_count INT DEFAULT 0,
+      verses_count INT DEFAULT 0,
+      UNIQUE KEY uniq_user_date_book (user_id, date, book_id),
+      KEY idx_user_date (user_id, date)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+  `)
+
   // Add user allowed_sections, streak_count and last_active_date columns for user permissions and streak tracking
   try {
     await pool.query(`ALTER TABLE users ADD COLUMN allowed_sections JSON DEFAULT NULL`)

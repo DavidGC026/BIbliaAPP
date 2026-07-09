@@ -210,6 +210,18 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
     setEditorEpoch(0)
   }, [editingNote?.id])
 
+  // Autoguardado: tras 4s sin teclear se persiste en silencio, como en la app
+  // móvil, así la nota sobrevive aunque se cierre la pestaña sin pulsar Guardar.
+  useEffect(() => {
+    if (!editingNote || !contentDirty || savingNote || previewMode) return
+    const timer = setTimeout(async () => {
+      const html = await requestEditorHtml(editorFrameRef.current)
+      void handleSaveNote(html || editingNote.content, { silent: true })
+    }, 4000)
+    return () => clearTimeout(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editingNote, contentDirty, savingNote, previewMode])
+
   // Manejar creación/edición de libreta
   async function handleSaveNotebook() {
     if (!configName.trim() || savingNotebook) return
@@ -319,7 +331,7 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
     }
   }
 
-  async function handleSaveNote(contentOverride?: string) {
+  async function handleSaveNote(contentOverride?: string, opts: { silent?: boolean } = {}) {
     if (!editingNote) return
     const contentToSave = contentOverride ?? editingNote.content
     const titleToSave = defaultNoteTitle(editingNote.title)
@@ -347,7 +359,8 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
       setContentDirty(false)
       setSavedAt(new Date().toLocaleTimeString())
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Error al guardar nota")
+      // Autoguardado: fallar en silencio, se reintenta en el próximo ciclo
+      if (!opts.silent) alert(e instanceof Error ? e.message : "Error al guardar nota")
     } finally {
       setSavingNote(false)
     }
@@ -450,6 +463,9 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
             <span>Volver</span>
           </Button>
           <div className="flex items-center gap-3">
+            <span className="text-xs text-muted-foreground hidden sm:inline">
+              {savingNote ? "Guardando…" : contentDirty ? "Sin guardar" : savedAt ? `Guardado ${savedAt}` : ""}
+            </span>
             <Button
               variant="ghost"
               size="sm"
@@ -480,9 +496,10 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
         <div className="px-4 pt-2 shrink-0">
           <Input
             value={editingNote.title}
-            onChange={(e) =>
+            onChange={(e) => {
+              setContentDirty(true)
               setEditingNote((prev) => (prev ? { ...prev, title: e.target.value } : prev))
-            }
+            }}
             placeholder="Título de la nota"
             className="border-0 border-b border-border rounded-none bg-transparent px-0 text-2xl font-extrabold focus-visible:ring-0 placeholder:text-muted-foreground/40"
           />

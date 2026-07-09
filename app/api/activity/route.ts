@@ -1,12 +1,14 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getPool } from "@/lib/mysql"
 import { getSession } from "@/lib/auth"
+import { ensureDbTables } from "@/lib/bible"
 
 export async function GET(req: NextRequest) {
   try {
     const user = await getSession(req)
     if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 })
 
+    await ensureDbTables()
     // We fetch two things: the heatmap data (last 365 days) and the book progress
     const [heatmapRows] = await getPool().query<any[]>(
       `SELECT date, SUM(chapters_count) as total_chapters 
@@ -41,6 +43,8 @@ export async function POST(req: NextRequest) {
   try {
     const user = await getSession(req)
     if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 })
+
+    await ensureDbTables()
 
     const { bookId, chaptersCount = 1, versesCount = 0 } = await req.json()
     if (!bookId) return NextResponse.json({ error: "Libro requerido" }, { status: 400 })
