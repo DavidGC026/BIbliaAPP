@@ -2,7 +2,7 @@
 
 Versión de escritorio multiplataforma para **Arch Linux**, **Debian** y **Windows**.
 
-> Estado: propuesta inicial. Esta carpeta (`desktop/`) es el nuevo proyecto, hermano de `mobile/`.
+> Estado: propuesta inicial. Esta carpeta (`desktop/`) es el cliente de escritorio del monorepo web. La app móvil vive en un repositorio aparte.
 
 ---
 
