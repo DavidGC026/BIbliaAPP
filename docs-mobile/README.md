@@ -1,8 +1,8 @@
 # Documentación — BibliaAPP Móvil
 
-Documentación del cliente móvil de **BibliaAPP** (React Native + Expo). La app consume la misma API REST que la aplicación web Next.js.
+Documentación de referencia del cliente móvil de **BibliaAPP** (React Native + Expo). La app consume la misma API REST que la aplicación web Next.js.
 
-**Código fuente:** carpeta [`mobile/`](../mobile/) en la raíz del repositorio.
+> **Nota (julio 2026):** La app móvil ya **no vive en este repositorio**. Fue extraída a un repo propio; los archivos aquí son documentación histórica conservada en `docs-mobile/`. Para código actual, usa el repositorio móvil dedicado.
 
 **Producción web / API:** https://biblia2.dvguzman.com
 
@@ -42,8 +42,10 @@ Documentación del cliente móvil de **BibliaAPP** (React Native + Expo). La app
 
 ## Comandos habituales
 
+En el repositorio móvil actual (no en este repo web):
+
 ```bash
-cd mobile
+cd mobile   # raíz del repo móvil
 npm install
 npm run start      # Menú Expo (QR, emulador, web)
 npm run android    # Abrir en Android
@@ -51,4 +53,4 @@ npm run ios        # Abrir en iOS (macOS)
 npm run web        # Vista web con Metro
 ```
 
-Para más detalle, empieza por [02-inicio-rapido.md](./02-inicio-rapido.md).
+Para más detalle, empieza por [02-inicio-rapido.md](./02-inicio-rapido.md) (rutas relativas a la estructura móvil original).
