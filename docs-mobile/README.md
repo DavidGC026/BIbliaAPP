@@ -32,6 +32,7 @@ Documentación del cliente móvil de **BibliaAPP** (React Native + Expo). La app
 | [18-lector-biblia-e-imagenes.md](./18-lector-biblia-e-imagenes.md) | Mejoras de lectura bíblica y generador de imágenes de versículos |
 | [19-descargas-offline.md](./19-descargas-offline.md) | Descargas offline visibles, cola en segundo plano de app y reanudación |
 | [20-plan-maestro-mejoras-generales.md](./20-plan-maestro-mejoras-generales.md) | Plan vivo de mejoras generales, estados, fases y avance actual |
+| [21-inicio-recientes-inteligentes.md](./21-inicio-recientes-inteligentes.md) | Inicio móvil: notas, favoritos, subrayados y devocionales recientes |
 
 ---
 
