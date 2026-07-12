@@ -60,6 +60,21 @@ Objetivo: permitir elegir que tarjetas de "Acciones rapidas" se muestran en Inic
 | Hecho | Verificar TypeScript. | `npx tsc --noEmit` pasa correctamente en `mobile`. |
 | Pendiente | Prueba manual mobile. | Activar/desactivar acciones, confirmar orden y navegacion (incluye flujo de imagen de versiculo, que guia al lector). |
 
+## Iteracion en progreso - Recordatorios utiles
+
+Objetivo: recordar al usuario acciones pendientes (racha, devocional, descargas) con control explicito por tipo.
+
+| Estado | Tarea | Resultado esperado |
+|--------|-------|--------------------|
+| Hecho | Preferencia de recordatorios. | `lib/reminderPreferences.ts` guarda en `SecureStore` que tipos de recordatorio estan activos (racha, devocional, descargas), por defecto los tres activos. |
+| Hecho | Recordatorio de devocional pendiente. | `lib/localNotifications.ts` programa una notificacion local a las 21:00 si el usuario no escribio devocional hoy y el recordatorio esta activo. |
+| Hecho | Recordatorio de descargas incompletas. | Se programa una notificacion si hay tareas de descarga en estado `error` en `offlineDownloadManager`, respetando la preferencia del usuario. |
+| Hecho | Racha de lectura controlable. | El recordatorio de racha (20:00) ahora tambien respeta la preferencia del usuario, ademas de requerir sesion y racha activa. |
+| Hecho | Navegacion desde notificacion. | Tocar el recordatorio de devocional abre `/devotional/new`; el de descargas abre `/downloads`. |
+| Hecho | Pantalla de control. | `components/ReminderSettings.tsx` agrega switches por tipo de recordatorio en Perfil. |
+| Hecho | Verificar TypeScript. | `npx tsc --noEmit` pasa correctamente en `mobile`. |
+| Pendiente | Prueba manual mobile. | Verificar permisos de notificaciones, disparo real de cada recordatorio y navegacion al tocarlas (requiere dispositivo/emulador). |
+
 ## Fase 1 - Continuidad y uso diario
 
 Prioridad alta porque reduce friccion en acciones frecuentes.
@@ -69,7 +84,7 @@ Prioridad alta porque reduce friccion en acciones frecuentes.
 | Hecho | Continuar lectura | Tarjeta en Inicio, persistencia local y navegacion directa al lector. |
 | Hecho | Recientes inteligentes | Mostrar ultimas notas editadas, versiculos seleccionados y devocionales abiertos. |
 | En curso | Acciones rapidas configurables | Permitir elegir accesos del Inicio: nueva nota, buscar, descargas, imagen de versiculo. |
-| Pendiente | Recordatorios utiles | Lectura diaria, devocional pendiente y descargas incompletas, con control del usuario. |
+| En curso | Recordatorios utiles | Lectura diaria, devocional pendiente y descargas incompletas, con control del usuario. |
 
 ## Fase 2 - Busqueda y navegacion
 
