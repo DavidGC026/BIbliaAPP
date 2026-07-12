@@ -98,10 +98,11 @@ Objetivo: una sola pantalla de busqueda que combine Biblia, notas, devocionales 
 | Hecho | Busqueda de diccionario. | Reusa `repoSearchDictionary`, que ya prioriza el diccionario descargado. |
 | Hecho | Pantalla unificada. | `app/search.tsx` agrupa resultados por tipo (Biblia, Notas, Devocionales, Diccionario) con acceso directo a cada resultado y enlace "Ver mas" a la seccion completa. |
 | Hecho | Acceso desde Inicio. | Nueva accion rapida "Busqueda universal" en `lib/homeActions.ts`, activada por defecto junto al buscador biblico existente. |
+| Hecho | Historial local de busqueda. | `lib/searchHistory.ts` guarda las ultimas 10 busquedas en `SecureStore`; se muestran como chips cuando el campo esta vacio, con opcion de quitar una o borrar todo. |
+| Hecho | Filtros por contexto (por tipo). | Chips "Biblia / Notas / Devocionales / Diccionario" permiten desactivar categorias completas antes de buscar; al menos una queda siempre activa. Filtrar por libro/libreta especifica queda pendiente. |
 | Hecho | Verificar TypeScript. | `npx tsc --noEmit` pasa correctamente en `mobile`. |
-| Pendiente | Historial local de busqueda. | Guardar ultimas busquedas sin depender de internet. |
-| Pendiente | Filtros por contexto. | Buscar solo en Biblia actual, notas, libreta, libro o version. |
-| Pendiente | Prueba manual mobile. | Verificar resultados con y sin Biblia/diccionario descargados, y navegacion desde cada tipo de resultado. |
+| Pendiente | Filtro por libro o libreta especifica. | Acotar la busqueda de Biblia a un libro/capitulo actual, o de notas a una libreta puntual. |
+| Pendiente | Prueba manual mobile. | Verificar resultados con y sin Biblia/diccionario descargados, historial, filtros por chip y navegacion desde cada tipo de resultado. |
 
 ## Fase 2 - Busqueda y navegacion
 
@@ -109,10 +110,10 @@ Prioridad alta/media porque conecta las secciones existentes.
 
 | Estado | Mejora | Alcance |
 |--------|--------|---------|
-| En curso | Busqueda universal | Una barra para Biblia, notas, devocionales y diccionario. Referencias y filtros por contexto quedan para una siguiente vuelta. |
-| Pendiente | Resultados agrupados | Separar por tipo con acciones rapidas: abrir, copiar, insertar, compartir. |
-| Pendiente | Historial local de busqueda | Mantener ultimas busquedas sin depender de internet. |
-| Pendiente | Filtros por contexto | Buscar solo en Biblia actual, notas, libreta, libro o version. |
+| En curso | Busqueda universal | Biblia, notas, devocionales y diccionario, con filtros por tipo e historial local. Referencias cruzadas y filtro por libro/libreta especifica quedan pendientes. |
+| Pendiente | Resultados agrupados | Ya separados por tipo; faltan acciones rapidas extra (copiar, insertar, compartir) sobre cada resultado. |
+| Hecho | Historial local de busqueda | Ultimas 10 busquedas guardadas localmente, visibles como chips reutilizables. |
+| Hecho | Filtros por contexto | Chips para acotar la busqueda por tipo (Biblia, notas, devocionales, diccionario). Falta acotar por libro/libreta especifica. |
 
 ## Iteracion en progreso - Estado offline y sincronizacion visibles
 
@@ -137,7 +138,7 @@ Prioridad media, pero importante para confianza.
 | Hecho | Cola de descargas | Tareas persistidas y reanudadas al abrir la app. |
 | Hecho | Estado global offline | Indicador unico de que datos estan listos, pendientes o fallidos (`OfflineStatusBadge`). |
 | Hecho | Reintentos controlados | Boton "Reintentar" con mensaje de error visible por tarea fallida. |
-| En curso | Sincronizacion de notas | Contador de notas/libretas pendientes de subir ya visible; falta cola explicita de reintento automatico cuando vuelve la conexion. |
+| Hecho | Sincronizacion de notas | Contador de notas/libretas pendientes visible; el reintento automatico al recuperar conexion ya existia en `NetworkContext` (`syncAll()` se dispara solo al reconectar). |
 
 ## Fase 4 - Pulido visual y accesibilidad
 
