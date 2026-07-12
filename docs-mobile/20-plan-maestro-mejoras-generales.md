@@ -33,6 +33,8 @@ Objetivo: mejorar la continuidad diaria de uso para que la app recuerde como est
 
 ## Iteracion en progreso - Recientes inteligentes
 
+Documentacion detallada: [21-inicio-recientes-inteligentes.md](./21-inicio-recientes-inteligentes.md).
+
 Objetivo: que Inicio muestre actividad util y accionable, no solo estadisticas.
 
 | Estado | Tarea | Resultado esperado |
@@ -53,7 +55,7 @@ Prioridad alta porque reduce friccion en acciones frecuentes.
 | Estado | Mejora | Alcance |
 |--------|--------|---------|
 | Hecho | Continuar lectura | Tarjeta en Inicio, persistencia local y navegacion directa al lector. |
-| En curso | Recientes inteligentes | Mostrar ultimas notas editadas, versiculos seleccionados y devocionales abiertos. |
+| Hecho | Recientes inteligentes | Notas, favoritos, subrayados y devocionales en Inicio. QA manual en pantallas pequenas pendiente. |
 | Pendiente | Acciones rapidas configurables | Permitir elegir accesos del Inicio: nueva nota, buscar, descargas, imagen de versiculo. |
 | Pendiente | Recordatorios utiles | Lectura diaria, devocional pendiente y descargas incompletas, con control del usuario. |
 
