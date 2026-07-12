@@ -13,6 +13,8 @@ Ahora también aparecen en:
 - **Biblia**, justo debajo de las pestañas, con una banda “Descargar Biblia para leer sin conexión”.
 - **Lector bíblico**, con un botón de descarga en la cabecera del capítulo.
 
+Ajuste posterior (julio 2026): la banda de Biblia dejó de ser permanente porque estorbaba en el uso diario. Ahora solo aparece cuando **no hay ninguna Biblia descargada** y se oculta sola a los **10 segundos** (o al tocarla). Los accesos del lector y de Perfil siguen siempre disponibles.
+
 ---
 
 ## Cola de descargas
