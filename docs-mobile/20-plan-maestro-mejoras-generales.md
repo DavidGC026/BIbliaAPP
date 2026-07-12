@@ -39,9 +39,11 @@ Objetivo: que Inicio muestre actividad util y accionable, no solo estadisticas.
 |--------|-------|--------------------|
 | Hecho | Notas recientes en Inicio. | Muestra hasta 3 notas editadas recientemente, con libreta, fecha y preview. |
 | Hecho | Abrir nota desde Inicio. | Tocar una nota reciente abre directamente el editor. |
+| Hecho | Versiculos recientes o favoritos. | Mostrar acceso rapido a ultimos versiculos guardados/subrayados. |
+| Hecho | Favoritos recientes en Inicio. | Muestra hasta 3 versiculos guardados y abre el lector en el pasaje correspondiente. |
+| Hecho | Subrayados recientes. | Muestra hasta 3 versiculos subrayados y abre el lector en el pasaje correspondiente. |
+| Hecho | Devocionales recientes mejor conectados. | El bloque evita repetir el devocional destacado y muestra un estado vacio mas claro. |
 | Hecho | Verificar TypeScript. | `npx tsc --noEmit` pasa correctamente en `mobile`. |
-| Pendiente | Versiculos recientes o favoritos. | Mostrar acceso rapido a ultimos versiculos guardados/subrayados. |
-| Pendiente | Devocionales recientes mejor conectados. | Unificar el bloque actual con el modulo de recientes para reducir secciones repetidas. |
 | Pendiente | Prueba manual mobile. | Revisar que Inicio no quede demasiado largo en pantallas pequenas. |
 
 ## Fase 1 - Continuidad y uso diario
