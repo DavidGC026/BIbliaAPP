@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getNotebookNote, updateNotebookNote, deleteNotebookNote } from "@/lib/bible"
+import { getNotebook, getNotebookNote, updateNotebookNote, deleteNotebookNote } from "@/lib/bible"
 import { getSession } from "@/lib/auth"
 import { defaultNoteTitle } from "@/lib/note-content"
 
@@ -47,7 +47,7 @@ export async function PUT(
     if (isNaN(idNum)) {
       return NextResponse.json({ error: "ID de nota inválido." }, { status: 400 })
     }
-    const { title, content, tags } = await req.json()
+    const { title, content, tags, notebookId } = await req.json()
     const finalTitle = defaultNoteTitle(title)
 
     // Verify ownership
@@ -56,12 +56,25 @@ export async function PUT(
       return NextResponse.json({ error: "Nota no encontrada o no autorizada." }, { status: 404 })
     }
 
+    let targetNotebookId: number | undefined = undefined
+    if (notebookId !== undefined) {
+      const parsedNotebookId = Number(notebookId)
+      if (isNaN(parsedNotebookId)) {
+        return NextResponse.json({ error: "Libreta destino inválida." }, { status: 400 })
+      }
+      const targetNotebook = await getNotebook(parsedNotebookId, session.userId)
+      if (!targetNotebook) {
+        return NextResponse.json({ error: "Libreta destino no encontrada o no autorizada." }, { status: 404 })
+      }
+      targetNotebookId = parsedNotebookId
+    }
+
     let tagsStr: string | undefined = undefined
     if (tags !== undefined) {
       tagsStr = Array.isArray(tags) ? JSON.stringify(tags) : String(tags)
     }
 
-    await updateNotebookNote(idNum, finalTitle, content ?? "", tagsStr)
+    await updateNotebookNote(idNum, finalTitle, content ?? "", tagsStr, targetNotebookId)
     return NextResponse.json({ ok: true })
   } catch (err) {
     return NextResponse.json(

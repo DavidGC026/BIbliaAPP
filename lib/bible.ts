@@ -664,12 +664,28 @@ export async function getNotebookNote(id: number, userId?: number): Promise<any 
   }
 }
 
-export async function updateNotebookNote(id: number, title: string, content: string, tags?: string): Promise<void> {
+export async function updateNotebookNote(
+  id: number,
+  title: string,
+  content: string,
+  tags?: string,
+  notebookId?: number,
+): Promise<void> {
   await ensureDbTables()
-  if (tags !== undefined) {
+  if (tags !== undefined && notebookId !== undefined) {
+    await getPool().query(
+      `UPDATE bible_notebook_notes SET title = ?, content = ?, tags = ?, notebook_id = ? WHERE id = ?`,
+      [title, content, tags, notebookId, id]
+    )
+  } else if (tags !== undefined) {
     await getPool().query(
       `UPDATE bible_notebook_notes SET title = ?, content = ?, tags = ? WHERE id = ?`,
       [title, content, tags, id]
+    )
+  } else if (notebookId !== undefined) {
+    await getPool().query(
+      `UPDATE bible_notebook_notes SET title = ?, content = ?, notebook_id = ? WHERE id = ?`,
+      [title, content, notebookId, id]
     )
   } else {
     await getPool().query(

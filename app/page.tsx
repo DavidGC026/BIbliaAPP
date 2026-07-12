@@ -6,6 +6,7 @@ import useSWR from "swr"
 import { fetcher } from "@/lib/fetcher"
 import { AuthModal } from "@/components/auth-modal"
 import { ConnectionBanner } from "@/components/connection-banner"
+import { MobileAppBanner } from "@/components/mobile-app-banner"
 import { GroupJoinModal } from "@/components/group-join-modal"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -290,6 +291,7 @@ export default function Page() {
   return (
     <main className="min-h-screen bg-background flex flex-col md:flex-row">
       <ConnectionBanner />
+      <MobileAppBanner />
       {googleLinkedBanner ? (
         <div className="mx-4 mt-3 rounded-xl border border-emerald-500/25 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-800 dark:text-emerald-200 flex items-start justify-between gap-3">
           <p>
