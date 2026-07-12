@@ -164,8 +164,8 @@ Prioridad media para que la app se sienta mas profesional y comoda.
 | Hecho | Lector mas configurable | Tamano, densidad, alineacion y progreso del capitulo. |
 | Hecho | Temas de lectura | Auto, claro, sepia, noche y alto contraste, con selector en ajustes de lectura. |
 | Pendiente | Preferencias globales | Centralizar tamano de texto, tema y comportamiento de lectura. |
-| Pendiente | Estados vacios consistentes | Mensajes y acciones claras cuando no hay datos, notas o descargas. |
-| Pendiente | Revision mobile fina | Ajustar espaciados, textos largos y botones en pantallas pequenas. |
+| Hecho | Estados vacios consistentes | Componente `ui/EmptyState` (tarjeta punteada con emoji, titulo, mensaje y accion opcional) aplicado a eventos, notificaciones, feed y grupos; distingue error de vacio real. Las pantallas nuevas deben usarlo. |
+| Pendiente | Revision mobile fina | Ajustar espaciados, textos largos y botones en pantallas pequenas. Requiere dispositivo. |
 
 ## Iteracion en progreso - Compartir unificado
 
@@ -191,10 +191,11 @@ Prioridad media porque aumenta el valor fuera de la app.
 | Hecho | Imagenes de versiculos mejoradas | Presets y composicion mas cuidada. |
 | Hecho | Plantillas guardadas | Boton "Guardar como mi estilo" en el creador persiste formato, diseno y color (`lib/verseImageTemplate.ts`) y se aplican al abrir de nuevo. El tamano de letra no se guarda porque se auto-ajusta al largo del versiculo. |
 | Hecho | Compartir desde cualquier seccion | Formato unificado desde lector, versiculo del dia, favoritos, subrayados, notas y devocionales (`lib/share.ts`). |
-| En curso | Exportar notas | Ya se comparte como texto plano desde lista y editor; exportar como imagen o documento queda pendiente. |
+| Hecho | Exportar notas | Al compartir una nota (editor o lista) se elige texto plano o PDF. `lib/noteExport.ts` usa `expo-print` y conserva el formato HTML del editor, con titulo, fecha y credito. Exportar como imagen queda descartado por ahora (el PDF cubre el caso documento). |
 
 ## Riesgos y decisiones
 
+- `expo-print` es un modulo nativo nuevo: funciona en Expo Go, pero el APK release necesita recompilarse (ver doc 13) para que la exportacion a PDF este disponible.
 - La descarga en segundo plano actual continua mientras la app esta abierta o vuelve a primer plano; no es todavia un servicio nativo persistente si Android mata el proceso.
 - El estado del lector se guarda localmente, no en cuenta de usuario. Es suficiente para continuidad en el mismo dispositivo.
 - Las mejoras grandes deben seguir documentandose aqui antes o durante la implementacion para evitar perder decisiones.
