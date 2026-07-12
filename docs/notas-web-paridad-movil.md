@@ -136,12 +136,29 @@ Recarga el navegador con **Ctrl+Shift+R** en https://biblia2.dvguzman.com → me
 
 ---
 
+## Autoguardado en web
+
+Desde julio 2026 la web guarda notas en silencio mientras editas, igual que la app móvil evita pérdidas al salir sin pulsar Guardar.
+
+| Aspecto | Comportamiento |
+|---------|----------------|
+| Disparador | 4 segundos sin cambios tras marcar el contenido como sucio (`contentDirty`) |
+| Método | `PUT /api/notebooks/notes/:id` con `{ silent: true }` |
+| HTML | Pide el HTML actual al iframe con `requestEditorHtml()` antes de guardar |
+| Errores | Fallan en silencio; el siguiente ciclo de 4 s reintenta |
+| Exclusiones | No corre en vista previa ni mientras ya hay un guardado en curso |
+
+Implementación: `components/notebook-sidebar.tsx` (efecto con `setTimeout` de 4000 ms).
+
+El botón **Guardar** sigue disponible y muestra la hora del último guardado (`savedAt`). En móvil además existe autoguardado al **salir** de la pantalla (`beforeRemove`); en web no hay equivalente al cerrar la pestaña del navegador salvo este debounce.
+
+---
+
 ## Notas técnicas
 
 - El lector bíblico (`components/bible-reader`) sigue usando `NotebookSidebar` directamente en el panel lateral, sin pestañas.
 - La publicación de notas al feed de comunidad se retiró del editor web para igualar la UX móvil (solo Guardar / Borrar).
-- Auto-guardado al salir del editor **no** está en web; solo en Android (`docs-mobile/14-notas-autoguardado-y-preview.md`).
 
 ---
 
-*Última revisión: junio 2026.*
+*Última revisión: julio 2026.*
