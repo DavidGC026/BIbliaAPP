@@ -86,13 +86,30 @@ Prioridad alta porque reduce friccion en acciones frecuentes.
 | En curso | Acciones rapidas configurables | Permitir elegir accesos del Inicio: nueva nota, buscar, descargas, imagen de versiculo. |
 | En curso | Recordatorios utiles | Lectura diaria, devocional pendiente y descargas incompletas, con control del usuario. |
 
+## Iteracion en progreso - Busqueda universal
+
+Objetivo: una sola pantalla de busqueda que combine Biblia, notas, devocionales y diccionario, priorizando datos locales/offline.
+
+| Estado | Tarea | Resultado esperado |
+|--------|-------|--------------------|
+| Hecho | Busqueda local de versiculos. | `searchLocalVerses` en `offline/bibleStore.ts` busca con `LIKE` sobre la tabla `verses` cuando la Biblia esta descargada; `repoSearchVerses` cae a la API solo si no hay copia local y hay conexion. |
+| Hecho | Busqueda local de notas. | `repoSearchNotes` filtra titulo y contenido (HTML limpio) de todas las notas ya sincronizadas en SQLite. |
+| Hecho | Busqueda de devocionales. | Filtro en cliente sobre `api.listDevotionals()` por titulo, pasaje y contenido (sin cache offline todavia). |
+| Hecho | Busqueda de diccionario. | Reusa `repoSearchDictionary`, que ya prioriza el diccionario descargado. |
+| Hecho | Pantalla unificada. | `app/search.tsx` agrupa resultados por tipo (Biblia, Notas, Devocionales, Diccionario) con acceso directo a cada resultado y enlace "Ver mas" a la seccion completa. |
+| Hecho | Acceso desde Inicio. | Nueva accion rapida "Busqueda universal" en `lib/homeActions.ts`, activada por defecto junto al buscador biblico existente. |
+| Hecho | Verificar TypeScript. | `npx tsc --noEmit` pasa correctamente en `mobile`. |
+| Pendiente | Historial local de busqueda. | Guardar ultimas busquedas sin depender de internet. |
+| Pendiente | Filtros por contexto. | Buscar solo en Biblia actual, notas, libreta, libro o version. |
+| Pendiente | Prueba manual mobile. | Verificar resultados con y sin Biblia/diccionario descargados, y navegacion desde cada tipo de resultado. |
+
 ## Fase 2 - Busqueda y navegacion
 
 Prioridad alta/media porque conecta las secciones existentes.
 
 | Estado | Mejora | Alcance |
 |--------|--------|---------|
-| Pendiente | Busqueda universal | Una barra para Biblia, notas, favoritos, devocionales, diccionario y referencias. |
+| En curso | Busqueda universal | Una barra para Biblia, notas, devocionales y diccionario. Referencias y filtros por contexto quedan para una siguiente vuelta. |
 | Pendiente | Resultados agrupados | Separar por tipo con acciones rapidas: abrir, copiar, insertar, compartir. |
 | Pendiente | Historial local de busqueda | Mantener ultimas busquedas sin depender de internet. |
 | Pendiente | Filtros por contexto | Buscar solo en Biblia actual, notas, libreta, libro o version. |
