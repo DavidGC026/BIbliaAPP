@@ -46,6 +46,20 @@ Objetivo: que Inicio muestre actividad util y accionable, no solo estadisticas.
 | Hecho | Verificar TypeScript. | `npx tsc --noEmit` pasa correctamente en `mobile`. |
 | Pendiente | Prueba manual mobile. | Revisar que Inicio no quede demasiado largo en pantallas pequenas. |
 
+## Iteracion en progreso - Acciones rapidas configurables
+
+Objetivo: permitir elegir que tarjetas de "Acciones rapidas" se muestran en Inicio, y sumar accesos a descargas e imagen de versiculo.
+
+| Estado | Tarea | Resultado esperado |
+|--------|-------|--------------------|
+| Hecho | Catalogo de acciones. | `lib/homeActions.ts` define las 9 acciones disponibles (incluye descargas e imagen de versiculo) con icono, titulo y descripcion. |
+| Hecho | Persistencia de preferencia. | `getHomeActions`/`saveHomeActions` guardan la seleccion en `SecureStore`, con fallback a un set por defecto. |
+| Hecho | Pantalla de personalizacion. | `app/customize-home.tsx` permite activar/desactivar cada accion con un switch (minimo una activa). |
+| Hecho | Inicio dinamico. | `(tabs)/index.tsx` renderiza las tarjetas segun la preferencia guardada y recarga al volver a la pantalla. |
+| Hecho | Acceso desde Perfil e Inicio. | Enlace "Personalizar" en la seccion de Inicio y fila en Perfil > Mi Biblia. |
+| Hecho | Verificar TypeScript. | `npx tsc --noEmit` pasa correctamente en `mobile`. |
+| Pendiente | Prueba manual mobile. | Activar/desactivar acciones, confirmar orden y navegacion (incluye flujo de imagen de versiculo, que guia al lector). |
+
 ## Fase 1 - Continuidad y uso diario
 
 Prioridad alta porque reduce friccion en acciones frecuentes.
@@ -53,8 +67,8 @@ Prioridad alta porque reduce friccion en acciones frecuentes.
 | Estado | Mejora | Alcance |
 |--------|--------|---------|
 | Hecho | Continuar lectura | Tarjeta en Inicio, persistencia local y navegacion directa al lector. |
-| En curso | Recientes inteligentes | Mostrar ultimas notas editadas, versiculos seleccionados y devocionales abiertos. |
-| Pendiente | Acciones rapidas configurables | Permitir elegir accesos del Inicio: nueva nota, buscar, descargas, imagen de versiculo. |
+| Hecho | Recientes inteligentes | Mostrar ultimas notas editadas, versiculos seleccionados y devocionales abiertos. |
+| En curso | Acciones rapidas configurables | Permitir elegir accesos del Inicio: nueva nota, buscar, descargas, imagen de versiculo. |
 | Pendiente | Recordatorios utiles | Lectura diaria, devocional pendiente y descargas incompletas, con control del usuario. |
 
 ## Fase 2 - Busqueda y navegacion
