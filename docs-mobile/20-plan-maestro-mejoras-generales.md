@@ -189,7 +189,7 @@ Prioridad media porque aumenta el valor fuera de la app.
 | Estado | Mejora | Alcance |
 |--------|--------|---------|
 | Hecho | Imagenes de versiculos mejoradas | Presets y composicion mas cuidada. |
-| Pendiente | Plantillas guardadas | Guardar estilo favorito para imagenes. |
+| Hecho | Plantillas guardadas | Boton "Guardar como mi estilo" en el creador persiste formato, diseno y color (`lib/verseImageTemplate.ts`) y se aplican al abrir de nuevo. El tamano de letra no se guarda porque se auto-ajusta al largo del versiculo. |
 | Hecho | Compartir desde cualquier seccion | Formato unificado desde lector, versiculo del dia, favoritos, subrayados, notas y devocionales (`lib/share.ts`). |
 | En curso | Exportar notas | Ya se comparte como texto plano desde lista y editor; exportar como imagen o documento queda pendiente. |
 
