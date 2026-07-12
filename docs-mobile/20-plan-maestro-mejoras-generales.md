@@ -167,6 +167,21 @@ Prioridad media para que la app se sienta mas profesional y comoda.
 | Pendiente | Estados vacios consistentes | Mensajes y acciones claras cuando no hay datos, notas o descargas. |
 | Pendiente | Revision mobile fina | Ajustar espaciados, textos largos y botones en pantallas pequenas. |
 
+## Iteracion en progreso - Compartir unificado
+
+Objetivo: que compartir un versiculo, nota o devocional tenga el mismo formato y credito desde cualquier seccion.
+
+| Estado | Tarea | Resultado esperado |
+|--------|-------|--------------------|
+| Hecho | Modulo unico de compartir. | `lib/share.ts` centraliza el formato: `shareVerse` (cita + referencia + version + enlace), `shareNote` (titulo + texto plano + credito) y `shareDevotional` (titulo, pasaje, reflexion, aplicacion); `safeShare` ignora la cancelacion del usuario. |
+| Hecho | Versiculo del dia. | `VerseOfDayCard` usa el formato unificado en lugar de su mensaje propio. |
+| Hecho | Lector biblico. | El compartir de seleccion pasa por `safeShare` y conserva su enlace directo al pasaje web. |
+| Hecho | Favoritos y subrayados. | Boton de compartir por versiculo en `FavoritesPanel` y `HighlightsPanel`. |
+| Hecho | Notas. | Compartir desde la lista de la libreta y tambien desde el encabezado del editor de nota (exporta como texto plano). |
+| Hecho | Devocionales. | Boton de compartir en el encabezado de la pantalla de lectura del devocional. |
+| Hecho | Verificar TypeScript. | `npx tsc --noEmit` pasa correctamente en `mobile`. |
+| Pendiente | Prueba manual mobile. | Probar la hoja de compartir del sistema desde cada seccion y revisar el formato final del texto. |
+
 ## Fase 5 - Compartir y creacion
 
 Prioridad media porque aumenta el valor fuera de la app.
@@ -175,8 +190,8 @@ Prioridad media porque aumenta el valor fuera de la app.
 |--------|--------|---------|
 | Hecho | Imagenes de versiculos mejoradas | Presets y composicion mas cuidada. |
 | Pendiente | Plantillas guardadas | Guardar estilo favorito para imagenes. |
-| Pendiente | Compartir desde cualquier seccion | Unificar acciones desde lector, nota, devocional y favoritos. |
-| Pendiente | Exportar notas | Compartir nota como texto, imagen o documento simple. |
+| Hecho | Compartir desde cualquier seccion | Formato unificado desde lector, versiculo del dia, favoritos, subrayados, notas y devocionales (`lib/share.ts`). |
+| En curso | Exportar notas | Ya se comparte como texto plano desde lista y editor; exportar como imagen o documento queda pendiente. |
 
 ## Riesgos y decisiones
 
