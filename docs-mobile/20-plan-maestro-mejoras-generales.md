@@ -33,6 +33,8 @@ Objetivo: mejorar la continuidad diaria de uso para que la app recuerde como est
 
 ## Iteracion en progreso - Recientes inteligentes
 
+Documentacion detallada de la primera entrega (notas recientes): [21-inicio-recientes-inteligentes.md](./21-inicio-recientes-inteligentes.md).
+
 Objetivo: que Inicio muestre actividad util y accionable, no solo estadisticas.
 
 | Estado | Tarea | Resultado esperado |
