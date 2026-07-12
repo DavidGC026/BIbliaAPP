@@ -12,9 +12,9 @@ Este documento funciona como bitacora viva para las mejoras grandes de la app mo
 | Hecho | Fuentes tipograficas | Corregir la aplicacion real de fuentes descargadas en el editor. | El editor WebView carga fuentes dinamicas y conserva mejor la seleccion al aplicar formato. |
 | Hecho | Descargas offline | Hacer visible la descarga de Biblias y datos auxiliares. | Pantalla dedicada, acceso desde Biblia y lector, cola persistida y reanudacion dentro de la app. |
 | Hecho | Continuidad de lectura | Recordar preferencias del lector y mostrar "Continuar lectura" en Inicio. | Implementado con almacenamiento local y verificado con TypeScript. |
-| Pendiente | Busqueda universal | Unificar busqueda de Biblia, notas, devocionales, diccionario y referencias. | Debe priorizar resultados locales/offline cuando existan. |
-| Pendiente | Centro de inicio configurable | Hacer que Inicio sea mas personal y menos estatico. | Modulos reordenables: continuar lectura, notas recientes, plan, favoritos, descargas, devocional. |
-| Pendiente | Sincronizacion visible | Mostrar estado claro de guardado, offline y pendientes de sincronizar. | Especialmente importante para notas y descargas. |
+| En curso | Busqueda universal | Unificar busqueda de Biblia, notas, devocionales, diccionario y referencias. | Ya prioriza resultados locales/offline; faltan referencias cruzadas e historial de busqueda. |
+| En curso | Centro de inicio configurable | Hacer que Inicio sea mas personal y menos estatico. | Acciones rapidas activables/desactivables ya disponibles; falta reordenar modulos completos (recientes, plan, favoritos). |
+| En curso | Sincronizacion visible | Mostrar estado claro de guardado, offline y pendientes de sincronizar. | Ya hay indicador de estado offline y contador de notas pendientes; falta reintento automatico de sincronizacion al recuperar conexion. |
 | Pendiente | Compartir unificado | Crear una experiencia consistente para compartir versiculos, notas, devocionales e imagenes. | Reusar formato, creditos, version biblica y acciones del sistema. |
 | Pendiente | Onboarding ligero | Explicar en pocos pasos las funciones principales sin bloquear. | Enfocado en Biblia offline, notas, imagenes y busqueda. |
 
@@ -114,6 +114,19 @@ Prioridad alta/media porque conecta las secciones existentes.
 | Pendiente | Historial local de busqueda | Mantener ultimas busquedas sin depender de internet. |
 | Pendiente | Filtros por contexto | Buscar solo en Biblia actual, notas, libreta, libro o version. |
 
+## Iteracion en progreso - Estado offline y sincronizacion visibles
+
+Objetivo: que el usuario vea de un vistazo si sus datos offline estan listos, descargandose o fallidos, y si tiene notas sin sincronizar.
+
+| Estado | Tarea | Resultado esperado |
+|--------|-------|--------------------|
+| Hecho | Resumen de estado offline. | `summarizeOfflineDownloads` en `offlineDownloadManager.ts` agrega las tareas en `idle` / `syncing` / `error` con conteos. |
+| Hecho | Indicador visual unico. | `components/OfflineStatusBadge.tsx` muestra "Contenido offline listo", "Descargando… N pendientes" o "N descargas fallidas"; se usa en Descargas y en la fila de Perfil. |
+| Hecho | Reintentos mas claros. | En `app/downloads.tsx` el boton cambia a "Reintentar" cuando la tarea quedo en `error`, en vez de repetir "Descargar" de forma ambigua. |
+| Hecho | Notas pendientes de sincronizar. | `repoCountPendingSync` cuenta notas/libretas locales con `dirty = 1`; `components/SyncStatusBadge.tsx` lo muestra en la pantalla de Notas. |
+| Hecho | Verificar TypeScript. | `npx tsc --noEmit` pasa correctamente en `mobile`. |
+| Pendiente | Prueba manual mobile. | Forzar una descarga fallida (sin red) y confirmar el badge de error y el boton "Reintentar"; verificar el contador de notas pendientes editando offline. |
+
 ## Fase 3 - Offline y sincronizacion
 
 Prioridad media, pero importante para confianza.
@@ -122,9 +135,9 @@ Prioridad media, pero importante para confianza.
 |--------|--------|---------|
 | Hecho | Descargas mas visibles | Accesos desde Biblia, lector y pantalla dedicada. |
 | Hecho | Cola de descargas | Tareas persistidas y reanudadas al abrir la app. |
-| Pendiente | Estado global offline | Indicador unico de que datos estan listos, pendientes o fallidos. |
-| Pendiente | Reintentos controlados | Reanudar fallos con boton y mensajes claros. |
-| Pendiente | Sincronizacion de notas | Cola local de cambios pendientes cuando no hay conexion. |
+| Hecho | Estado global offline | Indicador unico de que datos estan listos, pendientes o fallidos (`OfflineStatusBadge`). |
+| Hecho | Reintentos controlados | Boton "Reintentar" con mensaje de error visible por tarea fallida. |
+| En curso | Sincronizacion de notas | Contador de notas/libretas pendientes de subir ya visible; falta cola explicita de reintento automatico cuando vuelve la conexion. |
 
 ## Fase 4 - Pulido visual y accesibilidad
 
