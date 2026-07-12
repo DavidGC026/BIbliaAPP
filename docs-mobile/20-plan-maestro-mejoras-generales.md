@@ -140,6 +140,21 @@ Prioridad media, pero importante para confianza.
 | Hecho | Reintentos controlados | Boton "Reintentar" con mensaje de error visible por tarea fallida. |
 | Hecho | Sincronizacion de notas | Contador de notas/libretas pendientes visible; el reintento automatico al recuperar conexion ya existia en `NetworkContext` (`syncAll()` se dispara solo al reconectar). |
 
+## Iteracion en progreso - Temas de lectura
+
+Objetivo: que el lector biblico tenga su propio tema visual, independiente del tema global de la app.
+
+| Estado | Tarea | Resultado esperado |
+|--------|-------|--------------------|
+| Hecho | Paletas del lector. | `lib/readerState.ts` define `ReaderTheme` (`auto`, claro, sepia, noche, alto contraste) con paleta completa: fondo, texto, tarjetas, bordes y acento propio por tema. |
+| Hecho | Persistencia. | El tema se guarda junto con tamano, densidad y alineacion en las preferencias del lector. |
+| Hecho | Aplicacion en el lector. | Fondo, texto de versiculos, encabezado del capitulo, barra de progreso, numero de versiculo, seleccion y pastilla "Nota" usan la paleta activa; los subrayados usan la variante clara/oscura segun el tema del lector. |
+| Hecho | Selector en ajustes de lectura. | Fila "Tema" en el modal de ajustes con muestras visuales de cada paleta y vista previa en vivo. |
+| Hecho | Verificar TypeScript. | `npx tsc --noEmit` pasa correctamente en `mobile`. |
+| Pendiente | Prueba manual mobile. | Revisar cada tema con subrayados de todos los colores, seleccion de versiculos y modo invitado; validar contraste en pantalla real. |
+
+Decision: el "chrome" del lector (pastillas del encabezado, barra de acciones, modales) mantiene el tema global de la app; solo la superficie de lectura cambia con el tema del lector.
+
 ## Fase 4 - Pulido visual y accesibilidad
 
 Prioridad media para que la app se sienta mas profesional y comoda.
@@ -147,7 +162,7 @@ Prioridad media para que la app se sienta mas profesional y comoda.
 | Estado | Mejora | Alcance |
 |--------|--------|---------|
 | Hecho | Lector mas configurable | Tamano, densidad, alineacion y progreso del capitulo. |
-| Pendiente | Temas de lectura | Claro, sepia, noche y alto contraste. |
+| Hecho | Temas de lectura | Auto, claro, sepia, noche y alto contraste, con selector en ajustes de lectura. |
 | Pendiente | Preferencias globales | Centralizar tamano de texto, tema y comportamiento de lectura. |
 | Pendiente | Estados vacios consistentes | Mensajes y acciones claras cuando no hay datos, notas o descargas. |
 | Pendiente | Revision mobile fina | Ajustar espaciados, textos largos y botones en pantallas pequenas. |
