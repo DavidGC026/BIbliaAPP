@@ -20,18 +20,29 @@ Aplicación web para lectura bíblica, estudio en comunidad, grupos, oración, c
 app/              # Páginas y API routes (Next.js App Router)
 components/       # UI (lector, grupos, feed, calendario, etc.)
 lib/              # Lógica de negocio, MySQL, auth, grupos, oración…
-mobile/           # App React Native (Expo)
-docs-mobile/      # Documentación del cliente móvil
+desktop/          # Cliente de escritorio (Tauri v2 + React)
+docs/             # Documentación técnica web (ver índice abajo)
+docs-mobile/      # Documentación histórica del cliente móvil (repo aparte)
 public/           # Estáticos y uploads
-docs/             # Documentación local web (no se sube a Git; ver .gitignore)
 ```
 
-Documentación local útil (en `docs/`, solo en tu servidor):
+### Documentación en el repositorio
 
 | Archivo | Contenido |
 |---------|-----------|
-| `docs/comandos-servidor.md` | **Estado, levantar, reiniciar y parar el stack** |
-| `docs/actualizar-despliegue.md` | **Cómo actualizar código y reiniciar el contenedor** |
+| [`docs/nuevas-secciones.md`](docs/nuevas-secciones.md) | Cómo añadir una sección al menú y permisos |
+| [`docs/notas-web-paridad-movil.md`](docs/notas-web-paridad-movil.md) | Editor de notas web, autoguardado y paridad móvil |
+| [`docs/referencias-cruzadas-mapa-arcoiris.md`](docs/referencias-cruzadas-mapa-arcoiris.md) | Referencias cruzadas y mapa arcoíris |
+| [`docs/diccionario.md`](docs/diccionario.md) | Diccionario Strong, API y traducción |
+| [`docs/mobile-release-api.md`](docs/mobile-release-api.md) | Distribución de APK Android desde la web |
+| [`desktop/README.md`](desktop/README.md) | Cliente de escritorio: build, empaquetado, OAuth |
+
+Documentación local del servidor (en `docs/`, no versionada; ver `.gitignore`):
+
+| Archivo | Contenido |
+|---------|-----------|
+| `docs/comandos-servidor.md` | Estado, levantar, reiniciar y parar el stack |
+| `docs/actualizar-despliegue.md` | Cómo actualizar código y reiniciar el contenedor |
 | `docs/funcionalidades-iglesias.md` | Funcionalidades para iglesias (grupos, oración, calendario…) |
 | `docs/infra-privada.md` | Credenciales, `docker run` completo, Adminer (privado) |
 
@@ -91,26 +102,27 @@ El contenedor `biblia2-app` monta este directorio en `/app` y, al arrancar, ejec
 | `npm run start` | Servir build (puerto 3000 por defecto; en Docker usa `-p 3003`) |
 | `npm run lint` | ESLint |
 
-## App móvil (React Native / Expo)
+## Clientes nativos
 
-La carpeta `mobile/` contiene la app Android (y iOS) con **Expo Router**, conectada a la misma API del backend Next.js.
+### App móvil (React Native / Expo)
 
-**Documentación completa:** [`docs-mobile/README.md`](docs-mobile/README.md) · APK de prueba: `mobile/releases/BibliaAPP-1.0.0-release.apk`
+La app Android/iOS vive en un **repositorio separado** (ya no está en `mobile/` de este repo). Consume la misma API REST que la web.
+
+- Documentación de referencia: [`docs-mobile/README.md`](docs-mobile/README.md)
+- Distribución de APK desde la web: [`docs/mobile-release-api.md`](docs/mobile-release-api.md)
+
+### App de escritorio (Tauri v2)
+
+Cliente para Arch, Debian y Windows en la carpeta [`desktop/`](desktop/). Misma API, sesión offline con SQLite y OAuth Google vía localhost.
 
 ```bash
-cd mobile
+cd desktop
 npm install
-npm run android   # emulador o dispositivo Android con Expo Go / dev build
-npm run start     # menú de desarrollo Expo
+npm run tauri dev      # desarrollo
+npm run pack:arch      # Arch (.pkg.tar.zst)
 ```
 
-Por defecto usa la API de producción (`https://biblia2.dvguzman.com`). Para apuntar a tu servidor local:
-
-```bash
-EXPO_PUBLIC_API_URL=http://192.168.x.x:3000 npm run start
-```
-
-Pantallas incluidas en v1.0.0: Inicio (versículo del día), Lector bíblico, Comunidad (feed), Grupos y Perfil con login por token Bearer.
+Guía completa: [`desktop/README.md`](desktop/README.md)
 
 ## Base de datos
 

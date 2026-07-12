@@ -12,11 +12,9 @@ Cliente de escritorio (**Tauri v2 + React**) para lectura bíblica, comunidad y 
 
 | Tema | Enlace |
 |------|--------|
-| Changelog | [docs/01-changelog.md](./docs/01-changelog.md) |
-| Arch Linux | [docs/04-arch-linux.md](./docs/04-arch-linux.md) |
-| Debian | [docs/09-debian-linux.md](./docs/09-debian-linux.md) |
-| Windows | [docs/11-windows.md](./docs/11-windows.md) |
-| Auto-update | [docs/10-auto-update.md](./docs/10-auto-update.md) |
+| Arquitectura / plan | [PLAN.md](./PLAN.md) |
+| Patrones de desarrollo | [.cursor/rules/desktop.mdc](../.cursor/rules/desktop.mdc) |
+| Referencias y mapa arcoíris | [docs/referencias-cruzadas-mapa-arcoiris.md](../docs/referencias-cruzadas-mapa-arcoiris.md) |
 
 ---
 
@@ -55,5 +53,4 @@ Ruta en el repo: `desktop/packaging/arch/bibliaapp-desktop-0.2.0-3-x86_64.pkg.ta
 ## Backend
 
 `https://biblia2.dvguzman.com` — configurable con `VITE_API_URL`  
-OAuth desktop: [docs/08-backend-desktop.md](./docs/08-backend-desktop.md)
-
+OAuth desktop: ver [docs/README.md](./docs/README.md) (sección OAuth Google).
