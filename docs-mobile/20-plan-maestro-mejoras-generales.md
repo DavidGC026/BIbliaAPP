@@ -31,6 +31,19 @@ Objetivo: mejorar la continuidad diaria de uso para que la app recuerde como est
 | Hecho | Verificar TypeScript. | `npx tsc --noEmit` pasa correctamente en `mobile`. |
 | Pendiente | Prueba manual mobile. | Revisar Inicio, Biblia, cambios de lectura y retorno desde "Continuar lectura". |
 
+## Iteracion en progreso - Recientes inteligentes
+
+Objetivo: que Inicio muestre actividad util y accionable, no solo estadisticas.
+
+| Estado | Tarea | Resultado esperado |
+|--------|-------|--------------------|
+| Hecho | Notas recientes en Inicio. | Muestra hasta 3 notas editadas recientemente, con libreta, fecha y preview. |
+| Hecho | Abrir nota desde Inicio. | Tocar una nota reciente abre directamente el editor. |
+| Hecho | Verificar TypeScript. | `npx tsc --noEmit` pasa correctamente en `mobile`. |
+| Pendiente | Versiculos recientes o favoritos. | Mostrar acceso rapido a ultimos versiculos guardados/subrayados. |
+| Pendiente | Devocionales recientes mejor conectados. | Unificar el bloque actual con el modulo de recientes para reducir secciones repetidas. |
+| Pendiente | Prueba manual mobile. | Revisar que Inicio no quede demasiado largo en pantallas pequenas. |
+
 ## Fase 1 - Continuidad y uso diario
 
 Prioridad alta porque reduce friccion en acciones frecuentes.
@@ -38,7 +51,7 @@ Prioridad alta porque reduce friccion en acciones frecuentes.
 | Estado | Mejora | Alcance |
 |--------|--------|---------|
 | Hecho | Continuar lectura | Tarjeta en Inicio, persistencia local y navegacion directa al lector. |
-| Pendiente | Recientes inteligentes | Mostrar ultimas notas editadas, versiculos seleccionados y devocionales abiertos. |
+| En curso | Recientes inteligentes | Mostrar ultimas notas editadas, versiculos seleccionados y devocionales abiertos. |
 | Pendiente | Acciones rapidas configurables | Permitir elegir accesos del Inicio: nueva nota, buscar, descargas, imagen de versiculo. |
 | Pendiente | Recordatorios utiles | Lectura diaria, devocional pendiente y descargas incompletas, con control del usuario. |
 
