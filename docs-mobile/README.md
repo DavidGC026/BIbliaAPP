@@ -2,7 +2,7 @@
 
 Documentación del cliente móvil de **BibliaAPP** (React Native + Expo). La app consume la misma API REST que la aplicación web Next.js.
 
-**Código fuente:** carpeta [`mobile/`](../mobile/) en la raíz del repositorio.
+**Código fuente:** repositorio móvil aparte (la carpeta `mobile/` ya no se versiona en este monorepo web). Las rutas de archivos en estos documentos siguen la estructura del proyecto Expo.
 
 **Producción web / API:** https://biblia2.dvguzman.com
 
@@ -32,6 +32,7 @@ Documentación del cliente móvil de **BibliaAPP** (React Native + Expo). La app
 | [18-lector-biblia-e-imagenes.md](./18-lector-biblia-e-imagenes.md) | Mejoras de lectura bíblica y generador de imágenes de versículos |
 | [19-descargas-offline.md](./19-descargas-offline.md) | Descargas offline visibles, cola en segundo plano de app y reanudación |
 | [20-plan-maestro-mejoras-generales.md](./20-plan-maestro-mejoras-generales.md) | Plan vivo de mejoras generales, estados, fases y avance actual |
+| [21-inicio-recientes-inteligentes.md](./21-inicio-recientes-inteligentes.md) | Notas recientes en Inicio (primera entrega de recientes inteligentes) |
 
 ---
 
