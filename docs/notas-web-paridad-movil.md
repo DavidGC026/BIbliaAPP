@@ -162,7 +162,7 @@ Recarga el navegador con **Ctrl+Shift+R** en https://biblia2.dvguzman.com → me
 3. Abre una libreta → crea o edita una nota.
 4. Usa formato (negrita, color, listas) y **Insertar versículo**.
 5. Inserta una imagen, redimensiónala y alinéala; guarda, sal y vuelve a abrir la nota.
-6. Inserta referencias cruzadas y una entrada del diccionario.
+6. Inserta referencias cruzadas ([`referencias-cruzadas-api.md`](./referencias-cruzadas-api.md)) y una entrada del diccionario.
 7. Activa **Vista previa** y verifica que el contenido se ve bien.
 8. Guarda y vuelve a la lista: el resumen debe ser texto legible, no HTML crudo.
 

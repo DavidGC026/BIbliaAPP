@@ -33,6 +33,10 @@ Documentación local útil (en `docs/`, solo en tu servidor):
 | `docs/comandos-servidor.md` | **Estado, levantar, reiniciar y parar el stack** |
 | `docs/actualizar-despliegue.md` | **Cómo actualizar código y reiniciar el contenedor** |
 | `docs/funcionalidades-iglesias.md` | Funcionalidades para iglesias (grupos, oración, calendario…) |
+| `docs/notas-web-paridad-movil.md` | **Notas web alineadas con móvil:** editor enriquecido, imágenes, referencias, diccionario |
+| `docs/build-web-typescript.md` | **Build web y tipado:** `npm run build`, `next start`, patrones `mysql2`, checklist de despliegue |
+| `docs/referencias-cruzadas-api.md` | API `/api/references`: versículo, mapa arcoíris (`?arcs`), export offline (`?export`) |
+| `docs/calendario-eventos-api.md` | API `/api/events`: eventos iglesia + grupos, RSVP y permisos admin |
 | `docs/infra-privada.md` | Credenciales, `docker run` completo, Adminer (privado) |
 
 ## Desarrollo local

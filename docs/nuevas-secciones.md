@@ -246,7 +246,7 @@ Para restringir una sección solo a admins, usa `adminOnly: true` en el catálog
 - [ ] El icono está importado de `lucide-react`.
 - [ ] Si la sección usa `ctx.user`, añadiste `requiresUser: true`.
 - [ ] Si los invitados no deben entrar, **no** pongas `guestAccess` y define `loginPrompt`.
-- [ ] Ejecutaste `npm run build` sin errores.
+- [ ] Ejecutaste `npm run build` sin errores (ver [`build-web-typescript.md`](./build-web-typescript.md) si falla el tipado).
 - [ ] Probaste como admin, lector con/sin permiso e invitado.
 
 ---
