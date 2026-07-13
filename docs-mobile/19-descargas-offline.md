@@ -25,7 +25,7 @@ El gestor centraliza:
 
 - Biblias completas.
 - Diccionario Strong.
-- Referencias cruzadas.
+- Referencias cruzadas (`GET /api/references?export&page=N`, 25 000 filas por página; ver [`docs/referencias-cruzadas-api.md`](../docs/referencias-cruzadas-api.md)).
 
 La pantalla `mobile/app/downloads.tsx` ya no ejecuta descargas directamente; encola tareas y se suscribe al progreso.
 

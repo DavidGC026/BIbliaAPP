@@ -33,6 +33,10 @@ Documentación local útil (en `docs/`, solo en tu servidor):
 | `docs/comandos-servidor.md` | **Estado, levantar, reiniciar y parar el stack** |
 | `docs/actualizar-despliegue.md` | **Cómo actualizar código y reiniciar el contenedor** |
 | `docs/funcionalidades-iglesias.md` | Funcionalidades para iglesias (grupos, oración, calendario…) |
+| `docs/notas-web-paridad-movil.md` | **Notas web alineadas con móvil:** editor enriquecido, imágenes, referencias, diccionario |
+| `docs/build-web-typescript.md` | **Build web y tipado:** `npm run build`, patrones `mysql2`, páginas auth, checklist de despliegue |
+| `docs/referencias-cruzadas-api.md` | API `/api/references`: versículo, mapa arcoíris (`?arcs`), export offline (`?export`) |
+| `docs/calendario-eventos-api.md` | API `/api/events`: eventos iglesia + grupos, RSVP y permisos admin |
 | `docs/infra-privada.md` | Credenciales, `docker run` completo, Adminer (privado) |
 
 ## Desarrollo local
@@ -87,7 +91,7 @@ El contenedor `biblia2-app` monta este directorio en `/app` y, al arrancar, ejec
 | Comando | Uso |
 |---------|-----|
 | `npm run dev` | Desarrollo local con hot reload |
-| `npm run build` | Compilar para producción |
+| `npm run build` | Compilar para producción (ver [`docs/build-web-typescript.md`](docs/build-web-typescript.md) si falla el tipado) |
 | `npm run start` | Servir build (puerto 3000 por defecto; en Docker usa `-p 3003`) |
 | `npm run lint` | ESLint |
 
