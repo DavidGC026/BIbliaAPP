@@ -33,6 +33,7 @@ Documentación del cliente móvil de **BibliaAPP** (React Native + Expo). La app
 | [19-descargas-offline.md](./19-descargas-offline.md) | Descargas offline visibles, cola en segundo plano de app y reanudación |
 | [20-plan-maestro-mejoras-generales.md](./20-plan-maestro-mejoras-generales.md) | Plan vivo de mejoras generales, estados, fases y avance actual |
 | [21-insercion-y-edicion-de-imagenes.md](./21-insercion-y-edicion-de-imagenes.md) | Inserción, redimensionado, posición y alineación de imágenes en notas |
+| [22-inicio-recientes-inteligentes.md](./22-inicio-recientes-inteligentes.md) | Bloques de actividad reciente en Inicio (notas, favoritos, subrayados) |
 
 ---
 
