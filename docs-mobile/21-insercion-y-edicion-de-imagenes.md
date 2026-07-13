@@ -140,3 +140,13 @@ Fix:
 - Las inserciones y ediciones de imagen usan `notifyChangeNow()` para sincronizar el HTML inmediatamente.
 - Antes de responder a `getHtml`, el WebView limpia el estado visual de edición (`outline`, panel y `imageEditMode`) para no guardar estilos temporales.
 - Se elimina el reajuste continuo del panel durante `scroll`; `keepImageVisible()` queda solo para apertura y cambios que realmente mueven la imagen.
+
+---
+
+## Documentos relacionados
+
+| Documento | Relación |
+|-----------|----------|
+| [22-notas-diseno-profesional.md](./22-notas-diseno-profesional.md) | Portadas de **libreta** (cuadrícula y `BookCover`), distintas de imágenes dentro del editor. |
+| [14-notas-autoguardado-y-preview.md](./14-notas-autoguardado-y-preview.md) | Fallback `getHtml` de 5000 ms y limpieza de chrome de edición de imagen. |
+| [16-editor-webview-teclado-seleccion.md](./16-editor-webview-teclado-seleccion.md) | Comportamiento del teclado en `imageEditMode`. |

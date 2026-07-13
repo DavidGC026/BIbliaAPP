@@ -6,7 +6,7 @@ Este documento funciona como bitacora viva para las mejoras grandes de la app mo
 
 | Estado | Area | Objetivo | Notas |
 |--------|------|----------|-------|
-| Hecho | Notas profesionales | Convertir Notas en una herramienta general, util aunque no sea solo para estudio biblico. | Busqueda, libretas, acciones rapidas, mover notas, fijar notas, compartir, insertar versiculos y referencias. |
+| Hecho | Notas profesionales | Convertir Notas en una herramienta general, util aunque no sea solo para estudio biblico. | Busqueda, libretas con portadas, acciones rapidas, mover notas, fijar notas, compartir, insertar versiculos y referencias. Rediseño visual en doc 22. |
 | Hecho | Lector biblico | Mejorar la lectura visual y la accion sobre versiculos. | Controles de tamano, densidad, alineacion, progreso del capitulo, seleccion y accesos a compartir, notas, referencias e imagenes. |
 | Hecho | Imagen del versiculo | Hacer mas util la generacion visual de versiculos. | Presets visuales, mejor jerarquia y composicion editable desde el creador. |
 | Hecho | Fuentes tipograficas | Corregir la aplicacion real de fuentes descargadas en el editor. | El editor WebView carga fuentes dinamicas y conserva mejor la seleccion al aplicar formato. |
@@ -207,6 +207,18 @@ Objetivo: que la fuente elegida para una nota sobreviva al guardar y salir, y qu
 | Hecho | Verificar TypeScript. | `npx tsc --noEmit` pasa correctamente en `mobile`. |
 | Hecho | Regresion toolbar/colores (imagenes). | El panel de edicion de imagenes en `editorHtml.ts` usaba `.join('\n')` dentro del template literal de TypeScript. Eso convertia `\n` en un salto de linea real en el JS del WebView (`].join('` + newline + `');`), provocaba `SyntaxError` y tumba **todo** el script: toolbar muerta, fila de colores vacia y modal de fuentes sin abrir. Fix: `.join('\\n')`. Ver doc 21. |
 | Pendiente | Prueba manual mobile. | Cambiar fuente sin seleccion, guardar, salir y reabrir; buscar "lobster" en minusculas; buscar una fuente ya descargada; confirmar dots de color y botones B/I/U tras el fix. |
+
+## Iteracion completada - Rediseño visual de notas
+
+Objetivo: pulir la UX de Notas sin quitar funciones; conservar la biblioteca con portadas visibles.
+
+| Estado | Tarea | Resultado esperado |
+|--------|-------|--------------------|
+| Hecho | Cuadrícula de libretas con portadas. | `NotebooksPanel` mantiene `FlatList` de 2 columnas con `BookCover` (preset, Unsplash o subida). |
+| Hecho | Modal de configuracion de libreta. | `NotebookConfigModal` permite preset, busqueda Unsplash, galeria y URL manual. |
+| Hecho | Cabecera de editor tipo documento. | Estado de guardado, palabras, minutos, preview y aviso `Editando imagen` en una sola barra. |
+| Hecho | Documentacion. | Ver `docs-mobile/22-notas-diseno-profesional.md` (portadas, archivos y pruebas). |
+| Pendiente | Prueba manual mobile. | Recorrer pasos 1-10 del doc 22 en dispositivo o emulador. |
 
 ### Como integrar la fuente por nota
 

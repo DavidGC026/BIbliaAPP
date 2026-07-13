@@ -22,7 +22,7 @@ La pestaña **Notas** ahora comunica y organiza mejor casos de uso generales:
 |------|--------|
 | Entrada de Notas | Texto más general y tabs `Notas`, `Diario`, `Biblioteca` |
 | Lista de libretas | Búsqueda por nombre, métricas de libretas/notas/palabras y orden por última actividad |
-| Tarjetas de libreta | Muestran cantidad de notas y fecha de última actualización |
+| Tarjetas de libreta | Portada visual (`BookCover`), cantidad de notas y fecha de última actualización en cuadrícula de 2 columnas |
 | Detalle de libreta | Búsqueda dentro de contenido HTML limpio, orden por recientes/A-Z/largas y resumen de notas/palabras/última actividad |
 | Tarjetas de nota | Preview sin HTML, tags existentes y estimación de lectura |
 | Editor | Estado de guardado visible, conteo de palabras, lectura estimada y control de vista previa sin emojis |
@@ -84,3 +84,13 @@ npm run android
 9. Mueve una nota a otra libreta y confirma que desaparezca de la libreta actual.
 10. Comparte una nota y comprueba que el sistema abra la hoja de compartir con título y texto.
 11. En el editor, usa **Versículo** con filtro y **Referencias** para insertar contenido relacionado.
+
+---
+
+## Documentos relacionados
+
+| Documento | Relación |
+|-----------|----------|
+| [22-notas-diseno-profesional.md](./22-notas-diseno-profesional.md) | Rediseño visual: cuadrícula de portadas, cabecera de editor y refinamiento de tarjetas. |
+| [14-notas-autoguardado-y-preview.md](./14-notas-autoguardado-y-preview.md) | Autoguardado al salir y vista previa en listas. |
+| [21-insercion-y-edicion-de-imagenes.md](./21-insercion-y-edicion-de-imagenes.md) | Imágenes embebidas en el contenido de la nota. |
