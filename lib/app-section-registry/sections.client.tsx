@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import dynamic from "next/dynamic"
 import {
   Activity as ActivityIcon,
@@ -20,8 +21,10 @@ import {
   UserPlus,
   Users,
 } from "lucide-react"
+import { SegmentTabs } from "@/components/ui/segment-tabs"
 import { APP_SECTION_CATALOG, type AppSectionId } from "./catalog"
 import { registerAppSectionComplete } from "./store"
+import type { SectionRenderContext } from "./types"
 
 function sectionLoading(text: string) {
   return () => (
@@ -122,6 +125,144 @@ function meta(id: AppSectionId) {
   return section
 }
 
+type StudyMode = "reader" | "search" | "references" | "dictionary"
+type NotesMode = "notes" | "devotionals" | "prayers"
+type ProfileMode = "profile" | "favorites" | "highlights" | "plans" | "activity" | "statistics"
+
+const STUDY_TABS: { key: StudyMode; label: string }[] = [
+  { key: "reader", label: "Biblia" },
+  { key: "search", label: "Buscar" },
+  { key: "references", label: "Referencias" },
+  { key: "dictionary", label: "Diccionario" },
+]
+
+const NOTES_TABS: { key: NotesMode; label: string }[] = [
+  { key: "notes", label: "Notas" },
+  { key: "devotionals", label: "Devocional" },
+  { key: "prayers", label: "Oración" },
+]
+
+const PROFILE_TABS: { key: ProfileMode; label: string }[] = [
+  { key: "profile", label: "Perfil" },
+  { key: "favorites", label: "Favoritos" },
+  { key: "highlights", label: "Subrayados" },
+  { key: "plans", label: "Planes" },
+  { key: "activity", label: "Actividad" },
+  { key: "statistics", label: "Estadísticas" },
+]
+
+function StudyHub(ctx: SectionRenderContext) {
+  const [mode, setMode] = useState<StudyMode>("reader")
+  const tabs = STUDY_TABS.filter((tab) => (
+    tab.key === "reader" ||
+    (tab.key === "search" && ctx.allowedSections.includes("search")) ||
+    (tab.key === "references" && ctx.allowedSections.includes("references")) ||
+    (tab.key === "dictionary" && ctx.allowedSections.includes("dictionary"))
+  ))
+  const activeMode = tabs.some((tab) => tab.key === mode) ? mode : tabs[0]?.key ?? "reader"
+
+  return (
+    <div className="flex h-full min-h-0 flex-col bg-background">
+      <SegmentTabs tabs={tabs} active={activeMode} onChange={setMode} />
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        {activeMode === "reader" ? (
+          <BibleReader
+            initialBookId={ctx.navBookId}
+            initialChapter={ctx.navChapter}
+            initialVerse={ctx.navVerse}
+            initialBibleId={ctx.navBibleId}
+            onClearInitialValues={ctx.handleClearNavValues}
+            showOnlyVerseNotes={true}
+            isGuest={ctx.isGuest}
+            onLoginRequest={ctx.openLogin}
+          />
+        ) : activeMode === "search" ? (
+          <SearchAdvanced onSelectVerse={(bookId, chapter, verse, bibleId) => {
+            ctx.handleSelectVerse(bookId, chapter, verse, bibleId)
+            setMode("reader")
+          }} />
+        ) : activeMode === "references" ? (
+          <ReferencesExplorer />
+        ) : (
+          <StrongDictionary />
+        )}
+      </div>
+    </div>
+  )
+}
+
+function NotesHub(ctx: SectionRenderContext) {
+  const [mode, setMode] = useState<NotesMode>("notes")
+  const tabs = NOTES_TABS.filter((tab) => (
+    tab.key === "notes" ||
+    (tab.key === "devotionals" && ctx.allowedSections.includes("devotionals")) ||
+    (tab.key === "prayers" && ctx.allowedSections.includes("prayers"))
+  ))
+  const activeMode = tabs.some((tab) => tab.key === mode) ? mode : tabs[0]?.key ?? "notes"
+
+  return (
+    <div className="flex h-full min-h-0 flex-col bg-background">
+      <SegmentTabs tabs={tabs} active={activeMode} onChange={setMode} />
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        {activeMode === "notes" ? (
+          <NotesSection
+            editingNote={ctx.notebookEditingNote}
+            setEditingNote={ctx.setNotebookEditingNote}
+            onSessionExpired={() => {
+              localStorage.removeItem("biblia_token")
+              window.location.reload()
+            }}
+          />
+        ) : activeMode === "devotionals" ? (
+          <Devotionals />
+        ) : (
+          <PrayerRequests />
+        )}
+      </div>
+    </div>
+  )
+}
+
+function ProfileHub(ctx: SectionRenderContext) {
+  const [mode, setMode] = useState<ProfileMode>("profile")
+  const tabs = PROFILE_TABS.filter((tab) => (
+    tab.key === "profile" ||
+    (tab.key === "favorites" && ctx.allowedSections.includes("favorites")) ||
+    (tab.key === "highlights" && ctx.allowedSections.includes("highlights")) ||
+    (tab.key === "plans" && ctx.allowedSections.includes("plans")) ||
+    (tab.key === "activity" && ctx.allowedSections.includes("activity")) ||
+    (tab.key === "statistics" && ctx.allowedSections.includes("statistics"))
+  ))
+  const activeMode = tabs.some((tab) => tab.key === mode) ? mode : tabs[0]?.key ?? "profile"
+
+  return (
+    <div className="flex h-full min-h-0 flex-col bg-background">
+      <SegmentTabs tabs={tabs} active={activeMode} onChange={setMode} />
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        {activeMode === "profile" ? (
+          <ProfileSection
+            currentUserId={ctx.user!.id}
+            initialUsername={ctx.user!.username || undefined}
+          />
+        ) : activeMode === "favorites" ? (
+          <Favorites />
+        ) : activeMode === "highlights" ? (
+          <HighlightsManager />
+        ) : activeMode === "plans" ? (
+          <ReadingPlans
+            onSelectReading={ctx.handleSelectVerse}
+            streakCount={ctx.user!.streakCount || 0}
+          />
+        ) : activeMode === "activity" ? (
+          <Activity />
+        ) : (
+          <Statistics />
+        )}
+      </div>
+    </div>
+  )
+}
+
 registerAppSectionComplete({
   ...meta("dashboard"),
   icon: LayoutDashboard,
@@ -140,18 +281,7 @@ registerAppSectionComplete({
   ...meta("reading"),
   icon: BookOpen,
   suspenseFallback: "Cargando Biblia...",
-  render: (ctx) => (
-    <BibleReader
-      initialBookId={ctx.navBookId}
-      initialChapter={ctx.navChapter}
-      initialVerse={ctx.navVerse}
-      initialBibleId={ctx.navBibleId}
-      onClearInitialValues={ctx.handleClearNavValues}
-      showOnlyVerseNotes={true}
-      isGuest={ctx.isGuest}
-      onLoginRequest={ctx.openLogin}
-    />
-  ),
+  render: (ctx) => <StudyHub {...ctx} />,
 })
 
 registerAppSectionComplete({
@@ -192,16 +322,7 @@ registerAppSectionComplete({
   icon: BookText,
   layout: "notebook",
   suspenseFallback: "Cargando libreta...",
-  render: (ctx) => (
-    <NotesSection
-      editingNote={ctx.notebookEditingNote}
-      setEditingNote={ctx.setNotebookEditingNote}
-      onSessionExpired={() => {
-        localStorage.removeItem("biblia_token")
-        window.location.reload()
-      }}
-    />
-  ),
+  render: (ctx) => <NotesHub {...ctx} />,
 })
 
 registerAppSectionComplete({
@@ -210,12 +331,7 @@ registerAppSectionComplete({
   requiresUser: true,
   layout: "fullscreen",
   suspenseFallback: "Cargando Perfil...",
-  render: (ctx) => (
-    <ProfileSection
-      currentUserId={ctx.user!.id}
-      initialUsername={ctx.user!.username || undefined}
-    />
-  ),
+  render: (ctx) => <ProfileHub {...ctx} />,
 })
 
 registerAppSectionComplete({

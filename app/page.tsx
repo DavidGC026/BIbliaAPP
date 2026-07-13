@@ -60,6 +60,7 @@ interface UserProfile {
 
 const APP_NAV_ITEMS = buildAppNavItems()
 const NAV_GROUPS = getNavGroupOrder()
+const MOBILE_PRIMARY_NAV_IDS = ["dashboard", "reading", "notebook", "profile"]
 
 export default function Page() {
   const { data, mutate, isLoading } = useSWR<{ user: UserProfile | null }>(
@@ -282,10 +283,17 @@ export default function Page() {
     : desktopNavItems.length > 5
   const mobileDirectItems = isGuest
     ? APP_NAV_ITEMS.filter(item => guestDirectIds.includes(item.id))
-    : showMoreButton ? desktopNavItems.slice(0, 4) : desktopNavItems
+    : showMoreButton
+      ? [
+          ...MOBILE_PRIMARY_NAV_IDS
+            .map((id) => desktopNavItems.find((item) => item.id === id))
+            .filter((item): item is (typeof desktopNavItems)[number] => Boolean(item)),
+          ...desktopNavItems.filter((item) => !MOBILE_PRIMARY_NAV_IDS.includes(item.id)),
+        ].slice(0, 4)
+      : desktopNavItems
   const mobileMoreItems = isGuest
     ? APP_NAV_ITEMS.filter(item => !guestDirectIds.includes(item.id))
-    : showMoreButton ? desktopNavItems.slice(4) : []
+    : showMoreButton ? desktopNavItems.filter((item) => !mobileDirectItems.some((direct) => direct.id === item.id)) : []
 
   const activeLabel = APP_NAV_ITEMS.find(item => item.id === activeTab)?.label ?? "Estudio"
 
