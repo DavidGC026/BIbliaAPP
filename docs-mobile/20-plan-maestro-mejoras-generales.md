@@ -6,7 +6,7 @@ Este documento funciona como bitacora viva para las mejoras grandes de la app mo
 
 | Estado | Area | Objetivo | Notas |
 |--------|------|----------|-------|
-| Hecho | Notas profesionales | Convertir Notas en una herramienta general, util aunque no sea solo para estudio biblico. | Busqueda, libretas, acciones rapidas, mover notas, fijar notas, compartir, insertar versiculos y referencias. |
+| Hecho | Notas profesionales | Convertir Notas en una herramienta general, util aunque no sea solo para estudio biblico. | Busqueda, libretas, acciones rapidas, mover notas, fijar notas, compartir, insertar versiculos y referencias. **Web:** paridad de productividad e inserciones en `docs/notas-web-paridad-movil.md` (julio 2026). |
 | Hecho | Lector biblico | Mejorar la lectura visual y la accion sobre versiculos. | Controles de tamano, densidad, alineacion, progreso del capitulo, seleccion y accesos a compartir, notas, referencias e imagenes. |
 | Hecho | Imagen del versiculo | Hacer mas util la generacion visual de versiculos. | Presets visuales, mejor jerarquia y composicion editable desde el creador. |
 | Hecho | Fuentes tipograficas | Corregir la aplicacion real de fuentes descargadas en el editor. | El editor WebView carga fuentes dinamicas y conserva mejor la seleccion al aplicar formato. |
@@ -221,6 +221,21 @@ Limitaciones anotadas:
 - La exportacion a PDF y el texto compartido usan el HTML guardado, asi que la fuente de toda la nota no se aplica ahi (los tramos con fuente aplicada sobre texto seleccionado si, porque quedan como `<font face>` en el HTML).
 - Nombres con siglas ("PT Sans", "EB Garamond") siguen requiriendo las siglas en mayusculas: la capitalizacion automatica solo cubre la primera letra de cada palabra.
 - Cualquier string JS embebido en el template de `getEditorHtml` debe escapar `\\n`, `\\uXXXX`, backticks y `${` o el WebView deja de ejecutar la toolbar entera.
+
+## Iteracion completada - Paridad web de notas (julio 2026)
+
+Objetivo: que la seccion **Notas** de Next.js replique el editor enriquecido, inserciones y productividad de Android.
+
+| Estado | Tarea | Resultado esperado |
+|--------|-------|--------------------|
+| Hecho | Editor enriquecido en iframe. | `lib/note-editor-html.ts` + `components/note-rich-editor.tsx`, protocolo `postMessage` como WebView. |
+| Hecho | Imagenes en notas web. | Subida `/api/upload`, URL publica `/uploads/{filename}`, panel de edicion visual. Ver doc 21 §10. |
+| Hecho | Referencias y diccionario Strong. | Modales en `notebook-sidebar.tsx`, mismos endpoints que movil. |
+| Hecho | Productividad en libretas. | Busqueda HTML, orden, pin, mover, compartir, PDF, metricas — paridad doc 17. |
+| Hecho | Autoguardado web. | Debounce 4 s + `requestEditorHtml` 5 s; distinto de `beforeRemove` movil (doc 14). |
+| Hecho | Documentacion. | `docs/notas-web-paridad-movil.md` + cross-links en docs 14, 17, 21. |
+
+Documento de referencia web: [`docs/notas-web-paridad-movil.md`](../docs/notas-web-paridad-movil.md).
 
 ## Riesgos y decisiones
 

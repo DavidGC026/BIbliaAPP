@@ -84,3 +84,11 @@ npm run android
 9. Mueve una nota a otra libreta y confirma que desaparezca de la libreta actual.
 10. Comparte una nota y comprueba que el sistema abra la hoja de compartir con título y texto.
 11. En el editor, usa **Versículo** con filtro y **Referencias** para insertar contenido relacionado.
+
+---
+
+## Paridad web (julio 2026)
+
+Las mismas utilidades de `notebookCovers.ts` viven en la web como `lib/notebook-covers.ts`. `components/notebook-sidebar.tsx` expone búsqueda, orden, métricas, fijar, mover, compartir y exportar PDF con el mismo comportamiento funcional.
+
+Detalle de implementación web (editor en iframe, imágenes, referencias, diccionario, autoguardado): [`docs/notas-web-paridad-movil.md`](../docs/notas-web-paridad-movil.md).

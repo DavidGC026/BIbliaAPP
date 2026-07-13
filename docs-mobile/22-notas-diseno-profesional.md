@@ -72,3 +72,5 @@ npm run android
 6. Fija, mueve, comparte/exporta y borra una nota desde su tarjeta.
 7. Abre una nota y confirma autoguardado, guardado manual, vista previa y conteo de palabras.
 8. Inserta una imagen, tócala y confirma que el teclado se cierra, la toolbar se oculta y aparece el aviso `Editando imagen`.
+
+Paridad web del mismo rediseño y acciones: [`docs/notas-web-paridad-movil.md`](../docs/notas-web-paridad-movil.md).
