@@ -9,7 +9,7 @@ Mejora visual de la experiencia móvil de notas para que se sienta más limpia, 
 Convertir Notas en una superficie de trabajo más profesional:
 
 - Menos ruido visual y menos decoración pesada.
-- Jerarquía clara para libretas, métricas, búsqueda y acciones.
+- Jerarquía clara para libretas, portadas, métricas, búsqueda y acciones.
 - Controles táctiles consistentes.
 - Editor con apariencia de documento, estado de guardado visible y modo preview accesible.
 
@@ -20,7 +20,7 @@ Convertir Notas en una superficie de trabajo más profesional:
 | Área | Mejora |
 |------|--------|
 | Tab Notas | Header compacto en tarjeta, icono con borde y estado de sincronización integrado. |
-| Biblioteca de libretas | Se reemplazó la cuadrícula tipo estantería por filas profesionales con icono, métricas y acciones visibles. |
+| Biblioteca de libretas | Se conserva la cuadrícula de 2 columnas con portadas/imágenes, refinando espaciado, métricas y acciones flotantes. |
 | Métricas | Libretas, notas y palabras ahora aparecen como indicadores sobrios sobre fondo atenuado. |
 | Detalle de libreta | Cabecera de libreta más compacta con actividad reciente, edición y borrado. |
 | Tarjetas de nota | Título, fecha, lectura estimada, acciones y CTA de abrir quedan separados para lectura rápida. |
@@ -50,7 +50,7 @@ Convertir Notas en una superficie de trabajo más profesional:
 | Archivo | Cambio |
 |---------|--------|
 | `mobile/app/(tabs)/notes.tsx` | Header principal más limpio y consistente con el resto de la app. |
-| `mobile/components/notes/NotebooksPanel.tsx` | Rediseño de biblioteca de libretas: panel de acción, métricas y filas compactas. |
+| `mobile/components/notes/NotebooksPanel.tsx` | Rediseño de biblioteca de libretas: panel de acción, métricas y tarjetas de 2 columnas con portada. |
 | `mobile/app/notebook/[id].tsx` | Rediseño de cabecera de libreta y tarjetas de nota sin perder acciones. |
 | `mobile/app/note/[noteId].tsx` | Cabecera de documento profesional con estado, métricas, preview y aviso de edición de imagen. |
 
@@ -66,8 +66,9 @@ npm run android
 
 1. Abre **Notas** y verifica que las pestañas `Notas`, `Diario` y `Biblioteca` sigan visibles.
 2. En `Notas`, crea, edita y elimina una libreta.
-3. Busca una libreta por nombre y confirma que la lista filtra correctamente.
-4. Entra a una libreta y verifica búsqueda, orden por `Recientes`, `A-Z` y `Largas`.
-5. Fija, mueve, comparte/exporta y borra una nota desde su tarjeta.
-6. Abre una nota y confirma autoguardado, guardado manual, vista previa y conteo de palabras.
-7. Inserta una imagen, tócala y confirma que el teclado se cierra, la toolbar se oculta y aparece el aviso `Editando imagen`.
+3. Verifica que las libretas se muestran en cuadros de 2 columnas con sus portadas/imágenes.
+4. Busca una libreta por nombre y confirma que la lista filtra correctamente.
+5. Entra a una libreta y verifica búsqueda, orden por `Recientes`, `A-Z` y `Largas`.
+6. Fija, mueve, comparte/exporta y borra una nota desde su tarjeta.
+7. Abre una nota y confirma autoguardado, guardado manual, vista previa y conteo de palabras.
+8. Inserta una imagen, tócala y confirma que el teclado se cierra, la toolbar se oculta y aparece el aviso `Editando imagen`.
