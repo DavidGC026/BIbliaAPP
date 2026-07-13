@@ -27,6 +27,7 @@ Al editar una nota de libreta, los cambios se guardan **automáticamente** cuand
 
 - Listener `beforeRemove` de React Navigation (vía `useNavigation` de Expo Router).
 - Antes de salir, el WebView del editor responde a `{ type: 'getHtml' }` para obtener el HTML actualizado.
+- El fallback de espera para `getHtml` es de **5000 ms** (antes 450 ms) para no guardar HTML incompleto cuando hay imágenes base64 grandes. Detalle en [21-insercion-y-edicion-de-imagenes.md](./21-insercion-y-edicion-de-imagenes.md#7-corrección-guardado-y-parpadeo-del-panel-de-imágenes).
 - Refactor de la lógica de guardado en `persistNote()` con modo `silent` para el auto-guardado.
 
 ### Notas de versículo (`components/BibleReader.tsx`)

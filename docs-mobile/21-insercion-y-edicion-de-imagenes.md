@@ -67,8 +67,8 @@ Al tocar cualquier imagen dentro del editor en modo de edición:
 
 | Archivo | Cambio |
 |---------|--------|
-| [`mobile/lib/editorHtml.ts`](file:///home/david/proyectos/BibliaAPP/mobile/lib/editorHtml.ts) | Estilos CSS para el bloque de imagen y panel inferior; Botón 🖼️ en toolbar HTML; Lógica JS de envoltura, selección, modo edición, slider, alineación y subir/bajar elementos. |
-| [`mobile/app/note/[noteId].tsx`](file:///home/david/proyectos/BibliaAPP/mobile/app/note/[noteId].tsx) | Importaciones de `ImagePicker` y `api`; Receptor de `openImagePicker` e `imageEditMode` en `onWebViewMessage`; Método `handleImagePick()` con flujo de permisos, selección, subida y fallback offline a base64; bloqueo temporal del teclado al editar imágenes. |
+| [`mobile/lib/editorHtml.ts`](../mobile/lib/editorHtml.ts) | Estilos CSS para el bloque de imagen y panel inferior; Botón 🖼️ en toolbar HTML; Lógica JS de envoltura, selección, modo edición, slider, alineación y subir/bajar elementos. |
+| [`mobile/app/note/[noteId].tsx`](../mobile/app/note/[noteId].tsx) | Importaciones de `ImagePicker` y `api`; Receptor de `openImagePicker` e `imageEditMode` en `onWebViewMessage`; Método `handleImagePick()` con flujo de permisos, selección, subida y fallback offline a base64; bloqueo temporal del teclado al editar imágenes. |
 
 ---
 
@@ -144,3 +144,7 @@ Fix:
 - Se elimina el reajuste continuo del panel durante `scroll`; `keepImageVisible()` queda solo para apertura y cambios que realmente mueven la imagen.
 - `repoCreateNotebookNote()` y `repoUpdateNotebookNote()` ahora son local-first: guardan primero el HTML exacto del editor en SQLite y luego intentan sincronizar.
 - `ensureDbTables()` cambia `bible_notebook_notes.content` a `MEDIUMTEXT` para soportar notas con imágenes embebidas.
+
+**Backend web:** la misma migración `MEDIUMTEXT` vive en `lib/bible.ts` del servidor Next.js. Ver [`docs/notas-web-paridad-movil.md`](../docs/notas-web-paridad-movil.md#imágenes-en-notas-julio-2026).
+
+**Relacionado:** auto-guardado y timeout de `getHtml` en [14-notas-autoguardado-y-preview.md](./14-notas-autoguardado-y-preview.md); teclado bloqueado en [16-editor-webview-teclado-seleccion.md](./16-editor-webview-teclado-seleccion.md); cabecera "Editando imagen" en [22-notas-diseno-profesional.md](./22-notas-diseno-profesional.md).
