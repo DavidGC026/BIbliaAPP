@@ -18,8 +18,9 @@ La pestaña **Notas** del menú web ahora replica la estructura y el editor de l
 | Diccionario | Botón sin flujo completo | Modal Strong con búsqueda, exploración, paginación e inserción HTML |
 | Vista previa | No existía | Toggle **Vista previa / Editar** |
 | Lista de notas | Resumen con regex markdown | `stripNotePreview()` — soporta HTML y markdown, métricas y orden profesional |
-| Cabecera del editor | Iconos + Publicar + tags | **Volver · Borrar · Guardar** con estado de guardado, palabras y lectura estimada |
+| Cabecera del editor | Iconos + Publicar + tags | **Volver** + iconos **Compartir/Borrar** + pill **Guardar**; tarjeta con título, estado, métricas y toggle **Vista previa/Editar** |
 | Diseño visual | Web con estructura distinta | Header, estantería, detalle de libreta y editor adaptados al lenguaje visual mobile |
+| Shell móvil global | Header compacto genérico | Header 58px, tabbar 72px + safe-area, hoja «Más» y `100dvh` (ver [`web-mobile-paridad-global.md`](./web-mobile-paridad-global.md)) |
 
 ---
 
@@ -40,8 +41,10 @@ La pestaña **Notas** del menú web ahora replica la estructura y el editor de l
 
 | Archivo | Cambio |
 |---------|--------|
-| `components/notebook-sidebar.tsx` | Editor móvil, preview en lista, modo `embedded` dentro de pestañas |
-| `components/note-rich-editor.tsx` | Puente iframe/web para imágenes, versículos, referencias y diccionario |
+| `components/notebook-sidebar.tsx` | Editor móvil, preview en lista, modo `embedded` dentro de pestañas; header con Share2/Trash2, chip «Editando imagen» |
+| `components/note-rich-editor.tsx` | Puente iframe/web para imágenes, versículos, referencias y diccionario; prop `onImageEditMode` |
+| `components/ui/segment-tabs.tsx` | Pestañas Notas/Diario/Biblioteca con márgenes y radios mobile (`mx-4`, `rounded-2xl`) |
+| `app/page.tsx` / `app/globals.css` | Shell móvil global (tabbar, safe-area, `100dvh`) — ver [`web-mobile-paridad-global.md`](./web-mobile-paridad-global.md) |
 | `lib/app-section-registry/sections.client.tsx` | La sección `notebook` renderiza `NotesSection` |
 | `lib/app-section-registry/outlet.tsx` | Layout `notebook` sin padding extra (pantalla completa) |
 
@@ -63,6 +66,22 @@ La pestaña **Notas** del menú web ahora replica la estructura y el editor de l
 - La biblioteca de libretas usa panel de acción, métricas, búsqueda y cards en cuadrícula con portada e indicadores.
 - El detalle de libreta usa cabecera compacta con portada, conteo de notas/palabras, acciones y búsqueda.
 - El editor agrupa título, estado de guardado, palabras, minutos y vista previa dentro de una cabecera de documento.
+
+### Cabecera del editor (julio 2026)
+
+Equivalente a `mobile/app/note/[noteId].tsx` (detalle en [`docs-mobile/22-notas-diseno-profesional.md`](../docs-mobile/22-notas-diseno-profesional.md) § Paridad web):
+
+| Control | Web (`notebook-sidebar.tsx`) | Comportamiento |
+|---------|------------------------------|----------------|
+| **Volver** | `ArrowLeft` + texto | Cierra el editor **sin** guardar inmediato; espera el autoguardado (4 s) o pulsa **Guardar** |
+| **Compartir** | `Share2` | `navigator.share` o copia título + texto plano al portapapeles |
+| **Borrar** | `Trash2` | Misma confirmación que antes (`handleDeleteNote`) |
+| **Guardar** | Pill `rounded-full` primario | Solicita HTML al iframe (`getHtml`) y persiste |
+| Estado | Punto ámbar/verde + texto | `Guardando...` / `Sin guardar` / `Guardado hh:mm` / `Aún sin guardar` |
+| **Vista previa / Editar** | `Eye` / `Edit2` + texto | Sin emojis; iconos Lucide como en móvil |
+| **Editando imagen** | Chip con `ImageIcon` | Visible cuando el iframe emite `imageEditMode`; el título queda `disabled` |
+
+`NoteRichEditor` reenvía `{ type: 'imageEditMode', active }` del iframe a la prop `onImageEditMode`. El estado se resetea al pulsar **Volver** o al cambiar de nota.
 
 ### Selector de fuente
 
@@ -98,8 +117,8 @@ Flujo equivalente a `mobile/components/InsertDictionaryModal.tsx`:
 
 ### Vista previa
 
-- El botón **👁️ Vista Previa** muestra el contenido renderizado con `NoteContent` (iframe en modo solo lectura).
-- **✏️ Modo Edición** vuelve al editor enriquecido.
+- El pill **Vista previa** (icono `Eye`) muestra el contenido renderizado con `NoteContent` (iframe en modo solo lectura).
+- **Editar** (icono `Edit2`) vuelve al editor enriquecido.
 
 ---
 
@@ -189,8 +208,21 @@ Recarga el navegador con **Ctrl+Shift+R** en https://biblia2.dvguzman.com → me
 
 - El lector bíblico (`components/bible-reader`) sigue usando `NotebookSidebar` directamente en el panel lateral, sin pestañas.
 - La publicación de notas al feed de comunidad se retiró del editor web para igualar la UX móvil (solo Guardar / Borrar).
-- La web ahora tiene autoguardado silencioso tras unos segundos sin escribir y solicita el HTML actual del iframe antes del guardado manual.
+- La web tiene autoguardado silencioso tras **4 s** sin escribir (`notebook-sidebar.tsx`); solicita el HTML actual del iframe antes del guardado manual.
+- **Volver** no dispara guardado inmediato (a diferencia del `beforeRemove` móvil en [`docs-mobile/14-notas-autoguardado-y-preview.md`](../docs-mobile/14-notas-autoguardado-y-preview.md)): espera el debounce o pulsa **Guardar**.
+- El shell móvil de toda la app (header, tabbar, safe-area) está documentado en [`web-mobile-paridad-global.md`](./web-mobile-paridad-global.md).
 
 ---
 
-*Última revisión: julio 2026.*
+## Documentación relacionada
+
+| Documento | Contenido |
+|-----------|-----------|
+| [`web-mobile-paridad-global.md`](./web-mobile-paridad-global.md) | Shell móvil global (`page.tsx`, `globals.css`, tabbar) |
+| [`docs-mobile/22-notas-diseno-profesional.md`](../docs-mobile/22-notas-diseno-profesional.md) | Rediseño visual de notas + paridad del editor web |
+| [`docs-mobile/23-paridad-web-mobile-global.md`](../docs-mobile/23-paridad-web-mobile-global.md) | Misma paridad global, vista desde el equipo móvil |
+| [`docs-mobile/21-insercion-y-edicion-de-imagenes.md`](../docs-mobile/21-insercion-y-edicion-de-imagenes.md) | Imágenes en el iframe y chip «Editando imagen» |
+
+---
+
+*Última revisión: julio 2026 (paridad global + editor profesional).*

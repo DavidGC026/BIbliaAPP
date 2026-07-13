@@ -84,3 +84,9 @@ npm run android
 9. Mueve una nota a otra libreta y confirma que desaparezca de la libreta actual.
 10. Comparte una nota y comprueba que el sistema abra la hoja de compartir con título y texto.
 11. En el editor, usa **Versículo** con filtro y **Referencias** para insertar contenido relacionado.
+
+---
+
+## Paridad web
+
+La web replica estas mejoras de productividad en `components/notes-section.tsx` y `components/notebook-sidebar.tsx`. Rediseño visual y cabecera del editor: [`22-notas-diseno-profesional.md`](./22-notas-diseno-profesional.md). Shell móvil global (tabbar, safe-area): [`23-paridad-web-mobile-global.md`](./23-paridad-web-mobile-global.md) y [`docs/web-mobile-paridad-global.md`](../docs/web-mobile-paridad-global.md).

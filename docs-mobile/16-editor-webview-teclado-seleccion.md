@@ -76,3 +76,10 @@ npm run android
 2. **Título:** escribe en el campo Título; el cursor no debe saltar al cuerpo de la nota.
 3. **Guardar:** pulsa Guardar con el teclado cerrado; no debe reabrirse solo.
 4. **Atrás + tap (Android):** edita la nota, cierra el teclado con el botón atrás del sistema, toca el editor: el teclado debe abrirse de nuevo.
+
+---
+
+## Paridad web
+
+- El selector de fuente web replica el flujo `setFont` / `openFontModal` del iframe — ver [`docs/notas-web-paridad-movil.md`](../docs/notas-web-paridad-movil.md) (§ Selector de fuente).
+- Al editar imágenes, la web muestra el chip **Editando imagen** y deshabilita el título vía `onImageEditMode` en `NoteRichEditor` — ver [`22-notas-diseno-profesional.md`](./22-notas-diseno-profesional.md) y [`21-insercion-y-edicion-de-imagenes.md`](./21-insercion-y-edicion-de-imagenes.md) §10.
