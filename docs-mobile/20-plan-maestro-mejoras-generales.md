@@ -12,10 +12,11 @@ Este documento funciona como bitacora viva para las mejoras grandes de la app mo
 | Hecho | Fuentes tipograficas | Corregir la aplicacion real de fuentes descargadas en el editor. | El editor WebView carga fuentes dinamicas y conserva mejor la seleccion al aplicar formato. |
 | Hecho | Descargas offline | Hacer visible la descarga de Biblias y datos auxiliares. | Pantalla dedicada, acceso desde Biblia y lector, cola persistida y reanudacion dentro de la app. |
 | Hecho | Continuidad de lectura | Recordar preferencias del lector y mostrar "Continuar lectura" en Inicio. | Implementado con almacenamiento local y verificado con TypeScript. |
-| En curso | Busqueda universal | Unificar busqueda de Biblia, notas, devocionales, diccionario y referencias. | Ya prioriza resultados locales/offline; faltan referencias cruzadas e historial de busqueda. |
-| En curso | Centro de inicio configurable | Hacer que Inicio sea mas personal y menos estatico. | Acciones rapidas activables/desactivables ya disponibles; falta reordenar modulos completos (recientes, plan, favoritos). |
-| En curso | Sincronizacion visible | Mostrar estado claro de guardado, offline y pendientes de sincronizar. | Ya hay indicador de estado offline y contador de notas pendientes; falta reintento automatico de sincronizacion al recuperar conexion. |
-| Pendiente | Compartir unificado | Crear una experiencia consistente para compartir versiculos, notas, devocionales e imagenes. | Reusar formato, creditos, version biblica y acciones del sistema. |
+| En curso | Busqueda universal | Unificar busqueda de Biblia, notas, devocionales, diccionario y referencias. | Pantalla unificada con historial local y filtros por tipo; faltan referencias cruzadas y filtro por libro/libreta especifica. |
+| En curso | Centro de inicio configurable | Hacer que Inicio sea mas personal y menos estatico. | Recientes inteligentes y acciones rapidas configurables listos; falta reordenar modulos completos del Inicio. |
+| Hecho | Sincronizacion visible | Mostrar estado claro de guardado, offline y pendientes de sincronizar. | `OfflineStatusBadge`, contador de notas pendientes y reintento automatico al reconectar (`NetworkContext` → `syncAll()`). |
+| Hecho | Compartir unificado | Crear una experiencia consistente para compartir versiculos, notas, devocionales e imagenes. | `lib/share.ts` con formato unificado; exportar notas como texto o PDF (`lib/noteExport.ts`). |
+| Hecho | Diseno visual de notas | Rediseño profesional de libretas, tarjetas y editor sin quitar funciones. | Filas compactas, metricas sobrias, cabecera de documento y aviso de edicion de imagen. Ver doc 22. |
 | Hecho | Onboarding ligero | Explicar en pocos pasos las funciones principales sin bloquear. | Tarjeta "Primeros pasos" descartable en Inicio (`components/OnboardingCard.tsx`): Biblia offline, busqueda universal, notas e imagenes de versiculos. Se oculta al omitirla y no vuelve a aparecer. |
 
 ## Iteracion actual
@@ -45,6 +46,23 @@ Objetivo: que Inicio muestre actividad util y accionable, no solo estadisticas.
 | Hecho | Devocionales recientes mejor conectados. | El bloque evita repetir el devocional destacado y muestra un estado vacio mas claro. |
 | Hecho | Verificar TypeScript. | `npx tsc --noEmit` pasa correctamente en `mobile`. |
 | Pendiente | Prueba manual mobile. | Revisar que Inicio no quede demasiado largo en pantallas pequenas. |
+
+Documentacion detallada: [23 — Inicio: recientes inteligentes](./23-inicio-recientes-inteligentes.md).
+
+## Iteracion completada - Notas: rediseño visual profesional
+
+Objetivo: que la seccion Notas se sienta mas limpia y profesional sin retirar funciones existentes.
+
+| Estado | Tarea | Resultado esperado |
+|--------|-------|--------------------|
+| Hecho | Header compacto en tab Notas. | Tarjeta con icono, titulo, subtitulo y `SyncStatusBadge` integrado (`app/(tabs)/notes.tsx`). |
+| Hecho | Biblioteca de libretas en filas. | Panel de accion, metricas sobrias y filas con icono, metricas y acciones visibles (`NotebooksPanel.tsx`). |
+| Hecho | Detalle de libreta y tarjetas de nota. | Cabecera compacta, busqueda, orden y tarjetas con preview y acciones (`app/notebook/[id].tsx`). |
+| Hecho | Cabecera de documento en el editor. | Titulo, estado de guardado, palabras, minutos, preview y aviso `Editando imagen` (`app/note/[noteId].tsx`). |
+| Hecho | Verificar TypeScript. | `npx tsc --noEmit` pasa correctamente en `mobile`. |
+| Pendiente | Prueba manual mobile. | Recorrer checklist del doc 22 (libretas, orden, fijar, mover, exportar PDF, edicion de imagen). |
+
+Documentacion detallada: [22 — Notas: rediseño visual profesional](./22-notas-diseno-profesional.md). Funcionalidad base en doc 17; imagenes en doc 21.
 
 ## Iteracion en progreso - Acciones rapidas configurables
 
@@ -82,9 +100,9 @@ Prioridad alta porque reduce friccion en acciones frecuentes.
 | Estado | Mejora | Alcance |
 |--------|--------|---------|
 | Hecho | Continuar lectura | Tarjeta en Inicio, persistencia local y navegacion directa al lector. |
-| Hecho | Recientes inteligentes | Mostrar ultimas notas editadas, versiculos seleccionados y devocionales abiertos. |
-| En curso | Acciones rapidas configurables | Permitir elegir accesos del Inicio: nueva nota, buscar, descargas, imagen de versiculo. |
-| En curso | Recordatorios utiles | Lectura diaria, devocional pendiente y descargas incompletas, con control del usuario. |
+| Hecho | Recientes inteligentes | Mostrar ultimas notas editadas, versiculos seleccionados y devocionales abiertos. Ver doc 23. |
+| Hecho | Acciones rapidas configurables | Elegir accesos del Inicio: nueva nota, buscar, descargas, imagen de versiculo (`lib/homeActions.ts`, `app/customize-home.tsx`). |
+| Hecho | Recordatorios utiles | Lectura diaria, devocional pendiente y descargas incompletas, con control por tipo (`lib/reminderPreferences.ts`). |
 
 ## Iteracion en progreso - Busqueda universal
 

@@ -71,3 +71,11 @@ npm run android
 5. Fija, mueve, comparte/exporta y borra una nota desde su tarjeta.
 6. Abre una nota y confirma autoguardado, guardado manual, vista previa y conteo de palabras.
 7. Inserta una imagen, tócala y confirma que el teclado se cierra, la toolbar se oculta y aparece el aviso `Editando imagen`.
+
+---
+
+## Relacionado
+
+- [17 — Notas como herramienta de productividad](./17-notas-productividad-general.md) — funcionalidad de productividad (búsqueda, métricas, orden, fijar, mover) sobre la que este doc aplica el rediseño visual.
+- [21 — Inserción y edición de imágenes](./21-insercion-y-edicion-de-imagenes.md) — flujo de imágenes y aviso **Editando imagen** en la cabecera del editor.
+- [20 — Plan maestro](./20-plan-maestro-mejoras-generales.md) — iteración «Notas: rediseño visual profesional».
