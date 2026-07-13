@@ -193,6 +193,35 @@ Prioridad media porque aumenta el valor fuera de la app.
 | Hecho | Compartir desde cualquier seccion | Formato unificado desde lector, versiculo del dia, favoritos, subrayados, notas y devocionales (`lib/share.ts`). |
 | Hecho | Exportar notas | Al compartir una nota (editor o lista) se elige texto plano o PDF. `lib/noteExport.ts` usa `expo-print` y conserva el formato HTML del editor, con titulo, fecha y credito. Exportar como imagen queda descartado por ahora (el PDF cubre el caso documento). |
 
+## Iteracion en progreso - Fuentes por nota y busqueda de Google Fonts
+
+Objetivo: que la fuente elegida para una nota sobreviva al guardar y salir, y que la busqueda de fuentes no falle por mayusculas.
+
+| Estado | Tarea | Resultado esperado |
+|--------|-------|--------------------|
+| Hecho | Persistir la fuente por nota. | La fuente de toda la nota se aplica como estilo del contenedor del editor (no queda en el HTML guardado), asi que ahora se guarda en `SecureStore` con clave `NOTE_FONT_<id>` (`getNoteFont`/`saveNoteFont` en `lib/fontManager.ts`). Se restaura al abrir la nota, se asigna al id real tras el primer guardado de una nota nueva y se limpia al eliminar la nota. |
+| Hecho | Vista previa con la fuente activa. | `NoteContent` acepta prop `font` y el editor se la pasa, para que la vista previa use la misma tipografia. |
+| Hecho | Busqueda tolerante a mayusculas. | La API `css?family=` de Google es sensible a mayusculas ("lobster" → 400). `fetchGoogleFont` prueba el texto tal cual y luego con cada palabra capitalizada, y devuelve el nombre canonico de la familia parseado del CSS, con lo que el id coincide con `POPULAR_FONTS` y descargas previas (antes "playfair display" creaba un duplicado `playfairdisplay`). |
+| Hecho | Buscar una fuente ya registrada la selecciona. | Antes solo mostraba una alerta "Info"; ahora la descarga si falta y la aplica. |
+| Hecho | Corregir etiqueta "Defect (Sans)". | Ahora se muestra "Predeterminada (Sans)". |
+| Hecho | Verificar TypeScript. | `npx tsc --noEmit` pasa correctamente en `mobile`. |
+| Hecho | Regresion toolbar/colores (imagenes). | El panel de edicion de imagenes en `editorHtml.ts` usaba `.join('\n')` dentro del template literal de TypeScript. Eso convertia `\n` en un salto de linea real en el JS del WebView (`].join('` + newline + `');`), provocaba `SyntaxError` y tumba **todo** el script: toolbar muerta, fila de colores vacia y modal de fuentes sin abrir. Fix: `.join('\\n')`. Ver doc 21. |
+| Pendiente | Prueba manual mobile. | Cambiar fuente sin seleccion, guardar, salir y reabrir; buscar "lobster" en minusculas; buscar una fuente ya descargada; confirmar dots de color y botones B/I/U tras el fix. |
+
+### Como integrar la fuente por nota
+
+1. Al abrir nota existente: `getNoteFont(id)` → `setActiveFont` **antes** de montar el WebView (`loading` sigue true hasta que termina).
+2. `getEditorHtml(..., activeFont, base64Fonts, false, favoriteColors)` solo se construye una vez (`initialHtmlRef`); cambios posteriores van por `sendToEditor({ type: 'setFont' | 'loadFonts' })`.
+3. Al elegir fuente en `FontSelectorModal`: `saveNoteFont(realId, fontName)` + `setFont` al editor. Si la nota es nueva y aun no tiene id, se guarda en el primer `repoCreateNotebookNote`.
+4. Al borrar nota: `deleteNoteFont(id)`.
+
+Limitaciones anotadas:
+
+- La preferencia de fuente por nota es local al dispositivo (SecureStore), no viaja con la cuenta ni aparece en la web.
+- La exportacion a PDF y el texto compartido usan el HTML guardado, asi que la fuente de toda la nota no se aplica ahi (los tramos con fuente aplicada sobre texto seleccionado si, porque quedan como `<font face>` en el HTML).
+- Nombres con siglas ("PT Sans", "EB Garamond") siguen requiriendo las siglas en mayusculas: la capitalizacion automatica solo cubre la primera letra de cada palabra.
+- Cualquier string JS embebido en el template de `getEditorHtml` debe escapar `\\n`, `\\uXXXX`, backticks y `${` o el WebView deja de ejecutar la toolbar entera.
+
 ## Riesgos y decisiones
 
 - `expo-print` es un modulo nativo nuevo: funciona en Expo Go, pero el APK release necesita recompilarse (ver doc 13) para que la exportacion a PDF este disponible.
