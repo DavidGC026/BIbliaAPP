@@ -81,3 +81,11 @@ Archivo: `components/ui/segment-tabs.tsx`
 npx tsc --noEmit
 npm run build
 ```
+
+## Documentación relacionada
+
+| Tema | Enlace |
+|------|--------|
+| Reducción de secciones y hubs (StudyHub, NotesHub, ProfileHub) | [24-reduccion-secciones-web.md](./24-reduccion-secciones-web.md) |
+| Planes de lectura en StudyHub | [docs/planes-lectura.md](../docs/planes-lectura.md) |
+| Guía de registro de secciones y hubs | [docs/nuevas-secciones.md](../docs/nuevas-secciones.md) § Hubs |
