@@ -217,7 +217,7 @@ Objetivo: que la fuente elegida para una nota sobreviva al guardar y salir, y qu
 
 Limitaciones anotadas:
 
-- La preferencia de fuente por nota es local al dispositivo (SecureStore), no viaja con la cuenta ni aparece en la web.
+- En **móvil**, la fuente de toda la nota (aplicada sin selección) vive en `SecureStore`, no en el HTML — no aparece en web hasta reaplicarla allí. En **web** (julio 2026) esa fuente global se persiste como wrapper `<div style="font-family:…">` en el HTML guardado y sí sincroniza vía API. Ver [`docs/notas-web-paridad-movil.md`](../docs/notas-web-paridad-movil.md) § Selector de fuente.
 - La exportacion a PDF y el texto compartido usan el HTML guardado, asi que la fuente de toda la nota no se aplica ahi (los tramos con fuente aplicada sobre texto seleccionado si, porque quedan como `<font face>` en el HTML).
 - Nombres con siglas ("PT Sans", "EB Garamond") siguen requiriendo las siglas en mayusculas: la capitalizacion automatica solo cubre la primera letra de cada palabra.
 - Cualquier string JS embebido en el template de `getEditorHtml` debe escapar `\\n`, `\\uXXXX`, backticks y `${` o el WebView deja de ejecutar la toolbar entera.

@@ -43,6 +43,8 @@ Convertir Notas en una superficie de trabajo más profesional:
 - Inserción de versículos, referencias, diccionario, tablas, fuentes, colores e imágenes.
 - Edición de imágenes con teclado bloqueado y toolbar oculta temporalmente.
 
+**Paridad web:** el selector de fuente (**Tt**) del editor web replica la lista de fuentes populares del móvil (modal React + `setFont` por `postMessage`). Ver [`docs/notas-web-paridad-movil.md`](../docs/notas-web-paridad-movil.md) § Selector de fuente.
+
 ---
 
 ## Archivos modificados

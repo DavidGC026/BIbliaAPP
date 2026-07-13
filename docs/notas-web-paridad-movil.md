@@ -40,7 +40,9 @@ La pestaña **Notas** del menú web ahora replica la estructura y el editor de l
 | Archivo | Cambio |
 |---------|--------|
 | `components/notebook-sidebar.tsx` | Editor móvil, preview en lista, modo `embedded` dentro de pestañas |
-| `components/note-rich-editor.tsx` | Puente iframe/web para imágenes, versículos, referencias y diccionario |
+| `components/note-rich-editor.tsx` | Puente iframe/web para imágenes, versículos, referencias, diccionario y selector de fuentes |
+| `lib/note-editor-html.ts` | Plantilla HTML del editor; Google Fonts, `setFont`, imágenes |
+| `next.config.mjs` | CSP ampliada para `fonts.googleapis.com` / `fonts.gstatic.com` |
 | `lib/app-section-registry/sections.client.tsx` | La sección `notebook` renderiza `NotesSection` |
 | `lib/app-section-registry/outlet.tsx` | Layout `notebook` sin padding extra (pantalla completa) |
 
@@ -57,10 +59,84 @@ La pestaña **Notas** del menú web ahora replica la estructura y el editor de l
 
 ### Selector de fuente
 
-- El botón **Tt** abre un modal web equivalente al selector móvil.
-- Incluye fuentes de sistema y las populares que usa mobile.
-- Si hay texto seleccionado, aplica la fuente solo a esa selección.
-- Si no hay selección, aplica la fuente al contenido completo y la deja persistida dentro del HTML guardado.
+El botón **Tt** de la toolbar del iframe abre un modal React (no vive dentro del iframe, igual que versículos o referencias). Flujo:
+
+```text
+iframe toolbar (Tt)
+  → postMessage { type: 'openFontModal' }
+  → NoteRichEditor abre modal "Fuente de la nota"
+  → usuario elige fuente
+  → sendAction({ type: 'setFont', value: '<id>' })
+  → handleAction en lib/note-editor-html.ts
+       · con selección: wrapRangeStyle('fontFamily', …)
+       · sin selección: applyFontToWholeEditor() envuelve el HTML en un <div style="font-family:…">
+  → notifyChange() → onChange → autoguardado / Guardar
+```
+
+| Archivo | Rol |
+|---------|-----|
+| `components/note-rich-editor.tsx` | `NOTE_FONT_OPTIONS`, estado del modal, `sendAction({ type: 'setFont' })` |
+| `lib/note-editor-html.ts` | `fontFamilyForValue()`, `applyFontToWholeEditor()`, handler `setFont` |
+| `next.config.mjs` | CSP: `style-src … fonts.googleapis.com`, `font-src … fonts.gstatic.com` |
+
+#### Fuentes disponibles (web)
+
+| ID (`setFont.value`) | Nombre en UI | Categoría | `font-family` aplicada |
+|----------------------|--------------|-----------|-------------------------|
+| `Default` | Predeterminada | Sistema | `system-ui, sans-serif` |
+| `serif` | Serif | Sistema | `serif` |
+| `monospace` | Monospace | Sistema | `monospace` |
+| `Lora` | Lora | Serif | `Lora, Georgia, serif` |
+| `PlayfairDisplay` | Playfair Display | Serif | `'Playfair Display', serif` |
+| `Merriweather` | Merriweather | Serif | `Merriweather, Georgia, serif` |
+| `Inter` | Inter | Sans-serif | `Inter, system-ui, sans-serif` |
+| `Montserrat` | Montserrat | Sans-serif | `Montserrat, system-ui, sans-serif` |
+| `Roboto` | Roboto | Sans-serif | `Roboto, system-ui, sans-serif` |
+| `Outfit` | Outfit | Sans-serif | `Outfit, system-ui, sans-serif` |
+| `Poppins` | Poppins | Sans-serif | `Poppins, system-ui, sans-serif` |
+| `Oswald` | Oswald | Sans-serif | `Oswald, system-ui, sans-serif` |
+| `FiraCode` | Fira Code | Monospace | `'Fira Code', monospace` |
+| `JetBrainsMono` | JetBrains Mono | Monospace | `'JetBrains Mono', monospace` |
+
+Los IDs coinciden con las fuentes populares del móvil (`FontSelectorModal` / `POPULAR_FONTS`). En web **no** hay búsqueda de Google Fonts ni descarga offline: las tipografías web se cargan con un `<link>` a Google Fonts dentro del `srcDoc` del iframe.
+
+#### Comportamiento al aplicar
+
+- **Texto seleccionado:** la fuente se aplica solo al rango con `wrapRangeStyle('fontFamily', …)` (spans inline en el HTML guardado).
+- **Sin selección:** `applyFontToWholeEditor()` envuelve todo el contenido en un `<div style="font-family:…">`. Ese estilo **viaja en el HTML** al servidor y se ve al reabrir la nota o en otro dispositivo que lea el HTML.
+- **Vista previa:** `NoteContent` renderiza el HTML tal cual; los spans y el wrapper conservan la tipografía sin estado extra en React.
+
+#### Paridad con móvil (diferencias importantes)
+
+| Aspecto | Móvil | Web |
+|---------|-------|-----|
+| Modal de fuentes | `FontSelectorModal` nativo + búsqueda Google Fonts | Modal React con lista fija (`NOTE_FONT_OPTIONS`) |
+| Carga de tipografías | Base64 embebido vía `base64Fonts` + `@font-face` | `<link>` a `fonts.googleapis.com` en el iframe |
+| Fuente de **toda** la nota | Preferencia en `SecureStore` (`NOTE_FONT_<id>`), no en HTML | Wrapper `<div>` persistido en el HTML |
+| Fuente sobre selección | `<font face>` / spans en HTML | Spans con `font-family` inline |
+| Sincronización cuenta | Fuente global móvil **no** sube al servidor | Fuente global web **sí** queda en `content` de MySQL |
+
+Si una nota se editó solo en móvil con fuente global (sin selección), la web puede mostrarla con la fuente por defecto hasta que el HTML incluya spans o el usuario reaplique la fuente en web. Detalle móvil: `docs-mobile/20-plan-maestro-mejoras-generales.md` (iteración «Fuentes por nota»).
+
+#### CSP y despliegue
+
+El iframe carga hojas y fuentes desde Google. Tras el cambio en `next.config.mjs`, la política debe incluir:
+
+```text
+style-src … https://fonts.googleapis.com
+font-src  … https://fonts.gstatic.com
+```
+
+Sin esas entradas el modal funciona pero las tipografías caen a fuentes del sistema. Tras tocar `next.config.mjs`, reinicia el contenedor (`docker restart biblia2-app`) y recarga con **Ctrl+Shift+R**.
+
+#### Problemas frecuentes (fuentes)
+
+| Síntoma | Causa probable | Qué hacer |
+|---------|----------------|-----------|
+| Modal **Tt** no abre | Error de JS en el iframe (toolbar entera caída) | Revisar consola del iframe; ver regresión `.join('\\n')` en doc móvil 21 |
+| Fuentes se ven «genéricas» | CSP bloquea Google Fonts | Verificar headers en `next.config.mjs` y recargar sin caché |
+| Fuente no aparece en móvil tras guardar en web | Móvil espera SecureStore para fuente global | El HTML con wrapper/spans sí debería verse; fuente solo-SecureStore en móvil no baja a web |
+| Cambio de fuente no persiste | Saliste con **Volver** antes del autoguardado (~4 s) | Esperar autoguardado o pulsar **Guardar** (igual que el resto del editor) |
 
 ### Inserción y edición de imágenes
 

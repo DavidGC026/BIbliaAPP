@@ -74,7 +74,7 @@ Al tocar cualquier imagen dentro del editor en modo de edición:
 
 ## 5. Regresión: toolbar y colores “desaparecidos”
 
-Síntoma: tras meter el panel de imágenes, en notas **no funcionaba ningún botón de la toolbar**, no se abría el selector de fuentes y la fila de colores quedaba vacía (HTML del `#colors-row` sin dots).
+Síntoma: tras meter el panel de imágenes, en notas **no funcionaba ningún botón de la toolbar**, no se abría el selector de fuentes y la fila de colores quedaba vacía (HTML del `#colors-row` sin dots). El mismo fallo afecta al editor web (`lib/note-editor-html.ts`); si **Tt** deja de abrir el modal, revisar primero un `SyntaxError` en el script del iframe.
 
 Causa: `getEditorHtml` construye el HTML/JS del WebView dentro de un **template literal** de TypeScript. El panel usaba:
 
