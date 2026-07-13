@@ -50,6 +50,8 @@ Tras usar **Seleccionar todo** del menú contextual del sistema, la selección d
 | `blurEditor` | Llama a `editor.blur()` |
 | Resto (`setFont`, `insertVerse`, …) | `editor.focus()` y luego la acción |
 
+En **web**, el botón **Tt** no abre modal dentro del iframe: postea `openFontModal` y el padre React envía `setFont` de vuelta (misma acción que aquí). Detalle: [`docs/notas-web-paridad-movil.md`](../docs/notas-web-paridad-movil.md) § Selector de fuente.
+
 **En `app/note/[noteId].tsx`:**
 
 Cuando el teclado pasa de abierto a cerrado en **Android** (`keyboardHeight` de `> 0` a `0`), se envía `{ type: 'blurEditor' }` para que el siguiente tap en el editor vuelva a abrir el teclado con normalidad.

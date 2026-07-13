@@ -26,6 +26,7 @@ La pestaña **Notas** ahora comunica y organiza mejor casos de uso generales:
 | Detalle de libreta | Búsqueda dentro de contenido HTML limpio, orden por recientes/A-Z/largas y resumen de notas/palabras/última actividad |
 | Tarjetas de nota | Preview sin HTML, tags existentes y estimación de lectura |
 | Editor | Estado de guardado visible, conteo de palabras, lectura estimada y control de vista previa sin emojis |
+| Fuentes (web) | Selector **Tt** con modal React conectado al iframe — ver [`docs/notas-web-paridad-movil.md`](../docs/notas-web-paridad-movil.md) |
 | Inicio | Acción **Nota rápida** que abre una nota nueva en la primera libreta o crea `Notas rápidas` |
 | Organización | Notas fijadas arriba, mover a otra libreta y compartir como texto |
 | Inserción bíblica | Modal de versículos con filtro por texto y navegación de capítulo |
