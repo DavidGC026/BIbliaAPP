@@ -23,10 +23,21 @@ lib/              # Lógica de negocio, MySQL, auth, grupos, oración…
 mobile/           # App React Native (Expo)
 docs-mobile/      # Documentación del cliente móvil
 public/           # Estáticos y uploads
-docs/             # Documentación local web (no se sube a Git; ver .gitignore)
+docs/             # Documentación técnica (parcial en Git; ver abajo)
 ```
 
-Documentación local útil (en `docs/`, solo en tu servidor):
+### Documentación en el repositorio
+
+Algunos archivos de `docs/` y `docs-mobile/` están en Git (añadir con `git add -f` si `.gitignore` los oculta):
+
+| Archivo | Contenido |
+|---------|-----------|
+| [`docs/notas-web-paridad-movil.md`](docs/notas-web-paridad-movil.md) | Paridad web de notas con diseño y editor móvil |
+| [`docs/nuevas-secciones.md`](docs/nuevas-secciones.md) | Registrar pantallas en el menú y permisos |
+| [`docs/diccionario.md`](docs/diccionario.md) | API y uso del diccionario Strong |
+| [`docs-mobile/README.md`](docs-mobile/README.md) | Índice de documentación del cliente móvil |
+
+Documentación solo en servidor (no en Git):
 
 | Archivo | Contenido |
 |---------|-----------|

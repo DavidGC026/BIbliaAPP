@@ -2,6 +2,8 @@
 
 Mejoras en la app Android (junio 2026) para que el usuario no pierda apuntes al salir del editor y vea texto legible en la lista de notas de cada cuaderno.
 
+**Paridad web:** la web replica el preview en lista y el autoguardado por debounce (4 s), pero **no** guarda al pulsar **Volver** como el `beforeRemove` de Android. Ver [`docs/notas-web-paridad-movil.md`](../docs/notas-web-paridad-movil.md).
+
 ---
 
 ## Auto-guardado al salir
