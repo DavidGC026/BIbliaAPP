@@ -18,10 +18,20 @@ La sección `reading` ahora renderiza `StudyHub` con tabs internos:
 - **Buscar**: `SearchAdvanced`
 - **Referencias**: `ReferencesExplorer`
 - **Diccionario**: `StrongDictionary`
-- **Planes**: `ReadingPlans` (visible para usuarios con permiso)
+- **Planes**: `ReadingPlans` (solo usuarios logueados con permiso `plans`)
 
 Al seleccionar un resultado de búsqueda se regresa automáticamente al modo **Biblia**.
-Al seleccionar una lectura desde **Planes** también se vuelve a **Biblia** con el pasaje elegido.
+Al seleccionar una lectura desde **Planes** también se vuelve a **Biblia** con el pasaje elegido (`handleSelectVerse` + `setMode("reader")`).
+
+**Visibilidad del tab Planes en StudyHub** (julio 2026, commit «Hace planes visibles en lector web»):
+
+```tsx
+tab.key === "plans" && Boolean(ctx.user) && ctx.allowedSections.includes("plans")
+```
+
+Invitados con acceso a Biblia no ven Planes. El mismo componente en **ProfileHub** no cambia de tab al abrir un pasaje; en StudyHub sí regresa a Biblia.
+
+**Documentación ampliada:** [`docs/planes-lectura.md`](../docs/planes-lectura.md) (API, permisos, planes de grupo).
 
 ### Notas
 

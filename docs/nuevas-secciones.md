@@ -289,6 +289,72 @@ Consulta `lib/app-section-registry/catalog.ts` y `sections.client.tsx` para ver 
 
 ---
 
+## Hubs de secciones (agrupación interna)
+
+Desde julio 2026, varias secciones principales agrupan pantallas hijas con tabs segmentados (`SegmentTabs`) en lugar de entradas separadas en el menú.
+
+**Detalle operativo:** [`docs-mobile/24-reduccion-secciones-web.md`](../docs-mobile/24-reduccion-secciones-web.md) · **Planes de lectura:** [`planes-lectura.md`](./planes-lectura.md)
+
+### Patrón común
+
+1. La sección padre (`reading`, `notebook`, `profile`) registra un hub en `sections.client.tsx` (`StudyHub`, `NotesHub`, `ProfileHub`).
+2. Las secciones hijas siguen en `APP_SECTION_CATALOG` (permisos, `setActiveTab("search")`, validación en APIs).
+3. `HIDDEN_CHILD_SECTIONS` en `nav.client.tsx` oculta hijas del sidebar y tabbar; el acceso es por tabs del hub o por **Más** en móvil.
+4. Cada tab se filtra con `ctx.allowedSections.includes("<id>")`, salvo el tab por defecto de cada hub.
+
+### StudyHub — sección `reading`
+
+| Tab | Componente | Visible si |
+|-----|------------|------------|
+| Biblia | `BibleReader` | Siempre (incluye invitados con `guestAccess`) |
+| Buscar | `SearchAdvanced` | `allowedSections` incluye `search` |
+| Referencias | `ReferencesExplorer` | `references` |
+| Diccionario | `StrongDictionary` | `dictionary` |
+| Planes | `ReadingPlans` | Usuario logueado **y** `allowedSections` incluye `plans` |
+
+Al elegir un pasaje desde **Buscar** o **Planes**, el hub vuelve al tab **Biblia** y navega con `ctx.handleSelectVerse(bookId, chapter)`. Invitados no ven el tab Planes aunque tengan acceso a Biblia.
+
+```tsx
+// StudyHub — filtro del tab Planes (sections.client.tsx)
+tab.key === "plans" && Boolean(ctx.user) && ctx.allowedSections.includes("plans")
+```
+
+### NotesHub — sección `notebook`
+
+| Tab | Componente | Visible si |
+|-----|------------|------------|
+| Notas | `NotesSection` | Siempre |
+| Devocional | `Devotionals` | `devotionals` |
+| Oración | `PrayerRequests` | `prayers` |
+
+### ProfileHub — sección `profile`
+
+| Tab | Componente | Visible si |
+|-----|------------|------------|
+| Perfil | `ProfileSection` | Siempre (`requiresUser` en la sección padre) |
+| Favoritos | `Favorites` | `favorites` |
+| Subrayados | `HighlightsManager` | `highlights` |
+| Planes | `ReadingPlans` | `plans` |
+| Actividad | `Activity` | `activity` |
+| Estadísticas | `Statistics` | `statistics` |
+
+`ReadingPlans` también aparece en **ProfileHub** y como sección standalone `plans` (compatibilidad y `setActiveTab("plans")`). En ProfileHub, `onSelectReading` solo llama `handleSelectVerse` sin cambiar de tab; en StudyHub además regresa a **Biblia**.
+
+### Navegación móvil prioritaria
+
+En `app/page.tsx`, `MOBILE_PRIMARY_NAV_IDS` fija la tabbar a `dashboard`, `reading`, `notebook`, `profile`. El resto va a **Más**.
+
+### Añadir un tab a un hub existente
+
+1. Añade la clave al tipo union (`StudyMode`, etc.) y a `*_TABS`.
+2. Filtra visibilidad en el `.filter()` del hub (permisos + login si aplica).
+3. Renderiza el componente en la rama correspondiente del hub.
+4. Si la sección hija ya existe en el catálogo, inclúyela en `HIDDEN_CHILD_SECTIONS` si no debe aparecer en el menú principal.
+
+No hace falta tocar `app/page.tsx` ni el editor de permisos.
+
+---
+
 ## Archivos que no debes modificar para una sección normal
 
 - `app/page.tsx` — ya usa `<AppSectionOutlet />`
