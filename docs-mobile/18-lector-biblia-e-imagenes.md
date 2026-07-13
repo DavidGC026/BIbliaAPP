@@ -27,7 +27,9 @@ El modal **Lectura** permite:
 - Espaciado **Amplio** o **Compacto**.
 - Alineación **Izquierda** o **Justificada**.
 
-Los ajustes son estado local de la sesión; no se persisten todavía.
+Los ajustes se persisten en el dispositivo vía `lib/readerState.ts` (`SecureStore`, clave `BIBLIA_READER_PREFERENCES`). También se guarda la última lectura para la tarjeta «Continuar lectura» en Inicio.
+
+El **tema del lector** (auto, claro, sepia, noche, alto contraste) es independiente del tema global de la app; ver plan maestro doc 20, iteración «Temas de lectura».
 
 ---
 

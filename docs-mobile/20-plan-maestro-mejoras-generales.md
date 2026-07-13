@@ -12,10 +12,10 @@ Este documento funciona como bitacora viva para las mejoras grandes de la app mo
 | Hecho | Fuentes tipograficas | Corregir la aplicacion real de fuentes descargadas en el editor. | El editor WebView carga fuentes dinamicas y conserva mejor la seleccion al aplicar formato. |
 | Hecho | Descargas offline | Hacer visible la descarga de Biblias y datos auxiliares. | Pantalla dedicada, acceso desde Biblia y lector, cola persistida y reanudacion dentro de la app. |
 | Hecho | Continuidad de lectura | Recordar preferencias del lector y mostrar "Continuar lectura" en Inicio. | Implementado con almacenamiento local y verificado con TypeScript. |
-| En curso | Busqueda universal | Unificar busqueda de Biblia, notas, devocionales, diccionario y referencias. | Ya prioriza resultados locales/offline; faltan referencias cruzadas e historial de busqueda. |
-| En curso | Centro de inicio configurable | Hacer que Inicio sea mas personal y menos estatico. | Acciones rapidas activables/desactivables ya disponibles; falta reordenar modulos completos (recientes, plan, favoritos). |
-| En curso | Sincronizacion visible | Mostrar estado claro de guardado, offline y pendientes de sincronizar. | Ya hay indicador de estado offline y contador de notas pendientes; falta reintento automatico de sincronizacion al recuperar conexion. |
-| Pendiente | Compartir unificado | Crear una experiencia consistente para compartir versiculos, notas, devocionales e imagenes. | Reusar formato, creditos, version biblica y acciones del sistema. |
+| En curso | Busqueda universal | Unificar busqueda de Biblia, notas, devocionales, diccionario y referencias. | Pantalla unificada con historial local y filtros por tipo; faltan referencias cruzadas y filtro por libro/libreta especifica. |
+| En curso | Centro de inicio configurable | Hacer que Inicio sea mas personal y menos estatico. | Recientes inteligentes y acciones rapidas configurables listos; falta reordenar modulos completos del Inicio. |
+| Hecho | Sincronizacion visible | Mostrar estado claro de guardado, offline y pendientes de sincronizar. | `OfflineStatusBadge`, contador de notas pendientes y reintento automatico al reconectar (`NetworkContext` → `syncAll()`). |
+| Hecho | Compartir unificado | Crear una experiencia consistente para compartir versiculos, notas, devocionales e imagenes. | `lib/share.ts` con formato unificado; exportar notas como texto o PDF (`lib/noteExport.ts`). |
 | Hecho | Onboarding ligero | Explicar en pocos pasos las funciones principales sin bloquear. | Tarjeta "Primeros pasos" descartable en Inicio (`components/OnboardingCard.tsx`): Biblia offline, busqueda universal, notas e imagenes de versiculos. Se oculta al omitirla y no vuelve a aparecer. |
 
 ## Iteracion actual
@@ -83,8 +83,8 @@ Prioridad alta porque reduce friccion en acciones frecuentes.
 |--------|--------|---------|
 | Hecho | Continuar lectura | Tarjeta en Inicio, persistencia local y navegacion directa al lector. |
 | Hecho | Recientes inteligentes | Mostrar ultimas notas editadas, versiculos seleccionados y devocionales abiertos. |
-| En curso | Acciones rapidas configurables | Permitir elegir accesos del Inicio: nueva nota, buscar, descargas, imagen de versiculo. |
-| En curso | Recordatorios utiles | Lectura diaria, devocional pendiente y descargas incompletas, con control del usuario. |
+| Hecho | Acciones rapidas configurables | Elegir accesos del Inicio: nueva nota, buscar, descargas, imagen de versiculo (`lib/homeActions.ts`, `app/customize-home.tsx`). |
+| Hecho | Recordatorios utiles | Lectura diaria, devocional pendiente y descargas incompletas, con control por tipo (`lib/reminderPreferences.ts`). |
 
 ## Iteracion en progreso - Busqueda universal
 
