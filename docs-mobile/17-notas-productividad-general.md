@@ -84,3 +84,10 @@ npm run android
 9. Mueve una nota a otra libreta y confirma que desaparezca de la libreta actual.
 10. Comparte una nota y comprueba que el sistema abra la hoja de compartir con título y texto.
 11. En el editor, usa **Versículo** con filtro y **Referencias** para insertar contenido relacionado.
+
+---
+
+## Relacionado
+
+- [22 — Notas: rediseño visual profesional](./22-notas-diseno-profesional.md) — capa visual posterior (filas de libretas, cabecera de documento, tarjetas) sin quitar las funciones descritas aquí.
+- [21 — Inserción y edición de imágenes](./21-insercion-y-edicion-de-imagenes.md) — imágenes en el editor enriquecido.
