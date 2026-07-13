@@ -33,6 +33,8 @@ Documentación local útil (en `docs/`, solo en tu servidor):
 | `docs/comandos-servidor.md` | **Estado, levantar, reiniciar y parar el stack** |
 | `docs/actualizar-despliegue.md` | **Cómo actualizar código y reiniciar el contenedor** |
 | `docs/funcionalidades-iglesias.md` | Funcionalidades para iglesias (grupos, oración, calendario…) |
+| `docs/web-mobile-paridad-global.md` | Shell móvil web: header, tabbar flotante, envoltorio de secciones |
+| `docs/notas-web-paridad-movil.md` | Paridad visual y editor de Notas web ↔ app Android |
 | `docs/infra-privada.md` | Credenciales, `docker run` completo, Adminer (privado) |
 
 ## Desarrollo local
