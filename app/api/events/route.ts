@@ -9,13 +9,15 @@ import {
 } from "@/lib/church-events"
 import { listUserGroupEventsAcrossGroups } from "@/lib/group-events"
 
-function mergeCalendarEvents(churchEvents: Record<string, unknown>[], groupEvents: Record<string, unknown>[]) {
+type CalendarEventRow = Record<string, unknown> & { start_time: string | Date }
+
+function mergeCalendarEvents(churchEvents: CalendarEventRow[], groupEvents: CalendarEventRow[]) {
   const merged = [
     ...churchEvents.map((e) => ({ ...e, source: "church" as const })),
     ...groupEvents.map((e) => ({ ...e, source: "group" as const, category: "grupo" })),
   ]
   merged.sort(
-    (a, b) => new Date(a.start_time as string).getTime() - new Date(b.start_time as string).getTime(),
+    (a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime(),
   )
   return merged
 }
@@ -28,7 +30,9 @@ export async function GET(req: NextRequest) {
         listEventsWithUserRsvp(user.userId),
         listUserGroupEventsAcrossGroups(user.userId),
       ])
-      return NextResponse.json({ events: mergeCalendarEvents(churchEvents, groupEvents) })
+      return NextResponse.json({
+        events: mergeCalendarEvents(churchEvents as CalendarEventRow[], groupEvents as CalendarEventRow[]),
+      })
     }
     const events = await listUpcomingEvents()
     return NextResponse.json({ events: events.map((e) => ({ ...e, source: "church" })) })

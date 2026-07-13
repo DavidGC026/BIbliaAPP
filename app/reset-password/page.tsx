@@ -2,7 +2,6 @@
 
 import { useState, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Loader2, Lock, ArrowRight, CheckCircle2 } from "lucide-react"
@@ -61,8 +60,8 @@ function ResetPasswordContent() {
           <p className="text-sm text-muted-foreground">
             Enlace inválido o incompleto. Solicita uno nuevo desde &quot;Olvidé mi contraseña&quot;.
           </p>
-          <Button asChild className="w-full">
-            <Link href="/">Volver al inicio</Link>
+          <Button className="w-full" onClick={() => router.push("/")}>
+            Volver al inicio
           </Button>
         </div>
       </div>

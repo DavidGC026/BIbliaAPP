@@ -1,5 +1,31 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getPool } from "@/lib/mysql"
+import type { RowDataPacket } from "mysql2/promise"
+
+interface ReferenceArcRow extends RowDataPacket {
+  a: number
+  b: number
+  n: number
+}
+
+interface CountRow extends RowDataPacket {
+  total: number
+}
+
+interface CrossReferenceExportRow extends RowDataPacket {
+  vid_origen: number
+  vid_destino: number
+  votos: number
+}
+
+interface CrossReferenceRow extends RowDataPacket {
+  book_name: string
+  book_id: number
+  chapter: number
+  verse: number
+  text: string
+  votos: number
+}
 
 export async function GET(req: NextRequest) {
   try {
@@ -9,7 +35,7 @@ export async function GET(req: NextRequest) {
     // [vid_origen, vid_destino, votos] paginadas (para mostrar progreso)
     // Agregación capítulo-a-capítulo para el diagrama de arcos (mapa de referencias)
     if (searchParams.get("arcs") !== null) {
-      const [rows] = await getPool().query<{ a: number; b: number; n: number }[]>(
+      const [rows] = await getPool().query<ReferenceArcRow[]>(
         `SELECT FLOOR(vid_origen / 1000) AS a, FLOOR(vid_destino / 1000) AS b, COUNT(*) AS n
          FROM bible_cross_references
          GROUP BY FLOOR(vid_origen / 1000), FLOOR(vid_destino / 1000)`,
@@ -36,11 +62,11 @@ export async function GET(req: NextRequest) {
     if (searchParams.get("export") !== null) {
       const page = Math.max(1, Number(searchParams.get("page")) || 1)
       const EXPORT_PAGE_SIZE = 25000
-      const [countRows] = await getPool().query<any[]>(
+      const [countRows] = await getPool().query<CountRow[]>(
         `SELECT COUNT(*) AS total FROM bible_cross_references`,
       )
       const total = Number(countRows[0]?.total ?? 0)
-      const [rows] = await getPool().query<any[]>(
+      const [rows] = await getPool().query<CrossReferenceExportRow[]>(
         `SELECT vid_origen, vid_destino, votos
          FROM bible_cross_references
          ORDER BY vid_origen, vid_destino
@@ -88,7 +114,7 @@ export async function GET(req: NextRequest) {
       LIMIT 100
     `
 
-    const [rows] = await getPool().query<any[]>(query, [bibleId, vidOrigen])
+    const [rows] = await getPool().query<CrossReferenceRow[]>(query, [bibleId, vidOrigen])
     
     return NextResponse.json({ references: rows })
   } catch (err) {

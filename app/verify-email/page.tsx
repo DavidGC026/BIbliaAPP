@@ -2,7 +2,6 @@
 
 import { useEffect, useState, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Loader2, CheckCircle2, XCircle } from "lucide-react"
 
@@ -58,8 +57,8 @@ function VerifyEmailContent() {
             <XCircle className="size-12 text-destructive mx-auto" />
             <h1 className="text-xl font-bold text-foreground">No se pudo verificar</h1>
             <p className="text-sm text-muted-foreground">{message}</p>
-            <Button variant="outline" className="w-full mt-2" asChild>
-              <Link href="/">Volver al inicio</Link>
+            <Button variant="outline" className="w-full mt-2" onClick={() => router.push("/")}>
+              Volver al inicio
             </Button>
           </>
         )}
