@@ -111,6 +111,22 @@ Misma lógica que `mobile/lib/notebookCovers.ts`.
 
 ---
 
+## Portadas de libretas
+
+Móvil y web comparten el mismo campo `coverImage` en la API de libretas (`POST/PUT /api/notebooks`).
+
+| Aspecto | Móvil (`NotebooksPanel`) | Web (`notebook-sidebar.tsx`) |
+|---------|--------------------------|------------------------------|
+| Cuadrícula | Fija **2 columnas** en teléfono | Responsiva: 2–5 columnas según ancho |
+| Presets | 6 gradientes `grad-*` | Mismos IDs (`PRESET_COVERS` / `NOTEBOOK_PRESET_COVERS`) |
+| Imagen custom | Unsplash, galería (`uploadImage`) o URL | Unsplash, subida de archivo o URL |
+| Render | `BookCover` + `LinearGradient` / `AuthedImage` | `BookCover` con clases Tailwind o `background-image` |
+| Acciones | Editar / eliminar flotantes en cada tarjeta | Editar / eliminar al hover en la estantería |
+
+El rediseño visual móvil (julio 2026) **no eliminó** las portadas: refinó espaciado, métricas y acciones sobre la cuadrícula existente. Detalle en [`docs-mobile/22-notas-diseno-profesional.md`](../docs-mobile/22-notas-diseno-profesional.md#portadas-de-libretas).
+
+---
+
 ## Despliegue
 
 Tras cambios en estos archivos, reinicia el contenedor de la app:
@@ -144,4 +160,4 @@ Recarga el navegador con **Ctrl+Shift+R** en https://biblia2.dvguzman.com → me
 
 ---
 
-*Última revisión: junio 2026.*
+*Última revisión: julio 2026.*
