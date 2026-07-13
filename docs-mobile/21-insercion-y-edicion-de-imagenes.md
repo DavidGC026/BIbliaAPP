@@ -133,6 +133,8 @@ Causas:
 - `requestEditorHtml()` tenía un fallback de `450ms`. Con imágenes grandes o base64, el WebView puede tardar más en responder con `editor.innerHTML`; si ganaba el fallback, se guardaba el estado React anterior, sin la imagen recién insertada.
 - Las ediciones de imagen usaban `notifyChange()` con debounce, así que el estado React podía quedar momentáneamente atrasado.
 - El panel fijo ya no necesita reposicionarse durante cada evento de scroll; hacerlo provocaba reajustes visuales repetidos.
+- En modo online, `repoUpdateNotebookNote()` subía al servidor y luego reemplazaba SQLite con `getNotebookNote()`. Si la respuesta remota no traía exactamente el mismo HTML, la copia local podía perder el `<img>`.
+- El backend guardaba `bible_notebook_notes.content` como `TEXT`; una imagen base64 puede superar ese límite.
 
 Fix:
 
@@ -140,3 +142,5 @@ Fix:
 - Las inserciones y ediciones de imagen usan `notifyChangeNow()` para sincronizar el HTML inmediatamente.
 - Antes de responder a `getHtml`, el WebView limpia el estado visual de edición (`outline`, panel y `imageEditMode`) para no guardar estilos temporales.
 - Se elimina el reajuste continuo del panel durante `scroll`; `keepImageVisible()` queda solo para apertura y cambios que realmente mueven la imagen.
+- `repoCreateNotebookNote()` y `repoUpdateNotebookNote()` ahora son local-first: guardan primero el HTML exacto del editor en SQLite y luego intentan sincronizar.
+- `ensureDbTables()` cambia `bible_notebook_notes.content` a `MEDIUMTEXT` para soportar notas con imágenes embebidas.

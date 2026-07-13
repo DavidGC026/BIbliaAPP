@@ -52,7 +52,7 @@ async function _ensureDbTables(): Promise<void> {
       id INT AUTO_INCREMENT PRIMARY KEY,
       notebook_id INT NOT NULL,
       title VARCHAR(255) NOT NULL,
-      content TEXT NOT NULL,
+      content MEDIUMTEXT NOT NULL,
       joplin_note_id VARCHAR(255) DEFAULT NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -90,6 +90,10 @@ async function _ensureDbTables(): Promise<void> {
   // Add tags to notebook notes
   try {
     await pool.query(`ALTER TABLE bible_notebook_notes ADD COLUMN tags TEXT DEFAULT NULL`)
+  } catch (_) {}
+
+  try {
+    await pool.query(`ALTER TABLE bible_notebook_notes MODIFY content MEDIUMTEXT NOT NULL`)
   } catch (_) {}
 
   // Migrate legacy Joplin schema → local note storage
