@@ -72,8 +72,48 @@ Archivo: `app/globals.css`
 
 Archivo: `components/ui/segment-tabs.tsx`
 
-- Los tabs segmentados usan margen mobile más consistente (`mx-4`) y radio `rounded-2xl`.
-- Cada opción usa `flex-1`, `rounded-xl` y tipografía más cercana al patrón mobile.
+Componente genérico `<SegmentTabs tabs active onChange />` usado por los hubs de sección (`StudyHub`, `NotesHub`, `ProfileHub` en `lib/app-section-registry/sections.client.tsx`) y por las pestañas internas de `components/notes-section.tsx`.
+
+**Layout**
+
+- Contenedor relativo con margen mobile (`mx-4 mt-3 mb-2`) y radio `rounded-2xl`.
+- Fila de botones con `overflow-x-auto`, `scrollbar-none` y `flex-1` por tab (`min-w-fit shrink-0`).
+- Tipografía `text-[13px] font-extrabold`; activo con `bg-primary/10 text-primary`.
+
+**Indicador de deslizamiento (julio 2026, commit `cd6d916`)**
+
+Cuando hay más de tres tabs visibles (`tabs.length > 3`), la fila puede desbordarse en pantallas estrechas. En móvil se muestra una pista visual de scroll horizontal:
+
+| Condición | Comportamiento |
+|-----------|----------------|
+| `tabs.length <= 3` | Sin indicador (ej. `NotesSection`: Notas / Diario / Biblioteca). |
+| `tabs.length > 3` | Overlay decorativo en el borde derecho, solo `< md` (`md:hidden`). |
+| Escritorio (`md+`) | Sin overlay; padding normal (`md:pr-1`). |
+
+Implementación:
+
+- La fila de tabs usa `pr-9` en móvil para dejar espacio al indicador; en desktop vuelve a `md:pr-1`.
+- Overlay `pointer-events-none` con gradiente `from-card via-card/95 to-transparent` y `ChevronRight` con `animate-pulse` dentro de un círculo con borde.
+- `aria-hidden="true"` — es decorativo; el scroll sigue siendo gesto nativo sobre la fila de botones.
+
+**Quién activa el indicador**
+
+| Pantalla | Tabs máx. | ¿Indicador? |
+|----------|-----------|-------------|
+| `ProfileHub` (todos los permisos) | 6 | Sí |
+| `StudyHub` (usuario + permisos completos) | 5 | Sí |
+| `NotesHub` | 3 | No |
+| `NotesSection` (dentro del hub) | 3 | No |
+
+Los tabs visibles en cada hub se filtran con `ctx.allowedSections` (y `ctx.user` para Planes en StudyHub); usuarios con menos permisos pueden ver ≤3 tabs y no verán el indicador aunque el hub lo soporte.
+
+**Añadir tabs a un hub**
+
+1. Pasar el array `{ key, label }[]` a `<SegmentTabs />`; no hace falta lógica extra para el indicador.
+2. Si esperas >3 tabs en móvil, prueba en viewport ~360px que el último tab siga siendo alcanzable al deslizar.
+3. Para cambiar el umbral, edita `showScrollHint = tabs.length > 3` en `segment-tabs.tsx` (afecta todos los consumidores).
+
+Ver también: [24-reduccion-secciones-web.md](./24-reduccion-secciones-web.md) (agrupación en hubs).
 
 ## Validación
 

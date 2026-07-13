@@ -6,6 +6,21 @@ Fecha: julio 2026
 
 Reducir la cantidad de secciones visibles en la web, siguiendo el patrón de la app mobile: una sección principal contiene varios modos internos mediante tabs segmentados.
 
+## Componente `SegmentTabs`
+
+Archivo: `components/ui/segment-tabs.tsx`
+
+Los tres hubs (`StudyHub`, `NotesHub`, `ProfileHub`) renderizan sus modos con `<SegmentTabs tabs active onChange />`. El mismo componente también usa `components/notes-section.tsx` para las pestañas internas Notas / Diario / Biblioteca.
+
+| Prop | Tipo | Uso |
+|------|------|-----|
+| `tabs` | `{ key: T; label: string }[]` | Opciones visibles (ya filtradas por permisos en cada hub). |
+| `active` | `T` | Clave del modo actual. |
+| `onChange` | `(key: T) => void` | Cambia el modo (estado local en cada hub). |
+| `className` | opcional | Clases extra en el contenedor externo. |
+
+**Scroll en móvil:** la fila es horizontalmente desplazable (`overflow-x-auto`). Si hay **más de tres** tabs, aparece un indicador visual en el borde derecho (chevron pulsante + gradiente) solo en viewports `< md`. Detalle de layout, umbrales y consumidores: [23-paridad-web-mobile-global.md § Tabs segmentadas](./23-paridad-web-mobile-global.md#tabs-segmentadas-compartidas).
+
 ## Agrupaciones
 
 ### Leer

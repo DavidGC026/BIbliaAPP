@@ -28,7 +28,7 @@ La pestaña **Notas** del menú web ahora replica la estructura y el editor de l
 | Archivo | Rol |
 |---------|-----|
 | `components/notes-section.tsx` | Pantalla unificada con encabezado y pestañas segmentadas |
-| `components/ui/segment-tabs.tsx` | UI de pestañas (Libretas / Diario / Libros) |
+| `components/ui/segment-tabs.tsx` | UI compartida de pestañas segmentadas (Notas + hubs de sección); scroll horizontal con indicador cuando hay >3 tabs — ver [doc 23 § Tabs segmentadas](../docs-mobile/23-paridad-web-mobile-global.md#tabs-segmentadas-compartidas) |
 | `components/note-rich-editor.tsx` | Editor iframe + vista previa de solo lectura |
 | `lib/note-editor-html.ts` | Plantilla HTML del editor (portada desde `mobile/lib/editorHtml.ts`) |
 | `lib/note-editor-theme.ts` | Colores del editor leídos de variables CSS del tema web |
