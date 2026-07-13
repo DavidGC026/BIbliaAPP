@@ -76,10 +76,37 @@ La tabbar móvil prioriza:
 
 El resto queda en **Más**.
 
+Constante: `MOBILE_PRIMARY_NAV_IDS`. Si hay más de cuatro secciones visibles, la tabbar muestra esas cuatro más el botón **Más**.
+
+## Navegación directa (compatibilidad)
+
+Las secciones hijas siguen registradas en el outlet. Código que hace `setActiveTab("search")`, `setActiveTab("prayers")` o abre `/?strong=G25` activa la sección standalone **sin** los tabs del hub.
+
+| Origen | Destino | Vista |
+|--------|---------|-------|
+| Dashboard → Buscar | `search` | Búsqueda sin tabs de Leer |
+| Header móvil → lupa | `search` | Igual |
+| `NotificationBell` → oración | `prayers` | Oración sin tabs de Notas |
+| Deep link `/?strong=G25` | `dictionary` | Diccionario standalone |
+
+Para mostrar el hub, navega al padre (`reading`, `notebook`, `profile`). Guía para desarrolladores: [`docs/nuevas-secciones.md`](../docs/nuevas-secciones.md).
+
+## Tabs anidados en Notas
+
+`NotesHub` envuelve `NotesSection`. El tab **Notas** del hub contiene las pestañas internas Libretas · Diario · Biblioteca; **Devocional** del hub y **Diario** interno renderizan el mismo componente `Devotionals`. Es intencional para mantener paridad con la estructura móvil previa.
+
 ## Validación
 
 ```bash
 npx tsc --noEmit
 npm run build
 ```
+
+## Documentación relacionada
+
+| Documento | Contenido |
+|-----------|-----------|
+| [`docs/nuevas-secciones.md`](../docs/nuevas-secciones.md) | Cómo añadir secciones, hubs, `HIDDEN_CHILD_SECTIONS` |
+| [`docs/notas-web-paridad-movil.md`](../docs/notas-web-paridad-movil.md) | `NotesHub` y editor de notas |
+| [`23-paridad-web-mobile-global.md`](./23-paridad-web-mobile-global.md) | Shell móvil global (tabbar flotante, header) |
 

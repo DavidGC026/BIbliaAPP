@@ -74,6 +74,19 @@ Archivo: `components/ui/segment-tabs.tsx`
 
 - Los tabs segmentados usan margen mobile más consistente (`mx-4`) y radio `rounded-2xl`.
 - Cada opción usa `flex-1`, `rounded-xl` y tipografía más cercana al patrón mobile.
+- Los hubs (`StudyHub`, `NotesHub`, `ProfileHub`) reutilizan este componente para agrupar secciones.
+
+## Reducción de secciones en hubs
+
+Commit `db1936b` agrupa pantallas relacionadas bajo tres secciones padre con tabs internos, alineado con la app móvil:
+
+| Menú visible | Tabs internos |
+|--------------|---------------|
+| Leer | Biblia · Buscar · Referencias · Diccionario |
+| Notas | Notas · Devocional · Oración |
+| Perfil | Perfil · Favoritos · Subrayados · Planes · Actividad · Estadísticas |
+
+Detalle de implementación, navegación directa y tabbar móvil: [`24-reduccion-secciones-web.md`](./24-reduccion-secciones-web.md).
 
 ## Validación
 
