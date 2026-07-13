@@ -56,6 +56,16 @@ Cuando el teclado pasa de abierto a cerrado en **Android** (`keyboardHeight` de 
 
 ---
 
+## 3. Teclado durante edición de imágenes
+
+Relacionado con [21-insercion-y-edicion-de-imagenes.md](./21-insercion-y-edicion-de-imagenes.md).
+
+Al tocar una imagen en el editor, el WebView envía `{ type: 'imageEditMode', active: true }`, pone `contenteditable="false"`, oculta la toolbar y hace `blur()` del editor. React Native ejecuta `Keyboard.dismiss()` y deshabilita el campo **Título** mientras dura el modo imagen.
+
+Al guardar o auto-guardar, `getHtml` llama a `clearImageEditingChrome()` antes de leer `editor.innerHTML`, así no se persisten estilos temporales del panel.
+
+---
+
 ## Archivos tocados
 
 | Archivo | Cambio |

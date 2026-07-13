@@ -15,6 +15,7 @@ La pestaña **Notas** del menú web ahora replica la estructura y el editor de l
 | Vista previa | No existía | Toggle **Vista Previa / Modo Edición** |
 | Lista de notas | Resumen con regex markdown | `stripNotePreview()` — soporta HTML y markdown |
 | Cabecera del editor | Iconos + Publicar + tags | **Volver · Borrar · Guardar** (estilo móvil) |
+| Imágenes en el cuerpo de la nota | No | **Solo lectura** — la web renderiza bloques `.note-image-block` creados en móvil; no hay botón 🖼️ ni panel de edición en `note-rich-editor.tsx` |
 
 ---
 
@@ -141,7 +142,8 @@ Recarga el navegador con **Ctrl+Shift+R** en https://biblia2.dvguzman.com → me
 - El lector bíblico (`components/bible-reader`) sigue usando `NotebookSidebar` directamente en el panel lateral, sin pestañas.
 - La publicación de notas al feed de comunidad se retiró del editor web para igualar la UX móvil (solo Guardar / Borrar).
 - Auto-guardado al salir del editor **no** está en web; solo en Android (`docs-mobile/14-notas-autoguardado-y-preview.md`).
+- **Imágenes en notas:** móvil inserta y edita con galería + WebView (`docs-mobile/21-insercion-y-edicion-de-imagenes.md`). La web muestra el HTML resultante en el editor y en vista previa, pero no expone inserción ni el panel de alineación/tamaño. Las URLs remotas (`/api/media/...`) y los data URIs base64 offline se conservan al sincronizar.
 
 ---
 
-*Última revisión: junio 2026.*
+*Última revisión: julio 2026.*
