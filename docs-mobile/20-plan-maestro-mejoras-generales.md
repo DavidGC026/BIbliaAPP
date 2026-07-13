@@ -208,6 +208,20 @@ Objetivo: que la fuente elegida para una nota sobreviva al guardar y salir, y qu
 | Hecho | Regresion toolbar/colores (imagenes). | El panel de edicion de imagenes en `editorHtml.ts` usaba `.join('\n')` dentro del template literal de TypeScript. Eso convertia `\n` en un salto de linea real en el JS del WebView (`].join('` + newline + `');`), provocaba `SyntaxError` y tumba **todo** el script: toolbar muerta, fila de colores vacia y modal de fuentes sin abrir. Fix: `.join('\\n')`. Ver doc 21. |
 | Pendiente | Prueba manual mobile. | Cambiar fuente sin seleccion, guardar, salir y reabrir; buscar "lobster" en minusculas; buscar una fuente ya descargada; confirmar dots de color y botones B/I/U tras el fix. |
 
+## Iteracion en progreso - Persistencia de imagenes en notas
+
+Objetivo: que las imagenes insertadas en notas sobrevivan al guardar, sincronizar y reabrir, incluso con base64 offline.
+
+| Estado | Tarea | Resultado esperado |
+|--------|-------|--------------------|
+| Hecho | Timeout de `getHtml` ampliado. | Fallback de 450 ms → 5000 ms en `mobile/app/note/[noteId].tsx` para no guardar HTML incompleto con imagenes grandes. |
+| Hecho | Sincronizacion inmediata tras editar imagen. | Inserciones y cambios de imagen usan `notifyChangeNow()` en lugar de debounce. |
+| Hecho | Limpieza de chrome temporal al guardar. | El WebView quita `outline`, panel y `imageEditMode` antes de responder a `getHtml`. |
+| Hecho | Guardado local-first. | `repoCreateNotebookNote()` y `repoUpdateNotebookNote()` escriben primero SQLite con el HTML del editor y luego sincronizan al servidor. |
+| Hecho | Esquema `MEDIUMTEXT` en servidor. | `lib/bible.ts` crea/migra `bible_notebook_notes.content` a `MEDIUMTEXT` para soportar base64 embebido. |
+| Hecho | Documentacion especifica. | Ver [21-insercion-y-edicion-de-imagenes.md](./21-insercion-y-edicion-de-imagenes.md) §7 y [notas-web-paridad-movil.md](../docs/notas-web-paridad-movil.md). |
+| Pendiente | Prueba manual mobile. | Insertar imagen online y offline, guardar, salir, reabrir y verificar en web con la misma cuenta. |
+
 ### Como integrar la fuente por nota
 
 1. Al abrir nota existente: `getNoteFont(id)` → `setActiveFont` **antes** de montar el WebView (`loading` sigue true hasta que termina).

@@ -96,6 +96,31 @@ La app Android guarda primero en SQLite local y sube al servidor con `syncAll()`
 - La app debe tener **conexión** (o sincronizar al volver online).
 - En web, recarga la libreta (vuelve a entrar o refresca).
 
+### Imágenes en notas (julio 2026)
+
+| Cliente | Insertar imagen | Ver imagen guardada |
+|---------|-----------------|---------------------|
+| Android | Sí — galería, subida a `/api/upload` o base64 offline | Sí |
+| Web | No — el editor iframe aún no expone el botón 🖼️ | Sí — el HTML con `<img>` se renderiza en vista previa y lista |
+
+Flujo móvil documentado en [`docs-mobile/21-insercion-y-edicion-de-imagenes.md`](../docs-mobile/21-insercion-y-edicion-de-imagenes.md).
+
+**Persistencia y tamaño del contenido:**
+
+- Las notas de libreta guardan HTML completo en `bible_notebook_notes.content`.
+- Una imagen offline va embebida como `data:image/...;base64,...` y puede superar el límite de `TEXT` (~64 KB en MariaDB).
+- `ensureDbTables()` en `lib/bible.ts` crea la columna como `MEDIUMTEXT` (hasta ~16 MB) y ejecuta en arranque:
+
+  ```sql
+  ALTER TABLE bible_notebook_notes MODIFY content MEDIUMTEXT NOT NULL
+  ```
+
+  El `ALTER` va en un `try/catch` idempotente: en despliegues existentes se aplica al reiniciar la app; en instalaciones nuevas ya nace con `MEDIUMTEXT`.
+
+- En Android, `repoCreateNotebookNote()` y `repoUpdateNotebookNote()` son **local-first**: escriben primero el HTML exacto del editor en SQLite y luego sincronizan. Evita perder `<img>` si la respuesta remota difiere del HTML local (ver doc 21, §7).
+
+**Recomendación operativa:** preferir URLs de `/api/upload` cuando hay red; reservar base64 para offline. Tras desplegar el cambio de esquema, reinicia `biblia2-app` para que `ensureDbTables()` ejecute la migración.
+
 ---
 
 ## Preview en la lista de libretas
@@ -144,4 +169,4 @@ Recarga el navegador con **Ctrl+Shift+R** en https://biblia2.dvguzman.com → me
 
 ---
 
-*Última revisión: junio 2026.*
+*Última revisión: julio 2026.*
