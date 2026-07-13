@@ -30,6 +30,7 @@ La pestaña **Notas** ahora comunica y organiza mejor casos de uso generales:
 | Organización | Notas fijadas arriba, mover a otra libreta y compartir como texto |
 | Inserción bíblica | Modal de versículos con filtro por texto y navegación de capítulo |
 | Referencias | Nueva herramienta para insertar referencias cruzadas desde un versículo origen |
+| Imágenes | Inserción desde galería, subida online o base64 offline, redimensionado y alineación en el editor (ver [21-insercion-y-edicion-de-imagenes.md](./21-insercion-y-edicion-de-imagenes.md)) |
 
 ---
 

@@ -7,6 +7,7 @@ Este documento funciona como bitacora viva para las mejoras grandes de la app mo
 | Estado | Area | Objetivo | Notas |
 |--------|------|----------|-------|
 | Hecho | Notas profesionales | Convertir Notas en una herramienta general, util aunque no sea solo para estudio biblico. | Busqueda, libretas, acciones rapidas, mover notas, fijar notas, compartir, insertar versiculos y referencias. |
+| Hecho | Imagenes en notas | Insertar, redimensionar, alinear y reordenar imagenes dentro del editor enriquecido. | Galeria + subida a `/api/upload` online, fallback base64 offline, panel de edicion en WebView. Ver doc 21. |
 | Hecho | Lector biblico | Mejorar la lectura visual y la accion sobre versiculos. | Controles de tamano, densidad, alineacion, progreso del capitulo, seleccion y accesos a compartir, notas, referencias e imagenes. |
 | Hecho | Imagen del versiculo | Hacer mas util la generacion visual de versiculos. | Presets visuales, mejor jerarquia y composicion editable desde el creador. |
 | Hecho | Fuentes tipograficas | Corregir la aplicacion real de fuentes descargadas en el editor. | El editor WebView carga fuentes dinamicas y conserva mejor la seleccion al aplicar formato. |

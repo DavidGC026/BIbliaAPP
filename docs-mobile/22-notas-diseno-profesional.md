@@ -41,7 +41,7 @@ Convertir Notas en una superficie de trabajo más profesional:
 - Autoguardado y guardado manual.
 - Vista previa.
 - Inserción de versículos, referencias, diccionario, tablas, fuentes, colores e imágenes.
-- Edición de imágenes con teclado bloqueado y toolbar oculta temporalmente.
+- Edición de imágenes con teclado bloqueado y toolbar oculta temporalmente (detalle en [21-insercion-y-edicion-de-imagenes.md](./21-insercion-y-edicion-de-imagenes.md)).
 
 ---
 
