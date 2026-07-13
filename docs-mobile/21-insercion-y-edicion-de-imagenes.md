@@ -196,3 +196,5 @@ La función de imágenes existía solo en `mobile/lib/editorHtml.ts`; el editor 
   - El timeout de `requestEditorHtml` sube de 500ms a 5000ms (mismo motivo que §7: notas con imágenes tardan más en cruzar el `postMessage`).
 
 Pruebas manuales web: insertar imagen con 🖼️, redimensionar/alinear/mover/borrar desde el panel, guardar, recargar y verificar persistencia; abrir en el móvil la misma nota y comprobar que se ve idéntica (y viceversa).
+
+Documentación web ampliada: [`docs/notas-web-paridad-movil.md`](../docs/notas-web-paridad-movil.md) (organización de libretas, autoguardado, problemas frecuentes).

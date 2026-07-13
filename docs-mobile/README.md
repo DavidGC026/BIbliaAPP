@@ -35,6 +35,8 @@ Documentación del cliente móvil de **BibliaAPP** (React Native + Expo). La app
 | [21-insercion-y-edicion-de-imagenes.md](./21-insercion-y-edicion-de-imagenes.md) | Inserción, redimensionado, posición y alineación de imágenes en notas |
 | [22-notas-diseno-profesional.md](./22-notas-diseno-profesional.md) | Rediseño visual profesional de notas, libretas, tarjetas y editor |
 
+**Paridad web (Next.js):** [`docs/notas-web-paridad-movil.md`](../docs/notas-web-paridad-movil.md) — editor enriquecido, imágenes, referencias, diccionario y productividad de libretas alineados con esta documentación móvil.
+
 ---
 
 ## Versión documentada
