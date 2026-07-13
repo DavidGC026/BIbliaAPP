@@ -1,6 +1,8 @@
 # Notas web — paridad con diseño móvil
 
-Documentación de los cambios (junio 2026) que alinean la sección **Notas** de la web con la app Android.
+Documentación de los cambios (junio–julio 2026) que alinean la sección **Notas** de la web con la app Android.
+
+**Shell móvil global (header, tabbar flotante, padding de secciones):** [`web-mobile-paridad-global.md`](./web-mobile-paridad-global.md)
 
 ---
 
@@ -43,7 +45,7 @@ La pestaña **Notas** del menú web ahora replica la estructura y el editor de l
 | `components/notebook-sidebar.tsx` | Editor móvil, preview en lista, modo `embedded` dentro de pestañas |
 | `components/note-rich-editor.tsx` | Puente iframe/web para imágenes, versículos, referencias y diccionario |
 | `lib/app-section-registry/sections.client.tsx` | La sección `notebook` renderiza `NotesSection` |
-| `lib/app-section-registry/outlet.tsx` | Layout `notebook` sin padding extra (pantalla completa) |
+| `lib/app-section-registry/outlet.tsx` | Layout `notebook` con `mobile-section-shell` y `h-[calc(100dvh-160px)]` en móvil |
 
 ---
 
@@ -182,6 +184,18 @@ Recarga el navegador con **Ctrl+Shift+R** en https://biblia2.dvguzman.com → me
 6. Inserta referencias cruzadas y una entrada del diccionario.
 7. Activa **Vista previa** y verifica que el contenido se ve bien.
 8. Guarda y vuelve a la lista: el resumen debe ser texto legible, no HTML crudo.
+
+---
+
+## Shell móvil global
+
+Notas hereda el envoltorio común de todas las pestañas web en móvil:
+
+- `AppSectionOutlet` envuelve la sección `notebook` en `<section class="mobile-section-shell">` (padding `14px` lateral).
+- La altura del panel usa `h-[calc(100dvh-160px)]` para encajar entre header (`64px`) y tabbar flotante (`72px` + margen).
+- El área de scroll principal reserva `pb-[calc(96px+safe-area)]` para que botones al pie del editor no queden bajo la tabbar.
+
+Detalle de arquitectura, constantes de altura y troubleshooting: [`web-mobile-paridad-global.md`](./web-mobile-paridad-global.md).
 
 ---
 
