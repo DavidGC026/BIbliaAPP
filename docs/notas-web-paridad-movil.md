@@ -42,7 +42,7 @@ La pestaña **Notas** del menú web ahora replica la estructura y el editor de l
 |---------|--------|
 | `components/notebook-sidebar.tsx` | Editor móvil, preview en lista, modo `embedded` dentro de pestañas |
 | `components/note-rich-editor.tsx` | Puente iframe/web para imágenes, versículos, referencias y diccionario |
-| `lib/app-section-registry/sections.client.tsx` | La sección `notebook` renderiza `NotesSection` |
+| `lib/app-section-registry/sections.client.tsx` | La sección `notebook` renderiza `NotesHub` (tabs Notas · Devocional · Oración) |
 | `lib/app-section-registry/outlet.tsx` | Layout `notebook` sin padding extra (pantalla completa) |
 
 ---
@@ -105,16 +105,27 @@ Flujo equivalente a `mobile/components/InsertDictionaryModal.tsx`:
 
 ## Pestañas de la sección Notas
 
-Equivalente a `mobile/app/(tabs)/notes.tsx`:
+Desde julio 2026 la entrada de menú **Notas** (`notebook`) usa `NotesHub` con tres tabs de primer nivel:
 
 ```text
-Notas
-├── Libretas   → NotebookSidebar (embedded)
-├── Diario     → Devotionals
-└── Libros     → PersonalLibrary
+Notas (menú → notebook → NotesHub)
+├── Notas      → NotesSection (tabs internas: Libretas · Diario · Biblioteca)
+├── Devocional → Devotionals
+└── Oración    → PrayerRequests
 ```
 
-Las secciones **Diario** y **Libros** siguen existiendo por separado en el menú lateral; dentro de **Notas** quedan agrupadas como en móvil.
+Dentro del tab **Notas**, `NotesSection` conserva la estructura móvil de libretas:
+
+```text
+NotesSection (tab "Notas" del hub)
+├── Notas      → NotebookSidebar (embedded)
+├── Diario     → Devotionals
+└── Biblioteca → PersonalLibrary
+```
+
+Las secciones `devotionals` y `prayers` siguen en el catálogo de permisos pero ya no aparecen como entradas separadas en el menú lateral; se acceden desde `NotesHub` o por navegación directa (`setActiveTab("devotionals")` desde el dashboard, `setActiveTab("prayers")` desde notificaciones).
+
+Guía de hubs y menú: [`docs/nuevas-secciones.md`](./nuevas-secciones.md) · resumen de producto: [`docs-mobile/24-reduccion-secciones-web.md`](../docs-mobile/24-reduccion-secciones-web.md).
 
 ---
 
@@ -174,14 +185,15 @@ Recarga el navegador con **Ctrl+Shift+R** en https://biblia2.dvguzman.com → me
 
 ## Cómo probar
 
-1. Inicia sesión y abre **Notas** en el menú.
-2. Comprueba las tres pestañas: Libretas, Diario, Libros.
-3. Abre una libreta → crea o edita una nota.
-4. Usa formato (negrita, color, listas), cambia fuente y usa **Insertar versículo**.
-5. Inserta una imagen, redimensiónala y alinéala; guarda, sal y vuelve a abrir la nota.
-6. Inserta referencias cruzadas y una entrada del diccionario.
-7. Activa **Vista previa** y verifica que el contenido se ve bien.
-8. Guarda y vuelve a la lista: el resumen debe ser texto legible, no HTML crudo.
+1. Inicia sesión y abre **Notas** en el menú (tabbar móvil: icono Notas).
+2. Comprueba los tabs del hub: **Notas**, **Devocional**, **Oración**.
+3. En el tab **Notas**, comprueba las pestañas internas: Libretas, Diario, Biblioteca.
+4. Abre una libreta → crea o edita una nota.
+5. Usa formato (negrita, color, listas), cambia fuente y usa **Insertar versículo**.
+6. Inserta una imagen, redimensiónala y alinéala; guarda, sal y vuelve a abrir la nota.
+7. Inserta referencias cruzadas y una entrada del diccionario.
+8. Activa **Vista previa** y verifica que el contenido se ve bien.
+9. Guarda y vuelve a la lista: el resumen debe ser texto legible, no HTML crudo.
 
 ---
 
@@ -193,4 +205,4 @@ Recarga el navegador con **Ctrl+Shift+R** en https://biblia2.dvguzman.com → me
 
 ---
 
-*Última revisión: julio 2026.*
+*Última revisión: julio 2026 (NotesHub, commit `db1936b`).*
