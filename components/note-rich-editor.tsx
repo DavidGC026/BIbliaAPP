@@ -5,6 +5,24 @@ import { useTheme } from "next-themes"
 import { getEditorHtml } from "@/lib/note-editor-html"
 import { DEFAULT_EDITOR_COLORS, getNoteEditorColors } from "@/lib/note-editor-theme"
 import { normalizeNoteContentForEditor } from "@/lib/note-content"
+import { cn } from "@/lib/utils"
+
+const NOTE_FONT_OPTIONS = [
+  { id: "Default", name: "Predeterminada", category: "Sistema", family: "system-ui, sans-serif" },
+  { id: "serif", name: "Serif", category: "Sistema", family: "serif" },
+  { id: "monospace", name: "Monospace", category: "Sistema", family: "monospace" },
+  { id: "Lora", name: "Lora", category: "Serif", family: "Lora, Georgia, serif" },
+  { id: "PlayfairDisplay", name: "Playfair Display", category: "Serif", family: "Playfair Display, Georgia, serif" },
+  { id: "Merriweather", name: "Merriweather", category: "Serif", family: "Merriweather, Georgia, serif" },
+  { id: "Inter", name: "Inter", category: "Sans-serif", family: "Inter, system-ui, sans-serif" },
+  { id: "Montserrat", name: "Montserrat", category: "Sans-serif", family: "Montserrat, system-ui, sans-serif" },
+  { id: "Roboto", name: "Roboto", category: "Sans-serif", family: "Roboto, system-ui, sans-serif" },
+  { id: "Outfit", name: "Outfit", category: "Sans-serif", family: "Outfit, system-ui, sans-serif" },
+  { id: "Poppins", name: "Poppins", category: "Sans-serif", family: "Poppins, system-ui, sans-serif" },
+  { id: "Oswald", name: "Oswald", category: "Sans-serif", family: "Oswald, system-ui, sans-serif" },
+  { id: "FiraCode", name: "Fira Code", category: "Monospace", family: "Fira Code, monospace" },
+  { id: "JetBrainsMono", name: "JetBrains Mono", category: "Monospace", family: "JetBrains Mono, monospace" },
+]
 
 interface NoteContentProps {
   content: string
@@ -87,6 +105,8 @@ export const NoteRichEditor = React.forwardRef<HTMLIFrameElement, NoteRichEditor
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const imageInputRef = useRef<HTMLInputElement>(null)
   const [uploadingImage, setUploadingImage] = useState(false)
+  const [fontModalOpen, setFontModalOpen] = useState(false)
+  const [activeFont, setActiveFont] = useState("Default")
 
   React.useImperativeHandle(ref, () => iframeRef.current as HTMLIFrameElement)
 
@@ -128,6 +148,8 @@ export const NoteRichEditor = React.forwardRef<HTMLIFrameElement, NoteRichEditor
         onChange(data.html)
       } else if (data.type === "openVerseModal") {
         onInsertVerse?.()
+      } else if (data.type === "openFontModal") {
+        setFontModalOpen(true)
       } else if (data.type === "openReferenceModal") {
         onInsertReferences?.()
       } else if (data.type === "openDictionaryModal") {
@@ -190,6 +212,49 @@ export const NoteRichEditor = React.forwardRef<HTMLIFrameElement, NoteRichEditor
       {uploadingImage ? (
         <div className="pointer-events-none absolute bottom-4 left-1/2 z-20 -translate-x-1/2 rounded-full border border-border bg-card px-3 py-1 text-xs font-semibold text-muted-foreground shadow-lg">
           Subiendo imagen...
+        </div>
+      ) : null}
+      {fontModalOpen ? (
+        <div className="absolute inset-0 z-30 flex items-center justify-center bg-background/70 p-4 backdrop-blur-sm">
+          <div className="flex max-h-[86%] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
+            <div className="flex items-center justify-between border-b border-border/70 px-4 py-3">
+              <div>
+                <h3 className="text-sm font-extrabold text-foreground">Fuente de la nota</h3>
+                <p className="text-xs text-muted-foreground">Aplica a la selección o a todo el contenido.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setFontModalOpen(false)}
+                className="rounded-full bg-muted px-3 py-1 text-xs font-bold text-muted-foreground hover:text-foreground"
+              >
+                Cerrar
+              </button>
+            </div>
+            <div className="grid gap-2 overflow-y-auto p-3 sm:grid-cols-2">
+              {NOTE_FONT_OPTIONS.map((font) => (
+                <button
+                  key={font.id}
+                  type="button"
+                  onClick={() => {
+                    setActiveFont(font.id)
+                    sendAction({ type: "setFont", value: font.id })
+                    setFontModalOpen(false)
+                  }}
+                  className={cn(
+                    "rounded-xl border p-3 text-left transition-colors hover:bg-muted/50",
+                    activeFont === font.id ? "border-primary bg-primary/10" : "border-border bg-background",
+                  )}
+                >
+                  <span className="block text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+                    {font.category}
+                  </span>
+                  <span className="mt-1 block text-base font-semibold text-foreground" style={{ fontFamily: font.family }}>
+                    {font.name}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       ) : null}
     </div>

@@ -12,6 +12,7 @@ La pestaña **Notas** del menú web ahora replica la estructura y el editor de l
 |------|-------------|-------------------------|
 | Navegación | Solo libretas | Pestañas **Libretas · Diario · Libros** |
 | Editor | Textarea plano + barra de tags/adjuntos | Editor enriquecido WYSIWYG (mismo HTML base que Android) |
+| Fuentes | Botón sin modal funcional | Selector de fuente conectado al iframe, con fuentes de sistema y populares |
 | Imágenes | Sin inserción desde editor | Subida a `/api/upload`, inserción como URL pública y edición visual dentro del editor |
 | Referencias | No disponible desde notas web | Modal de referencias cruzadas equivalente a mobile |
 | Diccionario | Botón sin flujo completo | Modal Strong con búsqueda, exploración, paginación e inserción HTML |
@@ -50,9 +51,16 @@ La pestaña **Notas** del menú web ahora replica la estructura y el editor de l
 1. `NoteRichEditor` monta un `<iframe>` con `srcDoc` generado por `getEditorHtml()`.
 2. El iframe incluye la barra de formato **dentro** del HTML (negrita, tamaños, colores, listas, tablas).
 3. Comunicación iframe ↔ React vía `postMessage` (mismo protocolo que el WebView de Android).
-4. Botones **Insertar versículo**, **Insertar referencias**, **Insertar del diccionario** e **imagen** envían eventos al padre; la web abre el modal correspondiente en `notebook-sidebar.tsx` o el selector de archivos.
+4. Botones **Fuente**, **Insertar versículo**, **Insertar referencias**, **Insertar del diccionario** e **imagen** envían eventos al padre; la web abre el modal correspondiente o el selector de archivos.
 5. Al guardar, se solicita el HTML actual con `{ type: 'getHtml' }` antes del `PUT` a la API.
 6. Al insertar bloques externos se marca la nota como modificada para que el botón Guardar y el autoguardado persistan el contenido.
+
+### Selector de fuente
+
+- El botón **Tt** abre un modal web equivalente al selector móvil.
+- Incluye fuentes de sistema y las populares que usa mobile.
+- Si hay texto seleccionado, aplica la fuente solo a esa selección.
+- Si no hay selección, aplica la fuente al contenido completo y la deja persistida dentro del HTML guardado.
 
 ### Inserción y edición de imágenes
 
@@ -160,7 +168,7 @@ Recarga el navegador con **Ctrl+Shift+R** en https://biblia2.dvguzman.com → me
 1. Inicia sesión y abre **Notas** en el menú.
 2. Comprueba las tres pestañas: Libretas, Diario, Libros.
 3. Abre una libreta → crea o edita una nota.
-4. Usa formato (negrita, color, listas) y **Insertar versículo**.
+4. Usa formato (negrita, color, listas), cambia fuente y usa **Insertar versículo**.
 5. Inserta una imagen, redimensiónala y alinéala; guarda, sal y vuelve a abrir la nota.
 6. Inserta referencias cruzadas y una entrada del diccionario.
 7. Activa **Vista previa** y verifica que el contenido se ve bien.

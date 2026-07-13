@@ -50,7 +50,15 @@ export function getEditorHtml(
   });
 
   const fontFamily =
-    activeFont === 'Default' ? 'system-ui, sans-serif' : `'${activeFont}', sans-serif`;
+    activeFont === 'Default'
+      ? 'system-ui, sans-serif'
+      : activeFont === 'PlayfairDisplay'
+        ? "'Playfair Display', serif"
+        : activeFont === 'FiraCode'
+          ? "'Fira Code', monospace"
+          : activeFont === 'JetBrainsMono'
+            ? "'JetBrains Mono', monospace"
+            : `'${activeFont}', sans-serif`;
 
   const colorsJson = JSON.stringify(favoriteColors);
 
@@ -59,6 +67,8 @@ export function getEditorHtml(
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@400;600&family=Lora:wght@400;600;700&family=Merriweather:wght@400;700&family=Montserrat:wght@400;600;800&family=Oswald:wght@400;600&family=Outfit:wght@400;600;800&family=Playfair+Display:wght@400;700&family=Poppins:wght@400;600;800&family=Roboto:wght@400;700&display=swap">
   <style>
     ${fontsCss}
 
@@ -590,6 +600,26 @@ export function getEditorHtml(
       var activeSize = '16px';
       var savedRange = null;
       var scrollTimer = null;
+
+      function fontFamilyForValue(value) {
+        if (value === 'Default') return 'system-ui, sans-serif';
+        if (value === 'serif') return 'serif';
+        if (value === 'monospace') return 'monospace';
+        if (value === 'PlayfairDisplay') return "'Playfair Display', serif";
+        if (value === 'FiraCode') return "'Fira Code', monospace";
+        if (value === 'JetBrainsMono') return "'JetBrains Mono', monospace";
+        return "'" + String(value).replace(/'/g, "\\'") + "', sans-serif";
+      }
+
+      function applyFontToWholeEditor(value) {
+        var family = fontFamilyForValue(value);
+        var wrapper = document.createElement('div');
+        wrapper.style.fontFamily = family;
+        wrapper.innerHTML = editor.innerHTML || '<p><br></p>';
+        editor.innerHTML = '';
+        editor.appendChild(wrapper);
+        editor.style.fontFamily = family;
+      }
 
       /* ── Image edit state (paridad con mobile/lib/editorHtml.ts) ── */
       var activeImage = null;
@@ -1464,11 +1494,12 @@ export function getEditorHtml(
           editor.focus();
 
           if (action.type === 'setFont') {
+            restoreSelection();
             var sel = window.getSelection();
             if (sel && sel.rangeCount > 0 && !sel.isCollapsed) {
-              document.execCommand('fontName', false, action.value);
+              wrapRangeStyle('fontFamily', fontFamilyForValue(action.value));
             } else {
-              editor.style.fontFamily = action.value === 'Default' ? 'system-ui, sans-serif' : "'" + action.value + "', sans-serif";
+              applyFontToWholeEditor(action.value);
             }
           } else if (action.type === 'insertVerse') {
             insertHtmlAtSelection(buildVerseBlockHtml(action.value));
