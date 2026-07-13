@@ -14,6 +14,16 @@ Hacer que la experiencia móvil de la web completa se parezca más a la app mobi
 
 ## Cambios aplicados en web
 
+## Ajuste visible posterior
+
+Después del primer pase se reforzó la diferencia visual para que el cambio sea evidente en dispositivos móviles:
+
+- La tabbar inferior pasó a ser una barra flotante (`bottom: 12px`, laterales `12px`, `rounded-[26px]`, sombra fuerte) en lugar de una barra pegada al borde.
+- El estado activo del tabbar usa fondo primario sólido dentro del icono.
+- El menú **Más** cambió de grid compacto a lista vertical táctil con icono, etiqueta y flecha; esto se parece más a una hoja de opciones mobile.
+- Todas las secciones pasan por `mobile-section-shell` en `lib/app-section-registry/outlet.tsx`, con padding mobile común y alturas `100dvh` para layouts `fullscreen`, `card` y `notebook`.
+- Se aumentó el espacio inferior del contenido móvil para que la tabbar flotante no tape controles.
+
 ### Shell móvil global
 
 Archivo: `app/page.tsx`
@@ -71,4 +81,3 @@ Archivo: `components/ui/segment-tabs.tsx`
 npx tsc --noEmit
 npm run build
 ```
-

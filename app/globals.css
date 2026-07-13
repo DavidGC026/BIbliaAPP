@@ -148,6 +148,10 @@
       background: var(--background);
     }
 
+    .mobile-app-header {
+      box-shadow: 0 1px 0 color-mix(in oklab, var(--border) 60%, transparent);
+    }
+
     .mobile-app-header,
     .mobile-tabbar {
       padding-left: max(1rem, env(safe-area-inset-left));
@@ -162,6 +166,19 @@
 
     .mobile-web-content > * {
       min-height: 100%;
+    }
+
+    .mobile-section-shell {
+      min-height: 100%;
+      padding: 14px 14px 0;
+    }
+
+    .mobile-section-shell > div {
+      min-height: 100%;
+    }
+
+    .mobile-section-shell h1 {
+      letter-spacing: 0;
     }
 
     .mobile-web-content input,

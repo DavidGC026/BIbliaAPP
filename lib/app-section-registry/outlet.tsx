@@ -15,19 +15,19 @@ function wrapLayout(layout: SectionUIConfig["layout"], content: React.ReactNode)
   switch (layout) {
     case "fullscreen":
       return (
-        <div className="h-[calc(100vh-8rem)] md:h-[calc(100vh-3rem)] rounded-xl shadow-sm overflow-hidden">
+        <div className="h-[calc(100dvh-160px)] overflow-hidden bg-background md:h-[calc(100vh-3rem)] md:rounded-xl md:shadow-sm">
           {content}
         </div>
       )
     case "card":
       return (
-        <div className="h-[calc(100vh-8rem)] md:h-[calc(100vh-3rem)] rounded-xl border border-border shadow-sm overflow-hidden bg-card/10">
+        <div className="h-[calc(100dvh-160px)] overflow-hidden bg-background md:h-[calc(100vh-3rem)] md:rounded-xl md:border md:border-border md:bg-card/10 md:shadow-sm">
           {content}
         </div>
       )
     case "notebook":
       return (
-        <div className="h-[calc(100vh-8rem)] md:h-[calc(100vh-3rem)] rounded-xl border border-border bg-background shadow-sm overflow-hidden">
+        <div className="h-[calc(100dvh-160px)] overflow-hidden bg-background md:h-[calc(100vh-3rem)] md:rounded-xl md:border md:border-border md:shadow-sm">
           {content}
         </div>
       )
@@ -74,7 +74,11 @@ function renderSection(id: string, ui: SectionUIConfig, ctx: AppSectionOutletPro
     )
   }
 
-  return <div key={id}>{wrapLayout(ui.layout, content)}</div>
+  return (
+    <section key={id} className="mobile-section-shell">
+      {wrapLayout(ui.layout, content)}
+    </section>
+  )
 }
 
 export function AppSectionOutlet(props: AppSectionOutletProps) {

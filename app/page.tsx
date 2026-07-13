@@ -23,7 +23,8 @@ import {
   Flame,
   MoreHorizontal,
   PanelLeftClose,
-  PanelLeftOpen
+  PanelLeftOpen,
+  ArrowRight
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { loadReaderDeepLink, lockReaderDeepLink, isReaderDeepLinkLocked } from "@/lib/bible-url"
@@ -529,7 +530,7 @@ export default function Page() {
       </aside>
 
       {/* Mobile Header */}
-      <div className="mobile-app-header md:hidden sticky top-0 left-0 right-0 z-40 flex h-[58px] items-center justify-between border-b border-border/70 bg-background/95 px-4 backdrop-blur-xl animate-fade-in">
+      <div className="mobile-app-header md:hidden sticky top-0 left-0 right-0 z-40 flex h-[64px] items-center justify-between border-b border-border/60 bg-background/98 px-4 backdrop-blur-xl animate-fade-in">
         <div className="flex min-w-0 items-center gap-2.5">
           <img 
             src={churchLogo} 
@@ -611,7 +612,7 @@ export default function Page() {
       </div>
 
       {/* Page Content Area */}
-      <div className={cn("flex-1 flex flex-col min-h-[100dvh] overflow-hidden pb-[calc(72px+env(safe-area-inset-bottom))] md:min-h-screen md:pb-0 transition-all duration-300 ease-in-out", sidebarCollapsed ? "md:pl-[60px]" : "md:pl-64")}>
+      <div className={cn("flex-1 flex flex-col min-h-[100dvh] overflow-hidden pb-[calc(96px+env(safe-area-inset-bottom))] md:min-h-screen md:pb-0 transition-all duration-300 ease-in-out", sidebarCollapsed ? "md:pl-[60px]" : "md:pl-64")}>
         <div className="mobile-web-content flex-grow overflow-y-auto p-0 md:p-6">
           <AppSectionOutlet
             activeTab={activeTab}
@@ -641,11 +642,11 @@ export default function Page() {
           onClick={() => setShowMobileMore(false)}
         >
           <div 
-            className="w-full max-h-[82vh] overflow-y-auto rounded-t-[22px] border-t border-border bg-card p-4 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-2xl backdrop-blur-xl animate-slide-up"
+            className="w-full max-h-[84vh] overflow-y-auto rounded-t-[28px] border-t border-border bg-card p-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] shadow-2xl backdrop-blur-xl animate-slide-up"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-muted-foreground/25" />
-            <div className="flex items-center justify-between border-b border-border/60 pb-3">
+            <div className="flex items-center justify-between border-b border-border/60 pb-4">
               <div>
                 <h3 className="text-[17px] font-extrabold leading-tight text-foreground">Más</h3>
                 <p className="text-xs font-semibold text-muted-foreground">Herramientas disponibles</p>
@@ -658,7 +659,7 @@ export default function Page() {
               </button>
             </div>
             
-            <div className="grid grid-cols-3 gap-3 pt-4">
+            <div className="grid grid-cols-1 gap-2.5 pt-4">
               {mobileMoreItems.map((item) => {
                 const Icon = item.icon
                 const isActive = activeTab === item.id
@@ -670,14 +671,22 @@ export default function Page() {
                       setShowMobileMore(false)
                     }}
                     className={cn(
-                      "flex min-h-[82px] flex-col items-center justify-center gap-2 rounded-2xl border p-3 text-center transition-all active:scale-[0.97] cursor-pointer",
+                      "flex min-h-[58px] items-center gap-3 rounded-2xl border px-4 py-3 text-left transition-all active:scale-[0.99] cursor-pointer",
                       isActive 
                         ? "border-primary bg-primary text-primary-foreground shadow-md"
                         : "border-border bg-background text-muted-foreground hover:bg-accent/40 hover:text-foreground"
                     )}
                   >
-                    <Icon className="size-5" />
-                    <span className="text-[10px] font-bold tracking-tight line-clamp-1">{item.label}</span>
+                    <span className={cn(
+                      "flex size-10 shrink-0 items-center justify-center rounded-xl",
+                      isActive ? "bg-primary-foreground/15" : "bg-muted text-primary"
+                    )}>
+                      <Icon className="size-5" />
+                    </span>
+                    <span className="min-w-0 flex-1 text-sm font-extrabold text-foreground data-[active=true]:text-primary-foreground" data-active={isActive}>
+                      {item.label}
+                    </span>
+                    <ArrowRight className="size-4 opacity-50" />
                   </button>
                 )
               })}
@@ -687,7 +696,7 @@ export default function Page() {
       )}
 
       {/* Mobile Bottom Navigation (Persist bottom menu) */}
-      <nav className="mobile-tabbar md:hidden fixed bottom-0 left-0 right-0 z-40 flex h-[calc(72px+env(safe-area-inset-bottom))] items-start justify-around border-t border-border bg-card/98 px-2 pt-1.5 shadow-[0_-8px_24px_rgba(28,25,23,0.08)] backdrop-blur-xl">
+      <nav className="mobile-tabbar md:hidden fixed bottom-[calc(12px+env(safe-area-inset-bottom))] left-3 right-3 z-40 flex h-[72px] items-center justify-around rounded-[26px] border border-border/80 bg-card/98 px-2 shadow-[0_12px_34px_rgba(28,25,23,0.18)] backdrop-blur-xl">
         {mobileDirectItems.map((item) => {
           const Icon = item.icon
           const isActive = activeTab === item.id && !showMobileMore
@@ -699,15 +708,15 @@ export default function Page() {
                 setShowMobileMore(false)
               }}
               className={cn(
-                "flex min-w-0 flex-1 flex-col items-center justify-start gap-0.5 py-1 text-[10px] font-bold transition-all cursor-pointer",
+                "flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-2xl py-1 text-[10px] font-extrabold transition-all cursor-pointer",
                 isActive 
                   ? "text-primary"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
               <span className={cn(
-                "flex size-8 items-center justify-center rounded-xl transition-colors",
-                isActive ? "bg-primary/10" : "bg-transparent"
+                "flex size-9 items-center justify-center rounded-2xl transition-colors",
+                isActive ? "bg-primary text-primary-foreground shadow-sm" : "bg-transparent"
               )}>
                 <Icon className={cn("size-5 transition-transform", isActive ? "stroke-[2.5]" : "")} />
               </span>
@@ -719,15 +728,15 @@ export default function Page() {
           <button
             onClick={() => setShowMobileMore(!showMobileMore)}
             className={cn(
-              "flex min-w-0 flex-1 flex-col items-center justify-start gap-0.5 py-1 text-[10px] font-bold transition-all cursor-pointer",
+              "flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-2xl py-1 text-[10px] font-extrabold transition-all cursor-pointer",
               showMobileMore 
                 ? "text-primary"
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
             <span className={cn(
-              "flex size-8 items-center justify-center rounded-xl transition-colors",
-              showMobileMore ? "bg-primary/10" : "bg-transparent"
+              "flex size-9 items-center justify-center rounded-2xl transition-colors",
+              showMobileMore ? "bg-primary text-primary-foreground shadow-sm" : "bg-transparent"
             )}>
               <MoreHorizontal className={cn("size-5 transition-transform", showMobileMore ? "stroke-[2.5]" : "")} />
             </span>
