@@ -214,6 +214,7 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
   const [selectedDictionaryEntry, setSelectedDictionaryEntry] = useState<StrongEntry | null>(null)
 
   // Filtros de búsqueda
+  const [notebookSearch, setNotebookSearch] = useState("")
   const [searchQuery, setSearchQuery] = useState("")
   const [sortBy, setSortBy] = useState<"recent" | "title" | "long">("recent")
   const [moveTarget, setMoveTarget] = useState<NotebookNote | null>(null)
@@ -672,12 +673,15 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
       return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
     })
   const totalWords = notes.reduce((sum, note) => sum + countNoteWords(note.content), 0)
+  const visibleNotebooks = notebooks
+    .filter((notebook) => notebook.name.toLowerCase().includes(notebookSearch.trim().toLowerCase()))
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
 
   // Note Editor view (mobile-style)
   if (editingNote) {
     return (
       <div className="flex h-full flex-col bg-background">
-        <header className="sticky top-0 z-10 flex items-center justify-between gap-2 border-b border-border/80 px-4 py-3 bg-card/80 backdrop-blur-md shrink-0">
+        <header className="sticky top-0 z-10 flex shrink-0 items-center justify-between gap-2 border-b border-border/60 bg-background/95 px-4 py-3 backdrop-blur">
           <Button
             variant="ghost"
             size="sm"
@@ -693,10 +697,7 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
             <ArrowLeft className="size-4" />
             <span>Volver</span>
           </Button>
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-muted-foreground hidden sm:inline">
-              {savingNote ? "Guardando…" : contentDirty ? "Sin guardar" : savedAt ? `Guardado ${savedAt}` : ""}
-            </span>
+          <div className="flex items-center gap-2">
             <Button
               variant="ghost"
               size="sm"
@@ -724,20 +725,18 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
           </div>
         </header>
 
-        <div className="px-4 pt-2 shrink-0">
-          <Input
-            value={editingNote.title}
-            onChange={(e) => {
-              setContentDirty(true)
-              setEditingNote((prev) => (prev ? { ...prev, title: e.target.value } : prev))
-            }}
-            placeholder="Título de la nota"
-            className="border-0 border-b border-border rounded-none bg-transparent px-0 text-2xl font-extrabold focus-visible:ring-0 placeholder:text-muted-foreground/40"
-          />
-        </div>
-
-        <div className="px-4 py-1.5 shrink-0">
-          <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-border bg-card px-3 py-2">
+        <div className="shrink-0 px-4 py-3">
+          <div className="rounded-2xl border border-border bg-card px-3.5 py-3 shadow-sm">
+            <Input
+              value={editingNote.title}
+              onChange={(e) => {
+                setContentDirty(true)
+                setEditingNote((prev) => (prev ? { ...prev, title: e.target.value } : prev))
+              }}
+              placeholder="Título"
+              className="h-auto border-0 bg-transparent px-0 py-0 text-2xl font-extrabold focus-visible:ring-0 placeholder:text-muted-foreground/40"
+            />
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
             <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-muted-foreground">
               <span className={cn("size-2 rounded-full", contentDirty ? "bg-amber-500" : "bg-primary")} />
               <span>{savingNote ? "Guardando..." : contentDirty ? "Sin guardar" : savedAt ? `Guardado ${savedAt}` : "Listo"}</span>
@@ -753,6 +752,7 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
             >
               {previewMode ? "Editar" : "Vista previa"}
             </button>
+            </div>
           </div>
         </div>
 
@@ -1329,45 +1329,17 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
   // 1. Bookshelf Grid Mode (if no active notebook)
   if (activeNotebookId === null) {
     return (
-      <div className={cn("flex flex-col h-full overflow-hidden relative", embedded ? "bg-background" : "bg-card/20")}>
-        <header className={cn("flex items-center justify-between border-b border-border/60 p-4 shrink-0", embedded ? "bg-background" : "bg-card/30 backdrop-blur-md")}>
-          <div className="flex flex-col gap-0.5 min-w-0">
-            <div className="flex items-center gap-2">
-              <Book className="size-5 text-primary shrink-0" />
-              <h2 className="text-lg font-bold text-foreground tracking-tight">Mis libretas</h2>
-            </div>
-            {embedded ? (
-              <p className="text-sm text-muted-foreground pl-7">Cuadernos de apuntes y estudio bíblico.</p>
-            ) : null}
-          </div>
-            <Button 
-            onClick={() => {
-              setModalMode("create")
-              setConfigName("")
-              setConfigCover("grad-purple")
-              setCustomCoverUrl("")
-              setShowConfigModal(true)
-            }}
-            size="sm"
-            className="gap-1.5 bg-primary/90 hover:bg-primary shadow-md active:scale-95 shrink-0"
-          >
-            <FolderPlus className="size-4" />
-            <span>Nueva</span>
-          </Button>
-        </header>
-
-        {/* Bookshelf Scrollable area */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          {notebooks.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-64 text-center space-y-3">
-              <div className="size-16 rounded-full bg-primary/5 flex items-center justify-center border border-primary/10 text-primary/40">
-                <Book className="size-8" />
+      <div className={cn("flex h-full flex-col overflow-hidden bg-background relative", !embedded && "bg-card/10")}>
+        <div className="flex-1 overflow-y-auto p-4">
+          <div className="mx-auto flex w-full max-w-6xl flex-col gap-4">
+            <section className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-4 shadow-sm sm:flex-row sm:items-center">
+              <div className="min-w-0 flex-1">
+                <h2 className="text-lg font-extrabold tracking-tight text-foreground">Biblioteca de trabajo</h2>
+                <p className="mt-1 text-sm leading-5 text-muted-foreground">
+                  Libretas activas, apuntes recientes y material de estudio en un solo lugar.
+                </p>
               </div>
-              <div className="max-w-xs space-y-1">
-                <h3 className="font-bold text-foreground">Tu estantería está vacía</h3>
-                <p className="text-xs text-muted-foreground">Crea tu primera libreta para comenzar a tomar apuntes y devocionales de estudio.</p>
-              </div>
-              <Button 
+              <Button
                 onClick={() => {
                   setModalMode("create")
                   setConfigName("")
@@ -1375,61 +1347,140 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
                   setCustomCoverUrl("")
                   setShowConfigModal(true)
                 }}
-                size="sm"
-                className="gap-1.5 mt-2"
+                className="h-10 gap-2 self-start rounded-xl px-4 font-bold shadow-sm sm:self-center"
               >
-                <Plus className="size-4" />
-                Crear Libreta
+                <FolderPlus className="size-4" />
+                Nueva libreta
               </Button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6 justify-items-center">
-              {notebooks.map((n) => (
-                <div key={n.id} className="flex flex-col items-center gap-2 group relative">
-                  
-                  {/* Floating Action Menu */}
-                  <div className="absolute top-2 right-2 z-10 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-black/45 backdrop-blur-[2px] rounded-lg p-0.5">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setModalMode("edit")
-                        setActiveNotebookId(n.id)
-                        setConfigName(n.name)
-                        setConfigCover(n.coverImage || "grad-purple")
-                        if (n.coverImage && n.coverImage.startsWith("http")) {
-                          setCustomCoverUrl(n.coverImage)
-                        } else {
-                          setCustomCoverUrl("")
-                        }
-                        setShowConfigModal(true)
-                      }}
-                      className="p-1 text-white hover:text-primary transition-colors"
-                      title="Editar libreta"
-                    >
-                      <Edit2 className="size-3.5" />
-                    </button>
-                    <button
-                      onClick={(e) => handleDeleteNotebook(n.id, n.name, e)}
-                      className="p-1 text-white hover:text-destructive transition-colors"
-                      title="Eliminar libreta"
-                    >
-                      <Trash2 className="size-3.5" />
-                    </button>
-                  </div>
+            </section>
 
-                  <BookCover 
-                    title={n.name}
-                    coverImage={n.coverImage}
-                    onClick={() => setActiveNotebookId(n.id)}
-                  />
-                  
-                  <span className="text-xs font-bold text-foreground text-center truncate w-28 drop-shadow-sm">
-                    {n.name}
-                  </span>
-                </div>
-              ))}
+            <section className="grid grid-cols-3 gap-2">
+              <div className="rounded-xl border border-border bg-muted/40 px-3 py-2.5">
+                <div className="text-lg font-extrabold text-foreground">{notebooks.length}</div>
+                <div className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Libretas</div>
+              </div>
+              <div className="rounded-xl border border-border bg-muted/40 px-3 py-2.5">
+                <div className="text-lg font-extrabold text-foreground">{visibleNotebooks.length}</div>
+                <div className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Visibles</div>
+              </div>
+              <div className="rounded-xl border border-border bg-muted/40 px-3 py-2.5">
+                <div className="text-lg font-extrabold text-foreground">{notebookSearch ? "Filtro" : "Todo"}</div>
+                <div className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Vista</div>
+              </div>
+            </section>
+
+            <div className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2.5">
+              <Search className="size-4 shrink-0 text-muted-foreground" />
+              <Input
+                value={notebookSearch}
+                onChange={(e) => setNotebookSearch(e.target.value)}
+                placeholder="Buscar libreta..."
+                className="h-7 border-0 bg-transparent px-0 text-sm focus-visible:ring-0"
+              />
             </div>
-          )}
+
+            {notebooksError ? (
+              <div className="rounded-xl border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive">
+                No se pudieron cargar las libretas.
+              </div>
+            ) : null}
+
+            {notebooks.length === 0 ? (
+              <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-card p-10 text-center">
+                <div className="flex size-14 items-center justify-center rounded-full border border-primary/15 bg-primary/10 text-primary">
+                  <Book className="size-7" />
+                </div>
+                <h3 className="mt-4 text-base font-extrabold text-foreground">Sin libretas</h3>
+                <p className="mt-1 max-w-sm text-sm leading-5 text-muted-foreground">
+                  Crea una libreta para organizar cualquier tipo de apunte.
+                </p>
+                <Button
+                  onClick={() => {
+                    setModalMode("create")
+                    setConfigName("")
+                    setConfigCover("grad-purple")
+                    setCustomCoverUrl("")
+                    setShowConfigModal(true)
+                  }}
+                  className="mt-4 gap-2 rounded-xl"
+                >
+                  <Plus className="size-4" />
+                  Crear libreta
+                </Button>
+              </div>
+            ) : visibleNotebooks.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-border bg-card p-8 text-center text-sm text-muted-foreground">
+                No hay libretas con ese nombre.
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-4">
+                {visibleNotebooks.map((n) => (
+                  <div
+                    key={n.id}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => {
+                      setActiveNotebookId(n.id)
+                      setSearchQuery("")
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault()
+                        setActiveNotebookId(n.id)
+                        setSearchQuery("")
+                      }
+                    }}
+                    className="group relative flex min-h-[258px] cursor-pointer flex-col items-center gap-3 rounded-2xl border border-border bg-card p-3 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md"
+                  >
+                    <div className="absolute right-2 top-2 z-10 flex gap-1 opacity-100 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setModalMode("edit")
+                          setActiveNotebookId(n.id)
+                          setConfigName(n.name)
+                          setConfigCover(n.coverImage || "grad-purple")
+                          setCustomCoverUrl(n.coverImage && n.coverImage.startsWith("http") ? n.coverImage : "")
+                          setShowConfigModal(true)
+                        }}
+                        className="flex size-8 items-center justify-center rounded-lg border border-border bg-background/90 text-muted-foreground shadow-sm hover:text-primary"
+                        title="Editar libreta"
+                      >
+                        <Edit2 className="size-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => handleDeleteNotebook(n.id, n.name, e)}
+                        className="flex size-8 items-center justify-center rounded-lg border border-border bg-background/90 text-muted-foreground shadow-sm hover:text-destructive"
+                        title="Eliminar libreta"
+                      >
+                        <Trash2 className="size-3.5" />
+                      </button>
+                    </div>
+
+                    <BookCover
+                      title={n.name}
+                      coverImage={n.coverImage}
+                      className="pointer-events-none mt-1"
+                    />
+
+                    <div className="flex w-full min-w-0 flex-col items-center gap-2">
+                      <div className="min-h-9 max-w-full text-center text-[13px] font-extrabold leading-[17px] text-foreground line-clamp-2">
+                        {n.name}
+                      </div>
+                      <div className="max-w-full rounded-full border border-border bg-muted/50 px-2.5 py-1 text-[11px] font-extrabold text-muted-foreground">
+                        Libreta de estudio
+                      </div>
+                      <div className="text-center text-[11px] font-bold text-muted-foreground">
+                        Creada {new Date(n.createdAt).toLocaleDateString()}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Config Modal (Create or Edit Notebook) */}
@@ -1519,8 +1570,8 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
 
   // 2. Notebook Interior / Note List Mode (when activeNotebookId is selected)
   return (
-    <div className={cn("flex flex-col h-full overflow-hidden", embedded ? "bg-background" : "bg-card/25")}>
-      <header className={cn("flex flex-col gap-3 border-b border-border/60 p-4 shrink-0", embedded ? "bg-background" : "bg-card/40 backdrop-blur-md")}>
+    <div className={cn("flex h-full flex-col overflow-hidden bg-background", !embedded && "bg-card/10")}>
+      <header className="shrink-0 space-y-3 border-b border-border/50 bg-background p-4">
         <div className="flex items-center justify-between">
           <Button
             variant="ghost"
@@ -1532,7 +1583,7 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
             className="h-8 gap-1.5 px-2 text-muted-foreground hover:text-foreground"
           >
             <ArrowLeft className="size-4" />
-            <span>Volver a Estantería</span>
+            <span>Volver</span>
           </Button>
 
           <div className="flex items-center gap-1.5">
@@ -1568,17 +1619,25 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
         </div>
 
         {/* Selected Notebook info and Note Creator */}
-        <div className="flex items-center gap-3.5 pt-1">
+        <div className="flex items-center gap-3.5 rounded-2xl border border-border bg-card p-3.5 shadow-sm">
           <BookCover 
             title={selectedNotebook?.name || ""}
             coverImage={selectedNotebook?.coverImage}
-            className="w-12 h-16 shrink-0 shadow pointer-events-none"
+            className="w-14 h-[74px] shrink-0 shadow pointer-events-none"
           />
           <div className="min-w-0 flex-1">
             <h2 className="text-base font-extrabold text-foreground truncate tracking-tight">{selectedNotebook?.name}</h2>
-            <p className="text-[11px] text-muted-foreground mt-0.5">
+            <p className="mt-0.5 text-[12px] font-semibold text-muted-foreground">
               {notes.length} {notes.length === 1 ? "nota" : "notas"} · {totalWords} palabras
             </p>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              <span className="rounded-full border border-border bg-muted/50 px-2 py-0.5 text-[10px] font-extrabold text-muted-foreground">
+                Recientes
+              </span>
+              <span className="rounded-full border border-border bg-muted/50 px-2 py-0.5 text-[10px] font-extrabold text-muted-foreground">
+                Trabajo
+              </span>
+            </div>
           </div>
 
           <div className="shrink-0">
@@ -1620,7 +1679,7 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Buscar apuntes o contenido..."
-            className="h-9 pl-9 pr-4 text-xs bg-card/30"
+            className="h-10 rounded-xl border-border bg-card pl-9 pr-4 text-sm"
           />
         </div>
 
@@ -1667,7 +1726,7 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
             </Button>
           </div>
         ) : (
-          <ul className="space-y-2.5">
+          <ul className="space-y-3">
             {filteredNotes.map((note) => {
               const pinned = isNotePinned(note.tags)
               return (
@@ -1681,17 +1740,17 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
                     tags: note.tags,
                   })
                 }
-                className="group flex flex-col gap-2 rounded-xl border border-border/50 bg-card/30 p-3.5 hover:bg-accent/40 cursor-pointer transition-all hover:scale-[1.01] hover:shadow-sm"
+                className="group flex cursor-pointer flex-col gap-3 rounded-2xl border border-border bg-card p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/25 hover:shadow-md"
               >
                 <div className="flex items-start justify-between gap-3 min-w-0">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5 min-w-0">
                       {pinned ? <Pin className="size-3.5 shrink-0 text-primary" /> : null}
-                      <h4 className="truncate text-sm font-bold text-foreground tracking-tight">
+                      <h4 className="truncate text-[15px] font-extrabold text-foreground tracking-tight">
                         {note.title || "Sin título"}
                       </h4>
                     </div>
-                    <p className="mt-0.5 text-[10px] font-semibold text-muted-foreground/70">
+                    <p className="mt-1 text-[11px] font-bold text-muted-foreground">
                       {estimateNoteReadMinutes(note.content)} min · {countNoteWords(note.content)} palabras
                     </p>
                   </div>
@@ -1738,17 +1797,20 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
                   })}
                 </div>
 
-                <p className="line-clamp-2 text-xs text-muted-foreground/80 leading-relaxed">
+	                <p className="line-clamp-2 text-sm text-muted-foreground leading-relaxed">
                   {note.content
                     ? stripNotePreview(note.content)
                     : "Nota vacía"}
                 </p>
 
-                <div className="flex items-center gap-1.5 pt-1.5 border-t border-border/30 mt-0.5 text-[10px] text-muted-foreground/60 font-semibold">
+                <div className="flex items-center gap-1.5 border-t border-border/60 pt-2 text-[11px] font-bold text-muted-foreground">
                   <Calendar className="size-3" />
                   <span>Actualizado: {new Date(note.updatedAt).toLocaleDateString()}</span>
-                  <span className="ml-auto text-primary cursor-pointer" onClick={(e) => handleExportPdf(note, e)}>
+                  <span className="ml-auto rounded-full bg-primary/10 px-2 py-0.5 text-primary" onClick={(e) => handleExportPdf(note, e)}>
                     PDF
+                  </span>
+                  <span className="rounded-full border border-border px-2 py-0.5 text-foreground">
+                    Abrir
                   </span>
                 </div>
               </li>

@@ -5,13 +5,14 @@ import { SegmentTabs } from "@/components/ui/segment-tabs"
 import { NotebookSidebar } from "@/components/notebook-sidebar"
 import { Devotionals } from "@/components/devotionals"
 import { PersonalLibrary } from "@/components/personal-library"
+import { FileText } from "lucide-react"
 
 type NotesSectionTab = "libretas" | "diario" | "libros"
 
 const TABS: { key: NotesSectionTab; label: string }[] = [
-  { key: "libretas", label: "Libretas" },
+  { key: "libretas", label: "Notas" },
   { key: "diario", label: "Diario" },
-  { key: "libros", label: "Libros" },
+  { key: "libros", label: "Biblioteca" },
 ]
 
 interface NotesSectionProps {
@@ -37,11 +38,18 @@ export function NotesSection({ editingNote, setEditingNote, onSessionExpired }: 
 
   return (
     <div className="flex h-full flex-col overflow-hidden bg-background">
-      <div className="px-4 pt-2 pb-1 shrink-0">
-        <h1 className="text-[22px] font-bold tracking-tight text-foreground">Notas</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Libretas, vida espiritual y biblioteca personal.
-        </p>
+      <div className="shrink-0 px-4 pt-3">
+        <div className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3.5 shadow-sm">
+          <div className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary">
+            <FileText className="size-5" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <h1 className="text-[22px] font-extrabold tracking-tight text-foreground">Notas</h1>
+            <p className="text-sm leading-5 text-muted-foreground">
+              Apuntes, investigación, diario y biblioteca personal.
+            </p>
+          </div>
+        </div>
       </div>
 
       <SegmentTabs tabs={TABS} active={section} onChange={setSection} />

@@ -19,6 +19,7 @@ La pestaña **Notas** del menú web ahora replica la estructura y el editor de l
 | Vista previa | No existía | Toggle **Vista previa / Editar** |
 | Lista de notas | Resumen con regex markdown | `stripNotePreview()` — soporta HTML y markdown, métricas y orden profesional |
 | Cabecera del editor | Iconos + Publicar + tags | **Volver · Borrar · Guardar** con estado de guardado, palabras y lectura estimada |
+| Diseño visual | Web con estructura distinta | Header, estantería, detalle de libreta y editor adaptados al lenguaje visual mobile |
 
 ---
 
@@ -54,6 +55,14 @@ La pestaña **Notas** del menú web ahora replica la estructura y el editor de l
 4. Botones **Fuente**, **Insertar versículo**, **Insertar referencias**, **Insertar del diccionario** e **imagen** envían eventos al padre; la web abre el modal correspondiente o el selector de archivos.
 5. Al guardar, se solicita el HTML actual con `{ type: 'getHtml' }` antes del `PUT` a la API.
 6. Al insertar bloques externos se marca la nota como modificada para que el botón Guardar y el autoguardado persistan el contenido.
+
+### Adaptación visual mobile → web
+
+- La pantalla **Notas** usa header en tarjeta, icono con borde y texto secundario como mobile.
+- Las pestañas usan los nombres móviles: **Notas**, **Diario** y **Biblioteca**.
+- La biblioteca de libretas usa panel de acción, métricas, búsqueda y cards en cuadrícula con portada e indicadores.
+- El detalle de libreta usa cabecera compacta con portada, conteo de notas/palabras, acciones y búsqueda.
+- El editor agrupa título, estado de guardado, palabras, minutos y vista previa dentro de una cabecera de documento.
 
 ### Selector de fuente
 
