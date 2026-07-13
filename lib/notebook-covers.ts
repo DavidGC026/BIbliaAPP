@@ -30,3 +30,35 @@ export function stripNotePreview(content: string, max = 100) {
   if (plain.length <= max) return plain
   return `${plain.substring(0, max).trim()}…`
 }
+
+export function noteHtmlToPlainText(content: string): string {
+  if (!content) return ""
+  return isNoteHtml(content)
+    ? htmlToPlainText(content)
+    : content
+        .replace(/!\[.*?\]\(.*?\)/g, " [imagen] ")
+        .replace(/\[.*?\]\(.*?\)/g, " [archivo] ")
+        .replace(/[#>*_\n]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim()
+}
+
+export function countNoteWords(content: string): number {
+  const plain = noteHtmlToPlainText(content)
+  if (!plain) return 0
+  return plain.split(/\s+/).filter(Boolean).length
+}
+
+export function estimateNoteReadMinutes(content: string): number {
+  return Math.max(1, Math.ceil(countNoteWords(content) / 220))
+}
+
+export function isNotePinned(raw?: string): boolean {
+  return parseNoteTags(raw).includes("pinned")
+}
+
+export function togglePinnedNoteTag(raw?: string): string[] {
+  const tags = parseNoteTags(raw).filter((tag) => tag !== "pinned")
+  if (!isNotePinned(raw)) tags.unshift("pinned")
+  return tags
+}

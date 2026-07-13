@@ -29,7 +29,7 @@ La funcionalidad sigue un flujo híbrido entre **React Native** (para el hardwar
 Cuando el usuario hace clic en el botón de **Imagen (🖼️)** en la barra de herramientas del editor:
 
 1. **Permiso y Selección:** Se solicitan permisos para acceder a la galería del dispositivo (`expo-image-picker`). Si se conceden, se abre el selector.
-2. **Subida a Servidor (Online):** Si el dispositivo cuenta con conexión a internet, se sube el archivo al backend usando `api.uploadImage`. Esto devuelve una URL remota de la plataforma (p. ej., `https://biblia2.dvguzman.com/api/media/...`), lo cual mantiene la nota pequeña y rápida de sincronizar.
+2. **Subida a Servidor (Online):** Si el dispositivo cuenta con conexión a internet, se sube el archivo al backend usando `api.uploadImage`. La nota inserta la URL **pública y absoluta** `api.getPublicUploadUrl(filename)` → `https://biblia2.dvguzman.com/uploads/<filename>` (ver §9: la URL `/api/media/:id` que devuelve el upload no sirve para el WebView), lo cual mantiene la nota pequeña y rápida de sincronizar.
 3. **Conversión a Base64 (Offline/Fallo):** Si el dispositivo está offline o la subida al servidor falla, se lee el archivo local en formato base64 con `expo-file-system` y se inserta como un Data URI (`data:image/jpeg;base64,...`). De este modo, la app es **100% funcional offline**.
 4. **Inserción de Bloque HTML:** Se inserta el bloque HTML en la posición del cursor:
    ```html
@@ -144,3 +144,55 @@ Fix:
 - Se elimina el reajuste continuo del panel durante `scroll`; `keepImageVisible()` queda solo para apertura y cambios que realmente mueven la imagen.
 - `repoCreateNotebookNote()` y `repoUpdateNotebookNote()` ahora son local-first: guardan primero el HTML exacto del editor en SQLite y luego intentan sincronizar.
 - `ensureDbTables()` cambia `bible_notebook_notes.content` a `MEDIUMTEXT` para soportar notas con imágenes embebidas.
+
+---
+
+## 8. Corrección: al reabrir la nota se perdía la imagen y todo lo posterior
+
+Síntoma (julio 2026): insertar una imagen, pulsar **Guardar**, salir y volver a entrar → la nota aparece **sin la imagen y sin todo lo escrito después de ella**. Si el usuario seguía editando, esa versión vieja se guardaba encima y la pérdida era permanente.
+
+Causa: el guardado sí era local-first (SQLite quedaba correcto y `dirty = 1` si el push al servidor fallaba — típico con imágenes base64 grandes: límite de body del proxy, timeout, etc.). Pero al reabrir, `repoGetNotebookNote()` en `mobile/lib/repo.ts` hacía `api.getNotebookNote()` y devolvía **la copia del servidor directamente** al editor. `upsertNoteFromServer()` protegía la fila local dirty (no la pisaba), pero el valor devuelto era la versión vieja del servidor: la anterior a insertar la imagen. El editor cargaba ese HTML viejo, y el siguiente guardado (manual o autoguardado) sobrescribía la copia local buena.
+
+Fix: tras el upsert, `repoGetNotebookNote()` **relee SQLite** (`getLocalNote`) y devuelve esa fila. Como `upsertNoteFromServer()` ya implementa la política de merge (gana la copia dirty o la más nueva), releer la fila local devuelve siempre la versión ganadora: la del servidor si es más nueva y no hay cambios pendientes, o la local con la imagen si el push aún no se ha logrado (se reintentará en el próximo `syncAll`).
+
+Regla general: cualquier `repoGet*` que devuelva datos al usuario debe responder con la fila SQLite **después** del merge, nunca con la respuesta cruda del servidor.
+
+---
+
+## 9. Corrección: URL de imagen subida — pública y absoluta
+
+Síntoma (julio 2026): al insertar una imagen con conexión, la subida a `/api/upload` funcionaba pero la imagen **no se veía** en el editor del móvil, así que en la práctica solo "funcionaba" el fallback base64 (notas gigantes, ver §7/§8).
+
+Causas (dos fallos de contrato con la API web):
+
+1. `/api/upload` devuelve `url: "/api/media/<id>"` — una URL **relativa**. El WebView del móvil carga el HTML por `srcDoc` sin `baseUrl`, así que `src="/api/media/9"` no resuelve contra ningún host.
+2. Aunque se prefijara el host, `GET /api/media/:id` exige sesión (`getSession` + `canViewMedia`), y el `<img>` del WebView no manda ni cookie ni Bearer → 403.
+
+Fix:
+
+- `mobile/lib/api.ts`: `uploadImage()` tipa también `filename` en la respuesta, y se añade `getPublicUploadUrl(filename)` → `${API_BASE_URL}/uploads/<filename>` (absoluta y **sin auth**: `public/uploads/` lo sirve Next estáticamente y el middleware solo cubre `/api/*`).
+- `mobile/app/note/[noteId].tsx` (`handleImagePick`): inserta `api.getPublicUploadUrl(uploadRes.filename)`; si el servidor no devuelve `filename`, cae al fallback base64 como antes.
+- La web inserta el equivalente `${window.location.origin}/uploads/<filename>` (ver §10), así la misma nota se ve igual en web, móvil y escritorio.
+
+Nota de privacidad: las imágenes de notas quedan accesibles para quien tenga la URL exacta (nombre `crypto.randomUUID()`, no adivinable). Es el mismo nivel de exposición que ya tenía la ruta estática `/uploads/` de Next.
+
+---
+
+## 10. Paridad web: editor de imágenes portado a la versión web
+
+La función de imágenes existía solo en `mobile/lib/editorHtml.ts`; el editor web (`lib/note-editor-html.ts`, usado por `components/note-rich-editor.tsx` en un `<iframe srcDoc>`) no tenía nada, rompiendo la paridad del doc 12. Port (julio 2026):
+
+- **`lib/note-editor-html.ts`** — copiado 1:1 del móvil, adaptado al host web (`postToHost` en vez de `window.ReactNativeWebView.postMessage`):
+  - CSS de `.note-image-block` y `#image-edit-panel` (el panel lleva `max-width: 420px; margin: 0 auto` para pantallas de escritorio).
+  - Botón `🖼️` (`data-action="insertImage"`) en la toolbar → postea `{ type: 'openImagePicker' }` al host.
+  - Panel de edición completo: slider de ancho 20–100%, alineación (izq./centro/der./100%), subir/bajar, borrar; `body.image-editing` oculta la toolbar y bloquea `contenteditable`.
+  - Auto-envoltura al hacer clic en un `<img>` suelto (notas del móvil o antiguas) en `.note-image-block`.
+  - `notifyChangeNow()` (sin debounce) para inserciones/ediciones de imagen; `getHtml` limpia el estado visual (`clearImageEditingChrome`) y vacía el debounce antes de responder — mismas garantías que §7.
+  - `insertHtmlAtSelection` con fallback al final de la nota si no hay selección (el foco se pierde al abrir el diálogo de archivos).
+  - Aplica la regla de escapes del §5: `join('\\n')` con barra doble dentro del template.
+- **`components/note-rich-editor.tsx`**:
+  - Mensaje `openImagePicker` → dispara un `<input type="file" accept="image/*">` oculto.
+  - Sube con `POST /api/upload` (FormData + `Authorization: Bearer` desde `localStorage.biblia_token`, como el resto de la web), inserta `${origin}/uploads/<filename>` vía `handleAction insertImage`, con indicador "Subiendo imagen...".
+  - El timeout de `requestEditorHtml` sube de 500ms a 5000ms (mismo motivo que §7: notas con imágenes tardan más en cruzar el `postMessage`).
+
+Pruebas manuales web: insertar imagen con 🖼️, redimensionar/alinear/mover/borrar desde el panel, guardar, recargar y verificar persistencia; abrir en el móvil la misma nota y comprobar que se ve idéntica (y viceversa).

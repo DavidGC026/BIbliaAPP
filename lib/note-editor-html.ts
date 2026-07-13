@@ -196,6 +196,170 @@ export function getEditorHtml(
 
     a { color: ${colors.primary}; }
 
+    /* ── Image Block ────────────────────────────────── */
+    .note-image-block {
+      max-width: 100%;
+      box-sizing: border-box;
+      transition: outline 0.15s ease;
+    }
+    .note-image-block img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 8px;
+      display: block;
+      margin: 0 auto;
+    }
+
+    /* ── Image Edit Panel ──────────────────────────────── */
+    body.image-editing .toolbar-area {
+      display: none;
+    }
+    body.image-editing #editor {
+      padding-bottom: 220px;
+    }
+    #image-edit-panel {
+      position: fixed;
+      left: 12px;
+      right: 12px;
+      bottom: 12px;
+      max-width: 420px;
+      margin: 0 auto;
+      z-index: 99999;
+      display: none;
+      background: ${colors.card};
+      border: 1px solid ${colors.border};
+      border-radius: 16px;
+      padding: 10px;
+      box-shadow: 0 16px 38px rgba(0,0,0,0.22);
+      font-family: system-ui, sans-serif;
+      color: ${colors.text};
+    }
+    #image-edit-panel .panel-grabber {
+      width: 34px;
+      height: 4px;
+      border-radius: 999px;
+      background: ${colors.border};
+      margin: 0 auto 10px;
+    }
+    #image-edit-panel .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+    #image-edit-panel .panel-title {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+    #image-edit-panel .panel-kicker {
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: ${colors.textMuted};
+    }
+    #image-edit-panel .panel-name {
+      font-size: 15px;
+      font-weight: 800;
+      color: ${colors.text};
+    }
+    #image-edit-panel .panel-close {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      border: 1px solid ${colors.border};
+      background: ${colors.background};
+      color: ${colors.text};
+      font-size: 18px;
+      line-height: 1;
+      cursor: pointer;
+    }
+    #image-edit-panel .panel-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    #image-edit-panel .panel-value {
+      min-width: 46px;
+      padding: 6px 8px;
+      border-radius: 9px;
+      background: ${colors.primarySoft};
+      color: ${colors.primary};
+      text-align: center;
+      font-size: 12px;
+      font-weight: 800;
+    }
+    #image-edit-panel .panel-section {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      margin-bottom: 10px;
+    }
+    #image-edit-panel .panel-label {
+      font-size: 11px;
+      font-weight: 800;
+      color: ${colors.textMuted};
+    }
+    #image-edit-panel .segmented {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 6px;
+    }
+    #image-edit-panel .panel-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1.1fr;
+      gap: 6px;
+    }
+    #image-edit-panel button {
+      min-height: 38px;
+      border-radius: 10px;
+      border: 1px solid ${colors.border};
+      background: ${colors.background};
+      color: ${colors.text};
+      font-size: 12px;
+      font-weight: 800;
+      font-family: system-ui, sans-serif;
+      cursor: pointer;
+      transition: opacity 0.15s ease, transform 0.1s ease, background 0.15s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    #image-edit-panel button:active {
+      transform: scale(0.97);
+      opacity: 0.78;
+    }
+    #image-edit-panel button.active {
+      background: ${colors.primary};
+      border-color: ${colors.primary};
+      color: #ffffff;
+    }
+    #image-edit-panel .danger {
+      background: #EF4444;
+      border-color: #EF4444;
+      color: #ffffff;
+    }
+    #image-edit-panel input[type="range"] {
+      flex: 1;
+      height: 7px;
+      -webkit-appearance: none;
+      appearance: none;
+      background: ${colors.border};
+      border-radius: 999px;
+      outline: none;
+    }
+    #image-edit-panel input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: ${colors.primary};
+      border: 3px solid ${colors.card};
+      box-shadow: 0 2px 8px rgba(0,0,0,0.22);
+      cursor: pointer;
+    }
+
     /* ── Toolbar (only in edit mode) ──────────────────── */
     .toolbar-area {
       display: ${isReadOnly ? 'none' : 'flex'};
@@ -382,6 +546,7 @@ export function getEditorHtml(
         <div class="sep"></div>
 
         <button class="tb" data-action="insertTable">⊞</button>
+        <button class="tb" data-action="insertImage">🖼️</button>
 
         <div class="sep"></div>
 
@@ -397,6 +562,7 @@ export function getEditorHtml(
       <!-- Row 3: Aux actions -->
       <div class="aux-row">
         <button class="aux-btn" data-action="insertVerse">📖 Insertar versículo</button>
+        <button class="aux-btn" data-action="insertReferences">🔗 Insertar referencias</button>
         <button class="aux-btn aux-btn-dict" data-action="insertDictionary">📚 Insertar del diccionario</button>
       </div>
     </div>
@@ -424,6 +590,243 @@ export function getEditorHtml(
       var activeSize = '16px';
       var savedRange = null;
       var scrollTimer = null;
+
+      /* ── Image edit state (paridad con mobile/lib/editorHtml.ts) ── */
+      var activeImage = null;
+      var activeImageBlock = null;
+      var panel = null;
+      var imageEditActive = false;
+
+      function setImageEditMode(active) {
+        if (imageEditActive === active) return;
+        imageEditActive = active;
+        document.body.classList.toggle('image-editing', active);
+        if (active) {
+          editor.blur();
+          editor.setAttribute('contenteditable', 'false');
+        } else if (!isReadOnly) {
+          editor.setAttribute('contenteditable', 'true');
+        }
+        postToHost({ type: 'imageEditMode', active: active });
+      }
+
+      function createPanel() {
+        if (panel) return;
+        panel = document.createElement('div');
+        panel.id = 'image-edit-panel';
+
+        panel.innerHTML = [
+          '<div class="panel-grabber"></div>',
+          '<div class="panel-header">',
+          '  <div class="panel-title">',
+          '    <span class="panel-kicker">Imagen seleccionada</span>',
+          '    <span class="panel-name">Editar imagen</span>',
+          '  </div>',
+          '  <button type="button" class="panel-close" id="btn-image-close" aria-label="Cerrar">×</button>',
+          '</div>',
+          '<div class="panel-section">',
+          '  <div class="panel-row">',
+          '    <span class="panel-label">Tamaño</span>',
+          '    <input type="range" id="panel-width-slider" min="20" max="100" step="5" />',
+          '    <span class="panel-value" id="panel-width-lbl">60%</span>',
+          '  </div>',
+          '</div>',
+          '<div class="panel-section">',
+          '  <span class="panel-label">Alineación</span>',
+          '  <div class="segmented">',
+          '    <button type="button" id="btn-align-left">Izq.</button>',
+          '    <button type="button" id="btn-align-center">Centro</button>',
+          '    <button type="button" id="btn-align-right">Der.</button>',
+          '    <button type="button" id="btn-align-full">100%</button>',
+          '  </div>',
+          '</div>',
+          '<div class="panel-actions">',
+          '  <button type="button" id="btn-move-up">Subir</button>',
+          '  <button type="button" id="btn-move-down">Bajar</button>',
+          '  <button type="button" class="danger" id="btn-image-delete">Borrar</button>',
+          '</div>'
+        // ponytail: en este template literal hay que escribir join('\\n');
+        // con el escape simple el iframe recibe un string partido y todo el
+        // script falla (toolbar, colores, fuentes). Ver doc 21 §5.
+        ].join('\\n');
+
+        document.body.appendChild(panel);
+
+        var slider = document.getElementById('panel-width-slider');
+        slider.addEventListener('input', function() {
+          if (!activeImageBlock) return;
+          var w = this.value + '%';
+          activeImageBlock.style.width = w;
+          document.getElementById('panel-width-lbl').textContent = w;
+          notifyChangeNow();
+        });
+
+        document.getElementById('btn-image-close').addEventListener('click', hidePanel);
+        document.getElementById('btn-align-left').addEventListener('click', function() { setAlign('left'); });
+        document.getElementById('btn-align-center').addEventListener('click', function() { setAlign('center'); });
+        document.getElementById('btn-align-right').addEventListener('click', function() { setAlign('right'); });
+        document.getElementById('btn-align-full').addEventListener('click', function() { setAlign('full'); });
+
+        document.getElementById('btn-move-up').addEventListener('click', function() {
+          if (!activeImageBlock) return;
+          var prev = activeImageBlock.previousElementSibling;
+          if (prev) {
+            activeImageBlock.parentNode.insertBefore(activeImageBlock, prev);
+            keepImageVisible();
+            notifyChangeNow();
+          }
+        });
+
+        document.getElementById('btn-move-down').addEventListener('click', function() {
+          if (!activeImageBlock) return;
+          var next = activeImageBlock.nextElementSibling;
+          if (next) {
+            activeImageBlock.parentNode.insertBefore(activeImageBlock, next.nextElementSibling);
+            keepImageVisible();
+            notifyChangeNow();
+          }
+        });
+
+        document.getElementById('btn-image-delete').addEventListener('click', function() {
+          if (!activeImageBlock) return;
+          activeImageBlock.remove();
+          hidePanel();
+          notifyChangeNow();
+        });
+
+        panel.addEventListener('mousedown', function(e) {
+          e.preventDefault();
+        });
+        panel.addEventListener('touchstart', function(e) {
+          e.stopPropagation();
+        }, { passive: true });
+      }
+
+      function setAlign(align) {
+        if (!activeImageBlock) return;
+        activeImageBlock.style.display = 'block';
+        activeImageBlock.style.float = 'none';
+        activeImageBlock.style.margin = '12px auto';
+        activeImageBlock.style.textAlign = 'center';
+
+        var slider = document.getElementById('panel-width-slider');
+
+        if (align === 'left') {
+          activeImageBlock.style.display = 'inline-block';
+          activeImageBlock.style.float = 'left';
+          activeImageBlock.style.margin = '8px 16px 8px 0';
+          activeImageBlock.style.textAlign = 'left';
+        } else if (align === 'right') {
+          activeImageBlock.style.display = 'inline-block';
+          activeImageBlock.style.float = 'right';
+          activeImageBlock.style.margin = '8px 0 8px 16px';
+          activeImageBlock.style.textAlign = 'right';
+        } else if (align === 'full') {
+          activeImageBlock.style.display = 'block';
+          activeImageBlock.style.float = 'none';
+          activeImageBlock.style.margin = '12px 0';
+          activeImageBlock.style.width = '100%';
+          slider.value = 100;
+          document.getElementById('panel-width-lbl').textContent = '100%';
+        } else {
+          activeImageBlock.style.display = 'block';
+          activeImageBlock.style.float = 'none';
+          activeImageBlock.style.margin = '12px auto';
+          activeImageBlock.style.textAlign = 'center';
+        }
+
+        updateAlignButtons(align);
+        keepImageVisible();
+        notifyChangeNow();
+      }
+
+      function updateAlignButtons(activeAlign) {
+        ['left', 'center', 'right', 'full'].forEach(function(a) {
+          var btn = document.getElementById('btn-align-' + a);
+          if (!btn) return;
+          btn.classList.toggle('active', a === activeAlign);
+        });
+      }
+
+      function keepImageVisible() {
+        if (!activeImageBlock) return;
+        requestAnimationFrame(function() {
+          var rect = activeImageBlock.getBoundingClientRect();
+          var panelHeight = panel ? panel.offsetHeight : 210;
+          var safeBottom = window.innerHeight - panelHeight - 28;
+          if (rect.bottom > safeBottom) {
+            editor.scrollTop += rect.bottom - safeBottom;
+          } else if (rect.top < 18) {
+            editor.scrollTop += rect.top - 18;
+          }
+        });
+      }
+
+      function showImageEditPanel(img, block) {
+        if (isReadOnly) return;
+        activeImage = img;
+        activeImageBlock = block;
+        createPanel();
+
+        var currentWidth = block.style.width || '60%';
+        var numWidth = parseInt(currentWidth, 10) || 60;
+
+        var slider = document.getElementById('panel-width-slider');
+        slider.value = numWidth;
+        document.getElementById('panel-width-lbl').textContent = numWidth + '%';
+
+        var align = 'center';
+        if (block.style.float === 'left') {
+          align = 'left';
+        } else if (block.style.float === 'right') {
+          align = 'right';
+        } else if (block.style.width === '100%') {
+          align = 'full';
+        }
+        updateAlignButtons(align);
+
+        setImageEditMode(true);
+        panel.style.display = 'block';
+        keepImageVisible();
+
+        document.querySelectorAll('.note-image-block').forEach(function(b) {
+          b.style.outline = 'none';
+        });
+        block.style.outline = '2px solid ${colors.primary}';
+        block.style.outlineOffset = '2px';
+      }
+
+      function hidePanel() {
+        if (panel) {
+          panel.style.display = 'none';
+        }
+        setImageEditMode(false);
+        document.querySelectorAll('.note-image-block').forEach(function(b) {
+          b.style.outline = 'none';
+          b.style.outlineOffset = '';
+        });
+        activeImage = null;
+        activeImageBlock = null;
+      }
+
+      function buildImageBlockHtml(url) {
+        return '<div class="note-image-block" style="text-align: center; width: 60%; max-width: 100%; display: block; margin: 12px auto;">' +
+               '  <img src="' + url + '" style="width: 100%; height: auto; border-radius: 8px;" />' +
+               '</div><p><br></p>';
+      }
+
+      function clearImageEditingChrome() {
+        if (panel) {
+          panel.style.display = 'none';
+        }
+        document.querySelectorAll('.note-image-block').forEach(function(b) {
+          b.style.outline = 'none';
+          b.style.outlineOffset = '';
+        });
+        activeImage = null;
+        activeImageBlock = null;
+        setImageEditMode(false);
+      }
 
       function saveSelection() {
         var sel = window.getSelection();
@@ -612,6 +1015,11 @@ export function getEditorHtml(
           return;
         }
 
+        if (action === 'insertImage') {
+          postToHost({ type: 'openImagePicker' });
+          return;
+        }
+
         if (action === 'size') {
           applySize(val);
           return;
@@ -666,8 +1074,16 @@ export function getEditorHtml(
         restoreSelection();
         editor.focus();
         var sel = window.getSelection();
-        if (!sel || sel.rangeCount === 0) return;
-        var range = sel.getRangeAt(0);
+        var range = null;
+        if (sel && sel.rangeCount > 0 && editor.contains(sel.anchorNode)) {
+          range = sel.getRangeAt(0);
+        } else {
+          // Sin selección (p. ej. el foco se fue al diálogo de archivos):
+          // insertar al final de la nota en vez de perder el contenido.
+          range = document.createRange();
+          range.selectNodeContents(editor);
+          range.collapse(false);
+        }
         var holder = document.createElement('div');
         holder.innerHTML = html;
         var frag = document.createDocumentFragment();
@@ -904,6 +1320,12 @@ export function getEditorHtml(
           });
         });
 
+        document.querySelectorAll('.aux-btn[data-action="insertReferences"]').forEach(function(btn) {
+          bindToolbarButton(btn, function() {
+            postToHost({ type: 'openReferenceModal' });
+          });
+        });
+
         document.querySelectorAll('.aux-btn[data-action="insertDictionary"]').forEach(function(btn) {
           bindToolbarButton(btn, function() {
             postToHost({ type: 'openDictionaryModal' });
@@ -918,7 +1340,32 @@ export function getEditorHtml(
           scrollCaretIntoView();
         });
         editor.addEventListener('focus', scrollCaretIntoView);
-        editor.addEventListener('click', scrollCaretIntoView);
+
+        editor.addEventListener('click', function(e) {
+          var t = e.target;
+          if (t && t.tagName === 'IMG') {
+            var block = t.closest('.note-image-block');
+            if (!block) {
+              // Compatibilidad: envolver imágenes de notas antiguas o del móvil
+              // que llegan sin contenedor editable.
+              block = document.createElement('div');
+              block.className = 'note-image-block';
+              block.style.textAlign = 'center';
+              block.style.width = '60%';
+              block.style.maxWidth = '100%';
+              block.style.display = 'block';
+              block.style.margin = '12px auto';
+              t.parentNode.insertBefore(block, t);
+              block.appendChild(t);
+            }
+            showImageEditPanel(t, block);
+            e.preventDefault();
+            e.stopPropagation();
+            return;
+          }
+          hidePanel();
+          scrollCaretIntoView();
+        });
 
         // Track selection changes for active states + save range for toolbar
         document.addEventListener('selectionchange', function() {
@@ -948,14 +1395,28 @@ export function getEditorHtml(
       // notas largas. El guardado real usa getHtml, que lee innerHTML
       // directamente, así que nunca ve contenido desfasado.
       var notifyTimer = null;
+      function postCurrentHtml() {
+        postToHost({
+          type: 'onChange',
+          html: editor.innerHTML
+        });
+      }
+
+      // Sin debounce: las ediciones de imagen deben llegar al host al momento
+      // para que el estado React nunca quede atrasado al guardar.
+      function notifyChangeNow() {
+        if (notifyTimer) {
+          clearTimeout(notifyTimer);
+          notifyTimer = null;
+        }
+        postCurrentHtml();
+      }
+
       function notifyChange() {
         if (notifyTimer) clearTimeout(notifyTimer);
         notifyTimer = setTimeout(function() {
           notifyTimer = null;
-          postToHost({
-            type: 'onChange',
-            html: editor.innerHTML
-          });
+          postCurrentHtml();
         }, 250);
       }
 
@@ -965,10 +1426,21 @@ export function getEditorHtml(
           var action = JSON.parse(jsonStr);
 
           if (action.type === 'getHtml') {
+            if (notifyTimer) {
+              clearTimeout(notifyTimer);
+              notifyTimer = null;
+            }
+            // No guardar estilos temporales de edición (outline, panel abierto).
+            clearImageEditingChrome();
             postToHost({
               type: 'getHtmlResponse',
               html: editor.innerHTML
             });
+            return;
+          }
+          if (action.type === 'insertImage') {
+            insertHtmlAtSelection(buildImageBlockHtml(action.value));
+            notifyChangeNow();
             return;
           }
           if (action.type === 'updateContent') {

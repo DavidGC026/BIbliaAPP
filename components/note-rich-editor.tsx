@@ -66,6 +66,7 @@ interface NoteRichEditorProps {
   contentVersion: string
   onChange: (html: string) => void
   onInsertVerse?: () => void
+  onInsertReferences?: () => void
   onInsertDictionary?: () => void
   className?: string
 }
@@ -76,6 +77,7 @@ export const NoteRichEditor = React.forwardRef<HTMLIFrameElement, NoteRichEditor
     contentVersion,
     onChange,
     onInsertVerse,
+    onInsertReferences,
     onInsertDictionary,
     className,
   },
@@ -83,6 +85,8 @@ export const NoteRichEditor = React.forwardRef<HTMLIFrameElement, NoteRichEditor
 ) {
   const { resolvedTheme } = useTheme()
   const iframeRef = useRef<HTMLIFrameElement>(null)
+  const imageInputRef = useRef<HTMLInputElement>(null)
+  const [uploadingImage, setUploadingImage] = useState(false)
 
   React.useImperativeHandle(ref, () => iframeRef.current as HTMLIFrameElement)
 
@@ -113,7 +117,7 @@ export const NoteRichEditor = React.forwardRef<HTMLIFrameElement, NoteRichEditor
   useEffect(() => {
     const onMessage = (event: MessageEvent) => {
       if (event.source !== iframeRef.current?.contentWindow) return
-      let data: { type?: string; html?: string }
+      let data: { type?: string; html?: string; active?: boolean }
       try {
         data = typeof event.data === "string" ? JSON.parse(event.data) : event.data
       } catch {
@@ -124,24 +128,71 @@ export const NoteRichEditor = React.forwardRef<HTMLIFrameElement, NoteRichEditor
         onChange(data.html)
       } else if (data.type === "openVerseModal") {
         onInsertVerse?.()
+      } else if (data.type === "openReferenceModal") {
+        onInsertReferences?.()
       } else if (data.type === "openDictionaryModal") {
         onInsertDictionary?.()
+      } else if (data.type === "openImagePicker") {
+        imageInputRef.current?.click()
       }
     }
     window.addEventListener("message", onMessage)
     return () => window.removeEventListener("message", onMessage)
-  }, [onChange, onInsertVerse, onInsertDictionary])
+  }, [onChange, onInsertVerse, onInsertReferences, onInsertDictionary])
 
   return (
-    <iframe
-      key={contentVersion}
-      ref={iframeRef}
-      title="Editor de nota"
-      srcDoc={srcDoc}
-      className={className}
-      style={{ width: "100%", height: "100%", border: "none", display: "block" }}
-      sandbox="allow-scripts allow-same-origin"
-    />
+    <div className="relative h-full w-full">
+      <iframe
+        key={contentVersion}
+        ref={iframeRef}
+        title="Editor de nota"
+        srcDoc={srcDoc}
+        className={className}
+        style={{ width: "100%", height: "100%", border: "none", display: "block" }}
+        sandbox="allow-scripts allow-same-origin"
+      />
+      <input
+        ref={imageInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={async (event) => {
+          const file = event.target.files?.[0]
+          event.target.value = ""
+          if (!file) return
+          setUploadingImage(true)
+          try {
+            const formData = new FormData()
+            formData.append("file", file)
+            formData.append("purpose", "other")
+            const token = localStorage.getItem("biblia_token")
+            const res = await fetch("/api/upload", {
+              method: "POST",
+              headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+              body: formData,
+            })
+            const data = await res.json().catch(() => ({}))
+            if (!res.ok) throw new Error(data.error || "No se pudo subir la imagen")
+            const imageUrl = data.filename
+              ? `${window.location.origin}/uploads/${encodeURIComponent(data.filename)}`
+              : data.url
+                ? `${window.location.origin}${data.url}`
+                : ""
+            if (!imageUrl) throw new Error("La subida no devolvió una URL válida")
+            sendAction({ type: "insertImage", value: imageUrl })
+          } catch (error) {
+            window.alert(error instanceof Error ? error.message : "No se pudo insertar la imagen")
+          } finally {
+            setUploadingImage(false)
+          }
+        }}
+      />
+      {uploadingImage ? (
+        <div className="pointer-events-none absolute bottom-4 left-1/2 z-20 -translate-x-1/2 rounded-full border border-border bg-card px-3 py-1 text-xs font-semibold text-muted-foreground shadow-lg">
+          Subiendo imagen...
+        </div>
+      ) : null}
+    </div>
   )
 })
 
@@ -156,7 +207,7 @@ export function requestEditorHtml(iframe: HTMLIFrameElement | null): Promise<str
     const timeout = window.setTimeout(() => {
       window.removeEventListener("message", onMessage)
       resolve("")
-    }, 500)
+    }, 5000)
 
     const onMessage = (event: MessageEvent) => {
       if (event.source !== win) return

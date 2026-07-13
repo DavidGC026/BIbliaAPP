@@ -11,10 +11,13 @@ La pestaña **Notas** del menú web ahora replica la estructura y el editor de l
 | Área | Antes (web) | Ahora (web, como móvil) |
 |------|-------------|-------------------------|
 | Navegación | Solo libretas | Pestañas **Libretas · Diario · Libros** |
-| Editor | Textarea plano + barra de tags/adjuntos | Editor enriquecido WYSIWYG (mismo HTML que Android) |
-| Vista previa | No existía | Toggle **Vista Previa / Modo Edición** |
-| Lista de notas | Resumen con regex markdown | `stripNotePreview()` — soporta HTML y markdown |
-| Cabecera del editor | Iconos + Publicar + tags | **Volver · Borrar · Guardar** (estilo móvil) |
+| Editor | Textarea plano + barra de tags/adjuntos | Editor enriquecido WYSIWYG (mismo HTML base que Android) |
+| Imágenes | Sin inserción desde editor | Subida a `/api/upload`, inserción como URL pública y edición visual dentro del editor |
+| Referencias | No disponible desde notas web | Modal de referencias cruzadas equivalente a mobile |
+| Diccionario | Botón sin flujo completo | Modal Strong con búsqueda, exploración, paginación e inserción HTML |
+| Vista previa | No existía | Toggle **Vista previa / Editar** |
+| Lista de notas | Resumen con regex markdown | `stripNotePreview()` — soporta HTML y markdown, métricas y orden profesional |
+| Cabecera del editor | Iconos + Publicar + tags | **Volver · Borrar · Guardar** con estado de guardado, palabras y lectura estimada |
 
 ---
 
@@ -36,6 +39,7 @@ La pestaña **Notas** del menú web ahora replica la estructura y el editor de l
 | Archivo | Cambio |
 |---------|--------|
 | `components/notebook-sidebar.tsx` | Editor móvil, preview en lista, modo `embedded` dentro de pestañas |
+| `components/note-rich-editor.tsx` | Puente iframe/web para imágenes, versículos, referencias y diccionario |
 | `lib/app-section-registry/sections.client.tsx` | La sección `notebook` renderiza `NotesSection` |
 | `lib/app-section-registry/outlet.tsx` | Layout `notebook` sin padding extra (pantalla completa) |
 
@@ -46,8 +50,34 @@ La pestaña **Notas** del menú web ahora replica la estructura y el editor de l
 1. `NoteRichEditor` monta un `<iframe>` con `srcDoc` generado por `getEditorHtml()`.
 2. El iframe incluye la barra de formato **dentro** del HTML (negrita, tamaños, colores, listas, tablas).
 3. Comunicación iframe ↔ React vía `postMessage` (mismo protocolo que el WebView de Android).
-4. Botones **Insertar versículo** y **Insertar del diccionario** envían eventos al padre; la web abre el modal de versículos existente en `notebook-sidebar.tsx`.
+4. Botones **Insertar versículo**, **Insertar referencias**, **Insertar del diccionario** e **imagen** envían eventos al padre; la web abre el modal correspondiente en `notebook-sidebar.tsx` o el selector de archivos.
 5. Al guardar, se solicita el HTML actual con `{ type: 'getHtml' }` antes del `PUT` a la API.
+6. Al insertar bloques externos se marca la nota como modificada para que el botón Guardar y el autoguardado persistan el contenido.
+
+### Inserción y edición de imágenes
+
+- El botón de imagen del editor abre un selector nativo de archivos desde React.
+- La imagen se sube a `/api/upload` con `purpose=other`.
+- Si el backend devuelve `filename`, la web inserta una URL absoluta `/uploads/{filename}` para que la imagen sobreviva al salir y volver a abrir la nota.
+- La edición visual se mantiene dentro del iframe: redimensionar, alinear, mover y borrar sin perder el contenido al guardar.
+
+### Referencias cruzadas
+
+Flujo equivalente a `mobile/components/InsertReferenceModal.tsx`:
+
+1. Seleccionar Biblia, libro, capítulo y versículo origen.
+2. Consultar `/api/references?bible=...&bookId=...&chapter=...&verse=...`.
+3. Elegir una o varias referencias.
+4. Insertar un bloque HTML con la fuente y las referencias seleccionadas.
+
+### Diccionario Strong
+
+Flujo equivalente a `mobile/components/InsertDictionaryModal.tsx`:
+
+1. Buscar por código Strong, lema, transliteración o significado.
+2. Filtrar por todos, griego o hebreo.
+3. Explorar entradas con paginación.
+4. Insertar el bloque `.biblia-dict-entry`, ya estilizado por `lib/note-editor-html.ts`.
 
 ### Vista previa
 
@@ -131,8 +161,10 @@ Recarga el navegador con **Ctrl+Shift+R** en https://biblia2.dvguzman.com → me
 2. Comprueba las tres pestañas: Libretas, Diario, Libros.
 3. Abre una libreta → crea o edita una nota.
 4. Usa formato (negrita, color, listas) y **Insertar versículo**.
-5. Activa **Vista Previa** y verifica que el contenido se ve bien.
-6. Guarda y vuelve a la lista: el resumen debe ser texto legible, no HTML crudo.
+5. Inserta una imagen, redimensiónala y alinéala; guarda, sal y vuelve a abrir la nota.
+6. Inserta referencias cruzadas y una entrada del diccionario.
+7. Activa **Vista previa** y verifica que el contenido se ve bien.
+8. Guarda y vuelve a la lista: el resumen debe ser texto legible, no HTML crudo.
 
 ---
 
@@ -140,8 +172,8 @@ Recarga el navegador con **Ctrl+Shift+R** en https://biblia2.dvguzman.com → me
 
 - El lector bíblico (`components/bible-reader`) sigue usando `NotebookSidebar` directamente en el panel lateral, sin pestañas.
 - La publicación de notas al feed de comunidad se retiró del editor web para igualar la UX móvil (solo Guardar / Borrar).
-- Auto-guardado al salir del editor **no** está en web; solo en Android (`docs-mobile/14-notas-autoguardado-y-preview.md`).
+- La web ahora tiene autoguardado silencioso tras unos segundos sin escribir y solicita el HTML actual del iframe antes del guardado manual.
 
 ---
 
-*Última revisión: junio 2026.*
+*Última revisión: julio 2026.*

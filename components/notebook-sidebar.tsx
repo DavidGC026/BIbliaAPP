@@ -4,7 +4,16 @@ import { fetcher } from "@/lib/fetcher"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
-import { stripNotePreview, NOTE_TAGS, parseNoteTags } from "@/lib/notebook-covers"
+import {
+  countNoteWords,
+  estimateNoteReadMinutes,
+  isNotePinned,
+  noteHtmlToPlainText,
+  stripNotePreview,
+  NOTE_TAGS,
+  parseNoteTags,
+  togglePinnedNoteTag,
+} from "@/lib/notebook-covers"
 import { NoteContent, NoteRichEditor, requestEditorHtml } from "@/components/note-rich-editor"
 import { defaultNoteTitle, insertHtmlIntoNoteContent } from "@/lib/note-content"
 import { 
@@ -24,6 +33,12 @@ import {
   FileText,
   Calendar,
   Upload,
+  Pin,
+  PinOff,
+  FolderInput,
+  Share2,
+  Link2,
+  Languages,
 } from "lucide-react"
 
 const AVAILABLE_TAGS = NOTE_TAGS
@@ -41,6 +56,89 @@ interface BibleVersion {
   bibleId: number
   abbr: string
   name: string
+}
+
+interface CrossReference {
+  book_name: string
+  book_id: number
+  chapter: number
+  verse: number
+  text: string
+  votos?: number
+}
+
+interface StrongEntry {
+  strongCode: string
+  lemma: string
+  transliteration: string
+  definition: string
+}
+
+interface DictionaryResponse {
+  entries: StrongEntry[]
+  totalPages: number
+}
+
+type DictionaryLang = "all" | "greek" | "hebrew"
+
+const DICTIONARY_LANG_OPTIONS: { id: DictionaryLang; label: string }[] = [
+  { id: "all", label: "Todos" },
+  { id: "greek", label: "Griego" },
+  { id: "hebrew", label: "Hebreo" },
+]
+
+const DICTIONARY_EXAMPLES = ["G25", "H430", "agapao", "shalom", "logos"]
+
+function escapeHtml(text: string) {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+}
+
+function parseDictionaryDefinition(definition: string): { label: string; text: string }[] {
+  if (!definition) return []
+  const labelMap: Record<string, string> = {
+    Strong: "Definición",
+    KJV: "Traducciones (KJV)",
+    Derivation: "Derivación",
+  }
+  return definition.split(/\n\n+/).flatMap((block) => {
+    const match = block.match(/^(Strong|KJV|Derivation):\s*([\s\S]*)$/)
+    if (match) return [{ label: labelMap[match[1]] ?? match[1], text: match[2].trim() }]
+    return block.trim() ? [{ label: "", text: block.trim() }] : []
+  })
+}
+
+function formatDictionaryInsertion(entry: StrongEntry): string {
+  const sections = parseDictionaryDefinition(entry.definition)
+  const defHtml = sections.length
+    ? sections.map((section) => {
+        const label = section.label
+          ? `<div class="biblia-dict-section-label">${escapeHtml(section.label)}</div>`
+          : ""
+        return `${label}<div class="biblia-dict-section-text">${escapeHtml(section.text)}</div>`
+      }).join("")
+    : `<div class="biblia-dict-section-text">${escapeHtml(entry.definition)}</div>`
+  const langLabel = entry.strongCode.startsWith("H") ? "Hebreo" : "Griego"
+  return (
+    `<aside class="biblia-dict-entry" data-strong="${escapeHtml(entry.strongCode)}" contenteditable="false">` +
+    `<div class="biblia-dict-label">📚 Diccionario Strong · ${langLabel}</div>` +
+    `<div class="biblia-dict-head">` +
+    `<span class="biblia-dict-code">${escapeHtml(entry.strongCode)}</span>` +
+    `<span class="biblia-dict-lemma">${escapeHtml(entry.lemma)}</span>` +
+    (entry.transliteration ? `<span class="biblia-dict-trans">${escapeHtml(entry.transliteration)}</span>` : "") +
+    `</div><div class="biblia-dict-body">${defHtml}</div></aside><p><br></p>`
+  )
+}
+
+function formatReferenceInsertion(source: string, references: CrossReference[], bibleAbbr: string): string {
+  if (!references.length) return ""
+  const body = references
+    .map((ref) => `<strong>${escapeHtml(ref.book_name)} ${ref.chapter}:${ref.verse}</strong> ${escapeHtml(ref.text)}`)
+    .join("<br/>")
+  return `<blockquote><strong>Referencias relacionadas con ${escapeHtml(source)} (${escapeHtml(bibleAbbr)})</strong><br/>${body}</blockquote><p><br></p>`
 }
 
 interface Notebook {
@@ -103,8 +201,22 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
   const [insertChapter, setInsertChapter] = useState<number>(1)
   const [selectedVerses, setSelectedVerses] = useState<{ verse: number; text: string }[]>([])
 
+  const [showInsertReferenceModal, setShowInsertReferenceModal] = useState(false)
+  const [insertReferenceVerse, setInsertReferenceVerse] = useState<number>(1)
+  const [selectedReferences, setSelectedReferences] = useState<CrossReference[]>([])
+
+  const [showInsertDictionaryModal, setShowInsertDictionaryModal] = useState(false)
+  const [dictionaryQuery, setDictionaryQuery] = useState("")
+  const [debouncedDictionaryQuery, setDebouncedDictionaryQuery] = useState("")
+  const [dictionaryLang, setDictionaryLang] = useState<DictionaryLang>("all")
+  const [dictionaryPage, setDictionaryPage] = useState(1)
+  const [dictionaryBrowse, setDictionaryBrowse] = useState(false)
+  const [selectedDictionaryEntry, setSelectedDictionaryEntry] = useState<StrongEntry | null>(null)
+
   // Filtros de búsqueda
   const [searchQuery, setSearchQuery] = useState("")
+  const [sortBy, setSortBy] = useState<"recent" | "title" | "long">("recent")
+  const [moveTarget, setMoveTarget] = useState<NotebookNote | null>(null)
 
   const notesKey = activeNotebookId ? `/api/notebooks/${activeNotebookId}/notes` : null
   const { data: notesData, mutate: mutateNotes, isLoading: notesLoading, error: notesError } = useSWR<{ notes: NotebookNote[] }>(
@@ -115,13 +227,13 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
 
   // SWR queries for inserting verses
   const { data: insertBiblesData } = useSWR<{ bibles: BibleVersion[] }>(
-    showInsertVerseModal ? "/api/bibles" : null,
+    showInsertVerseModal || showInsertReferenceModal ? "/api/bibles" : null,
     fetcher
   )
   const insertBibles = insertBiblesData?.bibles ?? []
 
   const { data: insertBooksData } = useSWR<{ books: { bookId: number; bookName: string; chapters: number }[] }>(
-    showInsertVerseModal && insertBibleId ? `/api/books?bible=${insertBibleId}` : null,
+    (showInsertVerseModal || showInsertReferenceModal) && insertBibleId ? `/api/books?bible=${insertBibleId}` : null,
     fetcher
   )
   const insertBooks = insertBooksData?.books ?? []
@@ -134,6 +246,24 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
   )
   const insertVerses = insertVersesData?.verses ?? []
 
+  const { data: insertReferencesData, isLoading: referencesLoading } = useSWR<{ references: CrossReference[] }>(
+    showInsertReferenceModal && insertBibleId && insertBookId && insertChapter && insertReferenceVerse
+      ? `/api/references?bible=${insertBibleId}&bookId=${insertBookId}&chapter=${insertChapter}&verse=${insertReferenceVerse}`
+      : null,
+    fetcher,
+  )
+  const insertReferences = insertReferencesData?.references ?? []
+
+  const dictionaryHasValidQuery = debouncedDictionaryQuery.length >= 2 || /^[gh]\d+$/i.test(debouncedDictionaryQuery)
+  const dictionaryShouldFetch = showInsertDictionaryModal && (dictionaryHasValidQuery || dictionaryBrowse)
+  const dictionaryUrl = dictionaryShouldFetch
+    ? `/api/dictionary?dict=strong&q=${encodeURIComponent(debouncedDictionaryQuery)}&lang=${dictionaryLang}&page=${dictionaryPage}${dictionaryBrowse && !dictionaryHasValidQuery ? "&browse" : ""}`
+    : null
+  const { data: dictionaryData, isLoading: dictionaryLoading } = useSWR<DictionaryResponse>(dictionaryUrl, fetcher, {
+    keepPreviousData: true,
+  })
+  const dictionaryEntries = dictionaryData?.entries ?? []
+
   // Auto-select first book when books load
   useEffect(() => {
     if (insertBooks.length > 0 && !insertBookId) {
@@ -141,17 +271,31 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
     }
   }, [insertBooks, insertBookId])
 
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedDictionaryQuery(dictionaryQuery.trim()), 300)
+    return () => window.clearTimeout(timer)
+  }, [dictionaryQuery])
+
+  useEffect(() => {
+    setDictionaryPage(1)
+    setSelectedDictionaryEntry(null)
+  }, [debouncedDictionaryQuery, dictionaryLang, dictionaryBrowse])
+
   const handleInsertBibleChange = (bibleId: number) => {
     setInsertBibleId(bibleId)
     setInsertBookId(null)
     setInsertChapter(1)
+    setInsertReferenceVerse(1)
     setSelectedVerses([])
+    setSelectedReferences([])
   }
 
   const handleInsertBookChange = (bookId: number) => {
     setInsertBookId(bookId)
     setInsertChapter(1)
+    setInsertReferenceVerse(1)
     setSelectedVerses([])
+    setSelectedReferences([])
   }
 
   useEffect(() => {
@@ -390,6 +534,70 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
     }
   }
 
+  async function updateNoteMeta(note: NotebookNote, tags?: string[], notebookId?: number) {
+    const token = localStorage.getItem("biblia_token")
+    const res = await fetch(`/api/notebooks/notes/${note.id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({
+        title: defaultNoteTitle(note.title),
+        content: note.content,
+        tags: tags ?? parseNoteTags(note.tags),
+        notebookId,
+      }),
+    })
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      throw new Error(data.error || "No se pudo actualizar la nota")
+    }
+  }
+
+  async function handleTogglePin(note: NotebookNote, event: React.MouseEvent) {
+    event.stopPropagation()
+    try {
+      await updateNoteMeta(note, togglePinnedNoteTag(note.tags))
+      await mutateNotes()
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "No se pudo fijar la nota")
+    }
+  }
+
+  async function handleMoveNote(targetNotebookId: number) {
+    if (!moveTarget) return
+    try {
+      await updateNoteMeta(moveTarget, parseNoteTags(moveTarget.tags), targetNotebookId)
+      setMoveTarget(null)
+      await mutateNotes()
+      await mutateNotebooks()
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "No se pudo mover la nota")
+    }
+  }
+
+  function handleShareNote(note: NotebookNote, event: React.MouseEvent) {
+    event.stopPropagation()
+    const body = noteHtmlToPlainText(note.content)
+    if (navigator.share) {
+      void navigator.share({ title: note.title, text: body }).catch(() => undefined)
+      return
+    }
+    void navigator.clipboard?.writeText(`${note.title}\n\n${body}`)
+    alert("Nota copiada al portapapeles")
+  }
+
+  function handleExportPdf(note: NotebookNote, event: React.MouseEvent) {
+    event.stopPropagation()
+    const win = window.open("", "_blank", "width=820,height=900")
+    if (!win) return
+    win.document.write(`<!doctype html><html><head><title>${note.title}</title><style>body{font-family:system-ui,sans-serif;line-height:1.6;padding:32px;color:#1f2937}img{max-width:100%;height:auto;border-radius:8px}blockquote{border-left:4px solid #92700C;padding-left:16px;color:#57534e}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ddd;padding:8px}</style></head><body><h1>${note.title || "Sin título"}</h1>${note.content || "<p>Sin contenido</p>"}</body></html>`)
+    win.document.close()
+    win.focus()
+    win.print()
+  }
+
   // Componente de Portada de Libro
   function BookCover({ title, coverImage, className = "", onClick }: { title: string, coverImage?: string | null, className?: string, onClick?: () => void }) {
     const preset = PRESET_COVERS.find(c => c.id === coverImage)
@@ -436,11 +644,34 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
   const selectedNotebook = notebooks.find((n) => n.id === activeNotebookId)
   const selectedBookObj = insertBooks.find(b => b.bookId === insertBookId)
   const selectedBibleObj = insertBibles.find(b => b.bibleId === insertBibleId)
+  const selectedReferenceExists = (ref: CrossReference) =>
+    selectedReferences.some((item) => item.book_id === ref.book_id && item.chapter === ref.chapter && item.verse === ref.verse)
 
-  const filteredNotes = notes.filter(n => 
-    n.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    n.content.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  const insertBlockIntoEditingNote = (htmlBlock: string) => {
+    if (!htmlBlock) return
+    setEditingNote((prev) =>
+      prev
+        ? { ...prev, content: insertHtmlIntoNoteContent(prev.content, htmlBlock) }
+        : prev,
+    )
+    setContentDirty(true)
+    setEditorEpoch((e) => e + 1)
+  }
+
+  const filteredNotes = notes
+    .filter(n => {
+      const q = searchQuery.trim().toLowerCase()
+      if (!q) return true
+      return n.title.toLowerCase().includes(q) || noteHtmlToPlainText(n.content).toLowerCase().includes(q)
+    })
+    .sort((a, b) => {
+      const pinnedDelta = Number(isNotePinned(b.tags)) - Number(isNotePinned(a.tags))
+      if (pinnedDelta !== 0) return pinnedDelta
+      if (sortBy === "title") return a.title.localeCompare(b.title, "es")
+      if (sortBy === "long") return countNoteWords(b.content) - countNoteWords(a.content)
+      return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+    })
+  const totalWords = notes.reduce((sum, note) => sum + countNoteWords(note.content), 0)
 
   // Note Editor view (mobile-style)
   if (editingNote) {
@@ -506,13 +737,23 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
         </div>
 
         <div className="px-4 py-1.5 shrink-0">
-          <button
-            type="button"
-            onClick={() => setPreviewMode((p) => !p)}
-            className="text-[13px] font-bold text-primary px-2 py-1 rounded-lg hover:bg-primary/10 transition-colors"
-          >
-            {previewMode ? "✏️ Modo Edición" : "👁️ Vista Previa"}
-          </button>
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-border bg-card px-3 py-2">
+            <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-muted-foreground">
+              <span className={cn("size-2 rounded-full", contentDirty ? "bg-amber-500" : "bg-primary")} />
+              <span>{savingNote ? "Guardando..." : contentDirty ? "Sin guardar" : savedAt ? `Guardado ${savedAt}` : "Listo"}</span>
+              <span>·</span>
+              <span>{countNoteWords(editingNote.content)} palabras</span>
+              <span>·</span>
+              <span>{estimateNoteReadMinutes(editingNote.content)} min</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setPreviewMode((p) => !p)}
+              className="rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-extrabold text-primary transition-colors hover:bg-primary/15"
+            >
+              {previewMode ? "Editar" : "Vista previa"}
+            </button>
+          </div>
         </div>
 
         <div className="flex-1 min-h-0 relative">
@@ -542,6 +783,20 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
                   setInsertBookId(insertBooks[0].bookId)
                 }
                 setShowInsertVerseModal(true)
+              }}
+              onInsertReferences={() => {
+                if (insertBooks.length > 0 && !insertBookId) {
+                  setInsertBookId(insertBooks[0].bookId)
+                }
+                setSelectedReferences([])
+                setShowInsertReferenceModal(true)
+              }}
+              onInsertDictionary={() => {
+                setDictionaryQuery("")
+                setDebouncedDictionaryQuery("")
+                setDictionaryBrowse(false)
+                setSelectedDictionaryEntry(null)
+                setShowInsertDictionaryModal(true)
               }}
               className="h-full"
             />
@@ -714,13 +969,7 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
                     const versesText = selectedVerses.map(v => `<strong>${v.verse}</strong> ${v.text}`).join(" ")
 
                     const htmlBlock = `<blockquote><strong>${reference} (${bibleAbbr})</strong><br/>${versesText}</blockquote><p><br></p>`
-
-                    setEditingNote((prev) =>
-                      prev
-                        ? { ...prev, content: insertHtmlIntoNoteContent(prev.content, htmlBlock) }
-                        : prev,
-                    )
-                    setEditorEpoch((e) => e + 1)
+                    insertBlockIntoEditingNote(htmlBlock)
 
                     setShowInsertVerseModal(false)
                     setSelectedVerses([])
@@ -730,6 +979,344 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
                 >
                   Insertar ({selectedVerses.length} seleccionados)
                 </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {showInsertReferenceModal && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-card border border-border rounded-2xl w-full max-w-2xl h-[80vh] flex flex-col shadow-2xl overflow-hidden animate-scale-in">
+              <div className="flex items-center justify-between p-4 border-b border-border/60 bg-muted/20">
+                <h3 className="font-extrabold text-base text-foreground flex items-center gap-2">
+                  <Link2 className="size-5 text-primary" />
+                  <span>Insertar referencias</span>
+                </h3>
+                <button
+                  onClick={() => {
+                    setShowInsertReferenceModal(false)
+                    setSelectedReferences([])
+                  }}
+                  className="text-xs text-muted-foreground hover:text-foreground font-semibold px-2.5 py-1 bg-muted rounded-full transition-colors"
+                >
+                  Cerrar
+                </button>
+              </div>
+
+              <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
+                <div className="w-full md:w-1/3 p-4 border-b md:border-b-0 md:border-r border-border/60 space-y-4 overflow-y-auto bg-muted/5">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Biblia</label>
+                    <select
+                      value={insertBibleId}
+                      onChange={(e) => handleInsertBibleChange(Number(e.target.value))}
+                      className="w-full h-10 rounded-lg border border-border bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                    >
+                      {insertBibles.map((b) => (
+                        <option key={b.bibleId} value={b.bibleId}>{b.name} ({b.abbr})</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Libro</label>
+                    <select
+                      value={insertBookId || ""}
+                      onChange={(e) => handleInsertBookChange(Number(e.target.value))}
+                      className="w-full h-10 rounded-lg border border-border bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                    >
+                      {insertBooks.map((b) => (
+                        <option key={b.bookId} value={b.bookId}>{b.bookName}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Capítulo</label>
+                      <select
+                        value={insertChapter}
+                        onChange={(e) => {
+                          setInsertChapter(Number(e.target.value))
+                          setInsertReferenceVerse(1)
+                          setSelectedReferences([])
+                        }}
+                        className="w-full h-10 rounded-lg border border-border bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                      >
+                        {Array.from({ length: selectedBookObj?.chapters || 1 }, (_, i) => i + 1).map((ch) => (
+                          <option key={ch} value={ch}>{ch}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Versículo</label>
+                      <Input
+                        type="number"
+                        min={1}
+                        value={insertReferenceVerse}
+                        onChange={(e) => {
+                          setInsertReferenceVerse(Math.max(1, Number(e.target.value) || 1))
+                          setSelectedReferences([])
+                        }}
+                        className="h-10"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex-1 p-4 overflow-y-auto space-y-3">
+                  <div className="flex items-center justify-between border-b border-border/30 pb-2 mb-2">
+                    <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                      Referencias encontradas
+                    </label>
+                    {insertReferences.length > 0 && (
+                      <button
+                        onClick={() => {
+                          setSelectedReferences(
+                            selectedReferences.length === insertReferences.length ? [] : insertReferences,
+                          )
+                        }}
+                        className="text-[10px] font-bold text-primary hover:underline"
+                      >
+                        {selectedReferences.length === insertReferences.length ? "Deseleccionar Todo" : "Seleccionar Todo"}
+                      </button>
+                    )}
+                  </div>
+
+                  {referencesLoading ? (
+                    <div className="flex items-center justify-center h-48 text-xs text-muted-foreground">
+                      <Loader2 className="mr-2 size-4 animate-spin text-primary" />
+                      Cargando referencias...
+                    </div>
+                  ) : insertReferences.length === 0 ? (
+                    <div className="flex items-center justify-center h-48 text-xs text-muted-foreground">
+                      No hay referencias para este versículo.
+                    </div>
+                  ) : (
+                    <div className="space-y-2.5">
+                      {insertReferences.map((ref, index) => {
+                        const isChecked = selectedReferenceExists(ref)
+                        return (
+                          <div
+                            key={`${ref.book_id}-${ref.chapter}-${ref.verse}-${index}`}
+                            onClick={() => {
+                              if (isChecked) {
+                                setSelectedReferences(selectedReferences.filter((item) => !(
+                                  item.book_id === ref.book_id && item.chapter === ref.chapter && item.verse === ref.verse
+                                )))
+                              } else {
+                                setSelectedReferences([...selectedReferences, ref])
+                              }
+                            }}
+                            className={cn(
+                              "flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all active:scale-[0.99]",
+                              isChecked ? "bg-primary/5 border-primary/30" : "bg-card hover:bg-muted/40 border-border/40",
+                            )}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              readOnly
+                              className="mt-1 size-4 rounded border-gray-300 accent-primary shrink-0"
+                            />
+                            <div className="min-w-0">
+                              <div className="text-xs font-extrabold text-primary">
+                                {ref.book_name} {ref.chapter}:{ref.verse}
+                              </div>
+                              <div className="mt-1 text-xs leading-relaxed text-foreground">{ref.text}</div>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="p-4 border-t border-border/60 bg-muted/20 flex justify-end gap-2.5">
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    setShowInsertReferenceModal(false)
+                    setSelectedReferences([])
+                  }}
+                  className="h-9 px-4 text-xs font-semibold"
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={() => {
+                    const bookName = selectedBookObj?.bookName || "Libro"
+                    const bibleAbbr = selectedBibleObj?.abbr || "RVR1960"
+                    const source = `${bookName} ${insertChapter}:${insertReferenceVerse}`
+                    insertBlockIntoEditingNote(formatReferenceInsertion(source, selectedReferences, bibleAbbr))
+                    setShowInsertReferenceModal(false)
+                    setSelectedReferences([])
+                  }}
+                  disabled={selectedReferences.length === 0}
+                  className="h-9 px-4 text-xs font-semibold bg-primary hover:bg-primary/95 text-primary-foreground shadow-md"
+                >
+                  Insertar ({selectedReferences.length})
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {showInsertDictionaryModal && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-card border border-border rounded-2xl w-full max-w-3xl h-[82vh] flex flex-col shadow-2xl overflow-hidden animate-scale-in">
+              <div className="flex items-center justify-between p-4 border-b border-border/60 bg-muted/20">
+                <h3 className="font-extrabold text-base text-foreground flex items-center gap-2">
+                  <Languages className="size-5 text-primary" />
+                  <span>Insertar del diccionario</span>
+                </h3>
+                <button
+                  onClick={() => {
+                    setShowInsertDictionaryModal(false)
+                    setSelectedDictionaryEntry(null)
+                  }}
+                  className="text-xs text-muted-foreground hover:text-foreground font-semibold px-2.5 py-1 bg-muted rounded-full transition-colors"
+                >
+                  Cerrar
+                </button>
+              </div>
+
+              <div className="border-b border-border/60 p-4 space-y-3 bg-muted/5">
+                <div className="relative">
+                  <Search className="absolute left-3 top-3 size-4 text-muted-foreground" />
+                  <Input
+                    value={dictionaryQuery}
+                    onChange={(e) => {
+                      setDictionaryQuery(e.target.value)
+                      if (e.target.value) setDictionaryBrowse(false)
+                    }}
+                    placeholder="G25, H430, agapao, shalom..."
+                    className="h-11 pl-9"
+                  />
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  {DICTIONARY_LANG_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.id}
+                      onClick={() => setDictionaryLang(opt.id)}
+                      className={cn(
+                        "rounded-full border px-3 py-1.5 text-xs font-bold transition-colors",
+                        dictionaryLang === opt.id
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-border bg-card text-muted-foreground hover:text-foreground",
+                      )}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                  <button
+                    onClick={() => setDictionaryBrowse(true)}
+                    className="rounded-full border border-primary/30 bg-primary/10 px-3 py-1.5 text-xs font-bold text-primary"
+                  >
+                    Explorar
+                  </button>
+                  {!dictionaryShouldFetch && DICTIONARY_EXAMPLES.map((example) => (
+                    <button
+                      key={example}
+                      onClick={() => setDictionaryQuery(example)}
+                      className="rounded-full border border-border bg-background px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground"
+                    >
+                      {example}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-4">
+                {!dictionaryShouldFetch ? (
+                  <div className="flex h-full items-center justify-center text-center text-sm text-muted-foreground">
+                    Busca una entrada Strong o explora el diccionario para insertarla en tu nota.
+                  </div>
+                ) : dictionaryLoading ? (
+                  <div className="flex items-center justify-center h-48 text-xs text-muted-foreground">
+                    <Loader2 className="mr-2 size-4 animate-spin text-primary" />
+                    Buscando...
+                  </div>
+                ) : dictionaryEntries.length === 0 ? (
+                  <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                    Sin resultados.
+                  </div>
+                ) : (
+                  <div className="space-y-2.5">
+                    {dictionaryEntries.map((entry) => {
+                      const isPicked = selectedDictionaryEntry?.strongCode === entry.strongCode
+                      const preview = parseDictionaryDefinition(entry.definition)[0]?.text ?? entry.definition
+                      return (
+                        <div
+                          key={entry.strongCode}
+                          onClick={() => setSelectedDictionaryEntry(entry)}
+                          className={cn(
+                            "rounded-xl border p-3 cursor-pointer transition-colors",
+                            isPicked ? "border-primary bg-primary/5" : "border-border bg-card hover:bg-muted/40",
+                          )}
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-extrabold text-primary">
+                              {entry.strongCode}
+                            </span>
+                            <span className="font-extrabold text-sm text-foreground">{entry.lemma}</span>
+                            <span className="text-xs text-muted-foreground">{entry.transliteration}</span>
+                          </div>
+                          <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-muted-foreground">{preview}</p>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+
+              <div className="p-4 border-t border-border/60 bg-muted/20 flex flex-wrap items-center justify-between gap-2.5">
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => setDictionaryPage((page) => Math.max(1, page - 1))}
+                    disabled={dictionaryPage <= 1}
+                    className="h-9 px-3 text-xs font-semibold"
+                  >
+                    Anterior
+                  </Button>
+                  <span className="text-xs text-muted-foreground">
+                    {dictionaryPage} / {dictionaryData?.totalPages ?? 1}
+                  </span>
+                  <Button
+                    variant="outline"
+                    onClick={() => setDictionaryPage((page) => page + 1)}
+                    disabled={dictionaryPage >= (dictionaryData?.totalPages ?? 1)}
+                    className="h-9 px-3 text-xs font-semibold"
+                  >
+                    Siguiente
+                  </Button>
+                </div>
+                <div className="flex gap-2.5">
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      setShowInsertDictionaryModal(false)
+                      setSelectedDictionaryEntry(null)
+                    }}
+                    className="h-9 px-4 text-xs font-semibold"
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      if (!selectedDictionaryEntry) return
+                      insertBlockIntoEditingNote(formatDictionaryInsertion(selectedDictionaryEntry))
+                      setShowInsertDictionaryModal(false)
+                      setSelectedDictionaryEntry(null)
+                    }}
+                    disabled={!selectedDictionaryEntry}
+                    className="h-9 px-4 text-xs font-semibold bg-primary hover:bg-primary/95 text-primary-foreground shadow-md"
+                  >
+                    {selectedDictionaryEntry ? `Insertar ${selectedDictionaryEntry.strongCode}` : "Insertar"}
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
@@ -990,7 +1577,7 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
           <div className="min-w-0 flex-1">
             <h2 className="text-base font-extrabold text-foreground truncate tracking-tight">{selectedNotebook?.name}</h2>
             <p className="text-[11px] text-muted-foreground mt-0.5">
-              {notes.length} {notes.length === 1 ? "nota" : "notas"} escritas
+              {notes.length} {notes.length === 1 ? "nota" : "notas"} · {totalWords} palabras
             </p>
           </div>
 
@@ -1036,6 +1623,28 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
             className="h-9 pl-9 pr-4 text-xs bg-card/30"
           />
         </div>
+
+        <div className="flex flex-wrap gap-2">
+          {[
+            ["recent", "Recientes"],
+            ["title", "A-Z"],
+            ["long", "Largas"],
+          ].map(([key, label]) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setSortBy(key as "recent" | "title" | "long")}
+              className={cn(
+                "rounded-full border px-3 py-1 text-xs font-bold transition-colors",
+                sortBy === key
+                  ? "border-primary/30 bg-primary/10 text-primary"
+                  : "border-border bg-card/40 text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
       </header>
 
       {/* Notes list */}
@@ -1059,7 +1668,9 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
           </div>
         ) : (
           <ul className="space-y-2.5">
-            {filteredNotes.map((note) => (
+            {filteredNotes.map((note) => {
+              const pinned = isNotePinned(note.tags)
+              return (
               <li
                 key={note.id}
                 onClick={() =>
@@ -1067,16 +1678,50 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
                     id: note.id,
                     title: note.title,
                     content: note.content,
+                    tags: note.tags,
                   })
                 }
                 className="group flex flex-col gap-2 rounded-xl border border-border/50 bg-card/30 p-3.5 hover:bg-accent/40 cursor-pointer transition-all hover:scale-[1.01] hover:shadow-sm"
               >
                 <div className="flex items-start justify-between gap-3 min-w-0">
                   <div className="min-w-0 flex-1">
-                    <h4 className="truncate text-sm font-bold text-foreground tracking-tight">
-                      {note.title || "Sin título"}
-                    </h4>
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      {pinned ? <Pin className="size-3.5 shrink-0 text-primary" /> : null}
+                      <h4 className="truncate text-sm font-bold text-foreground tracking-tight">
+                        {note.title || "Sin título"}
+                      </h4>
+                    </div>
+                    <p className="mt-0.5 text-[10px] font-semibold text-muted-foreground/70">
+                      {estimateNoteReadMinutes(note.content)} min · {countNoteWords(note.content)} palabras
+                    </p>
                   </div>
+                  <button
+                    onClick={(e) => handleTogglePin(note, e)}
+                    className={cn(
+                      "size-6 shrink-0 rounded flex items-center justify-center transition-colors",
+                      pinned ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-primary/10 hover:text-primary",
+                    )}
+                    title={pinned ? "Desfijar nota" : "Fijar nota"}
+                  >
+                    {pinned ? <PinOff className="size-3.5" /> : <Pin className="size-3.5" />}
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setMoveTarget(note)
+                    }}
+                    className="size-6 shrink-0 rounded hover:bg-primary/10 text-muted-foreground hover:text-primary flex items-center justify-center transition-colors"
+                    title="Mover nota"
+                  >
+                    <FolderInput className="size-3.5" />
+                  </button>
+                  <button
+                    onClick={(e) => handleShareNote(note, e)}
+                    className="size-6 shrink-0 rounded hover:bg-primary/10 text-muted-foreground hover:text-primary flex items-center justify-center transition-colors"
+                    title="Compartir nota"
+                  >
+                    <Share2 className="size-3.5" />
+                  </button>
                   <button
                     onClick={(e) => handleDeleteNote(note.id, note.title, e)}
                     className="size-6 shrink-0 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive flex items-center justify-center transition-colors"
@@ -1102,12 +1747,53 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
                 <div className="flex items-center gap-1.5 pt-1.5 border-t border-border/30 mt-0.5 text-[10px] text-muted-foreground/60 font-semibold">
                   <Calendar className="size-3" />
                   <span>Actualizado: {new Date(note.updatedAt).toLocaleDateString()}</span>
+                  <span className="ml-auto text-primary cursor-pointer" onClick={(e) => handleExportPdf(note, e)}>
+                    PDF
+                  </span>
                 </div>
               </li>
-            ))}
+            )})}
           </ul>
         )}
       </div>
+
+      {moveTarget ? (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-card border border-border rounded-2xl w-full max-w-md p-5 space-y-4 shadow-2xl animate-scale-in">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 className="font-extrabold text-base text-foreground">Mover nota</h3>
+                <p className="text-xs text-muted-foreground line-clamp-2">{moveTarget.title || "Sin título"}</p>
+              </div>
+              <button
+                onClick={() => setMoveTarget(null)}
+                className="rounded-full bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground hover:text-foreground"
+              >
+                Cerrar
+              </button>
+            </div>
+            <div className="max-h-72 overflow-y-auto space-y-2">
+              {notebooks.filter((nb) => nb.id !== activeNotebookId).length === 0 ? (
+                <p className="py-6 text-center text-sm text-muted-foreground">No hay otra libreta disponible.</p>
+              ) : (
+                notebooks
+                  .filter((nb) => nb.id !== activeNotebookId)
+                  .map((nb) => (
+                    <button
+                      key={nb.id}
+                      type="button"
+                      onClick={() => handleMoveNote(nb.id)}
+                      className="flex w-full items-center justify-between rounded-xl border border-border bg-background px-3 py-3 text-left text-sm font-bold text-foreground hover:bg-accent"
+                    >
+                      <span className="truncate">{nb.name}</span>
+                      <ChevronRight className="size-4 text-muted-foreground" />
+                    </button>
+                  ))
+              )}
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {/* Config Modal (Create or Edit Notebook) */}
       {showConfigModal && (

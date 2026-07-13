@@ -22,8 +22,15 @@ export interface SectionRenderContext {
   navBibleId: number | null
   handleClearNavValues: () => void
   handleSelectVerse: (bookId: number, chapter: number, verse?: number, bibleId?: number) => void
-  notebookEditingNote: { id: number; title: string; content: string } | null
-  setNotebookEditingNote: (note: { id: number; title: string; content: string } | null) => void
+  notebookEditingNote: { id: number; title: string; content: string; tags?: string } | null
+  setNotebookEditingNote: (
+    note:
+      | { id: number; title: string; content: string; tags?: string }
+      | null
+      | ((
+          prev: { id: number; title: string; content: string; tags?: string } | null,
+        ) => { id: number; title: string; content: string; tags?: string } | null),
+  ) => void
   navGroupId: number | null
   handleClearNavGroupId: () => void
 }

@@ -133,7 +133,7 @@ export default function Page() {
   }, [])
 
   // Separated Notebook Tab States
-  const [notebookEditingNote, setNotebookEditingNote] = useState<{ id: number; title: string; content: string } | null>(null)
+  const [notebookEditingNote, setNotebookEditingNote] = useState<{ id: number; title: string; content: string; tags?: string } | null>(null)
 
   // Mobile navigation bottom sheet state
   const [showMobileMore, setShowMobileMore] = useState(false)
