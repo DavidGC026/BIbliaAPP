@@ -129,3 +129,45 @@
     @apply font-sans;
   }
 }
+
+@layer utilities {
+  @media (max-width: 767px) {
+    html,
+    body {
+      min-height: 100%;
+      overscroll-behavior-y: none;
+      background: var(--background);
+    }
+
+    body {
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .mobile-app-shell {
+      min-height: 100dvh;
+      background: var(--background);
+    }
+
+    .mobile-app-header,
+    .mobile-tabbar {
+      padding-left: max(1rem, env(safe-area-inset-left));
+      padding-right: max(1rem, env(safe-area-inset-right));
+    }
+
+    .mobile-web-content {
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      background: var(--background);
+    }
+
+    .mobile-web-content > * {
+      min-height: 100%;
+    }
+
+    .mobile-web-content input,
+    .mobile-web-content textarea,
+    .mobile-web-content select {
+      font-size: 16px;
+    }
+  }
+}

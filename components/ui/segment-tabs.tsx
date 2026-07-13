@@ -16,8 +16,8 @@ export function SegmentTabs<T extends string>({
   className,
 }: SegmentTabsProps<T>) {
   return (
-    <div className={cn("mx-3 mt-3 mb-1 shrink-0", className)}>
-      <div className="flex overflow-x-auto rounded-xl border border-border bg-card p-1 gap-1 shadow-sm scrollbar-none">
+    <div className={cn("mx-4 mt-3 mb-2 shrink-0 md:mx-3 md:mb-1", className)}>
+      <div className="flex gap-1 overflow-x-auto rounded-2xl border border-border/80 bg-card p-1 shadow-sm scrollbar-none">
         {tabs.map((tab) => {
           const selected = active === tab.key
           return (
@@ -26,7 +26,7 @@ export function SegmentTabs<T extends string>({
               type="button"
               onClick={() => onChange(tab.key)}
               className={cn(
-                "shrink-0 rounded-lg px-3.5 py-2.5 text-[13px] font-bold transition-colors",
+                "min-w-fit flex-1 shrink-0 rounded-xl px-3 py-2 text-[13px] font-extrabold transition-colors",
                 selected
                   ? "bg-primary/10 text-primary"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/50",

@@ -39,6 +39,8 @@ import {
   Share2,
   Link2,
   Languages,
+  Eye,
+  Image as ImageIcon,
 } from "lucide-react"
 
 const AVAILABLE_TAGS = NOTE_TAGS
@@ -328,6 +330,9 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
   const [previewMode, setPreviewMode] = useState(false)
   const [contentDirty, setContentDirty] = useState(false)
   const [editorEpoch, setEditorEpoch] = useState(0)
+  // Paridad con el móvil: el editor avisa cuando el panel de imagen está
+  // activo para mostrar el chip "Editando imagen" y bloquear el título.
+  const [imageEditMode, setImageEditMode] = useState(false)
 
   // Fetch the full note content when a note is selected
   const { data: noteDetails, isLoading: noteDetailsLoading } = useSWR<{ note: NotebookNote }>(
@@ -353,6 +358,7 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
   useEffect(() => {
     setContentDirty(false)
     setEditorEpoch(0)
+    setImageEditMode(false)
   }, [editingNote?.id])
 
   // Autoguardado: tras 4s sin teclear se persiste en silencio, como en la app
@@ -578,8 +584,8 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
     }
   }
 
-  function handleShareNote(note: NotebookNote, event: React.MouseEvent) {
-    event.stopPropagation()
+  function handleShareNote(note: Pick<NotebookNote, "title" | "content">, event?: React.MouseEvent) {
+    event?.stopPropagation()
     const body = noteHtmlToPlainText(note.content)
     if (navigator.share) {
       void navigator.share({ title: note.title, text: body }).catch(() => undefined)
@@ -691,20 +697,31 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
               setPreviewMode(false)
               setContentDirty(false)
               setEditorEpoch(0)
+              setImageEditMode(false)
             }}
             className="h-8 gap-1.5 px-2 text-muted-foreground hover:text-foreground"
           >
             <ArrowLeft className="size-4" />
             <span>Volver</span>
           </Button>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             <Button
               variant="ghost"
-              size="sm"
-              onClick={() => handleDeleteNote(editingNote.id, editingNote.title)}
-              className="h-8 px-2 text-destructive hover:bg-destructive/10"
+              size="icon"
+              onClick={() => handleShareNote(editingNote)}
+              className="size-8 text-muted-foreground hover:text-foreground"
+              aria-label="Compartir nota"
             >
-              Borrar
+              <Share2 className="size-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => handleDeleteNote(editingNote.id, editingNote.title)}
+              className="size-8 text-destructive hover:bg-destructive/10"
+              aria-label="Borrar nota"
+            >
+              <Trash2 className="size-4" />
             </Button>
             <Button
               onClick={async () => {
@@ -713,7 +730,7 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
               }}
               disabled={savingNote}
               size="sm"
-              className="h-8 gap-1.5 bg-primary/90 hover:bg-primary shadow-sm"
+              className="ml-1 h-8 gap-1.5 rounded-full bg-primary/90 px-4 font-extrabold shadow-sm hover:bg-primary"
             >
               {savingNote ? (
                 <Loader2 className="size-4 animate-spin" />
@@ -734,12 +751,13 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
                 setEditingNote((prev) => (prev ? { ...prev, title: e.target.value } : prev))
               }}
               placeholder="Título"
+              disabled={imageEditMode}
               className="h-auto border-0 bg-transparent px-0 py-0 text-2xl font-extrabold focus-visible:ring-0 placeholder:text-muted-foreground/40"
             />
             <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
             <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-muted-foreground">
               <span className={cn("size-2 rounded-full", contentDirty ? "bg-amber-500" : "bg-primary")} />
-              <span>{savingNote ? "Guardando..." : contentDirty ? "Sin guardar" : savedAt ? `Guardado ${savedAt}` : "Listo"}</span>
+              <span>{savingNote ? "Guardando..." : contentDirty ? "Sin guardar" : savedAt ? `Guardado ${savedAt}` : "Aún sin guardar"}</span>
               <span>·</span>
               <span>{countNoteWords(editingNote.content)} palabras</span>
               <span>·</span>
@@ -748,11 +766,18 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
             <button
               type="button"
               onClick={() => setPreviewMode((p) => !p)}
-              className="rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-extrabold text-primary transition-colors hover:bg-primary/15"
+              className="flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-extrabold text-primary transition-colors hover:bg-primary/15"
             >
+              {previewMode ? <Edit2 className="size-3.5" /> : <Eye className="size-3.5" />}
               {previewMode ? "Editar" : "Vista previa"}
             </button>
             </div>
+            {imageEditMode ? (
+              <div className="mt-2.5 inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-xs font-extrabold text-primary">
+                <ImageIcon className="size-3.5" />
+                Editando imagen
+              </div>
+            ) : null}
           </div>
         </div>
 
@@ -798,6 +823,7 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
                 setSelectedDictionaryEntry(null)
                 setShowInsertDictionaryModal(true)
               }}
+              onImageEditMode={setImageEditMode}
               className="h-full"
             />
           )}

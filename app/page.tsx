@@ -289,7 +289,7 @@ export default function Page() {
   const activeLabel = APP_NAV_ITEMS.find(item => item.id === activeTab)?.label ?? "Estudio"
 
   return (
-    <main className="min-h-screen bg-background flex flex-col md:flex-row">
+    <main className="mobile-app-shell min-h-[100dvh] bg-background flex flex-col md:min-h-screen md:flex-row">
       <ConnectionBanner />
       <MobileAppBanner />
       {googleLinkedBanner ? (
@@ -528,32 +528,37 @@ export default function Page() {
         </div>
       </aside>
 
-      {/* Mobile Header (Slim & Compact) */}
-      <div className="md:hidden sticky top-0 left-0 right-0 h-12 bg-card/85 border-b border-border flex items-center justify-between px-4 z-40 backdrop-blur-md animate-fade-in">
-        <div className="flex items-center gap-2">
+      {/* Mobile Header */}
+      <div className="mobile-app-header md:hidden sticky top-0 left-0 right-0 z-40 flex h-[58px] items-center justify-between border-b border-border/70 bg-background/95 px-4 backdrop-blur-xl animate-fade-in">
+        <div className="flex min-w-0 items-center gap-2.5">
           <img 
             src={churchLogo} 
             alt={`Logo ${churchName}`} 
-            className="size-7 rounded object-cover"
+            className="size-9 rounded-xl border border-border/70 bg-card object-cover shadow-sm"
           />
-          <span className="text-sm font-bold text-foreground">{activeLabel}</span>
+          <div className="min-w-0">
+            <span className="block truncate text-[17px] font-extrabold leading-tight text-foreground">{activeLabel}</span>
+            <span className="block truncate text-[11px] font-semibold leading-tight text-muted-foreground">{churchName}</span>
+          </div>
           
           {/* Racha (Mobile) */}
           {!isGuest && user && (
-          <div className="flex items-center gap-0.5 text-xs font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-lg border border-amber-500/15">
+          <div className="ml-0.5 flex shrink-0 items-center gap-0.5 rounded-full border border-amber-500/20 bg-amber-500/10 px-2 py-1 text-xs font-extrabold text-amber-700 dark:text-amber-300">
             <Flame className="size-3.5 fill-amber-500 text-amber-500 animate-pulse" />
             <span>{user.streakCount || 0}</span>
           </div>
           )}
         </div>
         
-        <div className="flex items-center gap-1">
+        <div className="flex shrink-0 items-center gap-1.5">
           {allowedSections.includes("search") && (
             <button
               onClick={() => setActiveTab("search")}
               className={cn(
-                "p-2 rounded transition-colors",
-                activeTab === "search" ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-foreground"
+                "flex size-9 items-center justify-center rounded-xl border transition-colors",
+                activeTab === "search"
+                  ? "border-primary/25 bg-primary/10 text-primary"
+                  : "border-border/70 bg-card text-muted-foreground hover:text-foreground"
               )}
               title="Buscar"
             >
@@ -564,8 +569,10 @@ export default function Page() {
             <button
               onClick={() => setActiveTab("users")}
               className={cn(
-                "p-2 rounded transition-colors",
-                activeTab === "users" ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-foreground"
+                "flex size-9 items-center justify-center rounded-xl border transition-colors",
+                activeTab === "users"
+                  ? "border-primary/25 bg-primary/10 text-primary"
+                  : "border-border/70 bg-card text-muted-foreground hover:text-foreground"
               )}
               title="Gestión de Usuarios"
             >
@@ -586,7 +593,7 @@ export default function Page() {
           {isGuest ? (
             <button
               onClick={openLogin}
-              className="p-2 text-primary hover:bg-primary/10 transition-colors rounded"
+              className="flex size-9 items-center justify-center rounded-xl border border-primary/25 bg-primary/10 text-primary transition-colors hover:bg-primary/15"
               title="Iniciar sesión"
             >
               <LogIn className="size-4.5" />
@@ -594,7 +601,7 @@ export default function Page() {
           ) : (
           <button
             onClick={handleLogout}
-            className="p-2 text-muted-foreground hover:text-destructive transition-colors rounded"
+            className="flex size-9 items-center justify-center rounded-xl border border-border/70 bg-card text-muted-foreground transition-colors hover:text-destructive"
             title="Cerrar Sesión"
           >
             <LogOut className="size-4.5" />
@@ -604,8 +611,8 @@ export default function Page() {
       </div>
 
       {/* Page Content Area */}
-      <div className={cn("flex-1 flex flex-col min-h-screen overflow-hidden pb-16 md:pb-0 transition-all duration-300 ease-in-out", sidebarCollapsed ? "md:pl-[60px]" : "md:pl-64")}>
-        <div className="flex-grow p-4 md:p-6 overflow-y-auto">
+      <div className={cn("flex-1 flex flex-col min-h-[100dvh] overflow-hidden pb-[calc(72px+env(safe-area-inset-bottom))] md:min-h-screen md:pb-0 transition-all duration-300 ease-in-out", sidebarCollapsed ? "md:pl-[60px]" : "md:pl-64")}>
+        <div className="mobile-web-content flex-grow overflow-y-auto p-0 md:p-6">
           <AppSectionOutlet
             activeTab={activeTab}
             isGuest={isGuest}
@@ -630,24 +637,28 @@ export default function Page() {
       {/* Mobile More Sheet */}
       {showMobileMore && (
         <div 
-          className="md:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end justify-center transition-all animate-fade-in"
+          className="md:hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end justify-center transition-all animate-fade-in"
           onClick={() => setShowMobileMore(false)}
         >
           <div 
-            className="w-full max-h-[80vh] bg-card border-t border-border rounded-t-2xl p-5 pb-8 overflow-y-auto space-y-4 shadow-2xl backdrop-blur-xl animate-slide-up"
+            className="w-full max-h-[82vh] overflow-y-auto rounded-t-[22px] border-t border-border bg-card p-4 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-2xl backdrop-blur-xl animate-slide-up"
             onClick={(e) => e.stopPropagation()}
           >
+            <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-muted-foreground/25" />
             <div className="flex items-center justify-between border-b border-border/60 pb-3">
-              <h3 className="font-bold text-base text-foreground">Más Funciones</h3>
+              <div>
+                <h3 className="text-[17px] font-extrabold leading-tight text-foreground">Más</h3>
+                <p className="text-xs font-semibold text-muted-foreground">Herramientas disponibles</p>
+              </div>
               <button 
                 onClick={() => setShowMobileMore(false)}
-                className="text-xs font-semibold text-muted-foreground hover:text-foreground bg-muted px-2.5 py-1 rounded-full transition-colors"
+                className="rounded-full bg-muted px-3 py-1.5 text-xs font-extrabold text-muted-foreground transition-colors hover:text-foreground"
               >
                 Cerrar
               </button>
             </div>
             
-            <div className="grid grid-cols-3 gap-4 py-2">
+            <div className="grid grid-cols-3 gap-3 pt-4">
               {mobileMoreItems.map((item) => {
                 const Icon = item.icon
                 const isActive = activeTab === item.id
@@ -659,10 +670,10 @@ export default function Page() {
                       setShowMobileMore(false)
                     }}
                     className={cn(
-                      "flex flex-col items-center justify-center p-3 rounded-xl border transition-all text-center gap-1.5 active:scale-[0.97] cursor-pointer",
+                      "flex min-h-[82px] flex-col items-center justify-center gap-2 rounded-2xl border p-3 text-center transition-all active:scale-[0.97] cursor-pointer",
                       isActive 
-                        ? "bg-primary border-primary text-primary-foreground shadow-md"
-                        : "bg-card/40 border-border hover:bg-accent/40 text-muted-foreground hover:text-foreground"
+                        ? "border-primary bg-primary text-primary-foreground shadow-md"
+                        : "border-border bg-background text-muted-foreground hover:bg-accent/40 hover:text-foreground"
                     )}
                   >
                     <Icon className="size-5" />
@@ -676,7 +687,7 @@ export default function Page() {
       )}
 
       {/* Mobile Bottom Navigation (Persist bottom menu) */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-card/95 border-t border-border flex items-center justify-around px-2 z-40 shadow-lg backdrop-blur-md">
+      <nav className="mobile-tabbar md:hidden fixed bottom-0 left-0 right-0 z-40 flex h-[calc(72px+env(safe-area-inset-bottom))] items-start justify-around border-t border-border bg-card/98 px-2 pt-1.5 shadow-[0_-8px_24px_rgba(28,25,23,0.08)] backdrop-blur-xl">
         {mobileDirectItems.map((item) => {
           const Icon = item.icon
           const isActive = activeTab === item.id && !showMobileMore
@@ -688,14 +699,19 @@ export default function Page() {
                 setShowMobileMore(false)
               }}
               className={cn(
-                "flex flex-col items-center justify-center gap-1 flex-1 py-1 text-[10px] font-semibold transition-all cursor-pointer",
+                "flex min-w-0 flex-1 flex-col items-center justify-start gap-0.5 py-1 text-[10px] font-bold transition-all cursor-pointer",
                 isActive 
-                  ? "text-primary scale-105" 
+                  ? "text-primary"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
-              <Icon className={cn("size-5 transition-transform", isActive ? "stroke-[2.5]" : "")} />
-              <span>{item.label}</span>
+              <span className={cn(
+                "flex size-8 items-center justify-center rounded-xl transition-colors",
+                isActive ? "bg-primary/10" : "bg-transparent"
+              )}>
+                <Icon className={cn("size-5 transition-transform", isActive ? "stroke-[2.5]" : "")} />
+              </span>
+              <span className="max-w-full truncate leading-tight">{item.label}</span>
             </button>
           )
         })}
@@ -703,14 +719,19 @@ export default function Page() {
           <button
             onClick={() => setShowMobileMore(!showMobileMore)}
             className={cn(
-              "flex flex-col items-center justify-center gap-1 flex-1 py-1 text-[10px] font-semibold transition-all cursor-pointer",
+              "flex min-w-0 flex-1 flex-col items-center justify-start gap-0.5 py-1 text-[10px] font-bold transition-all cursor-pointer",
               showMobileMore 
-                ? "text-primary scale-105" 
+                ? "text-primary"
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
-            <MoreHorizontal className={cn("size-5 transition-transform", showMobileMore ? "stroke-[2.5]" : "")} />
-            <span>Más</span>
+            <span className={cn(
+              "flex size-8 items-center justify-center rounded-xl transition-colors",
+              showMobileMore ? "bg-primary/10" : "bg-transparent"
+            )}>
+              <MoreHorizontal className={cn("size-5 transition-transform", showMobileMore ? "stroke-[2.5]" : "")} />
+            </span>
+            <span className="leading-tight">Más</span>
           </button>
         )}
       </nav>

@@ -56,6 +56,19 @@ Convertir Notas en una superficie de trabajo más profesional:
 
 ---
 
+## Paridad web: editor con el mismo diseño que el móvil (julio 2026)
+
+La vista de edición de notas de la web (`components/notebook-sidebar.tsx`) se adaptó al diseño del editor móvil (`mobile/app/note/[noteId].tsx`):
+
+- **Header de acciones**: iconos discretos de compartir (`Share2`, reutiliza `handleShareNote` con Web Share API/portapapeles) y borrar (`Trash2`), y botón **Guardar** como pill redondeado (`rounded-full`) con fondo primario, como en el móvil.
+- **Cabecera de documento** (ya existente en tarjeta): título grande, punto de estado, texto `Guardando... / Sin guardar / Guardado hh:mm / Aún sin guardar`, contador `N palabras · M min` y pill de **Vista previa/Editar** ahora con icono (`Eye`/`Edit2`), igual que el toggle del móvil.
+- **Chip "Editando imagen"**: el editor del iframe ya emitía `{ type: 'imageEditMode', active }` (port del doc 21 §10); `NoteRichEditor` lo expone con la prop `onImageEditMode` y la vista muestra el mismo aviso que el móvil y **bloquea el input del título** mientras el panel de imagen está activo (equivalente web de `editable={!imageEditMode}`).
+- El estado se resetea al cambiar de nota y al pulsar Volver.
+
+Archivos: `components/note-rich-editor.tsx` (prop `onImageEditMode`), `components/notebook-sidebar.tsx` (header, chip, título, pill de preview).
+
+---
+
 ## Pruebas recomendadas
 
 ```bash

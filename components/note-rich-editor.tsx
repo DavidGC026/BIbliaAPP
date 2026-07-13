@@ -86,6 +86,8 @@ interface NoteRichEditorProps {
   onInsertVerse?: () => void
   onInsertReferences?: () => void
   onInsertDictionary?: () => void
+  /** El editor entra/sale del modo de edición de imagen (panel inferior activo) */
+  onImageEditMode?: (active: boolean) => void
   className?: string
 }
 
@@ -97,6 +99,7 @@ export const NoteRichEditor = React.forwardRef<HTMLIFrameElement, NoteRichEditor
     onInsertVerse,
     onInsertReferences,
     onInsertDictionary,
+    onImageEditMode,
     className,
   },
   ref,
@@ -156,11 +159,13 @@ export const NoteRichEditor = React.forwardRef<HTMLIFrameElement, NoteRichEditor
         onInsertDictionary?.()
       } else if (data.type === "openImagePicker") {
         imageInputRef.current?.click()
+      } else if (data.type === "imageEditMode") {
+        onImageEditMode?.(!!data.active)
       }
     }
     window.addEventListener("message", onMessage)
     return () => window.removeEventListener("message", onMessage)
-  }, [onChange, onInsertVerse, onInsertReferences, onInsertDictionary])
+  }, [onChange, onInsertVerse, onInsertReferences, onInsertDictionary, onImageEditMode])
 
   return (
     <div className="relative h-full w-full">
