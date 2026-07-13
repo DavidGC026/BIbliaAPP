@@ -72,3 +72,10 @@ npx tsc --noEmit
 npm run build
 ```
 
+---
+
+## Documentación relacionada (web)
+
+- [`docs/web-mobile-paridad-global.md`](../docs/web-mobile-paridad-global.md) — guía para desarrolladores web con troubleshooting y despliegue.
+- [`docs/notas-web-paridad-movil.md`](../docs/notas-web-paridad-movil.md) — paridad de la sección Notas (editor, listas, pestañas).
+

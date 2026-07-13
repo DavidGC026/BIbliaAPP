@@ -34,6 +34,8 @@ Documentación local útil (en `docs/`, solo en tu servidor):
 | `docs/actualizar-despliegue.md` | **Cómo actualizar código y reiniciar el contenedor** |
 | `docs/funcionalidades-iglesias.md` | Funcionalidades para iglesias (grupos, oración, calendario…) |
 | `docs/infra-privada.md` | Credenciales, `docker run` completo, Adminer (privado) |
+| `docs/notas-web-paridad-movil.md` | Paridad de Notas web ↔ app móvil (editor, listas) |
+| `docs/web-mobile-paridad-global.md` | Shell móvil web (header, tabbar, safe-area, `100dvh`) |
 
 ## Desarrollo local
 
