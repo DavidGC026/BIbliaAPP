@@ -125,7 +125,7 @@ function meta(id: AppSectionId) {
   return section
 }
 
-type StudyMode = "reader" | "search" | "references" | "dictionary"
+type StudyMode = "reader" | "search" | "references" | "dictionary" | "plans"
 type NotesMode = "notes" | "devotionals" | "prayers"
 type ProfileMode = "profile" | "favorites" | "highlights" | "plans" | "activity" | "statistics"
 
@@ -134,6 +134,7 @@ const STUDY_TABS: { key: StudyMode; label: string }[] = [
   { key: "search", label: "Buscar" },
   { key: "references", label: "Referencias" },
   { key: "dictionary", label: "Diccionario" },
+  { key: "plans", label: "Planes" },
 ]
 
 const NOTES_TABS: { key: NotesMode; label: string }[] = [
@@ -157,7 +158,8 @@ function StudyHub(ctx: SectionRenderContext) {
     tab.key === "reader" ||
     (tab.key === "search" && ctx.allowedSections.includes("search")) ||
     (tab.key === "references" && ctx.allowedSections.includes("references")) ||
-    (tab.key === "dictionary" && ctx.allowedSections.includes("dictionary"))
+    (tab.key === "dictionary" && ctx.allowedSections.includes("dictionary")) ||
+    (tab.key === "plans" && Boolean(ctx.user) && ctx.allowedSections.includes("plans"))
   ))
   const activeMode = tabs.some((tab) => tab.key === mode) ? mode : tabs[0]?.key ?? "reader"
 
@@ -183,8 +185,16 @@ function StudyHub(ctx: SectionRenderContext) {
           }} />
         ) : activeMode === "references" ? (
           <ReferencesExplorer />
-        ) : (
+        ) : activeMode === "dictionary" ? (
           <StrongDictionary />
+        ) : (
+          <ReadingPlans
+            onSelectReading={(bookId, chapter) => {
+              ctx.handleSelectVerse(bookId, chapter)
+              setMode("reader")
+            }}
+            streakCount={ctx.user!.streakCount || 0}
+          />
         )}
       </div>
     </div>

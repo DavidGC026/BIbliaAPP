@@ -18,8 +18,10 @@ La sección `reading` ahora renderiza `StudyHub` con tabs internos:
 - **Buscar**: `SearchAdvanced`
 - **Referencias**: `ReferencesExplorer`
 - **Diccionario**: `StrongDictionary`
+- **Planes**: `ReadingPlans` (visible para usuarios con permiso)
 
 Al seleccionar un resultado de búsqueda se regresa automáticamente al modo **Biblia**.
+Al seleccionar una lectura desde **Planes** también se vuelve a **Biblia** con el pasaje elegido.
 
 ### Notas
 
@@ -82,4 +84,3 @@ El resto queda en **Más**.
 npx tsc --noEmit
 npm run build
 ```
-
