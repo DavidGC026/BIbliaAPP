@@ -40,7 +40,8 @@ La pestaña **Notas** del menú web ahora replica la estructura y el editor de l
 
 | Archivo | Cambio |
 |---------|--------|
-| `components/notebook-sidebar.tsx` | Editor móvil, preview en lista, modo `embedded` dentro de pestañas |
+| `components/notebook-sidebar.tsx` | Editor móvil, preview en lista, modo `embedded`, rediseño visual de estantería/detalle/editor |
+| `components/notes-section.tsx` | Header en tarjeta y pestañas con etiquetas móviles (`Notas`, `Diario`, `Biblioteca`) |
 | `components/note-rich-editor.tsx` | Puente iframe/web para imágenes, versículos, referencias y diccionario |
 | `lib/app-section-registry/sections.client.tsx` | La sección `notebook` renderiza `NotesSection` |
 | `lib/app-section-registry/outlet.tsx` | Layout `notebook` sin padding extra (pantalla completa) |
@@ -58,11 +59,39 @@ La pestaña **Notas** del menú web ahora replica la estructura y el editor de l
 
 ### Adaptación visual mobile → web
 
-- La pantalla **Notas** usa header en tarjeta, icono con borde y texto secundario como mobile.
-- Las pestañas usan los nombres móviles: **Notas**, **Diario** y **Biblioteca**.
-- La biblioteca de libretas usa panel de acción, métricas, búsqueda y cards en cuadrícula con portada e indicadores.
-- El detalle de libreta usa cabecera compacta con portada, conteo de notas/palabras, acciones y búsqueda.
-- El editor agrupa título, estado de guardado, palabras, minutos y vista previa dentro de una cabecera de documento.
+Commit `f004885` (julio 2026) alinea la UI web con el rediseño móvil documentado en [`docs-mobile/22-notas-diseno-profesional.md`](../docs-mobile/22-notas-diseno-profesional.md).
+
+| Vista web | Componente | Equivalente móvil |
+|-----------|------------|-------------------|
+| Header de sección | `components/notes-section.tsx` | `mobile/app/(tabs)/notes.tsx` |
+| Biblioteca de libretas | `NotebookSidebar` (sin libreta activa) | `mobile/components/notes/NotebooksPanel.tsx` |
+| Detalle de libreta | `NotebookSidebar` (libreta activa) | `mobile/app/notebook/[id].tsx` |
+| Editor de nota | `NotebookSidebar` (`editingNote`) | `mobile/app/note/[noteId].tsx` |
+
+**Sección Notas (`notes-section.tsx`):**
+
+- Header en tarjeta con icono `FileText`, borde primario y subtítulo orientado a productividad general.
+- Pestañas segmentadas con etiquetas móviles: **Notas**, **Diario**, **Biblioteca** (claves internas: `libretas`, `diario`, `libros`).
+
+**Biblioteca de libretas (estantería):**
+
+- Panel **Biblioteca de trabajo** con CTA **Nueva libreta**.
+- Métricas en rejilla de 3 columnas: total de libretas, libretas visibles tras filtro y modo de vista (`Todo` / `Filtro`).
+- Búsqueda por nombre (`notebookSearch`) que filtra en cliente y ordena por fecha de creación descendente.
+- Cuadrícula responsive: 2 columnas en móvil, hasta 4 en pantallas anchas (`md:grid-cols-3`, `xl:grid-cols-4`).
+- Tarjetas con portada, badge **Libreta de estudio**, fecha de creación y acciones flotantes editar/eliminar.
+
+**Detalle de libreta:**
+
+- Cabecera en tarjeta con portada ampliada, conteo de notas/palabras y chips decorativos (**Recientes**, **Trabajo**).
+- Búsqueda de apuntes por título y contenido HTML limpio (`searchQuery` + `stripNotePreview`).
+- Orden por recientes, A-Z o notas largas; notas fijadas arriba.
+- Tarjetas de nota con métricas de lectura, preview de texto, exportar **PDF** y CTA **Abrir**.
+
+**Editor:**
+
+- Barra superior solo con **Volver · Borrar · Guardar** (sin estado de guardado en la barra).
+- Título, indicador de estado (punto ámbar/verde), palabras, minutos y toggle **Vista previa / Editar** agrupados en una tarjeta de documento.
 
 ### Selector de fuente
 
@@ -98,8 +127,9 @@ Flujo equivalente a `mobile/components/InsertDictionaryModal.tsx`:
 
 ### Vista previa
 
-- El botón **👁️ Vista Previa** muestra el contenido renderizado con `NoteContent` (iframe en modo solo lectura).
-- **✏️ Modo Edición** vuelve al editor enriquecido.
+- El botón **Vista previa** muestra el contenido renderizado con `NoteContent` (iframe en modo solo lectura).
+- **Editar** vuelve al editor enriquecido.
+- En modo vista previa el autoguardado no corre (igual que en móvil al no editar).
 
 ---
 
@@ -109,9 +139,9 @@ Equivalente a `mobile/app/(tabs)/notes.tsx`:
 
 ```text
 Notas
-├── Libretas   → NotebookSidebar (embedded)
-├── Diario     → Devotionals
-└── Libros     → PersonalLibrary
+├── Notas       → NotebookSidebar (embedded, pestaña libretas)
+├── Diario      → Devotionals
+└── Biblioteca  → PersonalLibrary
 ```
 
 Las secciones **Diario** y **Libros** siguen existiendo por separado en el menú lateral; dentro de **Notas** quedan agrupadas como en móvil.
@@ -175,22 +205,37 @@ Recarga el navegador con **Ctrl+Shift+R** en https://biblia2.dvguzman.com → me
 ## Cómo probar
 
 1. Inicia sesión y abre **Notas** en el menú.
-2. Comprueba las tres pestañas: Libretas, Diario, Libros.
-3. Abre una libreta → crea o edita una nota.
-4. Usa formato (negrita, color, listas), cambia fuente y usa **Insertar versículo**.
-5. Inserta una imagen, redimensiónala y alinéala; guarda, sal y vuelve a abrir la nota.
-6. Inserta referencias cruzadas y una entrada del diccionario.
-7. Activa **Vista previa** y verifica que el contenido se ve bien.
-8. Guarda y vuelve a la lista: el resumen debe ser texto legible, no HTML crudo.
+2. Comprueba el header en tarjeta y las pestañas **Notas**, **Diario**, **Biblioteca**.
+3. En **Notas**, verifica el panel **Biblioteca de trabajo**, las métricas y la búsqueda de libretas.
+4. Abre una libreta: confirma cabecera con portada, chips y búsqueda/orden de apuntes.
+5. Crea o edita una nota; usa formato, fuente e **Insertar versículo**.
+6. Inserta una imagen, redimensiónala y alinéala; guarda, sal y vuelve a abrir la nota.
+7. Inserta referencias cruzadas y una entrada del diccionario.
+8. Activa **Vista previa** y vuelve a **Editar** sin perder contenido.
+9. Guarda y vuelve a la lista: el resumen debe ser texto legible, no HTML crudo.
+10. Edita una nota y pulsa **Volver** antes de 4 s sin guardar: los cambios no deben persistir (comportamiento esperado en web).
 
 ---
 
 ## Notas técnicas
 
-- El lector bíblico (`components/bible-reader`) sigue usando `NotebookSidebar` directamente en el panel lateral, sin pestañas.
+- El lector bíblico (`components/bible-reader`) sigue usando `NotebookSidebar` directamente en el panel lateral, sin pestañas ni header de `NotesSection`.
 - La publicación de notas al feed de comunidad se retiró del editor web para igualar la UX móvil (solo Guardar / Borrar).
-- La web ahora tiene autoguardado silencioso tras unos segundos sin escribir y solicita el HTML actual del iframe antes del guardado manual.
+- **Autoguardado web:** tras **4 s** sin cambios (`contentDirty`), se llama a `requestEditorHtml()` y `handleSaveNote(..., { silent: true })`. No corre en modo vista previa ni mientras ya guarda.
+- **Volver no guarda:** a diferencia del `beforeRemove` de Android, pulsar **Volver** en web solo cierra el editor. Espera el autoguardado de 4 s o pulsa **Guardar** antes de salir si acabas de editar. Ver también [`docs-mobile/14-notas-autoguardado-y-preview.md`](../docs-mobile/14-notas-autoguardado-y-preview.md).
+- Utilidades compartidas con móvil en `lib/notebook-covers.ts`: `stripNotePreview()`, `countNoteWords()`, `estimateNoteReadMinutes()`, `isNotePinned()`.
 
 ---
 
-*Última revisión: julio 2026.*
+## Documentación relacionada
+
+| Documento | Contenido |
+|-----------|-----------|
+| [`docs-mobile/22-notas-diseno-profesional.md`](../docs-mobile/22-notas-diseno-profesional.md) | Rediseño visual móvil que esta web replica |
+| [`docs-mobile/17-notas-productividad-general.md`](../docs-mobile/17-notas-productividad-general.md) | Búsqueda, métricas y orden en listas |
+| [`docs-mobile/14-notas-autoguardado-y-preview.md`](../docs-mobile/14-notas-autoguardado-y-preview.md) | Autoguardado móvil vs comportamiento web |
+| [`docs-mobile/21-insercion-y-edicion-de-imagenes.md`](../docs-mobile/21-insercion-y-edicion-de-imagenes.md) | Imágenes en el editor enriquecido |
+
+---
+
+*Última revisión: julio 2026 (diseño mobile → web, commit `f004885`).*

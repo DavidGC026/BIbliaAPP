@@ -2,6 +2,8 @@
 
 Mejoras en la sección de notas móvil (julio 2026) para que funcione como un espacio de apuntes profesional, no limitado al uso bíblico.
 
+**Paridad web:** la pestaña **Notas** de la web replica búsqueda de libretas, métricas, orden y tarjetas con el rediseño de julio 2026. Ver [`docs/notas-web-paridad-movil.md`](../docs/notas-web-paridad-movil.md) y [`22-notas-diseno-profesional.md`](./22-notas-diseno-profesional.md).
+
 ---
 
 ## Objetivo

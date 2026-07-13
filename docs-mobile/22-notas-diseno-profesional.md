@@ -2,6 +2,8 @@
 
 Mejora visual de la experiencia móvil de notas para que se sienta más limpia, seria y de uso diario, sin retirar funciones existentes.
 
+**Paridad web:** el commit `f004885` adaptó `components/notes-section.tsx` y `components/notebook-sidebar.tsx` al mismo lenguaje visual (header en tarjeta, biblioteca de trabajo, métricas, tarjetas y cabecera de documento). Ver [`docs/notas-web-paridad-movil.md`](../docs/notas-web-paridad-movil.md).
+
 ---
 
 ## Objetivo
