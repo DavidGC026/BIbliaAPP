@@ -1,5 +1,6 @@
 "use client"
 
+import { ChevronRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface SegmentTabsProps<T extends string> {
@@ -15,9 +16,11 @@ export function SegmentTabs<T extends string>({
   onChange,
   className,
 }: SegmentTabsProps<T>) {
+  const showScrollHint = tabs.length > 3
+
   return (
-    <div className={cn("mx-4 mt-3 mb-2 shrink-0 md:mx-3 md:mb-1", className)}>
-      <div className="flex gap-1 overflow-x-auto rounded-2xl border border-border/80 bg-card p-1 shadow-sm scrollbar-none">
+    <div className={cn("relative mx-4 mt-3 mb-2 shrink-0 md:mx-3 md:mb-1", className)}>
+      <div className="flex gap-1 overflow-x-auto rounded-2xl border border-border/80 bg-card p-1 pr-9 shadow-sm scrollbar-none md:pr-1">
         {tabs.map((tab) => {
           const selected = active === tab.key
           return (
@@ -37,6 +40,16 @@ export function SegmentTabs<T extends string>({
           )
         })}
       </div>
+      {showScrollHint ? (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute bottom-1 right-0 top-1 flex w-10 items-center justify-end rounded-r-2xl bg-gradient-to-l from-card via-card/95 to-transparent pr-2 md:hidden"
+        >
+          <span className="flex size-6 items-center justify-center rounded-full border border-border/70 bg-background text-primary shadow-sm">
+            <ChevronRight className="size-4 animate-pulse" />
+          </span>
+        </div>
+      ) : null}
     </div>
   )
 }
