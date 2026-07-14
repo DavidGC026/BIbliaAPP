@@ -10,10 +10,11 @@ La pestaña **Notas** del menú web ahora replica la estructura y el editor de l
 
 | Área | Antes (web) | Ahora (web, como móvil) |
 |------|-------------|-------------------------|
-| Navegación | Solo libretas | Pestañas **Libretas · Diario · Libros** |
+| Navegación | Dos filas de tabs parcialmente duplicadas | Una fila: **Notas · Diario · Biblioteca · Planes · Oración** |
 | Editor | Textarea plano + barra de tags/adjuntos | Editor enriquecido WYSIWYG (mismo HTML base que Android) |
 | Fuentes | Botón sin modal funcional | Selector de fuente conectado al iframe, con fuentes de sistema y populares |
 | Imágenes | Sin inserción desde editor | Subida a `/api/upload`, inserción como URL pública y edición visual dentro del editor |
+| Color automático | `inherit` podía conservar el color explícito del padre | Marcador semántico `.note-color-auto`, resuelto con el tema vigente |
 | Referencias | No disponible desde notas web | Modal de referencias cruzadas equivalente a mobile |
 | Diccionario | Botón sin flujo completo | Modal Strong con búsqueda, exploración, paginación e inserción HTML |
 | Vista previa | No existía | Toggle **Vista previa / Editar** |
@@ -28,7 +29,7 @@ La pestaña **Notas** del menú web ahora replica la estructura y el editor de l
 | Archivo | Rol |
 |---------|-----|
 | `components/notes-section.tsx` | Pantalla unificada con encabezado y pestañas segmentadas |
-| `components/ui/segment-tabs.tsx` | UI de pestañas (Libretas / Diario / Libros) |
+| `components/ui/segment-tabs.tsx` | UI desplazable de pestañas segmentadas compartida por los hubs web |
 | `components/note-rich-editor.tsx` | Editor iframe + vista previa de solo lectura |
 | `lib/note-editor-html.ts` | Plantilla HTML del editor (portada desde `mobile/lib/editorHtml.ts`) |
 | `lib/note-editor-theme.ts` | Colores del editor leídos de variables CSS del tema web |
@@ -43,6 +44,7 @@ La pestaña **Notas** del menú web ahora replica la estructura y el editor de l
 | `components/notebook-sidebar.tsx` | Editor móvil, preview en lista, modo `embedded` dentro de pestañas |
 | `components/note-rich-editor.tsx` | Puente iframe/web para imágenes, versículos, referencias y diccionario |
 | `lib/app-section-registry/sections.client.tsx` | La sección `notebook` renderiza `NotesSection` |
+| `lib/app-section-registry/nav.client.tsx` | Oculta destinos hijos agrupados, incluida `library`, sin eliminarlos del catálogo ni de permisos |
 | `lib/app-section-registry/outlet.tsx` | Layout `notebook` sin padding extra (pantalla completa) |
 
 ---
@@ -59,7 +61,7 @@ La pestaña **Notas** del menú web ahora replica la estructura y el editor de l
 ### Adaptación visual mobile → web
 
 - La pantalla **Notas** usa header en tarjeta, icono con borde y texto secundario como mobile.
-- Las pestañas usan los nombres móviles: **Notas**, **Diario** y **Biblioteca**.
+- Las pestañas usan los nombres móviles: **Notas**, **Diario**, **Biblioteca** y **Planes**; **Oración** se conserva como capacidad adicional de web.
 - La biblioteca de libretas usa panel de acción, métricas, búsqueda y cards en cuadrícula con portada e indicadores.
 - El detalle de libreta usa cabecera compacta con portada, conteo de notas/palabras, acciones y búsqueda.
 - El editor agrupa título, estado de guardado, palabras, minutos y vista previa dentro de una cabecera de documento.
@@ -101,6 +103,19 @@ Flujo equivalente a `mobile/components/InsertDictionaryModal.tsx`:
 - El botón **👁️ Vista Previa** muestra el contenido renderizado con `NoteContent` (iframe en modo solo lectura).
 - **✏️ Modo Edición** vuelve al editor enriquecido.
 
+### Color automático según el tema
+
+El swatch **A** no guarda negro o blanco como valor fijo. Al aplicarlo:
+
+1. `clearColor()` envuelve la selección o el punto de escritura en `<span class="note-color-auto">`.
+2. Se eliminan `style.color` y atributos `<font color>` que estén dentro del tramo seleccionado.
+3. `#editor .note-color-auto` resuelve el texto con el token `colors.text` del tema actual y usa `!important` para superar un color explícito heredado de un ancestro.
+4. Al abrir nuevamente la nota, el iframe se genera con los tokens del tema vigente; por eso el mismo HTML aparece oscuro en tema claro y claro en tema oscuro.
+
+No se usa `color: inherit`: si la selección estaba dentro de un `span` rojo, heredar significaba conservar precisamente ese rojo. La clase semántica evita ese caso y mantiene el contenido adaptable.
+
+Implementación: `lib/note-editor-html.ts`. Paridad móvil: `mobile/lib/editorHtml.ts`.
+
 ---
 
 ## Pestañas de la sección Notas
@@ -109,12 +124,16 @@ Equivalente a `mobile/app/(tabs)/notes.tsx`:
 
 ```text
 Notas
-├── Libretas   → NotebookSidebar (embedded)
-├── Diario     → Devotionals
-└── Libros     → PersonalLibrary
+├── Notas       → NotebookSidebar (embedded)
+├── Diario      → Devotionals
+├── Biblioteca  → PersonalLibrary
+├── Planes      → ReadingPlans
+└── Oración     → PrayerRequests
 ```
 
-Las secciones **Diario** y **Libros** siguen existiendo por separado en el menú lateral; dentro de **Notas** quedan agrupadas como en móvil.
+Antes, `NotesHub` añadía una fila `Notas / Devocional / Oración` encima de la fila interna `Notas / Diario / Biblioteca`. Ahora `NotesSection` es el único dueño de la navegación y filtra cada destino mediante `allowedSections`.
+
+Las secciones hijas siguen registradas en `APP_SECTION_CATALOG` para permisos, compatibilidad y enlaces existentes, pero no se duplican en el menú principal. Al seleccionar una lectura desde **Planes**, `handleSelectVerse` cambia a la sección **Leer** y posiciona el lector en el pasaje.
 
 ---
 
@@ -175,13 +194,14 @@ Recarga el navegador con **Ctrl+Shift+R** en https://biblia2.dvguzman.com → me
 ## Cómo probar
 
 1. Inicia sesión y abre **Notas** en el menú.
-2. Comprueba las tres pestañas: Libretas, Diario, Libros.
+2. Comprueba la fila única: Notas, Diario, Biblioteca, Planes y Oración (según permisos).
 3. Abre una libreta → crea o edita una nota.
 4. Usa formato (negrita, color, listas), cambia fuente y usa **Insertar versículo**.
 5. Inserta una imagen, redimensiónala y alinéala; guarda, sal y vuelve a abrir la nota.
 6. Inserta referencias cruzadas y una entrada del diccionario.
 7. Activa **Vista previa** y verifica que el contenido se ve bien.
 8. Guarda y vuelve a la lista: el resumen debe ser texto legible, no HTML crudo.
+9. Aplica un color a un texto, selecciónalo y pulsa **A**; debe recuperar el color normal del tema y adaptarse al alternar claro/oscuro.
 
 ---
 
@@ -190,6 +210,10 @@ Recarga el navegador con **Ctrl+Shift+R** en https://biblia2.dvguzman.com → me
 - El lector bíblico (`components/bible-reader`) sigue usando `NotebookSidebar` directamente en el panel lateral, sin pestañas.
 - La publicación de notas al feed de comunidad se retiró del editor web para igualar la UX móvil (solo Guardar / Borrar).
 - La web ahora tiene autoguardado silencioso tras unos segundos sin escribir y solicita el HTML actual del iframe antes del guardado manual.
+
+## Regla de documentación para cambios web
+
+Todo cambio que afecte código web debe actualizar o crear documentación dentro de `docs/`. Si también modifica comportamiento compartido con mobile, se actualiza además el documento correspondiente en `docs-mobile/`, manteniendo referencias cruzadas entre ambas implementaciones.
 
 ---
 
