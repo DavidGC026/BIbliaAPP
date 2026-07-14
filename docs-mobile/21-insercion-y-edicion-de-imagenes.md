@@ -236,6 +236,9 @@ Síntoma: mover imágenes se sentía **torpe**, tanto en modo **Fondo** (arrastr
 Cambios en `mobile/lib/editorHtml.ts`:
 
 - **Arrastrar (modo Fondo):** al empezar el gesto la imagen recibe la clase `.is-dragging` (sombra, opacidad, `z-index` alto para flotar sobre el texto, `will-change: left/top` y sin transición) y `body.image-dragging` desactiva la selección de texto. Se añadió `touchcancel` además de `touchend` para cerrar el gesto de forma robusta. El cursor pasa a `grab`/`grabbing`. El `preventDefault` en `touchmove` ya evitaba el scroll de la página durante el arrastre.
+- **Sin salto al convertir a Fondo:** antes se aplicaba `.is-background` antes de leer la posición visual, y el cambio a `position:absolute` podía recalcular `offsetLeft/offsetTop`. Ahora se mide el rectángulo actual contra el scroll del editor antes de cambiar el modo y se guarda `left/top` ya acotado al área editable.
+- **Movimiento más estable:** los `touchmove` se agrupan con `requestAnimationFrame`; solo se escribe `left/top` una vez por frame, se limita la imagen dentro del contenido del editor y solo se registra historial al soltar si realmente hubo desplazamiento.
+- **Bloque atómico:** las imágenes nuevas se insertan con `contenteditable="false"` y `draggable="false"`; las notas antiguas se normalizan al cargar, al restaurar undo/redo y al recibir contenido nuevo desde React Native. Esto evita foco accidental del editor y reduce aperturas del teclado al tocar o arrastrar.
 - **Subir/Bajar (modo Normal):** el reordenamiento ahora usa una animación **FLIP** (`animateReorder`): mide la posición del bloque antes y después de `insertBefore` y anima la diferencia con `transform` (0.22 s), en vez del salto instantáneo. La imagen "se desliza" a su nueva posición.
 - Todas estas operaciones pasan por `recordImageChange()`, así que además quedan cubiertas por el historial de Deshacer/Rehacer (ver §4).
 
