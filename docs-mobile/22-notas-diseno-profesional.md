@@ -85,6 +85,13 @@ npm run android
 6. Fija, mueve, comparte/exporta y borra una nota desde su tarjeta.
 7. Abre una nota y confirma autoguardado, guardado manual, vista previa y conteo de palabras.
 8. Inserta una imagen, tócala y confirma que el teclado se cierra, la toolbar se oculta y aparece el aviso `Editando imagen`.
+9. Con la imagen en modo **Fondo**, activa **Fondos 🖼️** y arrástrala aunque haya texto encima; en web, repite con mouse o touch.
+
+## Documentos relacionados
+
+- Paridad web del editor (imágenes, chip «Editando imagen», cabecera de documento): [`docs/notas-web-paridad-movil.md`](../docs/notas-web-paridad-movil.md).
+- Especificación de imágenes en notas: [`21-insercion-y-edicion-de-imagenes.md`](./21-insercion-y-edicion-de-imagenes.md).
+- Hubs y tabs de Notas en web: [`24-reduccion-secciones-web.md`](./24-reduccion-secciones-web.md).
 
 ---
 

@@ -89,3 +89,8 @@ npm run android
 3. **Guardar:** pulsa Guardar con el teclado cerrado; no debe reabrirse solo.
 4. **Atrás + tap (Android):** edita la nota, cierra el teclado con el botón atrás del sistema, toca el editor: el teclado debe abrirse de nuevo.
 5. **Color automático:** aplica un color a un texto, vuelve a seleccionarlo y pulsa **A**. Debe verse con el color normal del tema; guarda y cambia entre tema claro y oscuro para confirmar que se adapta.
+
+## Documentos relacionados
+
+- Paridad web del editor y color automático: [`docs/notas-web-paridad-movil.md`](../docs/notas-web-paridad-movil.md) (sección *Color automático según el tema*).
+- Imágenes en notas (bloques atómicos, teclado al tocar imagen): [`21-insercion-y-edicion-de-imagenes.md`](./21-insercion-y-edicion-de-imagenes.md) §11.

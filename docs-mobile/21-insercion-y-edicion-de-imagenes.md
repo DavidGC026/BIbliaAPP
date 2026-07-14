@@ -217,6 +217,8 @@ La función de imágenes existía solo en `mobile/lib/editorHtml.ts`; el editor 
 
 Pruebas manuales web: insertar imagen desde el botón etiquetado, redimensionar/alinear/mover/borrar desde el panel; convertirla en Fondo, activar **Fondos 🖼️** y arrastrarla aunque haya texto encima; guardar, recargar y verificar persistencia; abrir en el móvil la misma nota y comprobar que se ve idéntica (y viceversa).
 
+Documentación web detallada: [`docs/notas-web-paridad-movil.md`](../docs/notas-web-paridad-movil.md) (sección *Inserción y edición de imágenes*). La web usa Pointer Events para el arrastre y no expone Deshacer/Rehacer de imágenes.
+
 ## 11. Corrección: teclado se abría al tocar la imagen
 
 Síntoma (julio 2026): Al tocar una imagen para modificarla (moverla o escalarla abriendo el panel inferior), el teclado virtual del móvil se desplegaba, e inmediatamente se cerraba o se quedaba abierto, generando una experiencia visual errática.

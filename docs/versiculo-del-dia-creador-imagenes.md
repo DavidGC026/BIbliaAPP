@@ -16,7 +16,11 @@ Si la API no entrega fotografía, el creador abre normalmente con su gradiente d
 |---------|-----------------|
 | `components/verse-of-the-day.tsx` | Entrega `data.backgroundImage` al creador mediante `initialPhotoUrl`. |
 | `components/verse-image-creator.tsx` | Al abrir, inicializa el modo `photo` y `backgroundImageUrl` cuando recibe la URL; sin URL usa `gradient`. |
-| `app/api/image-proxy/route.ts` | Permite convertir la imagen remota a data URL antes de exportar, evitando restricciones CORS. |
+| `app/api/image-proxy/route.ts` | Convierte la imagen remota a data URL antes de exportar (`urlToDataUrl` en `verse-image-creator.tsx`), evitando CORS en `html-to-image`. |
+
+### Restricciones de `image-proxy`
+
+Solo acepta URLs de hosts en la lista blanca (`images.unsplash.com`, `plus.unsplash.com`). Las fotos del versículo del día provienen de Unsplash, así que encajan en este flujo. Si la URL falta, es inválida o el host no está permitido, la exportación falla con error visible.
 
 La plantilla guardada sigue restaurando formato, diseño y gradiente, pero no sustituye la fotografía de origen. La foto solo se cambia cuando el usuario elige explícitamente otro fondo.
 
@@ -34,3 +38,11 @@ Referencia móvil: [`docs-mobile/18-lector-biblia-e-imagenes.md`](../docs-mobile
 4. Descarga o comparte la imagen; verifica que la foto se incluye en el PNG.
 5. Cambia a un gradiente y confirma que la selección manual sigue funcionando.
 6. Simula un día sin `backgroundImage` y confirma el fallback a gradiente.
+
+## Documentos relacionados
+
+| Documento | Contenido |
+|-----------|-----------|
+| [`docs-mobile/18-lector-biblia-e-imagenes.md`](../docs-mobile/18-lector-biblia-e-imagenes.md) | Generador de imágenes de versículos (móvil y paridad web del creador) |
+| [`docs-mobile/15-widget-versiculo-del-dia.md`](../docs-mobile/15-widget-versiculo-del-dia.md) | Widget Android del versículo del día |
+| [`components/verse-image-creator.tsx`](../components/verse-image-creator.tsx) | Componente compartido del creador (lector, versículo del día, comunidad) |

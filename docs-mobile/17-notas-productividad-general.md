@@ -84,3 +84,8 @@ npm run android
 9. Mueve una nota a otra libreta y confirma que desaparezca de la libreta actual.
 10. Comparte una nota y comprueba que el sistema abra la hoja de compartir con título y texto.
 11. En el editor, usa **Versículo** con filtro y **Referencias** para insertar contenido relacionado.
+12. Inserta una imagen, conviértela a **Fondo**, activa **Fondos 🖼️** y arrástrala con texto encima; guarda y reabre para verificar posición y modo.
+
+## Paridad web
+
+La sección Notas web replica estas mejoras de productividad en `components/notes-section.tsx` y `components/notebook-sidebar.tsx`. Referencia: [`docs/notas-web-paridad-movil.md`](../docs/notas-web-paridad-movil.md).

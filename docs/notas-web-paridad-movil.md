@@ -215,6 +215,19 @@ Recarga el navegador con **Ctrl+Shift+R** en https://biblia2.dvguzman.com → me
 - El lector bíblico (`components/bible-reader`) sigue usando `NotebookSidebar` directamente en el panel lateral, sin pestañas.
 - La publicación de notas al feed de comunidad se retiró del editor web para igualar la UX móvil (solo Guardar / Borrar).
 - La web ahora tiene autoguardado silencioso tras unos segundos sin escribir y solicita el HTML actual del iframe antes del guardado manual.
+- **Imágenes en web:** el arrastre de fondos usa **Pointer Events** (mouse, touch y lápiz) en lugar de los listeners `touch*` del móvil; el comportamiento visible es el mismo. La web **no** tiene pila de Deshacer/Rehacer para ediciones de imagen — solo `notifyChangeNow()` — mientras que el móvil registra historial vía `recordImageChange()` (ver doc 21 §4).
+- **Volver sin guardar:** a diferencia del `beforeRemove` del móvil, **Volver** en web no dispara autoguardado inmediato; espera el debounce (~4 s) o pulsa **Guardar** antes de salir.
+
+## Documentos relacionados
+
+| Documento | Contenido |
+|-----------|-----------|
+| [`docs-mobile/21-insercion-y-edicion-de-imagenes.md`](../docs-mobile/21-insercion-y-edicion-de-imagenes.md) | Especificación móvil de imágenes (Normal/Fondo, Fondos 🖼️, arrastre, FLIP) portada a `lib/note-editor-html.ts` |
+| [`docs-mobile/16-editor-webview-teclado-seleccion.md`](../docs-mobile/16-editor-webview-teclado-seleccion.md) | Color automático `.note-color-auto` y foco del teclado |
+| [`docs-mobile/22-notas-diseno-profesional.md`](../docs-mobile/22-notas-diseno-profesional.md) | Diseño del editor y chip «Editando imagen» |
+| [`docs-mobile/23-paridad-web-mobile-global.md`](../docs-mobile/23-paridad-web-mobile-global.md) | Shell móvil global y consolidación de hubs |
+| [`docs-mobile/24-reduccion-secciones-web.md`](../docs-mobile/24-reduccion-secciones-web.md) | Tabs únicos en Notas / Leer / Perfil |
+| [`docs/nuevas-secciones.md`](./nuevas-secciones.md) | Registro de secciones y hubs (`NotesSection`, permisos) |
 
 ## Regla de documentación para cambios web
 
