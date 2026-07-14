@@ -88,6 +88,8 @@ Para los fondos de tipo foto, el usuario puede ajustar la posición y el zoom de
 
 ### Paridad web (julio 2026)
 
+Documentación web detallada: [`docs/creador-imagenes-versiculos.md`](../docs/creador-imagenes-versiculos.md).
+
 El generador web (`components/verse-image-creator.tsx`) se alineó con el móvil:
 
 - **Diseños**: mismos 4 presets (Editorial, Minimal, Impacto, Sereno) con idénticos valores de alineación, serif/sans, peso, acento y overlay base. La tarjeta (`VerseImageCard` web) ahora pinta comillas, divisor, brillo superior y referencia con el color de acento del preset, y alinea a la izquierda en Minimal/Sereno — misma composición que la tarjeta del móvil.
