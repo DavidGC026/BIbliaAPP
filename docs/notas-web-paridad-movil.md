@@ -78,7 +78,7 @@ La pestaña **Notas** del menú web ahora replica la estructura y el editor de l
 - El botón etiquetado **Insertar imagen** y el icono 🖼️ de la toolbar abren el selector nativo de archivos desde React.
 - La imagen se sube a `/api/upload` con `purpose=other`.
 - Si el backend devuelve `filename`, la web inserta una URL absoluta `/uploads/{filename}` para que la imagen sobreviva al salir y volver a abrir la nota.
-- `/uploads/[filename]` es una ruta dinámica de Next (`app/uploads/[filename]/route.ts`): lee el archivo en cada petición. Esto es necesario porque el servidor de producción solo indexa como estáticos los archivos presentes durante `next build`; las imágenes agregadas después del arranque devolvían 404 aunque existieran en disco.
+- `/uploads/[filename]` es una ruta dinámica de Next (`app/uploads/[filename]/route.ts`): lee el archivo en cada petición. Esto es necesario porque el servidor de producción solo indexa como estáticos los archivos presentes durante `next build`; las imágenes agregadas después del arranque devolvían 404 aunque existieran en disco. Ver [`servicio-uploads.md`](./servicio-uploads.md) (subida, rutas públicas/privadas y troubleshooting).
 - Cada imagen es un bloque atómico (`contenteditable="false"`, `draggable="false"`), incluso al cargar notas antiguas, para evitar que el cursor rompa el HTML o active una edición accidental.
 - El panel permite redimensionar, alinear, subir/bajar con animación y borrar.
 - El selector **Normal / Fondo** convierte una imagen en fondo absoluto detrás del texto. El botón **Fondos 🖼️** activa temporalmente su selección y permite arrastrarla con mouse, touch o lápiz; el hit-test geométrico sigue encontrándola aunque haya texto encima.
@@ -221,6 +221,15 @@ Recarga el navegador con **Ctrl+Shift+R** en https://biblia2.dvguzman.com → me
 ## Regla de documentación para cambios web
 
 Todo cambio que afecte código web debe actualizar o crear documentación dentro de `docs/`. Si también modifica comportamiento compartido con mobile, se actualiza además el documento correspondiente en `docs-mobile/`, manteniendo referencias cruzadas entre ambas implementaciones.
+
+## Documentos relacionados
+
+| Documento | Contenido |
+|-----------|-----------|
+| [`servicio-uploads.md`](./servicio-uploads.md) | Subida (`POST /api/upload`), entrega pública `/uploads/`, rutas privadas y troubleshooting |
+| [`docs-mobile/21-insercion-y-edicion-de-imagenes.md`](../docs-mobile/21-insercion-y-edicion-de-imagenes.md) | Flujo móvil, URL pública, undo de imágenes |
+| [`docs-mobile/16-editor-webview-teclado-seleccion.md`](../docs-mobile/16-editor-webview-teclado-seleccion.md) | Color automático en el editor |
+| [`nuevas-secciones.md`](./nuevas-secciones.md) | Hubs web (NotesSection, pestañas) |
 
 ---
 
