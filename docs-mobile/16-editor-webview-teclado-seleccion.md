@@ -58,17 +58,22 @@ Cuando el teclado pasa de abierto a cerrado en **Android** (`keyboardHeight` de 
 
 ## Color "Auto" en la barra de colores (julio 2026)
 
-La fila de colores del editor (`colors-row` en `editorHtml.ts`) antepone un swatch **"A" (Auto)** a la paleta de favoritos. Al tocarlo, `applyColor('auto')` llama a `clearColor()`, que envuelve la selección (o el punto de escritura) en un `span` con `color: inherit` y limpia los `color` explícitos de los descendientes, de modo que el texto vuelve a heredar el color del tema (`colors.text`) y **cambia con el tema** (claro/oscuro/sepia).
+La fila de colores del editor (`colors-row` en `editorHtml.ts`) antepone un swatch **"A" (Auto)** a la paleta de favoritos. Al tocarlo, `applyColor('auto')` llama a `clearColor()`, que marca la selección (o el punto de escritura) con `<span class="note-color-auto">` y limpia los colores explícitos de sus descendientes. La regla `#editor .note-color-auto` resuelve ese marcador con `colors.text` y `!important`, por lo que el texto usa el color del tema vigente (claro/oscuro/sepia), incluso cuando está anidado dentro de un `span` que tenía otro color.
+
+La implementación anterior usaba `color: inherit`. Eso no funcionaba si el texto seleccionado estaba dentro de un elemento coloreado: en ese contexto, “heredar” recuperaba el color explícito del padre en vez del color general del editor, y el botón parecía no hacer nada.
 
 - `activeColor` arranca en `'auto'`: el texto nuevo sigue el color del tema hasta que se elige un color explícito.
 - Resuelve el caso "cambié el color y ya no podía volver al automático".
+- El mismo marcador y swatch se implementan en `lib/note-editor-html.ts` para mantener paridad con el editor web.
+- En móvil, el cambio de color automático también crea una instantánea del historial, por lo que se puede deshacer y rehacer.
 
 ## Archivos tocados
 
 | Archivo | Cambio |
 |---------|--------|
-| `mobile/lib/editorHtml.ts` | `scrollCaretIntoView()` preserva selección; `handleAction()` sin `focus()` en lecturas/insets; swatch "Auto" + `clearColor()` |
+| `mobile/lib/editorHtml.ts` | `scrollCaretIntoView()` preserva selección; `handleAction()` sin `focus()` en lecturas/insets; swatch "Auto" + marcador semántico `note-color-auto` |
 | `mobile/app/note/[noteId].tsx` | `blurEditor` al cerrar teclado en Android |
+| `lib/note-editor-html.ts` | Paridad web del swatch "Auto" y resolución del color según el tema |
 
 ---
 
@@ -83,3 +88,4 @@ npm run android
 2. **Título:** escribe en el campo Título; el cursor no debe saltar al cuerpo de la nota.
 3. **Guardar:** pulsa Guardar con el teclado cerrado; no debe reabrirse solo.
 4. **Atrás + tap (Android):** edita la nota, cierra el teclado con el botón atrás del sistema, toca el editor: el teclado debe abrirse de nuevo.
+5. **Color automático:** aplica un color a un texto, vuelve a seleccionarlo y pulsa **A**. Debe verse con el color normal del tema; guarda y cambia entre tema claro y oscuro para confirmar que se adapta.

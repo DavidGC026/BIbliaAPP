@@ -121,6 +121,9 @@ export function getEditorHtml(
       pointer-events: none;
     }
 
+    /* Color semántico: se resuelve con el tema actual, no se guarda negro/blanco. */
+    #editor .note-color-auto { color: ${colors.text} !important; }
+
     /* ── Typography Niceness ──────────────────────────── */
     ul, ol { padding-left: 24px; margin: 6px 0; }
     li { margin: 3px 0; }
@@ -469,6 +472,17 @@ export function getEditorHtml(
       transform: scale(1.15);
       box-shadow: 0 0 0 2px ${colors.primarySoft};
     }
+    .color-dot.auto {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: ${colors.accent};
+      border-color: ${colors.border};
+      color: ${colors.text};
+      font-size: 13px;
+      font-weight: 800;
+      line-height: 1;
+    }
 
     /* Aux actions row */
     .aux-row {
@@ -596,7 +610,7 @@ export function getEditorHtml(
 
       /* ── Color palette state ───────────────────────── */
       var colorPalette = ${colorsJson};
-      var activeColor = '${colors.text}';
+      var activeColor = 'auto';
       var activeSize = '16px';
       var savedRange = null;
       var scrollTimer = null;
@@ -1266,6 +1280,19 @@ export function getEditorHtml(
         var row = document.getElementById('colors-row');
         if (!row) return;
         row.innerHTML = '';
+
+        var autoDot = document.createElement('div');
+        autoDot.className = 'color-dot auto' + (activeColor === 'auto' ? ' active' : '');
+        autoDot.setAttribute('data-color', 'auto');
+        autoDot.setAttribute('aria-label', 'Color automático');
+        autoDot.textContent = 'A';
+        bindToolbarButton(autoDot, function() {
+          activeColor = 'auto';
+          applyColor('auto');
+          renderColors();
+        });
+        row.appendChild(autoDot);
+
         colorPalette.forEach(function(c) {
           var dot = document.createElement('div');
           dot.className = 'color-dot' + (c.toLowerCase() === activeColor.toLowerCase() ? ' active' : '');
@@ -1323,8 +1350,50 @@ export function getEditorHtml(
       /* ── Apply color to selection ──────────────────── */
       function applyColor(color) {
         activeColor = color;
-        wrapRangeStyle('color', color);
+        if (color === 'auto') {
+          clearColor();
+        } else {
+          wrapRangeStyle('color', color);
+        }
         notifyChange();
+      }
+
+      function clearColor() {
+        restoreSelection();
+        editor.focus();
+        var sel = window.getSelection();
+        if (!sel || sel.rangeCount === 0) return;
+        var range = sel.getRangeAt(0);
+        var span = document.createElement('span');
+        span.className = 'note-color-auto';
+
+        if (range.collapsed) {
+          span.appendChild(document.createTextNode('\\u200B'));
+          range.insertNode(span);
+          range.setStart(span.firstChild, 1);
+          range.setEnd(span.firstChild, 1);
+        } else {
+          try {
+            range.surroundContents(span);
+          } catch (e) {
+            var fragment = range.extractContents();
+            span.appendChild(fragment);
+            range.insertNode(span);
+          }
+          span.querySelectorAll('[style]').forEach(function(el) {
+            el.style.color = '';
+            if (!el.getAttribute('style')) el.removeAttribute('style');
+          });
+          span.querySelectorAll('font[color]').forEach(function(el) {
+            el.removeAttribute('color');
+          });
+          range.selectNodeContents(span);
+          range.collapse(false);
+        }
+
+        sel.removeAllRanges();
+        sel.addRange(range);
+        savedRange = range.cloneRange();
       }
 
       /* ── Apply font size via span wrapping (works on Android WebView) ── */
