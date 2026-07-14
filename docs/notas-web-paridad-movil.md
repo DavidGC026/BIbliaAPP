@@ -202,7 +202,7 @@ Recarga el navegador con **Ctrl+Shift+R** en https://biblia2.dvguzman.com → me
 2. Comprueba la fila única: Notas, Diario, Biblioteca, Planes y Oración (según permisos).
 3. Abre una libreta → crea o edita una nota.
 4. Usa formato (negrita, color, listas), cambia fuente y usa **Insertar versículo**.
-5. Inserta una imagen desde el botón etiquetado, redimensiónala y alinéala; prueba Subir/Bajar y verifica su animación.
+5. Inserta una imagen desde el botón etiquetado, ábrela en el panel inferior y **arrastra el slider de ancho con el mouse** (escritorio): el thumb debe moverse y la etiqueta de porcentaje actualizarse en vivo. Prueba también alineación y Subir/Bajar con su animación.
 6. Cámbiala a **Fondo**, cierra el panel, activa **Fondos 🖼️** y arrástrala aun cuando tenga texto encima.
 7. Guarda, sal y vuelve a abrir la nota; verifica tamaño, alineación, modo y posición.
    Comprueba también que `GET /uploads/{filename}` responde 200 después de reiniciar el contenedor.
@@ -218,11 +218,21 @@ Recarga el navegador con **Ctrl+Shift+R** en https://biblia2.dvguzman.com → me
 - El lector bíblico (`components/bible-reader`) sigue usando `NotebookSidebar` directamente en el panel lateral, sin pestañas.
 - La publicación de notas al feed de comunidad se retiró del editor web para igualar la UX móvil (solo Guardar / Borrar).
 - La web ahora tiene autoguardado silencioso tras unos segundos sin escribir y solicita el HTML actual del iframe antes del guardado manual.
+- **Slider de ancho en escritorio:** `#image-edit-panel` cancela `mousedown` con `preventDefault()` para que los botones del panel no devuelvan el foco al `contenteditable`. Eso también bloqueaba el gesto nativo de `input[type="range"]` en navegadores de escritorio. El listener excluye ahora el slider (`closest('input[type="range"]')`) antes de cancelar; touch en móvil web no requería cambio. Implementación: `lib/note-editor-html.ts` (~línea 833). Detalle móvil: [`docs-mobile/21-insercion-y-edicion-de-imagenes.md`](../docs-mobile/21-insercion-y-edicion-de-imagenes.md) §10.
 
 ## Regla de documentación para cambios web
 
 Todo cambio que afecte código web debe actualizar o crear documentación dentro de `docs/`. Si también modifica comportamiento compartido con mobile, se actualiza además el documento correspondiente en `docs-mobile/`, manteniendo referencias cruzadas entre ambas implementaciones.
 
+## Documentos relacionados
+
+| Documento | Contenido |
+|-----------|-----------|
+| [`docs-mobile/21-insercion-y-edicion-de-imagenes.md`](../docs-mobile/21-insercion-y-edicion-de-imagenes.md) | Panel de imagen, slider, modo Fondo, arrastre y paridad web §10 |
+| [`docs-mobile/16-editor-webview-teclado-seleccion.md`](../docs-mobile/16-editor-webview-teclado-seleccion.md) | Foco del teclado y color automático en el editor |
+| [`docs-mobile/22-notas-diseno-profesional.md`](../docs-mobile/22-notas-diseno-profesional.md) | Diseño visual del editor y chip «Editando imagen» |
+| [`docs/nuevas-secciones.md`](./nuevas-secciones.md) | Hubs web (`NotesSection`, pestañas segmentadas) |
+
 ---
 
-*Última revisión: julio 2026.*
+*Última revisión: julio 2026 (slider de ancho en escritorio, commit `80f5f10`).*

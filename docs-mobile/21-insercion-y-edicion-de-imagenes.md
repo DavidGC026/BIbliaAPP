@@ -217,9 +217,17 @@ La función de imágenes existía solo en `mobile/lib/editorHtml.ts`; el editor 
   - Sube con `POST /api/upload` (FormData + `Authorization: Bearer` desde `localStorage.biblia_token`, como el resto de la web), inserta `${origin}/uploads/<filename>` vía `handleAction insertImage`, con indicador "Subiendo imagen...".
   - El timeout de `requestEditorHtml` sube de 500ms a 5000ms (mismo motivo que §7: notas con imágenes tardan más en cruzar el `postMessage`).
 
-Pruebas manuales web: insertar imagen desde el botón etiquetado, redimensionar/alinear/mover/borrar desde el panel; convertirla en Fondo, activar **Fondos 🖼️** y arrastrarla aunque haya texto encima; guardar, recargar y verificar persistencia; abrir en el móvil la misma nota y comprobar que se ve idéntica (y viceversa).
+Pruebas manuales web: insertar imagen desde el botón etiquetado, redimensionar/alinear/mover/borrar desde el panel; convertirla en Fondo, activar **Fondos 🖼️** y arrastrarla aunque haya texto encima; guardar, recargar y verificar persistencia; abrir en el móvil la misma nota y comprobar que se ve idéntica (y viceversa). En **escritorio**, arrastra el slider de ancho con el mouse y confirma que el thumb se mueve y el porcentaje cambia en vivo (regresión cubierta en la subsección siguiente).
 
-Corrección web del slider (julio 2026): el listener `mousedown` del panel llamaba a `preventDefault()` para no devolver el foco al editor, pero también cancelaba el comportamiento nativo del `input[type="range"]` en escritorio. La web excluye ahora el slider de esa cancelación; el thumb vuelve a responder al mouse y el evento `input` actualiza ancho y porcentaje en vivo. Mobile no requería cambio porque su gesto principal es touch.
+### Corrección web: slider de ancho bloqueado en escritorio (julio 2026)
+
+Síntoma: en la web de escritorio, al abrir el panel de edición de imagen el control **Ancho** (`input[type="range"]`) no respondía al mouse: el thumb no se movía y el porcentaje no cambiaba, aunque touch en móvil web sí funcionaba.
+
+Causa: el listener `mousedown` de `#image-edit-panel` llamaba a `preventDefault()` en todos los clics del panel para evitar que el foco volviera al `contenteditable` del editor. En navegadores de escritorio, cancelar `mousedown` en un `<input type="range">` impide el arrastre nativo del thumb.
+
+Fix en `lib/note-editor-html.ts`: antes de `preventDefault()`, el handler comprueba `e.target.closest('input[type="range"]')` y sale sin cancelar si el gesto empezó en el slider. El evento `input` del slider sigue actualizando ancho y etiqueta de porcentaje en vivo. Mobile nativo no requirió cambio (gesto principal: touch).
+
+Paridad web: [`docs/notas-web-paridad-movil.md`](../docs/notas-web-paridad-movil.md) § Inserción y edición de imágenes y § Notas técnicas.
 
 ## 11. Corrección: teclado se abría al tocar la imagen
 
