@@ -77,6 +77,9 @@ La pestaña **Notas** del menú web ahora replica la estructura y el editor de l
 - La imagen se sube a `/api/upload` con `purpose=other`.
 - Si el backend devuelve `filename`, la web inserta una URL absoluta `/uploads/{filename}` para que la imagen sobreviva al salir y volver a abrir la nota.
 - La edición visual se mantiene dentro del iframe: redimensionar, alinear, mover y borrar sin perder el contenido al guardar.
+- Funcionalidades aún **solo en móvil** (julio 2026): modo **Fondo** con arrastre libre, historial **Deshacer/Rehacer** unificado para ediciones de imagen — ver [`docs-mobile/21-insercion-y-edicion-de-imagenes.md`](../docs-mobile/21-insercion-y-edicion-de-imagenes.md) §3–§4.
+
+> Las **imágenes de versículos** (lector / versículo del día) son otro flujo: [`docs/creador-imagenes-versiculos.md`](./creador-imagenes-versiculos.md).
 
 ### Referencias cruzadas
 
