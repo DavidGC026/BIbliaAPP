@@ -14,7 +14,7 @@ Archivo: `lib/app-section-registry/sections.client.tsx`
 
 La sección `reading` ahora renderiza `StudyHub` con tabs internos:
 
-- **Biblia**: `BibleReader`
+- **Lector**: `BibleReader` (misma etiqueta que mobile)
 - **Buscar**: `SearchAdvanced`
 - **Referencias**: `ReferencesExplorer`
 - **Diccionario**: `StrongDictionary`
@@ -25,13 +25,17 @@ Al seleccionar una lectura desde **Planes** también se vuelve a **Biblia** con 
 
 ### Notas
 
-La sección `notebook` ahora renderiza `NotesHub` con:
+La sección `notebook` usa una sola fila de tabs, equivalente a **Notas** en mobile:
 
-- **Notas**: `NotesSection`
-- **Devocional**: `Devotionals`
-- **Oración**: `PrayerRequests`
+- **Notas**: `NotebookSidebar`
+- **Diario**: `Devotionals`
+- **Biblioteca**: `PersonalLibrary`
+- **Planes**: `ReadingPlans`
+- **Oración**: `PrayerRequests` (función adicional de la web que se conserva)
 
-Los tabs respetan `allowedSections`, por lo que solo aparecen si el usuario tiene permiso para esa función.
+Antes había dos navegaciones superpuestas: `NotesHub` mostraba `Notas / Devocional / Oración` y, al entrar en Notas, `NotesSection` volvía a mostrar `Notas / Diario / Biblioteca`. La consolidación deja una sola jerarquía, mantiene todas las funciones y respeta `allowedSections` para ocultar los tabs sin permiso.
+
+Al abrir una lectura desde **Planes**, `handleSelectVerse` cambia a la sección **Leer** y posiciona el lector en el pasaje elegido.
 
 ### Perfil
 
@@ -55,6 +59,7 @@ Se ocultaron del menú principal las secciones hijas:
 - `search`
 - `references`
 - `dictionary`
+- `library`
 - `devotionals`
 - `prayers`
 - `favorites`

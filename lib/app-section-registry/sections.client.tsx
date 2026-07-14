@@ -126,21 +126,14 @@ function meta(id: AppSectionId) {
 }
 
 type StudyMode = "reader" | "search" | "references" | "dictionary" | "plans"
-type NotesMode = "notes" | "devotionals" | "prayers"
 type ProfileMode = "profile" | "favorites" | "highlights" | "plans" | "activity" | "statistics"
 
 const STUDY_TABS: { key: StudyMode; label: string }[] = [
-  { key: "reader", label: "Biblia" },
+  { key: "reader", label: "Lector" },
   { key: "search", label: "Buscar" },
   { key: "references", label: "Referencias" },
   { key: "dictionary", label: "Diccionario" },
   { key: "plans", label: "Planes" },
-]
-
-const NOTES_TABS: { key: NotesMode; label: string }[] = [
-  { key: "notes", label: "Notas" },
-  { key: "devotionals", label: "Devocional" },
-  { key: "prayers", label: "Oración" },
 ]
 
 const PROFILE_TABS: { key: ProfileMode; label: string }[] = [
@@ -202,34 +195,18 @@ function StudyHub(ctx: SectionRenderContext) {
 }
 
 function NotesHub(ctx: SectionRenderContext) {
-  const [mode, setMode] = useState<NotesMode>("notes")
-  const tabs = NOTES_TABS.filter((tab) => (
-    tab.key === "notes" ||
-    (tab.key === "devotionals" && ctx.allowedSections.includes("devotionals")) ||
-    (tab.key === "prayers" && ctx.allowedSections.includes("prayers"))
-  ))
-  const activeMode = tabs.some((tab) => tab.key === mode) ? mode : tabs[0]?.key ?? "notes"
-
   return (
-    <div className="flex h-full min-h-0 flex-col bg-background">
-      <SegmentTabs tabs={tabs} active={activeMode} onChange={setMode} />
-      <div className="min-h-0 flex-1 overflow-y-auto">
-        {activeMode === "notes" ? (
-          <NotesSection
-            editingNote={ctx.notebookEditingNote}
-            setEditingNote={ctx.setNotebookEditingNote}
-            onSessionExpired={() => {
-              localStorage.removeItem("biblia_token")
-              window.location.reload()
-            }}
-          />
-        ) : activeMode === "devotionals" ? (
-          <Devotionals />
-        ) : (
-          <PrayerRequests />
-        )}
-      </div>
-    </div>
+    <NotesSection
+      editingNote={ctx.notebookEditingNote}
+      setEditingNote={ctx.setNotebookEditingNote}
+      allowedSections={ctx.allowedSections}
+      onSelectReading={ctx.handleSelectVerse}
+      streakCount={ctx.user?.streakCount ?? 0}
+      onSessionExpired={() => {
+        localStorage.removeItem("biblia_token")
+        window.location.reload()
+      }}
+    />
   )
 }
 

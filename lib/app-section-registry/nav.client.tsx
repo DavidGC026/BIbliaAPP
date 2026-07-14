@@ -10,6 +10,7 @@ const HIDDEN_CHILD_SECTIONS = new Set([
   "search",
   "references",
   "dictionary",
+  "library",
   "devotionals",
   "prayers",
   "favorites",

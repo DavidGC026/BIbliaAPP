@@ -81,3 +81,15 @@ Archivo: `components/ui/segment-tabs.tsx`
 npx tsc --noEmit
 npm run build
 ```
+
+## Primera fase funcional: navegación interna de estudio y notas
+
+Además de la paridad visual del shell, se inició la consolidación funcional de los hubs web para que sigan la misma arquitectura que mobile:
+
+- **Leer** usa `Lector / Buscar / Referencias / Diccionario / Planes`, igual que `mobile/app/(tabs)/bible.tsx`.
+- **Notas** elimina el doble nivel de tabs y presenta una única fila: `Notas / Diario / Biblioteca / Planes / Oración`.
+- Los cuatro primeros destinos reflejan `mobile/app/(tabs)/notes.tsx`; **Oración** se conserva como capacidad adicional de web.
+- `Biblioteca` deja de aparecer como destino principal duplicado en la navegación web, aunque permanece registrada para permisos y enlaces existentes.
+- Todos los tabs internos se filtran mediante `allowedSections` y las lecturas elegidas desde Planes abren el lector principal.
+
+Archivos principales: `components/notes-section.tsx`, `lib/app-section-registry/sections.client.tsx` y `lib/app-section-registry/nav.client.tsx`.
