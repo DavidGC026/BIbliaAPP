@@ -208,6 +208,16 @@ Recarga el navegador con **Ctrl+Shift+R** en https://biblia2.dvguzman.com → me
 - El lector bíblico (`components/bible-reader`) sigue usando `NotebookSidebar` directamente en el panel lateral, sin pestañas.
 - La publicación de notas al feed de comunidad se retiró del editor web para igualar la UX móvil (solo Guardar / Borrar).
 - La inserción de referencias cruzadas se retiró de los editores web y mobile por decisión de producto. La consulta de referencias del lector/área de estudio permanece disponible; el contenido que ya estaba insertado en notas no se modifica.
+
+### Retiro de inserción de referencias (julio 2026)
+
+| Archivo | Rol eliminado |
+|---------|---------------|
+| `lib/note-editor-html.ts` | Botón **Insertar referencias** y `postMessage` `openReferenceModal` |
+| `components/note-rich-editor.tsx` | Prop `onInsertReferences` |
+| `components/notebook-sidebar.tsx` | Modal SWR → `/api/references`, selección múltiple e inserción HTML |
+
+La API `/api/references` y los componentes de estudio (`components/references-explorer.tsx`, `components/references-rainbow-map.tsx`) no cambiaron. Ver también `docs-mobile/17-notas-productividad-general.md` § Retiro de referencias.
 - La web ahora tiene autoguardado silencioso tras unos segundos sin escribir y solicita el HTML actual del iframe antes del guardado manual.
 
 ## Regla de documentación para cambios web

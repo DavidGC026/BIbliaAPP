@@ -85,3 +85,18 @@ npm run android
 ## Retiro de referencias en el editor (julio 2026)
 
 La acción para insertar referencias cruzadas se eliminó de la toolbar de notas en web y mobile junto con su modal, estado y formateador. Esta decisión simplifica el editor y no elimina la sección de referencias del lector bíblico ni modifica bloques de referencias que ya estuvieran guardados dentro de notas antiguas.
+
+### Qué se retiró
+
+| Capa | Archivo | Cambio |
+|------|---------|--------|
+| Toolbar del iframe | `lib/note-editor-html.ts` | Botón `insertReferences` y evento `openReferenceModal` |
+| Puente React ↔ iframe | `components/note-rich-editor.tsx` | Prop `onInsertReferences` y listener `openReferenceModal` |
+| Host web | `components/notebook-sidebar.tsx` | Modal de inserción, estado SWR a `/api/references`, `formatReferenceInsertion()` |
+| Mobile (paridad) | `mobile/lib/editorHtml.ts`, `mobile/app/note/[noteId].tsx` | Misma toolbar y modal equivalentes |
+
+### Qué sigue disponible
+
+- **Leer → Referencias** (`components/references-explorer.tsx`) y el mapa de arcos (`components/references-rainbow-map.tsx`) siguen consultando `/api/references`.
+- El lector bíblico mantiene la acción contextual de referencias sobre un versículo seleccionado.
+- Las notas antiguas conservan bloques `<blockquote>` con referencias ya insertadas; no se migran ni borran.
