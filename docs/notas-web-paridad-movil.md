@@ -71,6 +71,21 @@ La pestaña **Notas** del menú web ahora replica la estructura y el editor de l
 - Si hay texto seleccionado, aplica la fuente solo a esa selección.
 - Si no hay selección, aplica la fuente al contenido completo y la deja persistida dentro del HTML guardado.
 
+### Color automático (swatch **A**)
+
+La fila de colores del iframe antepone un punto **A** (*Color automático*) a la paleta (`DEFAULT_EDITOR_COLORS` en `lib/note-editor-theme.ts`). Comportamiento compartido con el WebView móvil (ver [`docs-mobile/16-editor-webview-teclado-seleccion.md`](../docs-mobile/16-editor-webview-teclado-seleccion.md) § Color "Auto"):
+
+| Aspecto | Detalle |
+|---------|---------|
+| Estado inicial | `activeColor` arranca en `'auto'`; el texto nuevo sigue el color del tema hasta elegir un color explícito. |
+| Aplicar Auto | `applyColor('auto')` → `clearColor()` envuelve la selección (o el punto de escritura) en `<span class="note-color-auto">` y quita `style.color` / `font[color]` de los descendientes. |
+| Resolución visual | La regla `#editor .note-color-auto { color: … !important; }` en `getEditorHtml()` inyecta `colors.text` de `getNoteEditorColors()`, que lee `--foreground` y el resto de variables CSS del tema web (claro/oscuro). |
+| Por qué no `inherit` | Si el texto estaba dentro de un `span` con color explícito, `color: inherit` recuperaba el color del padre y el botón **A** parecía no hacer nada. El marcador semántico evita eso. |
+| Persistencia | El HTML guardado conserva `class="note-color-auto"`; al reabrir la nota o en **Vista previa** (`NoteContent`), el color se resuelve de nuevo al generar el `srcDoc`. |
+| Cambio de tema | `NoteRichEditor` y `NoteContent` dependen de `resolvedTheme` (`next-themes`); al alternar claro/oscuro se regenera el iframe y el texto marcado como Auto adopta el nuevo `colors.text`. |
+
+**Asimetría móvil:** en Android, `clearColor()` también crea una entrada en el historial undo/redo del editor. La plantilla web en `lib/note-editor-html.ts` no expone pila de deshacer para colores.
+
 ### Inserción y edición de imágenes
 
 - El botón de imagen del editor abre un selector nativo de archivos desde React.
@@ -178,10 +193,11 @@ Recarga el navegador con **Ctrl+Shift+R** en https://biblia2.dvguzman.com → me
 2. Comprueba las tres pestañas: Libretas, Diario, Libros.
 3. Abre una libreta → crea o edita una nota.
 4. Usa formato (negrita, color, listas), cambia fuente y usa **Insertar versículo**.
-5. Inserta una imagen, redimensiónala y alinéala; guarda, sal y vuelve a abrir la nota.
-6. Inserta referencias cruzadas y una entrada del diccionario.
-7. Activa **Vista previa** y verifica que el contenido se ve bien.
-8. Guarda y vuelve a la lista: el resumen debe ser texto legible, no HTML crudo.
+5. Aplica un color a un fragmento, vuelve a seleccionarlo y pulsa **A** (automático); debe verse con el color normal del tema. Cambia entre tema claro y oscuro y confirma que el texto Auto se adapta sin reeditar.
+6. Inserta una imagen, redimensiónala y alinéala; guarda, sal y vuelve a abrir la nota.
+7. Inserta referencias cruzadas y una entrada del diccionario.
+8. Activa **Vista previa** y verifica que el contenido se ve bien (incluido texto con `note-color-auto`).
+9. Guarda y vuelve a la lista: el resumen debe ser texto legible, no HTML crudo.
 
 ---
 

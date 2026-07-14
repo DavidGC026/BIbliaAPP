@@ -64,7 +64,7 @@ La implementación anterior usaba `color: inherit`. Eso no funcionaba si el text
 
 - `activeColor` arranca en `'auto'`: el texto nuevo sigue el color del tema hasta que se elige un color explícito.
 - Resuelve el caso "cambié el color y ya no podía volver al automático".
-- El mismo marcador y swatch se implementan en `lib/note-editor-html.ts` para mantener paridad con el editor web.
+- El mismo marcador y swatch se implementan en `lib/note-editor-html.ts` para mantener paridad con el editor web (detalle web: [`docs/notas-web-paridad-movil.md`](../docs/notas-web-paridad-movil.md) § Color automático).
 - En móvil, el cambio de color automático también crea una instantánea del historial, por lo que se puede deshacer y rehacer.
 
 ## Archivos tocados
