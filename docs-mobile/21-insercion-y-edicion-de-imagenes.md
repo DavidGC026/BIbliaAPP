@@ -31,7 +31,7 @@ Cuando el usuario hace clic en el botón de **Imagen (🖼️)** en la barra de 
 1. **Permiso y Selección:** Se solicitan permisos para acceder a la galería del dispositivo (`expo-image-picker`). Si se conceden, se abre el selector.
 2. **Subida a Servidor (Online):** Si el dispositivo cuenta con conexión a internet, se sube el archivo al backend usando `api.uploadImage`. La nota inserta la URL **pública y absoluta** `api.getPublicUploadUrl(filename)` → `https://biblia2.dvguzman.com/uploads/<filename>` (ver §9: la URL `/api/media/:id` que devuelve el upload no sirve para el WebView), lo cual mantiene la nota pequeña y rápida de sincronizar.
 3. **Conversión a Base64 (Offline/Fallo):** Si el dispositivo está offline o la subida al servidor falla, se lee el archivo local en formato base64 con `expo-file-system` y se inserta como un Data URI (`data:image/jpeg;base64,...`). De este modo, la app es **100% funcional offline**.
-4. **Inserción de Bloque HTML:** Se inserta el bloque HTML en la posición del cursor:
+4. **Inserción de Bloque HTML:** Se inserta el bloque HTML en la posición del cursor (por defecto en modo Normal):
    ```html
    <div class="note-image-block" style="text-align: center; width: 60%; max-width: 100%; display: block; margin: 12px auto;">
      <img src="[URL]" style="width: 100%; height: auto; border-radius: 8px;" />
@@ -45,21 +45,37 @@ Cuando el usuario hace clic en el botón de **Imagen (🖼️)** en la barra de 
 
 Al tocar cualquier imagen dentro del editor en modo de edición:
 
-1. **Auto-envoltura (Compatibilidad):** Si la imagen no está dentro de un contenedor `.note-image-block` (por ejemplo, porque la nota proviene de la web o de una versión anterior), el editor la envuelve automáticamente al hacer tap para permitir su edición.
-2. **Panel inferior móvil:** Se crea y muestra `#image-edit-panel` como panel fijo inferior, con controles táctiles estables para tamaño, alineación, movimiento y borrado.
-3. **Resaltado Visual:** La imagen seleccionada obtiene un borde de marca (`outline`) de `2px solid` con el color primario del tema activo.
-4. **Modo edición de imagen:** El WebView activa `body.image-editing`, oculta temporalmente la toolbar, hace `blur()` del editor y cambia `contenteditable` a `false` para bloquear el teclado mientras se edita la imagen. Además envía `{ type: 'imageEditMode', active }` a React Native, que ejecuta `Keyboard.dismiss()` y desactiva temporalmente el input del título.
-5. **Funcionalidades del Panel:**
-   - **Cambiar tamaño (Ancho):** Un deslizador (`range` slider) permite redimensionar el ancho del bloque de la imagen del `20%` al `100%` en tiempo real.
-   - **Alineación y Ajuste de Texto (Float/Block):**
-     - **Izquierda:** Flota la imagen a la izquierda (`float: left`) y permite que el texto fluya por el lado derecho.
-     - **Centro:** Bloque centrado estándar (`margin: 12px auto`), sin texto flotando a los lados.
-     - **Derecha:** Flota la imagen a la derecha (`float: right`) y permite que el texto fluya por el lado izquierdo.
-     - **Completo:** Ajusta el ancho al 100% de la pantalla y fuerza visualización de bloque.
-   - **Mover (Reordenar en el Documento):**
-     - **▲ Subir:** Intercambia la posición en el DOM del bloque de la imagen con su elemento anterior (`previousElementSibling`), permitiendo mover la imagen a través del texto block-a-block.
-     - **▼ Bajar:** Intercambia la posición con su elemento siguiente (`nextElementSibling.nextElementSibling`), moviendo la imagen hacia abajo.
-   - **Borrar:** Elimina el bloque de la imagen del documento y cierra el panel.
+1. **Modo Edición de Fondos:** Para las imágenes que actúan de fondo (`z-index: -1`), para seleccionarlas se debe pulsar el botón **Fondos 🖼️** en la barra de herramientas. Esto asigna temporalmente `z-index: 10` a las imágenes de fondo, permitiendo que capten toques.
+2. **Auto-envoltura (Compatibilidad):** Si la imagen no está dentro de un contenedor `.note-image-block`, el editor la envuelve automáticamente al hacer tap para permitir su edición.
+3. **Panel inferior móvil:** Al tocar una imagen, se muestra `#image-edit-panel`. La imagen seleccionada obtiene un borde primario.
+4. **Modo edición de imagen:** El WebView activa `body.image-editing`, oculta temporalmente la toolbar, hace `blur()` del editor y desactiva el teclado.
+5. **Funcionalidades del Panel (Modo Híbrido):**
+   - **Modo (Normal / Fondo):** Permite alternar entre el comportamiento estándar de bloque (Normal) y un posicionamiento absoluto detrás del texto (Fondo).
+   - **Modo Normal:**
+     - **Alineación:** Izquierda (float), Centro (block), Derecha (float), 100%.
+     - **Reordenar (Subir/Bajar):** Intercambia la posición de la imagen con los bloques de texto adyacentes.
+   - **Modo Fondo:**
+     - Al convertirse a fondo, la imagen **conserva su coordenada visual exacta** relativa al texto para evitar saltos.
+     - **Drag & Drop (Arrastrar):** La imagen se desacopla del texto y el usuario puede mantener presionada la imagen para arrastrarla libremente por la nota sin colisionar con las letras. (Las opciones de alinear y subir/bajar se ocultan).
+   - **Cambiar tamaño (Ancho):** Un deslizador (`range` slider) permite redimensionar el ancho de la imagen (20% al 100%).
+   - **Borrar:** Elimina la imagen del documento y cierra el panel.
+
+---
+
+## 4. Deshacer y Rehacer (Historial Unificado por Instantáneas)
+
+**Antes (roto con imágenes):** los botones **Deshacer (↶) / Rehacer (↷)** caían en el `default` de `runToolbarAction` → `document.execCommand('undo'/'redo')`. El historial nativo del WebView **solo registra lo hecho con `execCommand`** (tecleo, `insertHTML`, `formatBlock`). Todas las ediciones de imagen mutan el DOM directamente (`style.width`, `setAlign`, `setMode`, `insertBefore`, `style.left/top` al arrastrar, `.remove()`), así que el undo nativo las ignoraba: por eso "no funcionaban" con imágenes (o revertían un cambio de texto no relacionado y desincronizaban el estado).
+
+**Ahora (julio 2026):** `mobile/lib/editorHtml.ts` implementa un **historial propio por instantáneas de `editor.innerHTML`** que cubre texto **e** imágenes por igual:
+
+- `undoStack` / `redoStack` + `lastSnapshot`; `HISTORY_LIMIT = 50` pasos (se descarta el más antiguo).
+- `commitHistory()` fija un paso (ignora instantáneas idénticas). Se llama en cada operación discreta: formato/heading/tamaño de texto, insertar imagen/versículo/referencias/diccionario, y toda edición del panel de imagen (tamaño al soltar el slider, modo, alineación, subir/bajar, borrar, arrastrar al soltar).
+- `scheduleHistory()` agrupa las ráfagas de tecleo en un solo paso tras 350 ms de inactividad (listener `input`).
+- `recordImageChange()` = `notifyChangeNow()` + `commitHistory()` para las ediciones de imagen (sincroniza el host al momento y fija el paso).
+- `performUndo()` / `performRedo()` restauran la instantánea con `applyHistorySnapshot()`, que limpia el chrome de edición, reasigna `innerHTML`, reinicia bloques (`initTableBlocks`) y notifica al host. Los botones `undo`/`redo` de la toolbar llaman a estas funciones (ramas nuevas en `runToolbarAction`).
+- `updateContent` (contenido nuevo desde el host) reinicia el historial (`lastSnapshot`, `undoStack`, `redoStack` vacíos).
+
+> Coste: cada paso guarda el HTML completo; con imágenes **base64** grandes cada instantánea pesa, de ahí el límite de 50 pasos y el descarte de instantáneas idénticas. Las imágenes subidas (`/uploads/`) son URLs cortas y no tienen este coste.
 
 ---
 
@@ -196,3 +212,31 @@ La función de imágenes existía solo en `mobile/lib/editorHtml.ts`; el editor 
   - El timeout de `requestEditorHtml` sube de 500ms a 5000ms (mismo motivo que §7: notas con imágenes tardan más en cruzar el `postMessage`).
 
 Pruebas manuales web: insertar imagen con 🖼️, redimensionar/alinear/mover/borrar desde el panel, guardar, recargar y verificar persistencia; abrir en el móvil la misma nota y comprobar que se ve idéntica (y viceversa).
+
+## 11. Corrección: teclado se abría al tocar la imagen
+
+Síntoma (julio 2026): Al tocar una imagen para modificarla (moverla o escalarla abriendo el panel inferior), el teclado virtual del móvil se desplegaba, e inmediatamente se cerraba o se quedaba abierto, generando una experiencia visual errática.
+
+Causa: El toque del usuario (eventos `touchstart` y `mousedown`) dentro del área general del editor (`contenteditable="true"`) causaba que el navegador o WebView enfocara el editor automáticamente antes de que se ejecutara la lógica del panel inferior (la cual pone `contenteditable="false"` y hace `blur()`). Esto provocaba la aparición inminente del teclado, el cual no siempre era cancelado correctamente por el `Keyboard.dismiss()` desde React Native.
+
+Fix:
+- El contenedor `.note-image-block` generado ahora incluye la propiedad `contenteditable="false"` estáticamente en su HTML. Esto convierte al bloque de la imagen en un elemento "atómico" dentro del editor, previniendo que los toques sobre él originen un cambio de foco en el editor subyacente.
+- Se añadió un listener para `mousedown` en el editor que detecta toques sobre elementos `IMG` e invoca `e.preventDefault()`, interceptando el enfoque automático de raíz antes de mostrar el panel.
+- Al cargar el editor (`initTableBlocks`), las imágenes o notas previamente guardadas sin esta propiedad son actualizadas dinámicamente mediante `querySelectorAll` para aplicarles `contenteditable="false"`.
+
+Archivos modificados:
+- `mobile/lib/editorHtml.ts` (función `buildImageBlockHtml` y listeners de inicialización en el tag `<script>`).
+
+---
+
+## 12. Mejora: movimiento de imágenes más fluido (julio 2026)
+
+Síntoma: mover imágenes se sentía **torpe**, tanto en modo **Fondo** (arrastrar) como en **Normal** (Subir/Bajar), sin respuesta visual y con saltos secos.
+
+Cambios en `mobile/lib/editorHtml.ts`:
+
+- **Arrastrar (modo Fondo):** al empezar el gesto la imagen recibe la clase `.is-dragging` (sombra, opacidad, `z-index` alto para flotar sobre el texto, `will-change: left/top` y sin transición) y `body.image-dragging` desactiva la selección de texto. Se añadió `touchcancel` además de `touchend` para cerrar el gesto de forma robusta. El cursor pasa a `grab`/`grabbing`. El `preventDefault` en `touchmove` ya evitaba el scroll de la página durante el arrastre.
+- **Subir/Bajar (modo Normal):** el reordenamiento ahora usa una animación **FLIP** (`animateReorder`): mide la posición del bloque antes y después de `insertBefore` y anima la diferencia con `transform` (0.22 s), en vez del salto instantáneo. La imagen "se desliza" a su nueva posición.
+- Todas estas operaciones pasan por `recordImageChange()`, así que además quedan cubiertas por el historial de Deshacer/Rehacer (ver §4).
+
+CSS nuevo: `.note-image-block { transition: ... transform 0.22s ease; }`, `.note-image-block.is-dragging { ... }`, `body.image-dragging { user-select: none; }` y `cursor: grab` sobre los fondos seleccionables.

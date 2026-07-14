@@ -12,6 +12,7 @@ import {
   bgImageStyle,
   formatById,
 } from "@/lib/verse-image-formats"
+import { getVerseImageTemplate, saveVerseImageTemplate } from "@/lib/verse-image-template"
 import { toPng } from "html-to-image"
 import { createPortal } from "react-dom"
 
@@ -42,6 +43,36 @@ const PREVIEW_MAX_WIDTH = 320
 
 const SEARCH_HINTS = ["naturaleza", "cielo", "mar", "montaña", "amanecer", "flores", "cruz", "bosque", "atardecer", "lluvia"]
 
+/* Estilos de diseño — espejo de IMAGE_STYLES en mobile/components/VerseImageCreator.tsx */
+const AMBER = "#fbbf24"
+
+type ImageStyleId = "editorial" | "minimal" | "bold" | "quiet"
+
+interface ImageStylePreset {
+  id: ImageStyleId
+  label: string
+  hint: string
+  align: "center" | "left"
+  /** Oscurecido base del fondo en % (ajustable luego en Ajustes) */
+  overlay: number
+  accent: string
+  serif: boolean
+}
+
+const IMAGE_STYLES: ImageStylePreset[] = [
+  { id: "editorial", label: "Editorial", hint: "Clásico y elegante", align: "center", overlay: 35, accent: AMBER, serif: true },
+  { id: "minimal", label: "Minimal", hint: "Limpio y sobrio", align: "left", overlay: 46, accent: "#FFFFFF", serif: false },
+  { id: "bold", label: "Impacto", hint: "Alto contraste", align: "center", overlay: 58, accent: "#FDE68A", serif: false },
+  { id: "quiet", label: "Sereno", hint: "Suave y contemplativo", align: "left", overlay: 28, accent: "#BAE6FD", serif: true },
+]
+
+function textSizeForLength(len: number) {
+  if (len > 220) return 15
+  if (len > 140) return 17
+  if (len > 80) return 19
+  return 22
+}
+
 function mergeUnsplashImages<T extends { id: string }>(prev: T[], next: T[]): T[] {
   const seen = new Set(prev.map((i) => i.id))
   return [...prev, ...next.filter((i) => !seen.has(i.id))]
@@ -63,6 +94,7 @@ interface CardProps {
   textSize: number
   backgroundImageUrl?: string
   imageFormat: ImageFormatId
+  imageStyle: ImageStylePreset
   overlayOpacity: number
   bgBlur: number
   bgPosX: number
@@ -80,6 +112,7 @@ function VerseImageCard({
   textSize,
   backgroundImageUrl,
   imageFormat,
+  imageStyle,
   overlayOpacity,
   bgBlur,
   bgPosX,
@@ -91,6 +124,9 @@ function VerseImageCard({
   const scale = width / 270
   const scaledText = Math.round(textSize * scale)
   const pad = width * 0.08
+  const accent = imageStyle.accent
+  const alignLeft = imageStyle.align === "left"
+  const fontFamily = imageStyle.serif ? "Georgia, 'Times New Roman', serif" : "system-ui, -apple-system, sans-serif"
 
   return (
     <div
@@ -142,7 +178,7 @@ function VerseImageCard({
         }}
       />
 
-      {/* Decorative top glow */}
+      {/* Decorative top glow (color del acento del estilo, como en el móvil) */}
       <div
         style={{
           position: "absolute",
@@ -151,7 +187,7 @@ function VerseImageCard({
           transform: "translateX(-50%)",
           width: "60%",
           height: "30%",
-          background: "radial-gradient(ellipse at top, rgba(251,191,36,0.12) 0%, transparent 70%)",
+          background: `radial-gradient(ellipse at top, ${accent}26 0%, transparent 70%)`,
           pointerEvents: "none",
         }}
       />
@@ -162,9 +198,9 @@ function VerseImageCard({
           zIndex: 10,
           display: "flex",
           flexDirection: "column",
-          alignItems: "center",
+          alignItems: alignLeft ? "flex-start" : "center",
           justifyContent: "center",
-          textAlign: "center",
+          textAlign: imageStyle.align,
           padding: pad,
           width: "100%",
           height: "100%",
@@ -172,10 +208,10 @@ function VerseImageCard({
       >
         <span
           style={{
-            fontFamily: "Georgia, 'Times New Roman', serif",
+            fontFamily,
             fontSize: scaledText * 2.2,
             lineHeight: 1,
-            color: "rgba(251,191,36,0.25)",
+            color: `${accent}40`,
             marginBottom: scaledText * 0.3,
             userSelect: "none",
           }}
@@ -186,14 +222,15 @@ function VerseImageCard({
 
         <p
           style={{
-            fontFamily: "Georgia, 'Times New Roman', serif",
-            fontStyle: "italic",
+            fontFamily,
+            fontStyle: imageStyle.serif ? "italic" : "normal",
+            fontWeight: imageStyle.id === "bold" ? 800 : 500,
             lineHeight: 1.55,
             color: "#ffffff",
             textShadow: "0 2px 20px rgba(0,0,0,0.5)",
             marginBottom: scaledText * 0.6,
             fontSize: scaledText,
-            maxWidth: "92%",
+            maxWidth: alignLeft ? "96%" : "92%",
           }}
         >
           {text}
@@ -201,9 +238,9 @@ function VerseImageCard({
 
         <div
           style={{
-            width: scaledText * 1.8,
+            width: alignLeft ? scaledText * 2.4 : scaledText * 1.8,
             height: Math.max(2, scale * 2),
-            background: "linear-gradient(90deg, transparent, #fbbf24, transparent)",
+            background: alignLeft ? accent : `linear-gradient(90deg, transparent, ${accent}, transparent)`,
             marginBottom: scaledText * 0.45,
             borderRadius: 999,
           }}
@@ -214,7 +251,7 @@ function VerseImageCard({
             fontWeight: 600,
             letterSpacing: "0.12em",
             textTransform: "uppercase",
-            color: "rgba(251,191,36,0.9)",
+            color: accent,
             fontSize: Math.max(11, scaledText * 0.48),
             textShadow: "0 1px 8px rgba(0,0,0,0.4)",
           }}
@@ -319,6 +356,8 @@ export function VerseImageCreator({ open, onOpenChange, text, reference, abbr = 
 
   const [editorTab, setEditorTab] = useState<EditorTab>("format")
   const [imageFormat, setImageFormat] = useState<ImageFormatId>("9:16")
+  const [styleId, setStyleId] = useState<ImageStyleId>("editorial")
+  const [templateSaved, setTemplateSaved] = useState(false)
   const [textSize, setTextSize] = useState<number>(20)
   const [overlayOpacity, setOverlayOpacity] = useState<number>(35)
   const [bgBlur, setBgBlur] = useState<number>(0)
@@ -340,6 +379,8 @@ export function VerseImageCreator({ open, onOpenChange, text, reference, abbr = 
   const previewWidth = Math.round(exportSize.width * previewScale)
   const previewHeight = Math.round(exportSize.height * previewScale)
 
+  const imageStyle = IMAGE_STYLES.find((s) => s.id === styleId) ?? IMAGE_STYLES[0]
+
   const cardProps: CardProps = {
     text,
     reference,
@@ -348,6 +389,7 @@ export function VerseImageCreator({ open, onOpenChange, text, reference, abbr = 
     textSize,
     backgroundImageUrl: backgroundMode === "photo" ? backgroundImageUrl : undefined,
     imageFormat,
+    imageStyle,
     overlayOpacity,
     bgBlur,
     bgPosX,
@@ -398,8 +440,41 @@ export function VerseImageCreator({ open, onOpenChange, text, reference, abbr = 
     setBgPosX(50)
     setBgPosY(50)
     setBgZoom(100)
-    void loadPhotos(undefined, 1, false)
+    setTemplateSaved(false)
+
+    // Restaurar "mi estilo" guardado (formato + diseño + color), como en el móvil
+    let formatId: ImageFormatId | undefined
+    const template = getVerseImageTemplate()
+    if (template) {
+      const gradientFromTemplate = GRADIENT_PRESETS.find((g) => g.id === template.gradientId)
+      if (gradientFromTemplate) setSelectedGradient(gradientFromTemplate)
+      const styleFromTemplate = IMAGE_STYLES.find((s) => s.id === template.styleId)
+      if (styleFromTemplate) {
+        setStyleId(styleFromTemplate.id)
+        setOverlayOpacity(styleFromTemplate.overlay)
+      }
+      if (IMAGE_FORMATS.some((f) => f.id === template.formatId)) {
+        formatId = template.formatId as ImageFormatId
+        setImageFormat(formatId)
+      }
+    }
+    void loadPhotos(undefined, 1, false, formatId)
   }, [open, loadPhotos])
+
+  React.useEffect(() => {
+    setTemplateSaved(false)
+  }, [imageFormat, styleId, selectedGradient])
+
+  const saveTemplate = () => {
+    saveVerseImageTemplate({ formatId: imageFormat, styleId, gradientId: selectedGradient.id })
+    setTemplateSaved(true)
+  }
+
+  const selectStyle = (style: ImageStylePreset) => {
+    setStyleId(style.id)
+    // El estilo trae su oscurecido base; sigue siendo ajustable en Ajustes
+    setOverlayOpacity(style.overlay)
+  }
 
   const selectFormat = (id: ImageFormatId) => {
     setImageFormat(id)
@@ -419,10 +494,7 @@ export function VerseImageCreator({ open, onOpenChange, text, reference, abbr = 
 
   React.useEffect(() => {
     if (!open) return
-    if (text.length > 220) setTextSize(15)
-    else if (text.length > 140) setTextSize(17)
-    else if (text.length > 80) setTextSize(19)
-    else setTextSize(22)
+    setTextSize(textSizeForLength(text.length))
   }, [open, text])
 
   const selectGradient = (preset: GradientPreset) => {
@@ -645,6 +717,41 @@ export function VerseImageCreator({ open, onOpenChange, text, reference, abbr = 
                     </button>
                   ))}
                 </div>
+
+                <div className="flex items-center justify-between mt-1">
+                  <p className="text-[11px] text-white/50 uppercase tracking-wider font-semibold">Diseño</p>
+                  <button
+                    type="button"
+                    onClick={saveTemplate}
+                    disabled={templateSaved}
+                    className={cn(
+                      "text-[11px] font-bold transition-colors",
+                      templateSaved ? "text-white/40" : "text-primary hover:text-primary/80",
+                    )}
+                  >
+                    {templateSaved ? "✓ Estilo guardado" : "Guardar como mi estilo"}
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  {IMAGE_STYLES.map((style) => (
+                    <button
+                      key={style.id}
+                      type="button"
+                      onClick={() => selectStyle(style)}
+                      className={cn(
+                        "flex flex-col items-start gap-0.5 rounded-xl border px-3 py-2.5 text-left transition-all",
+                        styleId === style.id
+                          ? "border-primary/60 bg-primary/10 shadow-lg shadow-primary/10"
+                          : "border-white/10 hover:border-white/20",
+                      )}
+                    >
+                      <span className={cn("text-[13px] font-extrabold", styleId === style.id ? "text-primary" : "text-white/85")}>
+                        {style.label}
+                      </span>
+                      <span className="text-[10px] text-white/45">{style.hint}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
 
@@ -788,7 +895,18 @@ export function VerseImageCreator({ open, onOpenChange, text, reference, abbr = 
                   <div key={s.label} className="space-y-2 rounded-xl border border-white/10 bg-white/[0.03] p-4">
                     <div className="flex justify-between items-center">
                       <label className="text-[11px] font-bold uppercase tracking-wider text-white/80">{s.label}</label>
-                      <span className="text-xs text-primary font-mono">{s.value}{s.unit}</span>
+                      <div className="flex items-center gap-2">
+                        {s.label === "Tamaño de letra" ? (
+                          <button
+                            type="button"
+                            onClick={() => setTextSize(textSizeForLength(text.length))}
+                            className="text-[11px] font-semibold text-primary hover:text-primary/80"
+                          >
+                            Auto
+                          </button>
+                        ) : null}
+                        <span className="text-xs text-primary font-mono">{s.value}{s.unit}</span>
+                      </div>
                     </div>
                     <input type="range" min={s.min} max={s.max} step={s.step} value={s.value} onChange={(e) => s.set(Number(e.target.value))} className="w-full accent-primary h-1.5 bg-white/20 rounded-lg appearance-none cursor-pointer" />
                   </div>

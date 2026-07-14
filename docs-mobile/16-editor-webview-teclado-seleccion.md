@@ -56,11 +56,18 @@ Cuando el teclado pasa de abierto a cerrado en **Android** (`keyboardHeight` de 
 
 ---
 
+## Color "Auto" en la barra de colores (julio 2026)
+
+La fila de colores del editor (`colors-row` en `editorHtml.ts`) antepone un swatch **"A" (Auto)** a la paleta de favoritos. Al tocarlo, `applyColor('auto')` llama a `clearColor()`, que envuelve la selección (o el punto de escritura) en un `span` con `color: inherit` y limpia los `color` explícitos de los descendientes, de modo que el texto vuelve a heredar el color del tema (`colors.text`) y **cambia con el tema** (claro/oscuro/sepia).
+
+- `activeColor` arranca en `'auto'`: el texto nuevo sigue el color del tema hasta que se elige un color explícito.
+- Resuelve el caso "cambié el color y ya no podía volver al automático".
+
 ## Archivos tocados
 
 | Archivo | Cambio |
 |---------|--------|
-| `mobile/lib/editorHtml.ts` | `scrollCaretIntoView()` preserva selección; `handleAction()` sin `focus()` en lecturas/insets |
+| `mobile/lib/editorHtml.ts` | `scrollCaretIntoView()` preserva selección; `handleAction()` sin `focus()` en lecturas/insets; swatch "Auto" + `clearColor()` |
 | `mobile/app/note/[noteId].tsx` | `blurEditor` al cerrar teclado en Android |
 
 ---
