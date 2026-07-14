@@ -75,8 +75,24 @@ La pestaña **Notas** del menú web ahora replica la estructura y el editor de l
 
 - El botón de imagen del editor abre un selector nativo de archivos desde React.
 - La imagen se sube a `/api/upload` con `purpose=other`.
-- Si el backend devuelve `filename`, la web inserta una URL absoluta `/uploads/{filename}` para que la imagen sobreviva al salir y volver a abrir la nota.
-- La edición visual se mantiene dentro del iframe: redimensionar, alinear, mover y borrar sin perder el contenido al guardar.
+- Si el backend devuelve `filename`, la web inserta una URL absoluta `${origin}/uploads/{filename}` para que la imagen sobreviva al salir y volver a abrir la nota (mismo contrato que móvil; ver [`docs-mobile/21-insercion-y-edicion-de-imagenes.md`](../docs-mobile/21-insercion-y-edicion-de-imagenes.md) §9).
+- La edición visual se mantiene dentro del iframe: redimensionar, alinear, subir/bajar bloques y borrar. El iframe emite `{ type: 'imageEditMode', active }` al host; `NoteRichEditor` expone `onImageEditMode` y `notebook-sidebar.tsx` muestra el chip **Editando imagen** y deshabilita el título mientras el panel está activo (paridad doc 22).
+- El timeout de `requestEditorHtml` es **5000 ms** (notas con imágenes tardan más en cruzar el `postMessage`).
+
+#### Brechas de paridad (solo móvil, julio 2026)
+
+`lib/note-editor-html.ts` porta la edición básica de imágenes, pero **no** incluye aún las mejoras avanzadas de `mobile/lib/editorHtml.ts`:
+
+| Funcionalidad | Móvil | Web |
+|---------------|-------|-----|
+| Modo **Fondo** (imagen detrás del texto) + botón **Fondos 🖼️** | Sí | No |
+| Arrastre libre de fondos (`.is-dragging`, `body.image-dragging`) | Sí | No |
+| Animación FLIP al **Subir/Bajar** bloques | Sí | Salto instantáneo |
+| Historial **Deshacer/Rehacer** por instantáneas de HTML (`commitHistory`) | Sí | Solo `execCommand('undo')` nativo (no cubre ediciones de imagen) |
+| Encabezado compacto fullscreen al editar imagen (oculta header nativo) | Sí | Chip en cabecera de documento |
+| Fallback offline base64 en el picker | Sí | Requiere conexión para subir |
+
+Notas abiertas en web con imágenes en modo **Fondo** se ven correctamente en vista previa, pero no se pueden editar en ese modo desde la web hasta portar la lógica. Detalle técnico: doc 21 §3–§4, §12–§13.
 
 ### Referencias cruzadas
 
@@ -98,8 +114,7 @@ Flujo equivalente a `mobile/components/InsertDictionaryModal.tsx`:
 
 ### Vista previa
 
-- El botón **👁️ Vista Previa** muestra el contenido renderizado con `NoteContent` (iframe en modo solo lectura).
-- **✏️ Modo Edición** vuelve al editor enriquecido.
+- El pill **Vista previa / Editar** usa iconos `Eye` / `Edit2` (texto plano, sin emojis) y alterna entre el editor enriquecido y el contenido renderizado con `NoteContent` (iframe en modo solo lectura).
 
 ---
 
@@ -189,8 +204,21 @@ Recarga el navegador con **Ctrl+Shift+R** en https://biblia2.dvguzman.com → me
 
 - El lector bíblico (`components/bible-reader`) sigue usando `NotebookSidebar` directamente en el panel lateral, sin pestañas.
 - La publicación de notas al feed de comunidad se retiró del editor web para igualar la UX móvil (solo Guardar / Borrar).
-- La web ahora tiene autoguardado silencioso tras unos segundos sin escribir y solicita el HTML actual del iframe antes del guardado manual.
+- La web tiene autoguardado silencioso tras ~4 s sin escribir y solicita el HTML actual del iframe antes del guardado manual.
+- **Volver** no dispara autoguardado inmediato (a diferencia del `beforeRemove` móvil): espera el debounce o pulsa **Guardar** antes de salir si acabas de editar.
+- La fuente de toda la nota en móvil vive en SecureStore (`NOTE_FONT_<id>`); en web se persiste como envoltorio HTML — no hay sincronización cruzada (doc 20).
 
 ---
 
-*Última revisión: julio 2026.*
+## Documentación relacionada
+
+| Doc | Contenido |
+|-----|-----------|
+| [`docs-mobile/21-insercion-y-edicion-de-imagenes.md`](../docs-mobile/21-insercion-y-edicion-de-imagenes.md) | Inserción, panel de imagen, undo, arrastre, paridad web §10 |
+| [`docs-mobile/22-notas-diseno-profesional.md`](../docs-mobile/22-notas-diseno-profesional.md) | Rediseño visual móvil y paridad del editor web |
+| [`docs-mobile/16-editor-webview-teclado-seleccion.md`](../docs-mobile/16-editor-webview-teclado-seleccion.md) | Teclado, `imageEditMode`, swatch Auto |
+| [`docs/planes-lectura.md`](./planes-lectura.md) | Planes de lectura (StudyHub / Perfil) |
+
+---
+
+*Última revisión: julio 2026 (paridad imágenes avanzadas y chip imageEditMode).*

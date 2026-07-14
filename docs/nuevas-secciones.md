@@ -296,3 +296,56 @@ Consulta `lib/app-section-registry/catalog.ts` y `sections.client.tsx` para ver 
 - `components/section-permissions-editor.tsx` — lee `APP_SECTION_GROUPS` del registro
 
 Solo modifica esos archivos si cambias el comportamiento global del sistema de permisos o del layout principal.
+
+---
+
+## Hubs: secciones contenedoras (julio 2026)
+
+Varias secciones del menú ya no renderizan un solo componente: agrupan modos internos con `SegmentTabs` (`components/ui/segment-tabs.tsx`). Las secciones hijas siguen en el catálogo para permisos, pero muchas están ocultas del menú lateral y tabbar móvil.
+
+Archivo central: `lib/app-section-registry/sections.client.tsx`.
+
+### StudyHub (`reading`)
+
+| Tab | Componente | Permiso |
+|-----|------------|---------|
+| Biblia | `BibleReader` | siempre (invitados incluidos) |
+| Buscar | `SearchAdvanced` | `search` |
+| Referencias | `ReferencesExplorer` | `references` |
+| Diccionario | `StrongDictionary` | `dictionary` |
+| Planes | `ReadingPlans` | usuario + `plans` |
+
+Al seleccionar un versículo desde Buscar o una lectura desde Planes, el hub llama `setMode("reader")` además de `handleSelectVerse`.
+
+Detalle de planes: [`docs/planes-lectura.md`](./planes-lectura.md).
+
+### NotesHub (`notebook`)
+
+| Tab | Componente | Permiso |
+|-----|------------|---------|
+| Notas | `NotesSection` | siempre en hub |
+| Devocional | `Devotionals` | `devotionals` |
+| Oración | `PrayerRequests` | `prayers` |
+
+`NotesSection` incluye sus propias pestañas (Libretas / Diario / Biblioteca). **Devocional** puede aparecer también dentro de Notas — es intencional (paridad móvil).
+
+Paridad editor: [`docs/notas-web-paridad-movil.md`](./notas-web-paridad-movil.md).
+
+### ProfileHub (`profile`)
+
+| Tab | Componente | Permiso |
+|-----|------------|---------|
+| Perfil | `ProfileSection` | siempre en hub |
+| Favoritos | `Favorites` | `favorites` |
+| Subrayados | `HighlightsManager` | `highlights` |
+| Planes | `ReadingPlans` | `plans` |
+| Actividad | `Activity` | `activity` |
+| Estadísticas | `Statistics` | `statistics` |
+
+Seis tabs → en móvil `SegmentTabs` muestra indicador de desplizamiento (`tabs.length > 3`; ver doc 23).
+
+### Navegación móvil principal
+
+`lib/app-section-registry/nav.client.tsx` + `MOBILE_PRIMARY_NAV_IDS`: tabbar prioriza `dashboard`, `reading`, `notebook`, `profile`. El resto en hoja **Más**.
+
+Guía ampliada: [`docs-mobile/24-reduccion-secciones-web.md`](../docs-mobile/24-reduccion-secciones-web.md).

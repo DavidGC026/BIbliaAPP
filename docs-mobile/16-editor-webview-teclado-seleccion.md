@@ -83,3 +83,11 @@ npm run android
 2. **Título:** escribe en el campo Título; el cursor no debe saltar al cuerpo de la nota.
 3. **Guardar:** pulsa Guardar con el teclado cerrado; no debe reabrirse solo.
 4. **Atrás + tap (Android):** edita la nota, cierra el teclado con el botón atrás del sistema, toca el editor: el teclado debe abrirse de nuevo.
+5. **Edición de imagen:** toca una imagen; el teclado debe cerrarse y no reabrirse hasta cerrar el panel (doc 21 §11). En modo **Fondo**, activa **Fondos 🖼️** y arrastra — debe ser consistente tras el fix de z-index (doc 21 §13).
+
+---
+
+## Documentación relacionada
+
+- [`21-insercion-y-edicion-de-imagenes.md`](./21-insercion-y-edicion-de-imagenes.md) — panel de imagen, `imageEditMode`, teclado al tocar imágenes, arrastre fluido §12–§13
+- [`../docs/notas-web-paridad-movil.md`](../docs/notas-web-paridad-movil.md) — paridad web del editor e imágenes

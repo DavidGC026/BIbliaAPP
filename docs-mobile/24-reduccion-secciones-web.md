@@ -78,6 +78,20 @@ La tabbar móvil prioriza:
 
 El resto queda en **Más**.
 
+## Componente SegmentTabs
+
+Archivo: `components/ui/segment-tabs.tsx`.
+
+- Umbral del indicador de scroll: `tabs.length > 3` (estricto).
+- StudyHub (5 tabs) y ProfileHub (6 tabs) muestran hint en viewports móviles; NotesHub (3 tabs) no.
+
+## Documentación relacionada
+
+- [`../docs/nuevas-secciones.md`](../docs/nuevas-secciones.md) § Hubs — registro en `sections.client.tsx`
+- [`../docs/planes-lectura.md`](../docs/planes-lectura.md) — API, StudyHub vs ProfileHub, paridad móvil
+- [`23-paridad-web-mobile-global.md`](./23-paridad-web-mobile-global.md) — shell móvil global y SegmentTabs
+- [`22-notas-diseno-profesional.md`](./22-notas-diseno-profesional.md) § Refinamiento Planes — UI móvil reciente
+
 ## Validación
 
 ```bash
