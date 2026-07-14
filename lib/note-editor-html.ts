@@ -629,7 +629,6 @@ export function getEditorHtml(
         <button class="aux-btn" id="btn-toggle-image-mode" data-action="toggleImageSelection" style="border-color: #3b82f6; background: rgba(59, 130, 246, 0.1); color: #2563eb;">Fondos 🖼️</button>
         <button class="aux-btn" data-action="insertImage">🖼️ Insertar imagen</button>
         <button class="aux-btn" data-action="insertVerse">📖 Insertar versículo</button>
-        <button class="aux-btn" data-action="insertReferences">🔗 Insertar referencias</button>
         <button class="aux-btn aux-btn-dict" data-action="insertDictionary">📚 Insertar del diccionario</button>
       </div>
     </div>
@@ -1705,12 +1704,6 @@ export function getEditorHtml(
 
         document.querySelectorAll('.aux-btn[data-action="toggleImageSelection"]').forEach(function(btn) {
           bindToolbarButton(btn, toggleImageSelectionMode);
-        });
-
-        document.querySelectorAll('.aux-btn[data-action="insertReferences"]').forEach(function(btn) {
-          bindToolbarButton(btn, function() {
-            postToHost({ type: 'openReferenceModal' });
-          });
         });
 
         document.querySelectorAll('.aux-btn[data-action="insertDictionary"]').forEach(function(btn) {

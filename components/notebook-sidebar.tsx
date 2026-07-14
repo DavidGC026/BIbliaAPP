@@ -37,7 +37,6 @@ import {
   PinOff,
   FolderInput,
   Share2,
-  Link2,
   Languages,
   Eye,
   Image as ImageIcon,
@@ -58,15 +57,6 @@ interface BibleVersion {
   bibleId: number
   abbr: string
   name: string
-}
-
-interface CrossReference {
-  book_name: string
-  book_id: number
-  chapter: number
-  verse: number
-  text: string
-  votos?: number
 }
 
 interface StrongEntry {
@@ -135,14 +125,6 @@ function formatDictionaryInsertion(entry: StrongEntry): string {
   )
 }
 
-function formatReferenceInsertion(source: string, references: CrossReference[], bibleAbbr: string): string {
-  if (!references.length) return ""
-  const body = references
-    .map((ref) => `<strong>${escapeHtml(ref.book_name)} ${ref.chapter}:${ref.verse}</strong> ${escapeHtml(ref.text)}`)
-    .join("<br/>")
-  return `<blockquote><strong>Referencias relacionadas con ${escapeHtml(source)} (${escapeHtml(bibleAbbr)})</strong><br/>${body}</blockquote><p><br></p>`
-}
-
 interface Notebook {
   id: number
   name: string
@@ -203,10 +185,6 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
   const [insertChapter, setInsertChapter] = useState<number>(1)
   const [selectedVerses, setSelectedVerses] = useState<{ verse: number; text: string }[]>([])
 
-  const [showInsertReferenceModal, setShowInsertReferenceModal] = useState(false)
-  const [insertReferenceVerse, setInsertReferenceVerse] = useState<number>(1)
-  const [selectedReferences, setSelectedReferences] = useState<CrossReference[]>([])
-
   const [showInsertDictionaryModal, setShowInsertDictionaryModal] = useState(false)
   const [dictionaryQuery, setDictionaryQuery] = useState("")
   const [debouncedDictionaryQuery, setDebouncedDictionaryQuery] = useState("")
@@ -230,13 +208,13 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
 
   // SWR queries for inserting verses
   const { data: insertBiblesData } = useSWR<{ bibles: BibleVersion[] }>(
-    showInsertVerseModal || showInsertReferenceModal ? "/api/bibles" : null,
+    showInsertVerseModal ? "/api/bibles" : null,
     fetcher
   )
   const insertBibles = insertBiblesData?.bibles ?? []
 
   const { data: insertBooksData } = useSWR<{ books: { bookId: number; bookName: string; chapters: number }[] }>(
-    (showInsertVerseModal || showInsertReferenceModal) && insertBibleId ? `/api/books?bible=${insertBibleId}` : null,
+    showInsertVerseModal && insertBibleId ? `/api/books?bible=${insertBibleId}` : null,
     fetcher
   )
   const insertBooks = insertBooksData?.books ?? []
@@ -248,14 +226,6 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
     fetcher
   )
   const insertVerses = insertVersesData?.verses ?? []
-
-  const { data: insertReferencesData, isLoading: referencesLoading } = useSWR<{ references: CrossReference[] }>(
-    showInsertReferenceModal && insertBibleId && insertBookId && insertChapter && insertReferenceVerse
-      ? `/api/references?bible=${insertBibleId}&bookId=${insertBookId}&chapter=${insertChapter}&verse=${insertReferenceVerse}`
-      : null,
-    fetcher,
-  )
-  const insertReferences = insertReferencesData?.references ?? []
 
   const dictionaryHasValidQuery = debouncedDictionaryQuery.length >= 2 || /^[gh]\d+$/i.test(debouncedDictionaryQuery)
   const dictionaryShouldFetch = showInsertDictionaryModal && (dictionaryHasValidQuery || dictionaryBrowse)
@@ -288,17 +258,13 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
     setInsertBibleId(bibleId)
     setInsertBookId(null)
     setInsertChapter(1)
-    setInsertReferenceVerse(1)
     setSelectedVerses([])
-    setSelectedReferences([])
   }
 
   const handleInsertBookChange = (bookId: number) => {
     setInsertBookId(bookId)
     setInsertChapter(1)
-    setInsertReferenceVerse(1)
     setSelectedVerses([])
-    setSelectedReferences([])
   }
 
   useEffect(() => {
@@ -651,8 +617,6 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
   const selectedNotebook = notebooks.find((n) => n.id === activeNotebookId)
   const selectedBookObj = insertBooks.find(b => b.bookId === insertBookId)
   const selectedBibleObj = insertBibles.find(b => b.bibleId === insertBibleId)
-  const selectedReferenceExists = (ref: CrossReference) =>
-    selectedReferences.some((item) => item.book_id === ref.book_id && item.chapter === ref.chapter && item.verse === ref.verse)
 
   const insertBlockIntoEditingNote = (htmlBlock: string) => {
     if (!htmlBlock) return
@@ -808,13 +772,6 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
                   setInsertBookId(insertBooks[0].bookId)
                 }
                 setShowInsertVerseModal(true)
-              }}
-              onInsertReferences={() => {
-                if (insertBooks.length > 0 && !insertBookId) {
-                  setInsertBookId(insertBooks[0].bookId)
-                }
-                setSelectedReferences([])
-                setShowInsertReferenceModal(true)
               }}
               onInsertDictionary={() => {
                 setDictionaryQuery("")
@@ -1004,185 +961,6 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
                   className="h-9 px-4 text-xs font-semibold bg-primary hover:bg-primary/95 text-primary-foreground shadow-md"
                 >
                   Insertar ({selectedVerses.length} seleccionados)
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {showInsertReferenceModal && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-card border border-border rounded-2xl w-full max-w-2xl h-[80vh] flex flex-col shadow-2xl overflow-hidden animate-scale-in">
-              <div className="flex items-center justify-between p-4 border-b border-border/60 bg-muted/20">
-                <h3 className="font-extrabold text-base text-foreground flex items-center gap-2">
-                  <Link2 className="size-5 text-primary" />
-                  <span>Insertar referencias</span>
-                </h3>
-                <button
-                  onClick={() => {
-                    setShowInsertReferenceModal(false)
-                    setSelectedReferences([])
-                  }}
-                  className="text-xs text-muted-foreground hover:text-foreground font-semibold px-2.5 py-1 bg-muted rounded-full transition-colors"
-                >
-                  Cerrar
-                </button>
-              </div>
-
-              <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
-                <div className="w-full md:w-1/3 p-4 border-b md:border-b-0 md:border-r border-border/60 space-y-4 overflow-y-auto bg-muted/5">
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Biblia</label>
-                    <select
-                      value={insertBibleId}
-                      onChange={(e) => handleInsertBibleChange(Number(e.target.value))}
-                      className="w-full h-10 rounded-lg border border-border bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
-                    >
-                      {insertBibles.map((b) => (
-                        <option key={b.bibleId} value={b.bibleId}>{b.name} ({b.abbr})</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Libro</label>
-                    <select
-                      value={insertBookId || ""}
-                      onChange={(e) => handleInsertBookChange(Number(e.target.value))}
-                      className="w-full h-10 rounded-lg border border-border bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
-                    >
-                      {insertBooks.map((b) => (
-                        <option key={b.bookId} value={b.bookId}>{b.bookName}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Capítulo</label>
-                      <select
-                        value={insertChapter}
-                        onChange={(e) => {
-                          setInsertChapter(Number(e.target.value))
-                          setInsertReferenceVerse(1)
-                          setSelectedReferences([])
-                        }}
-                        className="w-full h-10 rounded-lg border border-border bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
-                      >
-                        {Array.from({ length: selectedBookObj?.chapters || 1 }, (_, i) => i + 1).map((ch) => (
-                          <option key={ch} value={ch}>{ch}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Versículo</label>
-                      <Input
-                        type="number"
-                        min={1}
-                        value={insertReferenceVerse}
-                        onChange={(e) => {
-                          setInsertReferenceVerse(Math.max(1, Number(e.target.value) || 1))
-                          setSelectedReferences([])
-                        }}
-                        className="h-10"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex-1 p-4 overflow-y-auto space-y-3">
-                  <div className="flex items-center justify-between border-b border-border/30 pb-2 mb-2">
-                    <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-                      Referencias encontradas
-                    </label>
-                    {insertReferences.length > 0 && (
-                      <button
-                        onClick={() => {
-                          setSelectedReferences(
-                            selectedReferences.length === insertReferences.length ? [] : insertReferences,
-                          )
-                        }}
-                        className="text-[10px] font-bold text-primary hover:underline"
-                      >
-                        {selectedReferences.length === insertReferences.length ? "Deseleccionar Todo" : "Seleccionar Todo"}
-                      </button>
-                    )}
-                  </div>
-
-                  {referencesLoading ? (
-                    <div className="flex items-center justify-center h-48 text-xs text-muted-foreground">
-                      <Loader2 className="mr-2 size-4 animate-spin text-primary" />
-                      Cargando referencias...
-                    </div>
-                  ) : insertReferences.length === 0 ? (
-                    <div className="flex items-center justify-center h-48 text-xs text-muted-foreground">
-                      No hay referencias para este versículo.
-                    </div>
-                  ) : (
-                    <div className="space-y-2.5">
-                      {insertReferences.map((ref, index) => {
-                        const isChecked = selectedReferenceExists(ref)
-                        return (
-                          <div
-                            key={`${ref.book_id}-${ref.chapter}-${ref.verse}-${index}`}
-                            onClick={() => {
-                              if (isChecked) {
-                                setSelectedReferences(selectedReferences.filter((item) => !(
-                                  item.book_id === ref.book_id && item.chapter === ref.chapter && item.verse === ref.verse
-                                )))
-                              } else {
-                                setSelectedReferences([...selectedReferences, ref])
-                              }
-                            }}
-                            className={cn(
-                              "flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all active:scale-[0.99]",
-                              isChecked ? "bg-primary/5 border-primary/30" : "bg-card hover:bg-muted/40 border-border/40",
-                            )}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={isChecked}
-                              readOnly
-                              className="mt-1 size-4 rounded border-gray-300 accent-primary shrink-0"
-                            />
-                            <div className="min-w-0">
-                              <div className="text-xs font-extrabold text-primary">
-                                {ref.book_name} {ref.chapter}:{ref.verse}
-                              </div>
-                              <div className="mt-1 text-xs leading-relaxed text-foreground">{ref.text}</div>
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="p-4 border-t border-border/60 bg-muted/20 flex justify-end gap-2.5">
-                <Button
-                  variant="ghost"
-                  onClick={() => {
-                    setShowInsertReferenceModal(false)
-                    setSelectedReferences([])
-                  }}
-                  className="h-9 px-4 text-xs font-semibold"
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  onClick={() => {
-                    const bookName = selectedBookObj?.bookName || "Libro"
-                    const bibleAbbr = selectedBibleObj?.abbr || "RVR1960"
-                    const source = `${bookName} ${insertChapter}:${insertReferenceVerse}`
-                    insertBlockIntoEditingNote(formatReferenceInsertion(source, selectedReferences, bibleAbbr))
-                    setShowInsertReferenceModal(false)
-                    setSelectedReferences([])
-                  }}
-                  disabled={selectedReferences.length === 0}
-                  className="h-9 px-4 text-xs font-semibold bg-primary hover:bg-primary/95 text-primary-foreground shadow-md"
-                >
-                  Insertar ({selectedReferences.length})
                 </Button>
               </div>
             </div>

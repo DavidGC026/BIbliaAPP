@@ -84,7 +84,6 @@ interface NoteRichEditorProps {
   contentVersion: string
   onChange: (html: string) => void
   onInsertVerse?: () => void
-  onInsertReferences?: () => void
   onInsertDictionary?: () => void
   /** El editor entra/sale del modo de edición de imagen (panel inferior activo) */
   onImageEditMode?: (active: boolean) => void
@@ -97,7 +96,6 @@ export const NoteRichEditor = React.forwardRef<HTMLIFrameElement, NoteRichEditor
     contentVersion,
     onChange,
     onInsertVerse,
-    onInsertReferences,
     onInsertDictionary,
     onImageEditMode,
     className,
@@ -153,8 +151,6 @@ export const NoteRichEditor = React.forwardRef<HTMLIFrameElement, NoteRichEditor
         onInsertVerse?.()
       } else if (data.type === "openFontModal") {
         setFontModalOpen(true)
-      } else if (data.type === "openReferenceModal") {
-        onInsertReferences?.()
       } else if (data.type === "openDictionaryModal") {
         onInsertDictionary?.()
       } else if (data.type === "openImagePicker") {
@@ -165,7 +161,7 @@ export const NoteRichEditor = React.forwardRef<HTMLIFrameElement, NoteRichEditor
     }
     window.addEventListener("message", onMessage)
     return () => window.removeEventListener("message", onMessage)
-  }, [onChange, onInsertVerse, onInsertReferences, onInsertDictionary, onImageEditMode])
+  }, [onChange, onInsertVerse, onInsertDictionary, onImageEditMode])
 
   return (
     <div className="relative h-full w-full">

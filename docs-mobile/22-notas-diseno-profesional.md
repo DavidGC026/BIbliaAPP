@@ -40,7 +40,7 @@ Convertir Notas en una superficie de trabajo más profesional:
 - Borrar notas y libretas.
 - Autoguardado y guardado manual.
 - Vista previa.
-- Inserción de versículos, referencias, diccionario, tablas, fuentes, colores e imágenes.
+- Inserción de versículos, diccionario, tablas, fuentes, colores e imágenes.
 - Edición de imágenes con teclado bloqueado y toolbar oculta temporalmente.
 
 ---

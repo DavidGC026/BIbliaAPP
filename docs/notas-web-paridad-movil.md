@@ -15,7 +15,6 @@ La pestaña **Notas** del menú web ahora replica la estructura y el editor de l
 | Fuentes | Botón sin modal funcional | Selector de fuente conectado al iframe, con fuentes de sistema y populares |
 | Imágenes | Sin inserción desde editor | Subida a `/api/upload`, inserción pública, modo Normal/Fondo y edición visual dentro del editor |
 | Color automático | `inherit` podía conservar el color explícito del padre | Marcador semántico `.note-color-auto`, resuelto con el tema vigente |
-| Referencias | No disponible desde notas web | Modal de referencias cruzadas equivalente a mobile |
 | Diccionario | Botón sin flujo completo | Modal Strong con búsqueda, exploración, paginación e inserción HTML |
 | Vista previa | No existía | Toggle **Vista previa / Editar** |
 | Lista de notas | Resumen con regex markdown | `stripNotePreview()` — soporta HTML y markdown, métricas y orden profesional |
@@ -42,7 +41,7 @@ La pestaña **Notas** del menú web ahora replica la estructura y el editor de l
 | Archivo | Cambio |
 |---------|--------|
 | `components/notebook-sidebar.tsx` | Editor móvil, preview en lista, modo `embedded` dentro de pestañas |
-| `components/note-rich-editor.tsx` | Puente iframe/web para imágenes, versículos, referencias y diccionario |
+| `components/note-rich-editor.tsx` | Puente iframe/web para imágenes, versículos y diccionario |
 | `lib/app-section-registry/sections.client.tsx` | La sección `notebook` renderiza `NotesSection` |
 | `lib/app-section-registry/nav.client.tsx` | Oculta destinos hijos agrupados, incluida `library`, sin eliminarlos del catálogo ni de permisos |
 | `lib/app-section-registry/outlet.tsx` | Layout `notebook` sin padding extra (pantalla completa) |
@@ -54,7 +53,7 @@ La pestaña **Notas** del menú web ahora replica la estructura y el editor de l
 1. `NoteRichEditor` monta un `<iframe>` con `srcDoc` generado por `getEditorHtml()`.
 2. El iframe incluye la barra de formato **dentro** del HTML (negrita, tamaños, colores, listas, tablas).
 3. Comunicación iframe ↔ React vía `postMessage` (mismo protocolo que el WebView de Android).
-4. Botones **Fuente**, **Insertar versículo**, **Insertar referencias**, **Insertar del diccionario** e **imagen** envían eventos al padre; la web abre el modal correspondiente o el selector de archivos.
+4. Botones **Fuente**, **Insertar versículo**, **Insertar del diccionario** e **imagen** envían eventos al padre; la web abre el modal correspondiente o el selector de archivos.
 5. Al guardar, se solicita el HTML actual con `{ type: 'getHtml' }` antes del `PUT` a la API.
 6. Al insertar bloques externos se marca la nota como modificada para que el botón Guardar y el autoguardado persistan el contenido.
 
@@ -84,15 +83,6 @@ La pestaña **Notas** del menú web ahora replica la estructura y el editor de l
 - El slider conserva su evento nativo de `mousedown`: el panel evita el foco del editor en el resto de controles, pero no aplica `preventDefault()` sobre `input[type="range"]`, porque eso bloqueaba el arrastre con mouse en escritorio.
 - El selector **Normal / Fondo** convierte una imagen en fondo absoluto detrás del texto. El botón **Fondos 🖼️** activa temporalmente su selección y permite arrastrarla con mouse, touch o lápiz; el hit-test geométrico sigue encontrándola aunque haya texto encima.
 - Las posiciones, tamaños, modos y alineaciones se notifican al host sin debounce, por lo que se conservan al guardar y son compatibles con las notas creadas en mobile.
-
-### Referencias cruzadas
-
-Flujo equivalente a `mobile/components/InsertReferenceModal.tsx`:
-
-1. Seleccionar Biblia, libro, capítulo y versículo origen.
-2. Consultar `/api/references?bible=...&bookId=...&chapter=...&verse=...`.
-3. Elegir una o varias referencias.
-4. Insertar un bloque HTML con la fuente y las referencias seleccionadas.
 
 ### Diccionario Strong
 
@@ -206,7 +196,7 @@ Recarga el navegador con **Ctrl+Shift+R** en https://biblia2.dvguzman.com → me
 6. Cámbiala a **Fondo**, cierra el panel, activa **Fondos 🖼️** y arrástrala aun cuando tenga texto encima.
 7. Guarda, sal y vuelve a abrir la nota; verifica tamaño, alineación, modo y posición.
    Comprueba también que `GET /uploads/{filename}` responde 200 después de reiniciar el contenedor.
-8. Inserta referencias cruzadas y una entrada del diccionario.
+8. Inserta una entrada del diccionario y confirma que la toolbar ya no muestra **Insertar referencias**.
 9. Activa **Vista previa** y verifica que el contenido se ve bien.
 10. Guarda y vuelve a la lista: el resumen debe ser texto legible, no HTML crudo.
 11. Aplica un color a un texto, selecciónalo y pulsa **A**; debe recuperar el color normal del tema y adaptarse al alternar claro/oscuro.
@@ -217,6 +207,7 @@ Recarga el navegador con **Ctrl+Shift+R** en https://biblia2.dvguzman.com → me
 
 - El lector bíblico (`components/bible-reader`) sigue usando `NotebookSidebar` directamente en el panel lateral, sin pestañas.
 - La publicación de notas al feed de comunidad se retiró del editor web para igualar la UX móvil (solo Guardar / Borrar).
+- La inserción de referencias cruzadas se retiró de los editores web y mobile por decisión de producto. La consulta de referencias del lector/área de estudio permanece disponible; el contenido que ya estaba insertado en notas no se modifica.
 - La web ahora tiene autoguardado silencioso tras unos segundos sin escribir y solicita el HTML actual del iframe antes del guardado manual.
 
 ## Regla de documentación para cambios web

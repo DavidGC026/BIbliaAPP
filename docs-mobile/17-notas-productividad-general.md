@@ -29,7 +29,6 @@ La pestaña **Notas** ahora comunica y organiza mejor casos de uso generales:
 | Inicio | Acción **Nota rápida** que abre una nota nueva en la primera libreta o crea `Notas rápidas` |
 | Organización | Notas fijadas arriba, mover a otra libreta y compartir como texto |
 | Inserción bíblica | Modal de versículos con filtro por texto y navegación de capítulo |
-| Referencias | Nueva herramienta para insertar referencias cruzadas desde un versículo origen |
 
 ---
 
@@ -56,11 +55,9 @@ Estas funciones evitan repetir conversiones de HTML a texto en listas, búsqueda
 | `mobile/app/(tabs)/index.tsx` | Acción rápida para crear nota |
 | `mobile/components/notes/NotebooksPanel.tsx` | Búsqueda, métricas y tarjetas de libretas mejoradas |
 | `mobile/app/notebook/[id].tsx` | Orden, búsqueda, resumen, lectura estimada, fijar, mover y compartir |
-| `mobile/app/note/[noteId].tsx` | Estado de guardado, palabras/minutos, vista previa y referencias cruzadas |
+| `mobile/app/note/[noteId].tsx` | Estado de guardado, palabras/minutos y vista previa |
 | `mobile/components/InsertVerseModal.tsx` | Filtro local y navegación entre capítulos |
-| `mobile/components/InsertReferenceModal.tsx` | Inserción de referencias cruzadas en notas |
 | `mobile/lib/notebookCovers.ts` | Helpers de texto, palabras y lectura |
-| `mobile/lib/referenceInsert.ts` | Formato HTML de referencias insertadas |
 | `mobile/lib/repo.ts` / `mobile/lib/api.ts` / `mobile/lib/offline/notesStore.ts` | Movimiento de notas entre libretas |
 | `app/api/notebooks/notes/[noteId]/route.ts` / `lib/bible.ts` | Soporte backend para mover notas online |
 
@@ -83,4 +80,8 @@ npm run android
 8. En una libreta, fija una nota y verifica que suba al inicio.
 9. Mueve una nota a otra libreta y confirma que desaparezca de la libreta actual.
 10. Comparte una nota y comprueba que el sistema abra la hoja de compartir con título y texto.
-11. En el editor, usa **Versículo** con filtro y **Referencias** para insertar contenido relacionado.
+11. En el editor, usa **Versículo** con filtro y confirma que ya no aparece la acción **Referencias**.
+
+## Retiro de referencias en el editor (julio 2026)
+
+La acción para insertar referencias cruzadas se eliminó de la toolbar de notas en web y mobile junto con su modal, estado y formateador. Esta decisión simplifica el editor y no elimina la sección de referencias del lector bíblico ni modifica bloques de referencias que ya estuvieran guardados dentro de notas antiguas.

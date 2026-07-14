@@ -69,7 +69,7 @@ Al tocar cualquier imagen dentro del editor en modo de edición:
 **Ahora (julio 2026):** `mobile/lib/editorHtml.ts` implementa un **historial propio por instantáneas de `editor.innerHTML`** que cubre texto **e** imágenes por igual:
 
 - `undoStack` / `redoStack` + `lastSnapshot`; `HISTORY_LIMIT = 50` pasos (se descarta el más antiguo).
-- `commitHistory()` fija un paso (ignora instantáneas idénticas). Se llama en cada operación discreta: formato/heading/tamaño de texto, insertar imagen/versículo/referencias/diccionario, y toda edición del panel de imagen (tamaño al soltar el slider, modo, alineación, subir/bajar, borrar, arrastrar al soltar).
+- `commitHistory()` fija un paso (ignora instantáneas idénticas). Se llama en cada operación discreta: formato/heading/tamaño de texto, insertar imagen/versículo/diccionario, y toda edición del panel de imagen (tamaño al soltar el slider, modo, alineación, subir/bajar, borrar, arrastrar al soltar).
 - `scheduleHistory()` agrupa las ráfagas de tecleo en un solo paso tras 350 ms de inactividad (listener `input`).
 - `recordImageChange()` = `notifyChangeNow()` + `commitHistory()` para las ediciones de imagen (sincroniza el host al momento y fija el paso).
 - `performUndo()` / `performRedo()` restauran la instantánea con `applyHistorySnapshot()`, que limpia el chrome de edición, reasigna `innerHTML`, reinicia bloques (`initTableBlocks`) y notifica al host. Los botones `undo`/`redo` de la toolbar llaman a estas funciones (ramas nuevas en `runToolbarAction`).
