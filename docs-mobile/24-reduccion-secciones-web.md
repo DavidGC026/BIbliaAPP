@@ -20,8 +20,8 @@ La sección `reading` ahora renderiza `StudyHub` con tabs internos:
 - **Diccionario**: `StrongDictionary`
 - **Planes**: `ReadingPlans` (visible para usuarios con permiso)
 
-Al seleccionar un resultado de búsqueda se regresa automáticamente al modo **Biblia**.
-Al seleccionar una lectura desde **Planes** también se vuelve a **Biblia** con el pasaje elegido.
+Al seleccionar un resultado de búsqueda se regresa automáticamente al modo **Lector**.
+Al seleccionar una lectura desde **Planes** también se vuelve a **Lector** con el pasaje elegido (`setMode("reader")` dentro de `StudyHub`).
 
 ### Notas
 
@@ -82,6 +82,21 @@ La tabbar móvil prioriza:
 - `profile`
 
 El resto queda en **Más**.
+
+## Componente SegmentTabs
+
+Archivo: `components/ui/segment-tabs.tsx`
+
+- Tabs con scroll horizontal en móvil y gradiente + flecha cuando `tabs.length > 3`.
+- **Notas** con cinco tabs muestra el hint en pantallas estrechas; con solo tres permisos activos, no.
+- **Perfil** (6 tabs) y **Leer** (5 tabs) siempre superan el umbral en móvil.
+
+## Documentación relacionada
+
+- Hubs web (permisos, `HIDDEN_CHILD_SECTIONS`): [`docs/nuevas-secciones.md`](../docs/nuevas-secciones.md) § Hubs
+- Planes de lectura (API, tres entradas, `setMode`): [`docs/planes-lectura.md`](../docs/planes-lectura.md)
+- Paridad notas y editor: [`docs/notas-web-paridad-movil.md`](../docs/notas-web-paridad-movil.md)
+- Shell visual global: [23-paridad-web-mobile-global.md](./23-paridad-web-mobile-global.md)
 
 ## Validación
 

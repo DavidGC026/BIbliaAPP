@@ -77,7 +77,7 @@ npx tsc --noEmit
 npm run android
 ```
 
-1. Abre **Notas** y verifica que las pestañas `Notas`, `Diario` y `Biblioteca` sigan visibles.
+1. Abre **Notas** y verifica que las pestañas `Notas`, `Diario`, `Biblioteca` y `Planes` sigan visibles (según permisos).
 2. En `Notas`, crea, edita y elimina una libreta.
 3. Verifica que las libretas se muestran en cuadros de 2 columnas con sus portadas/imágenes.
 4. Busca una libreta por nombre y confirma que la lista filtra correctamente.
@@ -85,6 +85,11 @@ npm run android
 6. Fija, mueve, comparte/exporta y borra una nota desde su tarjeta.
 7. Abre una nota y confirma autoguardado, guardado manual, vista previa y conteo de palabras.
 8. Inserta una imagen, tócala y confirma que el teclado se cierra, la toolbar se oculta y aparece el aviso `Editando imagen`.
+9. Aplica un color a un texto, selecciónalo y pulsa **A**; debe volver al color del tema y adaptarse al alternar claro/oscuro (paridad web: [`docs/notas-web-paridad-movil.md`](../docs/notas-web-paridad-movil.md) § Color automático).
+
+## Paridad web
+
+Navegación y editor web documentados en [`docs/notas-web-paridad-movil.md`](../docs/notas-web-paridad-movil.md). Planes de lectura (tres entradas en hubs): [`docs/planes-lectura.md`](../docs/planes-lectura.md).
 
 ---
 

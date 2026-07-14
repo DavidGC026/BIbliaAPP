@@ -35,6 +35,15 @@ Documentación local útil (en `docs/`, solo en tu servidor):
 | `docs/funcionalidades-iglesias.md` | Funcionalidades para iglesias (grupos, oración, calendario…) |
 | `docs/infra-privada.md` | Credenciales, `docker run` completo, Adminer (privado) |
 
+Documentación técnica en el repositorio (`docs/`, forzar con `git add -f`):
+
+| Archivo | Contenido |
+|---------|-----------|
+| [`docs/nuevas-secciones.md`](docs/nuevas-secciones.md) | Registrar secciones; hubs Leer/Notas/Perfil |
+| [`docs/notas-web-paridad-movil.md`](docs/notas-web-paridad-movil.md) | Editor enriquecido web, tabs de Notas, color Auto |
+| [`docs/planes-lectura.md`](docs/planes-lectura.md) | API `/api/plans`, tres entradas en hubs |
+| [`docs/diccionario.md`](docs/diccionario.md) | Diccionario Strong en web |
+
 ## Desarrollo local
 
 Requisitos: Node.js 20+, MariaDB accesible en `localhost:3306`.

@@ -84,3 +84,8 @@ npm run android
 9. Mueve una nota a otra libreta y confirma que desaparezca de la libreta actual.
 10. Comparte una nota y comprueba que el sistema abra la hoja de compartir con título y texto.
 11. En el editor, usa **Versículo** con filtro y **Referencias** para insertar contenido relacionado.
+12. Aplica un color a un texto, vuelve a seleccionarlo y pulsa **A**; debe recuperar el color del tema y adaptarse al cambiar claro/oscuro (ver también doc [16](./16-editor-webview-teclado-seleccion.md) y paridad web [`docs/notas-web-paridad-movil.md`](../docs/notas-web-paridad-movil.md)).
+
+## Paridad web
+
+La web replica el editor enriquecido y la navegación consolidada de notas. Ver [`docs/notas-web-paridad-movil.md`](../docs/notas-web-paridad-movil.md) y hubs en [`docs-mobile/24-reduccion-secciones-web.md`](./24-reduccion-secciones-web.md).
