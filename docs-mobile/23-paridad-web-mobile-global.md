@@ -74,6 +74,13 @@ Archivo: `components/ui/segment-tabs.tsx`
 
 - Los tabs segmentados usan margen mobile más consistente (`mx-4`) y radio `rounded-2xl`.
 - Cada opción usa `flex-1`, `rounded-xl` y tipografía más cercana al patrón mobile.
+- Con más de **3** tabs (`tabs.length > 3`), aparece un indicador de desplizamiento horizontal (gradiente + chevron) para secciones como **Perfil** (6 tabs) y **Leer** (5 tabs). NotesHub (3 tabs) no lo muestra.
+
+## Documentación relacionada
+
+- [`24-reduccion-secciones-web.md`](./24-reduccion-secciones-web.md) — hubs y tabbar
+- [`../docs/planes-lectura.md`](../docs/planes-lectura.md) — pestaña Planes en StudyHub
+- [`../docs/notas-web-paridad-movil.md`](../docs/notas-web-paridad-movil.md) — paridad Notas
 
 ## Validación
 

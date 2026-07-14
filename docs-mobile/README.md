@@ -34,6 +34,13 @@ Documentación del cliente móvil de **BibliaAPP** (React Native + Expo). La app
 | [20-plan-maestro-mejoras-generales.md](./20-plan-maestro-mejoras-generales.md) | Plan vivo de mejoras generales, estados, fases y avance actual |
 | [21-insercion-y-edicion-de-imagenes.md](./21-insercion-y-edicion-de-imagenes.md) | Inserción, redimensionado, posición y alineación de imágenes en notas |
 | [22-notas-diseno-profesional.md](./22-notas-diseno-profesional.md) | Rediseño visual profesional de notas, libretas, tarjetas y editor |
+| [23-paridad-web-mobile-global.md](./23-paridad-web-mobile-global.md) | Shell móvil global web: tabbar flotante, safe-area, SegmentTabs |
+| [24-reduccion-secciones-web.md](./24-reduccion-secciones-web.md) | Hubs (Leer/Notas/Perfil), secciones ocultas del menú |
+
+Documentación web relacionada (carpeta `docs/`, force-add en git):
+
+- [`../docs/notas-web-paridad-movil.md`](../docs/notas-web-paridad-movil.md) — paridad editor e imágenes web
+- [`../docs/planes-lectura.md`](../docs/planes-lectura.md) — planes de lectura (API, hubs)
 
 ---
 

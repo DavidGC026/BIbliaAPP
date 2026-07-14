@@ -79,12 +79,12 @@ Al tocar cualquier imagen dentro del editor en modo de edición:
 
 ---
 
-## 4. Archivos Modificados
+## 4. Archivos modificados
 
 | Archivo | Cambio |
 |---------|--------|
-| [`mobile/lib/editorHtml.ts`](file:///home/david/proyectos/BibliaAPP/mobile/lib/editorHtml.ts) | Estilos CSS para el bloque de imagen y panel inferior; Botón 🖼️ en toolbar HTML; Lógica JS de envoltura, selección, modo edición, slider, alineación y subir/bajar elementos. |
-| [`mobile/app/note/[noteId].tsx`](file:///home/david/proyectos/BibliaAPP/mobile/app/note/[noteId].tsx) | Importaciones de `ImagePicker` y `api`; Receptor de `openImagePicker` e `imageEditMode` en `onWebViewMessage`; Método `handleImagePick()` con flujo de permisos, selección, subida y fallback offline a base64; bloqueo temporal del teclado al editar imágenes. |
+| [`mobile/lib/editorHtml.ts`](../../mobile/lib/editorHtml.ts) | Estilos CSS para el bloque de imagen y panel inferior; Botón 🖼️ en toolbar HTML; Lógica JS de envoltura, selección, modo edición, slider, alineación y subir/bajar elementos. |
+| [`mobile/app/note/[noteId].tsx`](../../mobile/app/note/[noteId].tsx) | Importaciones de `ImagePicker` y `api`; Receptor de `openImagePicker` e `imageEditMode` en `onWebViewMessage`; Método `handleImagePick()` con flujo de permisos, selección, subida y fallback offline a base64; bloqueo temporal del teclado al editar imágenes. |
 
 ---
 

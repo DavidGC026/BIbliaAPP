@@ -102,3 +102,5 @@ La sección **Notas → Planes** conserva toda su lógica de inscripción, avanc
 - Los estados completados eliminan emojis tipográficos y usan símbolos nativos de Expo para mantener consistencia entre plataformas.
 
 Archivo modificado: `mobile/components/ReadingPlansPanel.tsx`.
+
+Documentación web: [`../docs/planes-lectura.md`](../docs/planes-lectura.md) (API, hubs Leer/Perfil, brechas visuales web). Paridad editor: [`../docs/notas-web-paridad-movil.md`](../docs/notas-web-paridad-movil.md).

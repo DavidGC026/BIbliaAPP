@@ -84,3 +84,13 @@ npm run android
 9. Mueve una nota a otra libreta y confirma que desaparezca de la libreta actual.
 10. Comparte una nota y comprueba que el sistema abra la hoja de compartir con título y texto.
 11. En el editor, usa **Versículo** con filtro y **Referencias** para insertar contenido relacionado.
+12. Inserta una imagen, edítala (slider, alinear, subir/bajar) y prueba **Deshacer/Rehacer** — debe revertir también cambios de imagen (doc 21 §4).
+
+---
+
+## Documentación relacionada
+
+- [`22-notas-diseno-profesional.md`](./22-notas-diseno-profesional.md) — rediseño visual y encabezado de documento
+- [`21-insercion-y-edicion-de-imagenes.md`](./21-insercion-y-edicion-de-imagenes.md) — imágenes, undo, arrastre §12–§15
+- [`../docs/notas-web-paridad-movil.md`](../docs/notas-web-paridad-movil.md) — paridad web
+- [`../docs/planes-lectura.md`](../docs/planes-lectura.md) — planes de lectura (refinamiento visual doc 22)
