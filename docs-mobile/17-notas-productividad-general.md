@@ -25,7 +25,7 @@ La pestaña **Notas** ahora comunica y organiza mejor casos de uso generales:
 | Tarjetas de libreta | Muestran cantidad de notas y fecha de última actualización |
 | Detalle de libreta | Búsqueda dentro de contenido HTML limpio, orden por recientes/A-Z/largas y resumen de notas/palabras/última actividad |
 | Tarjetas de nota | Preview sin HTML, tags existentes y estimación de lectura |
-| Editor | Estado de guardado visible, conteo de palabras, lectura estimada y control de vista previa sin emojis |
+| Editor | Estado de guardado visible, conteo de palabras, lectura estimada, control de vista previa sin emojis y swatch **A** (color automático del tema) — ver [doc 16](./16-editor-webview-teclado-seleccion.md) |
 | Inicio | Acción **Nota rápida** que abre una nota nueva en la primera libreta o crea `Notas rápidas` |
 | Organización | Notas fijadas arriba, mover a otra libreta y compartir como texto |
 | Inserción bíblica | Modal de versículos con filtro por texto y navegación de capítulo |
@@ -84,3 +84,4 @@ npm run android
 9. Mueve una nota a otra libreta y confirma que desaparezca de la libreta actual.
 10. Comparte una nota y comprueba que el sistema abra la hoja de compartir con título y texto.
 11. En el editor, usa **Versículo** con filtro y **Referencias** para insertar contenido relacionado.
+12. Aplica un color, vuelve a seleccionar el texto y pulsa **A**; debe recuperar el color del tema y seguir adaptándose al cambiar claro/oscuro (paridad web: [`docs/notas-web-paridad-movil.md`](../docs/notas-web-paridad-movil.md) § Color automático).

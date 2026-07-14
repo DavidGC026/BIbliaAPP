@@ -40,7 +40,7 @@ Convertir Notas en una superficie de trabajo más profesional:
 - Borrar notas y libretas.
 - Autoguardado y guardado manual.
 - Vista previa.
-- Inserción de versículos, referencias, diccionario, tablas, fuentes, colores e imágenes.
+- Inserción de versículos, referencias, diccionario, tablas, fuentes, colores (incl. swatch **A** para volver al color del tema) e imágenes — ver [doc 16](./16-editor-webview-teclado-seleccion.md).
 - Edición de imágenes con teclado bloqueado y toolbar oculta temporalmente.
 
 ---
@@ -85,6 +85,7 @@ npm run android
 6. Fija, mueve, comparte/exporta y borra una nota desde su tarjeta.
 7. Abre una nota y confirma autoguardado, guardado manual, vista previa y conteo de palabras.
 8. Inserta una imagen, tócala y confirma que el teclado se cierra, la toolbar se oculta y aparece el aviso `Editando imagen`.
+9. Colorea un fragmento, selecciónalo de nuevo y pulsa **A**; el texto debe volver al color del tema y adaptarse al cambiar claro/oscuro (paridad web documentada en [`docs/notas-web-paridad-movil.md`](../docs/notas-web-paridad-movil.md)).
 
 ---
 
