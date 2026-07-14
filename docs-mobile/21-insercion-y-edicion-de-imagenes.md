@@ -201,7 +201,11 @@ La función de imágenes existía solo en `mobile/lib/editorHtml.ts`; el editor 
 - **`lib/note-editor-html.ts`** — copiado 1:1 del móvil, adaptado al host web (`postToHost` en vez de `window.ReactNativeWebView.postMessage`):
   - CSS de `.note-image-block` y `#image-edit-panel` (el panel lleva `max-width: 420px; margin: 0 auto` para pantallas de escritorio).
   - Botón `🖼️` (`data-action="insertImage"`) en la toolbar → postea `{ type: 'openImagePicker' }` al host.
-  - Panel de edición completo: slider de ancho 20–100%, alineación (izq./centro/der./100%), subir/bajar, borrar; `body.image-editing` oculta la toolbar y bloquea `contenteditable`.
+  - Panel de edición completo: slider de ancho 20–100%, modos **Normal/Fondo**, alineación (izq./centro/der./100%), subir/bajar y borrar; `body.image-editing` oculta la toolbar y bloquea `contenteditable`.
+  - Acción etiquetada **Insertar imagen** además del icono 🖼️, para que la función sea visible en escritorio y móvil web.
+  - Botón **Fondos 🖼️** y selección de fondos con `z-index: 10 !important`; el fallback geométrico encuentra la imagen aun con texto encima.
+  - Arrastre unificado con Pointer Events (mouse, touch y lápiz), posición acotada al editor e indicador visual durante el gesto.
+  - Bloques atómicos (`contenteditable="false"`, `draggable="false"`) normalizados al cargar o actualizar contenido, y animación FLIP al usar Subir/Bajar.
   - Auto-envoltura al hacer clic en un `<img>` suelto (notas del móvil o antiguas) en `.note-image-block`.
   - `notifyChangeNow()` (sin debounce) para inserciones/ediciones de imagen; `getHtml` limpia el estado visual (`clearImageEditingChrome`) y vacía el debounce antes de responder — mismas garantías que §7.
   - `insertHtmlAtSelection` con fallback al final de la nota si no hay selección (el foco se pierde al abrir el diálogo de archivos).
@@ -211,7 +215,7 @@ La función de imágenes existía solo en `mobile/lib/editorHtml.ts`; el editor 
   - Sube con `POST /api/upload` (FormData + `Authorization: Bearer` desde `localStorage.biblia_token`, como el resto de la web), inserta `${origin}/uploads/<filename>` vía `handleAction insertImage`, con indicador "Subiendo imagen...".
   - El timeout de `requestEditorHtml` sube de 500ms a 5000ms (mismo motivo que §7: notas con imágenes tardan más en cruzar el `postMessage`).
 
-Pruebas manuales web: insertar imagen con 🖼️, redimensionar/alinear/mover/borrar desde el panel, guardar, recargar y verificar persistencia; abrir en el móvil la misma nota y comprobar que se ve idéntica (y viceversa).
+Pruebas manuales web: insertar imagen desde el botón etiquetado, redimensionar/alinear/mover/borrar desde el panel; convertirla en Fondo, activar **Fondos 🖼️** y arrastrarla aunque haya texto encima; guardar, recargar y verificar persistencia; abrir en el móvil la misma nota y comprobar que se ve idéntica (y viceversa).
 
 ## 11. Corrección: teclado se abría al tocar la imagen
 

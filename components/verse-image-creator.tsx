@@ -338,9 +338,18 @@ interface VerseImageCreatorProps {
   reference: string
   theme?: string
   abbr?: string
+  /** Imagen del preview de origen (por ejemplo, Versículo del día). */
+  initialPhotoUrl?: string | null
 }
 
-export function VerseImageCreator({ open, onOpenChange, text, reference, abbr = "RVR1960" }: VerseImageCreatorProps) {
+export function VerseImageCreator({
+  open,
+  onOpenChange,
+  text,
+  reference,
+  abbr = "RVR1960",
+  initialPhotoUrl,
+}: VerseImageCreatorProps) {
   const [isExporting, setIsExporting] = useState(false)
   const [selectedGradient, setSelectedGradient] = useState<GradientPreset>(GRADIENT_PRESETS[0])
   const [backgroundMode, setBackgroundMode] = useState<BackgroundMode>("gradient")
@@ -435,8 +444,8 @@ export function VerseImageCreator({ open, onOpenChange, text, reference, abbr = 
     setUnsplashPage(1)
     setHasMorePhotos(false)
     setSelectedUnsplashId(null)
-    setBackgroundMode("gradient")
-    setBackgroundImageUrl(undefined)
+    setBackgroundMode(initialPhotoUrl ? "photo" : "gradient")
+    setBackgroundImageUrl(initialPhotoUrl || undefined)
     setBgPosX(50)
     setBgPosY(50)
     setBgZoom(100)
@@ -459,7 +468,7 @@ export function VerseImageCreator({ open, onOpenChange, text, reference, abbr = 
       }
     }
     void loadPhotos(undefined, 1, false, formatId)
-  }, [open, loadPhotos])
+  }, [open, loadPhotos, initialPhotoUrl])
 
   React.useEffect(() => {
     setTemplateSaved(false)

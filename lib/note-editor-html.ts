@@ -213,7 +213,33 @@ export function getEditorHtml(
     .note-image-block {
       max-width: 100%;
       box-sizing: border-box;
-      transition: outline 0.15s ease;
+      transition: outline 0.15s ease, transform 0.22s ease;
+    }
+    .note-image-block.is-background {
+      position: absolute !important;
+      z-index: -1;
+      margin: 0 !important;
+      touch-action: none;
+      pointer-events: none;
+    }
+    body.image-selection-mode .note-image-block.is-background,
+    body.image-editing .note-image-block.is-background {
+      z-index: 10 !important;
+      pointer-events: auto;
+      cursor: grab;
+    }
+    #editor .note-image-block.is-dragging,
+    .note-image-block.is-dragging {
+      transition: none !important;
+      cursor: grabbing;
+      z-index: 60 !important;
+      opacity: 0.96;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+      will-change: left, top;
+    }
+    body.image-dragging {
+      user-select: none;
+      -webkit-user-select: none;
     }
     .note-image-block img {
       max-width: 100%;
@@ -228,7 +254,7 @@ export function getEditorHtml(
       display: none;
     }
     body.image-editing #editor {
-      padding-bottom: 220px;
+      padding-bottom: 320px;
     }
     #image-edit-panel {
       position: fixed;
@@ -253,6 +279,18 @@ export function getEditorHtml(
       border-radius: 999px;
       background: ${colors.border};
       margin: 0 auto 10px;
+      position: relative;
+    }
+    #image-edit-panel .panel-grabber[data-drag]::after {
+      content: 'Arrastrando…';
+      display: block;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      color: ${colors.primary};
+      text-align: center;
+      margin-top: 6px;
+      white-space: nowrap;
     }
     #image-edit-panel .panel-header {
       display: flex;
@@ -320,6 +358,9 @@ export function getEditorHtml(
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 6px;
+    }
+    #image-edit-panel #panel-mode-section .segmented {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
     #image-edit-panel .panel-actions {
       display: grid;
@@ -584,7 +625,9 @@ export function getEditorHtml(
       <div class="colors-row" id="colors-row"></div>
 
       <!-- Row 3: Aux actions -->
-      <div class="aux-row">
+      <div class="aux-row" style="flex-wrap: wrap;">
+        <button class="aux-btn" id="btn-toggle-image-mode" data-action="toggleImageSelection" style="border-color: #3b82f6; background: rgba(59, 130, 246, 0.1); color: #2563eb;">Fondos 🖼️</button>
+        <button class="aux-btn" data-action="insertImage">🖼️ Insertar imagen</button>
         <button class="aux-btn" data-action="insertVerse">📖 Insertar versículo</button>
         <button class="aux-btn" data-action="insertReferences">🔗 Insertar referencias</button>
         <button class="aux-btn aux-btn-dict" data-action="insertDictionary">📚 Insertar del diccionario</button>
@@ -640,6 +683,26 @@ export function getEditorHtml(
       var activeImageBlock = null;
       var panel = null;
       var imageEditActive = false;
+      var imageSelectionMode = false;
+      var isDragging = false;
+      var didDragMove = false;
+      var suppressImageClickUntil = 0;
+
+      function recordImageChange() {
+        notifyChangeNow();
+      }
+
+      function toggleImageSelectionMode() {
+        imageSelectionMode = !imageSelectionMode;
+        if (imageSelectionMode) createPanel();
+        document.body.classList.toggle('image-selection-mode', imageSelectionMode);
+        var btn = document.getElementById('btn-toggle-image-mode');
+        if (btn) {
+          btn.style.background = imageSelectionMode ? '#3b82f6' : 'rgba(59, 130, 246, 0.1)';
+          btn.style.color = imageSelectionMode ? '#ffffff' : '#2563eb';
+        }
+        if (!imageSelectionMode) hidePanel();
+      }
 
       function setImageEditMode(active) {
         if (imageEditActive === active) return;
@@ -652,6 +715,22 @@ export function getEditorHtml(
           editor.setAttribute('contenteditable', 'true');
         }
         postToHost({ type: 'imageEditMode', active: active });
+      }
+
+      function imageBlockPosition(block) {
+        var blockRect = block.getBoundingClientRect();
+        var editorRect = editor.getBoundingClientRect();
+        return {
+          left: blockRect.left - editorRect.left + editor.scrollLeft,
+          top: blockRect.top - editorRect.top + editor.scrollTop
+        };
+      }
+
+      function clampImagePosition(block, left, top) {
+        return {
+          left: Math.max(0, Math.min(left, Math.max(0, editor.scrollWidth - block.offsetWidth))),
+          top: Math.max(0, Math.min(top, Math.max(0, editor.scrollHeight - block.offsetHeight)))
+        };
       }
 
       function createPanel() {
@@ -675,7 +754,14 @@ export function getEditorHtml(
           '    <span class="panel-value" id="panel-width-lbl">60%</span>',
           '  </div>',
           '</div>',
-          '<div class="panel-section">',
+          '<div class="panel-section" id="panel-mode-section">',
+          '  <span class="panel-label">Modo</span>',
+          '  <div class="segmented">',
+          '    <button type="button" id="btn-mode-normal">Normal</button>',
+          '    <button type="button" id="btn-mode-bg">Fondo</button>',
+          '  </div>',
+          '</div>',
+          '<div class="panel-section" id="panel-align-section">',
           '  <span class="panel-label">Alineación</span>',
           '  <div class="segmented">',
           '    <button type="button" id="btn-align-left">Izq.</button>',
@@ -702,10 +788,12 @@ export function getEditorHtml(
           var w = this.value + '%';
           activeImageBlock.style.width = w;
           document.getElementById('panel-width-lbl').textContent = w;
-          notifyChangeNow();
+          recordImageChange();
         });
 
         document.getElementById('btn-image-close').addEventListener('click', hidePanel);
+        document.getElementById('btn-mode-normal').addEventListener('click', function() { setMode('normal'); });
+        document.getElementById('btn-mode-bg').addEventListener('click', function() { setMode('bg'); });
         document.getElementById('btn-align-left').addEventListener('click', function() { setAlign('left'); });
         document.getElementById('btn-align-center').addEventListener('click', function() { setAlign('center'); });
         document.getElementById('btn-align-right').addEventListener('click', function() { setAlign('right'); });
@@ -715,9 +803,11 @@ export function getEditorHtml(
           if (!activeImageBlock) return;
           var prev = activeImageBlock.previousElementSibling;
           if (prev) {
-            activeImageBlock.parentNode.insertBefore(activeImageBlock, prev);
+            animateReorder(activeImageBlock, function() {
+              activeImageBlock.parentNode.insertBefore(activeImageBlock, prev);
+            });
             keepImageVisible();
-            notifyChangeNow();
+            recordImageChange();
           }
         });
 
@@ -725,9 +815,11 @@ export function getEditorHtml(
           if (!activeImageBlock) return;
           var next = activeImageBlock.nextElementSibling;
           if (next) {
-            activeImageBlock.parentNode.insertBefore(activeImageBlock, next.nextElementSibling);
+            animateReorder(activeImageBlock, function() {
+              activeImageBlock.parentNode.insertBefore(activeImageBlock, next.nextElementSibling);
+            });
             keepImageVisible();
-            notifyChangeNow();
+            recordImageChange();
           }
         });
 
@@ -735,7 +827,7 @@ export function getEditorHtml(
           if (!activeImageBlock) return;
           activeImageBlock.remove();
           hidePanel();
-          notifyChangeNow();
+          recordImageChange();
         });
 
         panel.addEventListener('mousedown', function(e) {
@@ -744,6 +836,155 @@ export function getEditorHtml(
         panel.addEventListener('touchstart', function(e) {
           e.stopPropagation();
         }, { passive: true });
+
+        /* Arrastre con Pointer Events: funciona con mouse, lápiz y touch web. */
+        var dragStart = { x: 0, y: 0 };
+        var blockStart = { left: 0, top: 0 };
+        var pendingDragPos = null;
+        var dragFrame = 0;
+        var dragPointerId = null;
+        var DRAG_SLOP = 14;
+
+        function applyPendingDrag() {
+          dragFrame = 0;
+          if (!pendingDragPos || !activeImageBlock) return;
+          activeImageBlock.style.left = pendingDragPos.left + 'px';
+          activeImageBlock.style.top = pendingDragPos.top + 'px';
+          activeImageBlock.style.margin = '0';
+          pendingDragPos = null;
+        }
+
+        function pointInRect(x, y, rect) {
+          return x >= rect.left - DRAG_SLOP && x <= rect.right + DRAG_SLOP &&
+                 y >= rect.top - DRAG_SLOP && y <= rect.bottom + DRAG_SLOP;
+        }
+
+        function findBackgroundBlockAt(x, y) {
+          if (activeImageBlock && activeImageBlock.classList.contains('is-background') &&
+              pointInRect(x, y, activeImageBlock.getBoundingClientRect())) {
+            return activeImageBlock;
+          }
+          var blocks = editor.querySelectorAll('.note-image-block.is-background');
+          var found = null;
+          for (var i = 0; i < blocks.length; i++) {
+            if (pointInRect(x, y, blocks[i].getBoundingClientRect())) found = blocks[i];
+          }
+          return found;
+        }
+
+        editor.addEventListener('pointerdown', function(e) {
+          if (!imageSelectionMode && !imageEditActive) return;
+          if (e.pointerType === 'mouse' && e.button !== 0) return;
+          var target = e.target;
+          var block = target.closest ? target.closest('.note-image-block.is-background') : null;
+          if (!block) block = findBackgroundBlockAt(e.clientX, e.clientY);
+          if (!block) return;
+
+          e.preventDefault();
+          if (activeImageBlock !== block) {
+            var img = block.querySelector('img');
+            if (img) showImageEditPanel(img, block);
+          }
+          activeImageBlock = block;
+          isDragging = true;
+          didDragMove = false;
+          dragPointerId = e.pointerId;
+          dragStart = { x: e.clientX, y: e.clientY };
+          blockStart = {
+            left: parseFloat(block.style.left),
+            top: parseFloat(block.style.top)
+          };
+          if (!Number.isFinite(blockStart.left) || !Number.isFinite(blockStart.top)) {
+            blockStart = imageBlockPosition(block);
+          }
+          block.classList.add('is-dragging');
+          block.style.outline = '2px dashed ${colors.primary}';
+          document.body.classList.add('image-dragging');
+          var grabber = panel ? panel.querySelector('.panel-grabber') : null;
+          if (grabber) grabber.setAttribute('data-drag', '1');
+          try { editor.setPointerCapture(e.pointerId); } catch (captureError) {}
+        });
+
+        editor.addEventListener('pointermove', function(e) {
+          if (!isDragging || !activeImageBlock || e.pointerId !== dragPointerId) return;
+          e.preventDefault();
+          var dx = e.clientX - dragStart.x;
+          var dy = e.clientY - dragStart.y;
+          if (Math.abs(dx) > 2 || Math.abs(dy) > 2) didDragMove = true;
+          pendingDragPos = clampImagePosition(activeImageBlock, blockStart.left + dx, blockStart.top + dy);
+          if (!dragFrame) dragFrame = requestAnimationFrame(applyPendingDrag);
+        });
+
+        function endPointerDrag(e) {
+          if (!isDragging || (e && e.pointerId !== dragPointerId)) return;
+          isDragging = false;
+          dragPointerId = null;
+          if (dragFrame) {
+            cancelAnimationFrame(dragFrame);
+            applyPendingDrag();
+          }
+          if (activeImageBlock) {
+            activeImageBlock.classList.remove('is-dragging');
+            activeImageBlock.style.outline = '2px solid ${colors.primary}';
+          }
+          document.body.classList.remove('image-dragging');
+          var grabber = panel ? panel.querySelector('.panel-grabber') : null;
+          if (grabber) grabber.removeAttribute('data-drag');
+          if (didDragMove) {
+            suppressImageClickUntil = Date.now() + 300;
+            recordImageChange();
+          }
+          didDragMove = false;
+        }
+
+        editor.addEventListener('pointerup', endPointerDrag);
+        editor.addEventListener('pointercancel', endPointerDrag);
+      }
+
+      function setMode(mode) {
+        if (!activeImageBlock) return;
+        var isBg = mode === 'bg';
+
+        if (isBg) {
+          var currentPos = imageBlockPosition(activeImageBlock);
+          activeImageBlock.classList.add('is-background');
+          activeImageBlock.style.margin = '0';
+          activeImageBlock.style.position = 'absolute';
+          var clamped = clampImagePosition(activeImageBlock, currentPos.left, currentPos.top);
+          activeImageBlock.style.left = clamped.left + 'px';
+          activeImageBlock.style.top = clamped.top + 'px';
+          activeImageBlock.style.zIndex = '-1';
+        } else {
+          activeImageBlock.classList.remove('is-background');
+          activeImageBlock.style.position = '';
+          activeImageBlock.style.left = '';
+          activeImageBlock.style.top = '';
+          activeImageBlock.style.zIndex = '';
+          activeImageBlock.style.margin = '';
+
+          var align = 'center';
+          if (activeImageBlock.style.float === 'left') align = 'left';
+          else if (activeImageBlock.style.float === 'right') align = 'right';
+          else if (activeImageBlock.style.width === '100%') align = 'full';
+          setAlign(align);
+        }
+        updateModeButtons(mode);
+        keepImageVisible();
+        recordImageChange();
+      }
+
+      function updateModeButtons(mode) {
+        var isBg = mode === 'bg';
+        var btnNormal = document.getElementById('btn-mode-normal');
+        var btnBg = document.getElementById('btn-mode-bg');
+        if (btnNormal) btnNormal.classList.toggle('active', !isBg);
+        if (btnBg) btnBg.classList.toggle('active', isBg);
+        var alignSection = document.getElementById('panel-align-section');
+        if (alignSection) alignSection.style.display = isBg ? 'none' : 'block';
+        var btnUp = document.getElementById('btn-move-up');
+        var btnDown = document.getElementById('btn-move-down');
+        if (btnUp) btnUp.style.display = isBg ? 'none' : '';
+        if (btnDown) btnDown.style.display = isBg ? 'none' : '';
       }
 
       function setAlign(align) {
@@ -781,7 +1022,7 @@ export function getEditorHtml(
 
         updateAlignButtons(align);
         keepImageVisible();
-        notifyChangeNow();
+        recordImageChange();
       }
 
       function updateAlignButtons(activeAlign) {
@@ -789,6 +1030,25 @@ export function getEditorHtml(
           var btn = document.getElementById('btn-align-' + a);
           if (!btn) return;
           btn.classList.toggle('active', a === activeAlign);
+        });
+      }
+
+      function animateReorder(block, mutate) {
+        var before = block.getBoundingClientRect();
+        mutate();
+        var after = block.getBoundingClientRect();
+        var deltaY = before.top - after.top;
+        if (!deltaY) return;
+        block.style.transition = 'none';
+        block.style.transform = 'translateY(' + deltaY + 'px)';
+        requestAnimationFrame(function() {
+          requestAnimationFrame(function() {
+            block.style.transition = 'transform 180ms ease';
+            block.style.transform = '';
+            setTimeout(function() {
+              block.style.transition = '';
+            }, 200);
+          });
         });
       }
 
@@ -828,6 +1088,7 @@ export function getEditorHtml(
           align = 'full';
         }
         updateAlignButtons(align);
+        updateModeButtons(block.classList.contains('is-background') ? 'bg' : 'normal');
 
         setImageEditMode(true);
         panel.style.display = 'block';
@@ -854,9 +1115,18 @@ export function getEditorHtml(
       }
 
       function buildImageBlockHtml(url) {
-        return '<div class="note-image-block" style="text-align: center; width: 60%; max-width: 100%; display: block; margin: 12px auto;">' +
-               '  <img src="' + url + '" style="width: 100%; height: auto; border-radius: 8px;" />' +
+        return '<div class="note-image-block" contenteditable="false" style="text-align: center; width: 60%; max-width: 100%; display: block; margin: 12px auto;">' +
+               '  <img src="' + url + '" draggable="false" style="width: 100%; height: auto; border-radius: 8px;" />' +
                '</div><p><br></p>';
+      }
+
+      function ensureImageBlocksAtomic() {
+        document.querySelectorAll('.note-image-block').forEach(function(block) {
+          block.setAttribute('contenteditable', 'false');
+          block.querySelectorAll('img').forEach(function(img) {
+            img.setAttribute('draggable', 'false');
+          });
+        });
       }
 
       function clearImageEditingChrome() {
@@ -1056,6 +1326,11 @@ export function getEditorHtml(
 
         if (action === 'openFontModal') {
           postToHost({ type: 'openFontModal' });
+          return;
+        }
+
+        if (action === 'toggleImageSelection') {
+          toggleImageSelectionMode();
           return;
         }
 
@@ -1419,6 +1694,16 @@ export function getEditorHtml(
           });
         });
 
+        document.querySelectorAll('.aux-btn[data-action="insertImage"]').forEach(function(btn) {
+          bindToolbarButton(btn, function() {
+            postToHost({ type: 'openImagePicker' });
+          });
+        });
+
+        document.querySelectorAll('.aux-btn[data-action="toggleImageSelection"]').forEach(function(btn) {
+          bindToolbarButton(btn, toggleImageSelectionMode);
+        });
+
         document.querySelectorAll('.aux-btn[data-action="insertReferences"]').forEach(function(btn) {
           bindToolbarButton(btn, function() {
             postToHost({ type: 'openReferenceModal' });
@@ -1440,7 +1725,12 @@ export function getEditorHtml(
         });
         editor.addEventListener('focus', scrollCaretIntoView);
 
+        editor.addEventListener('mousedown', function(e) {
+          if (e.target && e.target.tagName === 'IMG') e.preventDefault();
+        });
+
         editor.addEventListener('click', function(e) {
+          if (Date.now() < suppressImageClickUntil) return;
           var t = e.target;
           if (t && t.tagName === 'IMG') {
             var block = t.closest('.note-image-block');
@@ -1449,6 +1739,7 @@ export function getEditorHtml(
               // que llegan sin contenedor editable.
               block = document.createElement('div');
               block.className = 'note-image-block';
+              block.setAttribute('contenteditable', 'false');
               block.style.textAlign = 'center';
               block.style.width = '60%';
               block.style.maxWidth = '100%';
@@ -1457,6 +1748,7 @@ export function getEditorHtml(
               t.parentNode.insertBefore(block, t);
               block.appendChild(t);
             }
+            t.setAttribute('draggable', 'false');
             showImageEditPanel(t, block);
             e.preventDefault();
             e.stopPropagation();
@@ -1481,6 +1773,7 @@ export function getEditorHtml(
         setTimeout(updateActiveStates, 100);
         initTablePicker();
         initTableBlocks();
+        ensureImageBlocksAtomic();
       }
 
       ${getNoteTableScript(isReadOnly)}
@@ -1539,11 +1832,13 @@ export function getEditorHtml(
           }
           if (action.type === 'insertImage') {
             insertHtmlAtSelection(buildImageBlockHtml(action.value));
+            ensureImageBlocksAtomic();
             notifyChangeNow();
             return;
           }
           if (action.type === 'updateContent') {
             editor.innerHTML = action.value;
+            ensureImageBlocksAtomic();
             return;
           }
           if (action.type === 'updateColors') {

@@ -95,6 +95,9 @@ El generador web (`components/verse-image-creator.tsx`) se alineó con el móvil
 - **Tamaño de letra Auto**: helper `textSizeForLength` (mismos umbrales que el móvil) y botón `Auto` junto al slider en Ajustes.
 - Al elegir un diseño, el slider "Oscurecer fondo" salta al overlay base del preset, pero sigue siendo ajustable (en el móvil el overlay es fijo por preset; la web conserva su slider como extra).
 - La web mantiene sus extras propios: difuminado de foto, compartir en Comunidad y los 8 gradientes (superset de los 6 del móvil).
+- La tarjeta web del versículo del día entrega ahora su `backgroundImage` como `initialPhotoUrl`. Al pulsar **Crear imagen**, el generador abre en modo foto con el mismo preview, equivalente a `initialPhotoUri` en mobile. Si no hay imagen, conserva el fallback a gradiente; al exportar, la URL remota pasa por `/api/image-proxy` para generar el PNG sin errores CORS.
+
+Documentación web: [`docs/versiculo-del-dia-creador-imagenes.md`](../docs/versiculo-del-dia-creador-imagenes.md).
 
 ---
 

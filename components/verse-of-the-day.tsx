@@ -206,6 +206,7 @@ export function VerseOfTheDay() {
           reference={data.reference}
           theme={data.theme}
           abbr={selectedBible?.abbr || "RVR1960"}
+          initialPhotoUrl={data.backgroundImage}
         />
       )}
     </div>

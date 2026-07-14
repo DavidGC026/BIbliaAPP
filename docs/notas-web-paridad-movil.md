@@ -13,7 +13,7 @@ La pestaña **Notas** del menú web ahora replica la estructura y el editor de l
 | Navegación | Dos filas de tabs parcialmente duplicadas | Una fila: **Notas · Diario · Biblioteca · Planes · Oración** |
 | Editor | Textarea plano + barra de tags/adjuntos | Editor enriquecido WYSIWYG (mismo HTML base que Android) |
 | Fuentes | Botón sin modal funcional | Selector de fuente conectado al iframe, con fuentes de sistema y populares |
-| Imágenes | Sin inserción desde editor | Subida a `/api/upload`, inserción como URL pública y edición visual dentro del editor |
+| Imágenes | Sin inserción desde editor | Subida a `/api/upload`, inserción pública, modo Normal/Fondo y edición visual dentro del editor |
 | Color automático | `inherit` podía conservar el color explícito del padre | Marcador semántico `.note-color-auto`, resuelto con el tema vigente |
 | Referencias | No disponible desde notas web | Modal de referencias cruzadas equivalente a mobile |
 | Diccionario | Botón sin flujo completo | Modal Strong con búsqueda, exploración, paginación e inserción HTML |
@@ -75,10 +75,13 @@ La pestaña **Notas** del menú web ahora replica la estructura y el editor de l
 
 ### Inserción y edición de imágenes
 
-- El botón de imagen del editor abre un selector nativo de archivos desde React.
+- El botón etiquetado **Insertar imagen** y el icono 🖼️ de la toolbar abren el selector nativo de archivos desde React.
 - La imagen se sube a `/api/upload` con `purpose=other`.
 - Si el backend devuelve `filename`, la web inserta una URL absoluta `/uploads/{filename}` para que la imagen sobreviva al salir y volver a abrir la nota.
-- La edición visual se mantiene dentro del iframe: redimensionar, alinear, mover y borrar sin perder el contenido al guardar.
+- Cada imagen es un bloque atómico (`contenteditable="false"`, `draggable="false"`), incluso al cargar notas antiguas, para evitar que el cursor rompa el HTML o active una edición accidental.
+- El panel permite redimensionar, alinear, subir/bajar con animación y borrar.
+- El selector **Normal / Fondo** convierte una imagen en fondo absoluto detrás del texto. El botón **Fondos 🖼️** activa temporalmente su selección y permite arrastrarla con mouse, touch o lápiz; el hit-test geométrico sigue encontrándola aunque haya texto encima.
+- Las posiciones, tamaños, modos y alineaciones se notifican al host sin debounce, por lo que se conservan al guardar y son compatibles con las notas creadas en mobile.
 
 ### Referencias cruzadas
 
@@ -197,11 +200,13 @@ Recarga el navegador con **Ctrl+Shift+R** en https://biblia2.dvguzman.com → me
 2. Comprueba la fila única: Notas, Diario, Biblioteca, Planes y Oración (según permisos).
 3. Abre una libreta → crea o edita una nota.
 4. Usa formato (negrita, color, listas), cambia fuente y usa **Insertar versículo**.
-5. Inserta una imagen, redimensiónala y alinéala; guarda, sal y vuelve a abrir la nota.
-6. Inserta referencias cruzadas y una entrada del diccionario.
-7. Activa **Vista previa** y verifica que el contenido se ve bien.
-8. Guarda y vuelve a la lista: el resumen debe ser texto legible, no HTML crudo.
-9. Aplica un color a un texto, selecciónalo y pulsa **A**; debe recuperar el color normal del tema y adaptarse al alternar claro/oscuro.
+5. Inserta una imagen desde el botón etiquetado, redimensiónala y alinéala; prueba Subir/Bajar y verifica su animación.
+6. Cámbiala a **Fondo**, cierra el panel, activa **Fondos 🖼️** y arrástrala aun cuando tenga texto encima.
+7. Guarda, sal y vuelve a abrir la nota; verifica tamaño, alineación, modo y posición.
+8. Inserta referencias cruzadas y una entrada del diccionario.
+9. Activa **Vista previa** y verifica que el contenido se ve bien.
+10. Guarda y vuelve a la lista: el resumen debe ser texto legible, no HTML crudo.
+11. Aplica un color a un texto, selecciónalo y pulsa **A**; debe recuperar el color normal del tema y adaptarse al alternar claro/oscuro.
 
 ---
 
