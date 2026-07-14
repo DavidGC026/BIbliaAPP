@@ -243,3 +243,47 @@ Cambios en `mobile/lib/editorHtml.ts`:
 - Todas estas operaciones pasan por `recordImageChange()`, así que además quedan cubiertas por el historial de Deshacer/Rehacer (ver §4).
 
 CSS nuevo: `.note-image-block { transition: ... transform 0.22s ease; }`, `.note-image-block.is-dragging { ... }`, `body.image-dragging { user-select: none; }` y `cursor: grab` sobre los fondos seleccionables.
+
+---
+
+## 13. Corrección: seleccionar y arrastrar fondos era errático (julio 2026)
+
+Síntomas: con una imagen en modo **Fondo** bajo texto, era casi imposible seleccionarla aun con el modo **Fondos 🖼️** activo; el arrastre "a veces funcionaba y a veces no", sin patrón aparente.
+
+Tres causas encontradas en `mobile/lib/editorHtml.ts`:
+
+1. **El z-index inline ganaba al CSS del modo selección.** `setMode('bg')` guarda `style.zIndex = '-1'` inline (necesario para que la nota se renderice igual fuera del editor). La regla `body.image-selection-mode .note-image-block.is-background { z-index: 10 }` no llevaba `!important`, y un estilo inline siempre gana a una regla CSS sin `!important`. Resultado: la imagen seguía en `z-index: -1` para el hit-testing y los toques los capturaban los párrafos que la cubrían (las cajas de un `<p>` ocupan todo el ancho, no solo su texto). Solo funcionaba tocando huecos sin ningún bloque encima — de ahí lo errático. **Fix:** `z-index: 10 !important` en las reglas de `image-selection-mode` / `image-editing`, y `#editor .note-image-block.is-dragging` para que el `z-index: 60 !important` del arrastre siga ganando por especificidad.
+
+2. **Detección por `e.target` frágil → detección geométrica.** Aunque el z-index se corrija, cualquier elemento superpuesto (tablas, bloques de versículo con z-index propio) puede robar el toque. El `touchstart` ahora tiene fallback por coordenadas: si `e.target.closest('.note-image-block')` no da un fondo, `findBackgroundBlockAt(x, y)` recorre los `.note-image-block.is-background` y compara el punto contra `getBoundingClientRect()` con un margen de tolerancia de 14 px (`DRAG_SLOP`, ayuda con imágenes pequeñas). Prioridad: la imagen ya seleccionada; si no, la última del DOM cuyo rect contenga el punto. Con el panel abierto sobre un fondo (fuera del modo selección), el toque dentro del rect de la imagen activa también inicia arrastre. Tocar un fondo aún no seleccionado lo selecciona y permite arrastrar en el mismo gesto.
+
+3. **Los listeners de arrastre no existían hasta abrir el panel una vez.** `touchstart/touchmove/touchend` del arrastre se registran dentro de `createPanel()`, que solo corría al seleccionar una imagen con éxito. Activar **Fondos** y tocar la imagen directamente no hacía nada la primera vez. **Fix:** `toggleImageSelectionMode()` llama a `createPanel()` (queda oculto) al activar el modo.
+
+Prueba manual: nota con varios párrafos + imagen en modo Fondo debajo del texto → activar **Fondos 🖼️** → un toque sobre cualquier parte de la imagen (aunque haya texto encima) debe seleccionarla y permitir arrastrarla en el mismo gesto, de forma consistente.
+
+---
+
+## 14. Mejora: más espacio vertical — encabezado compacto y panel que no tapa (julio 2026)
+
+Síntomas: el panel inferior de edición podía **tapar la imagen** que se estaba editando, y la tarjeta de título (título grande + estado + palabras/minutos + botón "Vista previa") robaba altura permanente a la nota.
+
+Cambios en `mobile/app/note/[noteId].tsx`:
+
+- **Encabezado compacto permanente:** la tarjeta de título pasa a ser una sola fila fija arriba: `TextInput` del título (17px) + punto de estado + texto de estado ("Guardando… / Guardado / N palabras") + botón de vista previa solo-icono. Se eliminan la línea de "N palabras · M min" y la hora del último guardado (`formatSaveTime`, `lastSavedAt`).
+- **Modo edición de imagen a pantalla completa:** mientras `imageEditMode` está activo se oculta el header nativo (`headerShown: false`) y el encabezado se sustituye por una franja mínima "Editando imagen · toca fuera para terminar" (con `paddingTop: insets.top` para el notch). La nota gana toda esa altura y el panel inferior deja de solapar la imagen.
+
+Cambio en `mobile/lib/editorHtml.ts`: `body.image-editing #editor { padding-bottom: 320px }` (antes 220px) para que `keepImageVisible()` siempre tenga margen para desplazar la imagen por encima del panel, incluso al final de la nota.
+
+---
+
+## 15. Refinamiento visual del título del editor (julio 2026)
+
+Tras compactar el encabezado, el título compartía una sola línea con el estado y el botón de vista previa, por lo que quedaba comprimido y se percibía como otro control de la toolbar.
+
+En `mobile/app/note/[noteId].tsx` el encabezado conserva una altura reducida, pero recupera jerarquía de documento:
+
+- El título y el estado forman ahora un bloque de dos niveles; el botón de vista previa permanece alineado a la derecha.
+- El título usa 20 px, peso 700 y un espaciado ligeramente cerrado, con el placeholder más descriptivo `Título de la nota`.
+- El estado se muestra debajo con un indicador de 6 px y tipografía secundaria de 11 px.
+- El botón de vista previa aumenta a 36 × 36 px para equilibrar visualmente el encabezado y conservar un área táctil cómoda.
+
+Este cambio es exclusivamente de presentación; no modifica el guardado, la vista previa ni el flujo de inserción y edición de imágenes.

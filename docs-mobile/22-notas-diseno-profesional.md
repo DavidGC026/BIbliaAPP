@@ -85,3 +85,20 @@ npm run android
 6. Fija, mueve, comparte/exporta y borra una nota desde su tarjeta.
 7. Abre una nota y confirma autoguardado, guardado manual, vista previa y conteo de palabras.
 8. Inserta una imagen, tócala y confirma que el teclado se cierra, la toolbar se oculta y aparece el aviso `Editando imagen`.
+
+---
+
+## Refinamiento de Planes de lectura (julio 2026)
+
+La sección **Notas → Planes** conserva toda su lógica de inscripción, avance, lectura y devocionales, pero adopta una jerarquía visual más clara:
+
+- Cabecera propia con propósito de la sección y contador de planes activos.
+- Separación explícita entre planes **En curso** y planes disponibles.
+- Tarjeta activa con icono, duración, porcentaje destacado y progreso descrito como `N de M días`.
+- La siguiente lectura se presenta como la acción principal, con botones diferenciados para leer, completar y escribir o consultar el devocional.
+- El calendario completo usa un control más limpio para expandirse y contraerse.
+- Los planes disponibles muestran duración y frecuencia junto al título, con una acción principal de ancho completo.
+- Los planes ya inscritos se identifican mediante un estado visual compacto, en lugar de texto suelto.
+- Los estados completados eliminan emojis tipográficos y usan símbolos nativos de Expo para mantener consistencia entre plataformas.
+
+Archivo modificado: `mobile/components/ReadingPlansPanel.tsx`.
