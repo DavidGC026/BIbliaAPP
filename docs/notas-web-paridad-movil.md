@@ -78,6 +78,7 @@ La pestaña **Notas** del menú web ahora replica la estructura y el editor de l
 - El botón etiquetado **Insertar imagen** y el icono 🖼️ de la toolbar abren el selector nativo de archivos desde React.
 - La imagen se sube a `/api/upload` con `purpose=other`.
 - Si el backend devuelve `filename`, la web inserta una URL absoluta `/uploads/{filename}` para que la imagen sobreviva al salir y volver a abrir la nota.
+- `/uploads/[filename]` es una ruta dinámica de Next (`app/uploads/[filename]/route.ts`): lee el archivo en cada petición. Esto es necesario porque el servidor de producción solo indexa como estáticos los archivos presentes durante `next build`; las imágenes agregadas después del arranque devolvían 404 aunque existieran en disco.
 - Cada imagen es un bloque atómico (`contenteditable="false"`, `draggable="false"`), incluso al cargar notas antiguas, para evitar que el cursor rompa el HTML o active una edición accidental.
 - El panel permite redimensionar, alinear, subir/bajar con animación y borrar.
 - El selector **Normal / Fondo** convierte una imagen en fondo absoluto detrás del texto. El botón **Fondos 🖼️** activa temporalmente su selección y permite arrastrarla con mouse, touch o lápiz; el hit-test geométrico sigue encontrándola aunque haya texto encima.
@@ -203,6 +204,7 @@ Recarga el navegador con **Ctrl+Shift+R** en https://biblia2.dvguzman.com → me
 5. Inserta una imagen desde el botón etiquetado, redimensiónala y alinéala; prueba Subir/Bajar y verifica su animación.
 6. Cámbiala a **Fondo**, cierra el panel, activa **Fondos 🖼️** y arrástrala aun cuando tenga texto encima.
 7. Guarda, sal y vuelve a abrir la nota; verifica tamaño, alineación, modo y posición.
+   Comprueba también que `GET /uploads/{filename}` responde 200 después de reiniciar el contenedor.
 8. Inserta referencias cruzadas y una entrada del diccionario.
 9. Activa **Vista previa** y verifica que el contenido se ve bien.
 10. Guarda y vuelve a la lista: el resumen debe ser texto legible, no HTML crudo.

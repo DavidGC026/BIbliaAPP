@@ -192,6 +192,8 @@ Fix:
 
 Nota de privacidad: las imágenes de notas quedan accesibles para quien tenga la URL exacta (nombre `crypto.randomUUID()`, no adivinable). Es el mismo nivel de exposición que ya tenía la ruta estática `/uploads/` de Next.
 
+Corrección web (julio 2026): Next en producción genera el inventario de `public/` durante `next build`. Por eso un archivo escrito posteriormente por `/api/upload` existía en `public/uploads`, pero `GET /uploads/<filename>` devolvía 404 y el editor mostraba una imagen rota. `app/uploads/[filename]/route.ts` atiende ahora esa misma URL de forma dinámica, lee el archivo en tiempo de petición y conserva el contrato compartido con mobile sin cambiar el HTML ya guardado.
+
 ---
 
 ## 10. Paridad web: editor de imágenes portado a la versión web
