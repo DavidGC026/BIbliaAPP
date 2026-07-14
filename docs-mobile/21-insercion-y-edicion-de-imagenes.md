@@ -219,6 +219,8 @@ La función de imágenes existía solo en `mobile/lib/editorHtml.ts`; el editor 
 
 Pruebas manuales web: insertar imagen desde el botón etiquetado, redimensionar/alinear/mover/borrar desde el panel; convertirla en Fondo, activar **Fondos 🖼️** y arrastrarla aunque haya texto encima; guardar, recargar y verificar persistencia; abrir en el móvil la misma nota y comprobar que se ve idéntica (y viceversa).
 
+Corrección web del slider (julio 2026): el listener `mousedown` del panel llamaba a `preventDefault()` para no devolver el foco al editor, pero también cancelaba el comportamiento nativo del `input[type="range"]` en escritorio. La web excluye ahora el slider de esa cancelación; el thumb vuelve a responder al mouse y el evento `input` actualiza ancho y porcentaje en vivo. Mobile no requería cambio porque su gesto principal es touch.
+
 ## 11. Corrección: teclado se abría al tocar la imagen
 
 Síntoma (julio 2026): Al tocar una imagen para modificarla (moverla o escalarla abriendo el panel inferior), el teclado virtual del móvil se desplegaba, e inmediatamente se cerraba o se quedaba abierto, generando una experiencia visual errática.

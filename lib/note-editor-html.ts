@@ -831,6 +831,9 @@ export function getEditorHtml(
         });
 
         panel.addEventListener('mousedown', function(e) {
+          // No cancelar el gesto nativo del range: preventDefault en mousedown
+          // impide que el thumb se mueva con mouse en navegadores de escritorio.
+          if (e.target && e.target.closest && e.target.closest('input[type="range"]')) return;
           e.preventDefault();
         });
         panel.addEventListener('touchstart', function(e) {

@@ -81,6 +81,7 @@ La pestaña **Notas** del menú web ahora replica la estructura y el editor de l
 - `/uploads/[filename]` es una ruta dinámica de Next (`app/uploads/[filename]/route.ts`): lee el archivo en cada petición. Esto es necesario porque el servidor de producción solo indexa como estáticos los archivos presentes durante `next build`; las imágenes agregadas después del arranque devolvían 404 aunque existieran en disco.
 - Cada imagen es un bloque atómico (`contenteditable="false"`, `draggable="false"`), incluso al cargar notas antiguas, para evitar que el cursor rompa el HTML o active una edición accidental.
 - El panel permite redimensionar, alinear, subir/bajar con animación y borrar.
+- El slider conserva su evento nativo de `mousedown`: el panel evita el foco del editor en el resto de controles, pero no aplica `preventDefault()` sobre `input[type="range"]`, porque eso bloqueaba el arrastre con mouse en escritorio.
 - El selector **Normal / Fondo** convierte una imagen en fondo absoluto detrás del texto. El botón **Fondos 🖼️** activa temporalmente su selección y permite arrastrarla con mouse, touch o lápiz; el hit-test geométrico sigue encontrándola aunque haya texto encima.
 - Las posiciones, tamaños, modos y alineaciones se notifican al host sin debounce, por lo que se conservan al guardar y son compatibles con las notas creadas en mobile.
 
