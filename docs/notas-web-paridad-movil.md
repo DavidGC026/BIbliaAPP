@@ -215,6 +215,14 @@ Recarga el navegador con **Ctrl+Shift+R** en https://biblia2.dvguzman.com → me
 
 Todo cambio que afecte código web debe actualizar o crear documentación dentro de `docs/`. Si también modifica comportamiento compartido con mobile, se actualiza además el documento correspondiente en `docs-mobile/`, manteniendo referencias cruzadas entre ambas implementaciones.
 
+## Documentación relacionada
+
+- Hubs y navegación consolidada: [`docs/nuevas-secciones.md`](./nuevas-secciones.md) § Hubs
+- Planes de lectura (tab Planes, API): [`docs/planes-lectura.md`](./planes-lectura.md)
+- Color Auto (móvil): [`docs-mobile/16-editor-webview-teclado-seleccion.md`](../docs-mobile/16-editor-webview-teclado-seleccion.md)
+- Reducción de secciones / SegmentTabs: [`docs-mobile/24-reduccion-secciones-web.md`](../docs-mobile/24-reduccion-secciones-web.md)
+- Shell visual móvil web: [`docs-mobile/23-paridad-web-mobile-global.md`](../docs-mobile/23-paridad-web-mobile-global.md)
+
 ---
 
 *Última revisión: julio 2026.*
