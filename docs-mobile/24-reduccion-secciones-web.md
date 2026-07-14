@@ -89,3 +89,9 @@ El resto queda en **Más**.
 npx tsc --noEmit
 npm run build
 ```
+
+## Documentos relacionados
+
+- Shell móvil global (tabbar flotante, `mobile-section-shell`): [`23-paridad-web-mobile-global.md`](./23-paridad-web-mobile-global.md).
+- Notas web (tabs únicos, editor enriquecido, imágenes): [`docs/notas-web-paridad-movil.md`](../docs/notas-web-paridad-movil.md).
+- Registro de secciones y permisos: [`docs/nuevas-secciones.md`](../docs/nuevas-secciones.md).

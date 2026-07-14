@@ -93,3 +93,9 @@ Además de la paridad visual del shell, se inició la consolidación funcional d
 - Todos los tabs internos se filtran mediante `allowedSections` y las lecturas elegidas desde Planes abren el lector principal.
 
 Archivos principales: `components/notes-section.tsx`, `lib/app-section-registry/sections.client.tsx` y `lib/app-section-registry/nav.client.tsx`.
+
+## Documentos relacionados
+
+- Consolidación de hubs y tabs: [`24-reduccion-secciones-web.md`](./24-reduccion-secciones-web.md).
+- Notas web (editor, imágenes, color automático): [`docs/notas-web-paridad-movil.md`](../docs/notas-web-paridad-movil.md).
+- Versículo del día → creador de imágenes: [`docs/versiculo-del-dia-creador-imagenes.md`](../docs/versiculo-del-dia-creador-imagenes.md).

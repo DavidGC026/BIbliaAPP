@@ -77,3 +77,9 @@ npm run android
 1. **Libreta:** abre una nota, escribe texto, sal con atrás sin pulsar Guardar. Vuelve a abrirla: el contenido debe persistir.
 2. **Lista:** en el cuaderno, el resumen bajo el título debe mostrar texto legible, no `<p>…</p>`.
 3. **Versículo:** en el lector, abre nota de un versículo, edita y cierra con **Cerrar**; recarga el capítulo y comprueba la nota.
+
+## Paridad web
+
+La web replica el preview HTML con `lib/notebook-covers.ts` (`stripNotePreview`) y el autoguardado con debounce en `components/notebook-sidebar.tsx`, pero **Volver** no equivale al `beforeRemove` del móvil: hay que esperar el autoguardado (~4 s) o pulsar **Guardar** antes de salir.
+
+Documentación: [`docs/notas-web-paridad-movil.md`](../docs/notas-web-paridad-movil.md).
