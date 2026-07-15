@@ -109,7 +109,7 @@ El swatch **A** no guarda negro o blanco como valor fijo. Al aplicarlo:
 
 No se usa `color: inherit`: si la selección estaba dentro de un `span` rojo, heredar significaba conservar precisamente ese rojo. La clase semántica evita ese caso y mantiene el contenido adaptable.
 
-Implementación: `lib/note-editor-html.ts`. Paridad móvil: `mobile/lib/editorHtml.ts`.
+Implementación: `lib/note-editor-html.ts`. Paridad móvil: `mobile/lib/editorHtml.ts`. En Android, el color resuelto sigue el esquema elegido en **Perfil → Apariencia** (Claro, Oscuro, Sepia, DVG, etc.); ver [docs-mobile/25-temas-visuales-y-dvg.md](../docs-mobile/25-temas-visuales-y-dvg.md).
 
 ---
 

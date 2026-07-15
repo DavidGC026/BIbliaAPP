@@ -66,6 +66,7 @@ La implementación anterior usaba `color: inherit`. Eso no funcionaba si el text
 - Resuelve el caso "cambié el color y ya no podía volver al automático".
 - El mismo marcador y swatch se implementan en `lib/note-editor-html.ts` para mantener paridad con el editor web.
 - En móvil, el cambio de color automático también crea una instantánea del historial, por lo que se puede deshacer y rehacer.
+- El color resuelto depende del esquema activo (Claro, Oscuro, Sepia, Bosque, DVG, etc.). Ver [25-temas-visuales-y-dvg.md](./25-temas-visuales-y-dvg.md).
 
 ## Archivos tocados
 
