@@ -9,7 +9,7 @@ Hacer que la experiencia móvil de la web completa se parezca más a la app mobi
 ## Referencias revisadas
 
 - `mobile/app/(tabs)/_layout.tsx`: estructura de tabs nativa, altura de tabbar, safe-area, header limpio y títulos compactos.
-- `mobile/constants/Colors.ts`: paleta base mobile (`background`, `card`, `border`, `tint`, `textMuted`).
+- `mobile/constants/Colors.ts`: paleta base mobile (`background`, `card`, `border`, `tint`, `textMuted`). El selector de apariencia y las paletas adicionales (Sepia, Bosque, Lavanda, DVG) estan documentados en [25-temas-visuales-y-dvg.md](./25-temas-visuales-y-dvg.md).
 - `mobile/constants/theme.ts`: radios, espaciado y sombras usadas por la app.
 
 ## Cambios aplicados en web

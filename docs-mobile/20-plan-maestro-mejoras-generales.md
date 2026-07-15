@@ -18,6 +18,7 @@ Este documento funciona como bitacora viva para las mejoras grandes de la app mo
 | En curso | Sincronizacion visible | Mostrar estado claro de guardado, offline y pendientes de sincronizar. | Ya hay indicador de estado offline y contador de notas pendientes; falta reintento automatico de sincronizacion al recuperar conexion. |
 | Pendiente | Compartir unificado | Crear una experiencia consistente para compartir versiculos, notas, devocionales e imagenes. | Reusar formato, creditos, version biblica y acciones del sistema. |
 | Hecho | Onboarding ligero | Explicar en pocos pasos las funciones principales sin bloquear. | Tarjeta "Primeros pasos" descartable en Inicio (`components/OnboardingCard.tsx`): Biblia offline, busqueda universal, notas e imagenes de versiculos. Se oculta al omitirla y no vuelve a aparecer. |
+| Hecho | Temas visuales y DVG | Adaptar toda la interfaz al ambiente de lectura con selector visual. | Nueve paletas en Perfil → Apariencia; edicion DVG solo para `role === "admin"` con `AdminThemeGuard`. Ver [25-temas-visuales-y-dvg.md](./25-temas-visuales-y-dvg.md). |
 
 ## Iteracion actual
 

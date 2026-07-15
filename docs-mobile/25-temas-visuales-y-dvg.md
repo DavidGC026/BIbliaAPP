@@ -22,6 +22,11 @@ Las paletas viven en [`mobile/constants/Colors.ts`](../mobile/constants/Colors.t
 
 ## Selector de apariencia
 
+La sección vive en **Perfil** ([`mobile/app/(tabs)/profile.tsx`](../mobile/app/(tabs)/profile.tsx)):
+
+- **Invitado:** `<ThemeSwitch />` sin prop `isAdmin` → DVG no aparece.
+- **Sesión iniciada:** `<ThemeSwitch isAdmin={user?.role === 'admin'} />` → DVG solo para administradores.
+
 [`mobile/components/ThemeSwitch.tsx`](../mobile/components/ThemeSwitch.tsx) usa una cuadrícula adaptable de tarjetas. Cada opción incluye:
 
 - miniatura con fondo, tarjeta, texto y color principal;
@@ -34,7 +39,7 @@ La selección se guarda mediante `expo-secure-store` con la clave `bibliaapp_the
 
 ## Restricción administrativa de DVG
 
-DVG no solo se oculta en la interfaz para invitados y usuarios normales. [`mobile/app/_layout.tsx`](../mobile/app/_layout.tsx) monta una protección global que revisa la sesión después de cargarla:
+DVG no solo se oculta en la interfaz para invitados y usuarios normales. [`mobile/app/_layout.tsx`](../mobile/app/_layout.tsx) envuelve la app con `AdminThemeGuard`, que revisa la sesión después de cargarla:
 
 ```text
 tema DVG + rol admin       → conservar DVG
@@ -43,9 +48,21 @@ tema DVG + cualquier otro → volver a Sistema
 
 Esto también cubre una selección persistida por una sesión administrativa anterior. La condición usa el mismo rol `admin` empleado por el resto de las funciones administrativas móviles.
 
+## Consumo de tokens en componentes
+
+La mayoría de pantallas no leen `Colors` directamente. El puente habitual es:
+
+| Módulo | Rol |
+|--------|-----|
+| [`mobile/context/ThemeContext.tsx`](../mobile/context/ThemeContext.tsx) | Modo persistido (`mode`), esquema resuelto (`scheme`) y `setMode` |
+| [`mobile/components/useColorScheme.ts`](../mobile/components/useColorScheme.ts) | Expone `scheme` para código heredado que esperaba `useColorScheme` de React Native |
+| [`mobile/hooks/useAppTheme.ts`](../mobile/hooks/useAppTheme.ts) | Devuelve `colors`, `isDark`, `radius`, `shadow`, `spacing` y `typography` |
+
+`RootLayoutNav` en `_layout.tsx` también mapea la paleta activa a los temas de Expo Router (`DefaultTheme` / `DarkTheme`) para barras de navegación nativas.
+
 ## Integración con temas oscuros
 
-[`mobile/context/ThemeContext.tsx`](../mobile/context/ThemeContext.tsx) centraliza qué paletas son oscuras mediante `isDarkTheme`. Este dato se reutiliza para:
+[`mobile/context/ThemeContext.tsx`](../mobile/context/ThemeContext.tsx) centraliza qué paletas son oscuras mediante `isDarkTheme`. Los esquemas oscuros son `dark`, `sepiaDark`, `midnight`, `forest` y `dvg`. Este dato se reutiliza para:
 
 - elegir la base clara u oscura de Expo Router;
 - ajustar el contenido de la barra de estado;
@@ -67,3 +84,16 @@ Pruebas manuales recomendadas:
 3. Cambiar el tema del dispositivo con **Sistema** activo.
 4. Verificar que DVG aparece para `role === "admin"` y no aparece para otros roles.
 5. Cerrar una sesión administradora con DVG activo y confirmar el regreso automático a **Sistema**.
+
+## Alcance y paridad web
+
+El selector de apariencia es **exclusivo del cliente móvil**. La web usa variables CSS globales (claro/oscuro del navegador o tema del sitio), no las paletas Sepia, Bosque, Lavanda ni DVG. El color **Auto** del editor de notas sí depende del tema vigente en cada plataforma; ver [16-editor-webview-teclado-seleccion.md](./16-editor-webview-teclado-seleccion.md) y [../docs/notas-web-paridad-movil.md](../docs/notas-web-paridad-movil.md).
+
+## Documentos relacionados
+
+| Documento | Relación |
+|-----------|----------|
+| [16-editor-webview-teclado-seleccion.md](./16-editor-webview-teclado-seleccion.md) | Swatch **A** y marcador `note-color-auto` resuelto con `colors.text` del tema activo |
+| [20-plan-maestro-mejoras-generales.md](./20-plan-maestro-mejoras-generales.md) | Bitácora de mejoras generales; temas visuales marcados como hecho |
+| [23-paridad-web-mobile-global.md](./23-paridad-web-mobile-global.md) | Paridad visual web; `Colors.ts` como referencia de tokens móviles |
+| [../docs/notas-web-paridad-movil.md](../docs/notas-web-paridad-movil.md) | Color automático en el editor web según el tema del sitio |
