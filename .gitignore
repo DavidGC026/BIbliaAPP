@@ -38,3 +38,6 @@ docs/*
 docs-mobile
 # App móvil: tiene su propio repositorio
 mobile/
+
+# Cache incremental de TypeScript: se regenera en cada build
+*.tsbuildinfo
