@@ -23,16 +23,29 @@ lib/              # Lógica de negocio, MySQL, auth, grupos, oración…
 mobile/           # App React Native (Expo)
 docs-mobile/      # Documentación del cliente móvil
 public/           # Estáticos y uploads
-docs/             # Documentación local web (no se sube a Git; ver .gitignore)
+docs/             # Documentación técnica web (parcialmente versionada; ver .gitignore)
 ```
 
-Documentación local útil (en `docs/`, solo en tu servidor):
+Documentación técnica versionada en Git:
+
+| Archivo | Contenido |
+|---------|-----------|
+| [`docs/temas-visuales-web.md`](docs/temas-visuales-web.md) | Paletas de apariencia web (paridad móvil, DVG/UBG admin) |
+| [`docs/mejoras-uso-diario-web.md`](docs/mejoras-uso-diario-web.md) | Continuar lectura, recientes en Inicio, historial de búsqueda |
+| [`docs/estilos-moviles-web.md`](docs/estilos-moviles-web.md) | Teclado, viewport y área de escritura en Notas (móvil web) |
+| [`docs/acceso-biblico-y-legal-web.md`](docs/acceso-biblico-y-legal-web.md) | Licencias bíblicas, aceptación legal, catálogo admin de secciones |
+| [`desktop/docs/README.md`](desktop/docs/README.md) | Cliente de escritorio Tauri v0.3.1 |
+| [`docs-mobile/README.md`](docs-mobile/README.md) | Cliente móvil Expo (docs 26–28: licencias, OAuth, admin/legal) |
+| [`docs-mobile-ios/README.md`](docs-mobile-ios/README.md) | Estado inicial, builds y checklist iOS |
+
+Solo en el servidor (no versionados; ver `.gitignore`):
 
 | Archivo | Contenido |
 |---------|-----------|
 | `docs/comandos-servidor.md` | **Estado, levantar, reiniciar y parar el stack** |
 | `docs/actualizar-despliegue.md` | **Cómo actualizar código y reiniciar el contenedor** |
 | `docs/funcionalidades-iglesias.md` | Funcionalidades para iglesias (grupos, oración, calendario…) |
+| `docs/nuevas-secciones.md` | Registrar pantallas nuevas en el catálogo de secciones |
 | `docs/infra-privada.md` | Credenciales, `docker run` completo, Adminer (privado) |
 
 ## Desarrollo local

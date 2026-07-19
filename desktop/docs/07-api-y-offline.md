@@ -5,7 +5,7 @@
 ```typescript
 // src/lib/config.ts
 VITE_API_URL  → default https://biblia2.dvguzman.com
-DEFAULT_BIBLE_ID = 149  // RVR1960
+// defaultBibleId: resolver desde GET /api/bibles (campo defaultBibleId)
 ```
 
 Todas las peticiones autenticadas llevan:
@@ -32,7 +32,7 @@ Authorization: Bearer <token>
 | Método   | Ruta                                             | Uso                          |
 | -------- | ------------------------------------------------ | ---------------------------- |
 | GET      | `/api/verse-of-the-day`                          | Inicio                       |
-| GET      | `/api/bibles`                                    | Versiones                    |
+| GET      | `/api/bibles`                                    | Versiones + `defaultBibleId` + capacidades |
 | GET      | `/api/books?bible=`                              | Libros                       |
 | GET      | `/api/verses?bible=&book=&chapter=`              | Capítulo                     |
 | GET      | `/api/verses/bulk?bible=&book=`                  | Descarga offline (por libro) |
@@ -68,7 +68,9 @@ Implementación: `src/lib/api.ts`
 | POST            | `/api/legal/accept`       | Aceptación legal                |
 | GET/POST        | `/api/admin/users`        | Usuarios administrados          |
 | PUT/DELETE      | `/api/admin/users/:id`    | Editar/eliminar usuario         |
-| GET             | `/api/admin/sections`     | Catálogo de permisos            |
+| GET             | `/api/admin/sections`     | Catálogo de permisos (grupos + defaults) |
+
+Detalle de licencias bíblicas, legal y OAuth móvil interno: [`../../docs/acceso-biblico-y-legal-web.md`](../../docs/acceso-biblico-y-legal-web.md).
 
 ---
 
