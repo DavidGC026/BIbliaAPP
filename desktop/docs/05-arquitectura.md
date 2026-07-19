@@ -66,14 +66,18 @@ desktop/
 │   │   └── DownloadsPage.tsx
 │   └── lib/
 │       ├── api.ts           # Cliente HTTP REST
-│       ├── repo.ts          # Online/offline unificado (Biblia)
+│       ├── repo.ts          # Online/offline unificado (Biblia + notas)
+│       ├── sync.ts          # push/pull SQLite ↔ API (syncAll)
 │       ├── config.ts        # VITE_API_URL, DEFAULT_BIBLE_ID
 │       ├── sessionStore.ts  # Token en plugin-store
 │       ├── googleAuth.ts    # OAuth localhost
 │       ├── types.ts
 │       └── offline/
-│           ├── db.ts        # SQLite schema
-│           └── bibleStore.ts
+│           ├── db.ts        # SQLite schema + meta.offline_user_id
+│           ├── appCache.ts  # localStorage: iglesia y versículo del día
+│           ├── bibleStore.ts
+│           ├── notesStore.ts
+│           └── readerStore.ts
 └── src-tauri/
     ├── src/lib.rs           # Plugins + OAuth listener
     ├── tauri.conf.json
@@ -103,6 +107,16 @@ desktop/
 1. Biblia → Descargas → Descargar
 2. `downloadBible`: libros + versículos (bulk o capítulo a capítulo)
 3. Marca `downloaded = 1` en tabla `bibles`
+
+### Sincronización offline (v0.3.3)
+
+1. Cambios locales (libretas, notas, subrayados, favoritos, notas de versículo) se escriben en SQLite con `dirty = 1`
+2. `syncAll()` (login, evento `online`, botón `SyncStatusBadge`) hace push de filas sucias y pull del servidor
+3. Solo una instancia de `syncAll()` corre a la vez; llamadas concurrentes esperan y pueden encolar un segundo ciclo
+4. `prepareOfflineUserScope()` en login limpia datos privados al cambiar de cuenta (`meta.offline_user_id`); las Biblias descargadas se conservan
+5. Caché de Inicio (`appCache.ts`): nombre de iglesia y versículo del día en `localStorage`, independiente de SQLite
+
+Detalle de garantías y límites: [07-api-y-offline.md](./07-api-y-offline.md), [14-offline-y-release-arch-0.3.3.md](./14-offline-y-release-arch-0.3.3.md).
 
 ---
 

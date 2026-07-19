@@ -112,6 +112,21 @@ EXPO_PUBLIC_API_URL=http://192.168.x.x:3000 npm run start
 
 Pantallas incluidas en v1.0.0: Inicio (versículo del día), Lector bíblico, Comunidad (feed), Grupos y Perfil con login por token Bearer.
 
+## App de escritorio (Tauri)
+
+Cliente nativo en `desktop/` (Tauri v2 + React). Consume la misma API REST; Biblia, libretas y anotaciones funcionan offline tras descargar una versión e iniciar sesión al menos una vez.
+
+**Documentación:** [`desktop/docs/README.md`](desktop/docs/README.md) · versión actual **0.3.3**
+
+```bash
+cd desktop
+npm install
+npm run tauri dev    # desarrollo con SQLite y OAuth
+npm run pack:arch    # paquete pacman (Arch Linux)
+```
+
+Guías por plataforma: [Arch](desktop/docs/04-arch-linux.md) · [Debian](desktop/docs/09-debian-linux.md) · [Windows](desktop/docs/11-windows.md) · [offline v0.3.3](desktop/docs/14-offline-y-release-arch-0.3.3.md)
+
 ## Base de datos
 
 No hay migraciones formales (Prisma, etc.). Las tablas se crean o amplían con funciones `ensure*Tables()` en `lib/` la primera vez que la app las necesita.
