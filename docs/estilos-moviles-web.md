@@ -100,6 +100,30 @@ embebido del lector conserva el chrome porque vive dentro de un panel dividido.
 `notebook-sidebar` (modales de versículo y diccionario), `reading-plans`,
 `verse-image-creator` y la hoja "Más" de `app/page.tsx`.
 
+### Toolbar de selección del lector sobre la tabbar
+
+[`components/bible-reader/reader-toolbar.tsx`](../components/bible-reader/reader-toolbar.tsx)
+estaba en `fixed bottom-6` (24 px), justo dentro de la franja que ocupa
+`.mobile-tabbar` de [`app/page.tsx`](../app/page.tsx)
+(`bottom: 12px + env(safe-area-inset-bottom)`, `h-[72px]`). Las dos se pisaban
+casi por completo: la toolbar ganaba por `z-50` contra `z-40`, pero quedaba
+montada sobre el menú, con sus botones e iconos asomando alrededor de la
+paleta de subrayado.
+
+Ahora la toolbar se apoya **encima** de la tabbar en móvil y recupera su
+posición original desde `md`, donde la tabbar es `md:hidden`:
+
+```
+bottom-[calc(96px+env(safe-area-inset-bottom))] md:bottom-6
+```
+
+96 px = 12 (offset de la tabbar) + 72 (su alto) + 12 de aire.
+
+**Regla general:** cualquier elemento `fixed` anclado abajo en móvil debe
+despejar esa franja — como ya hace el FAB de `components/feed.tsx`
+(`fixed bottom-20`). Si el elemento necesita el fondo entero, el patrón
+alternativo es el de `body.note-immersive`, que oculta header y tabbar.
+
 ## Resultado medido
 
 Con un contenedor idéntico al del layout `notebook` en 360×640:
@@ -141,3 +165,6 @@ Pruebas manuales en un teléfono real (lo que no cubre el navegador headless):
 5. En iPhone con notch, comprobar que el header no queda bajo la barra de estado
    y que la tabbar no pisa el indicador de inicio.
 6. Editar una nota desde el lector: ahí el chrome **no** debe ocultarse.
+7. En **Biblia**, seleccionar un versículo: la toolbar de subrayado debe quedar
+   completa por encima de la tabbar, sin montarse sobre ella. Ensanchar a
+   escritorio (`md`) y comprobar que vuelve a pegarse al borde inferior.

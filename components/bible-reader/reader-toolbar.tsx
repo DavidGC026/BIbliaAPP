@@ -49,7 +49,9 @@ export const ReaderToolbar = memo(function ReaderToolbar({
   onLoginRequest,
 }: ReaderToolbarProps) {
   return (
-    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-background/85 backdrop-blur-md border border-border shadow-2xl rounded-full px-3 py-2 sm:px-5 sm:py-2.5 flex items-center gap-2 sm:gap-3.5 animate-in fade-in slide-in-from-bottom-4 duration-300">
+    // En móvil se apoya por encima de `.mobile-tabbar` (bottom 12px + alto 72px
+    // + 12px de aire); desde `md` la tabbar no existe y vuelve a bottom-6.
+    <div className="fixed bottom-[calc(96px+env(safe-area-inset-bottom))] md:bottom-6 left-1/2 -translate-x-1/2 z-50 bg-background/85 backdrop-blur-md border border-border shadow-2xl rounded-full px-3 py-2 sm:px-5 sm:py-2.5 flex items-center gap-2 sm:gap-3.5 animate-in fade-in slide-in-from-bottom-4 duration-300">
       <div className="hidden sm:flex flex-col min-w-0">
         <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground leading-none mb-0.5">Selección</span>
         <span className="text-xs font-bold text-foreground truncate max-w-[150px] md:max-w-[200px]">
