@@ -32,6 +32,7 @@ docs/*
 !docs/temas-visuales-web.md
 !docs/mejoras-uso-diario-web.md
 !docs/estilos-moviles-web.md
+!docs/acceso-biblico-y-legal-web.md
 !desktop/docs/
 !desktop/docs/**
 
