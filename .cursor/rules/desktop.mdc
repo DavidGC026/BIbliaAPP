@@ -21,6 +21,7 @@ Cliente Tauri v2 + React SPA. **No accede a MariaDB** — solo REST + Bearer com
 
 - Tailwind 4 + paleta OKLCH de la web
 - Componentes mínimos propios (`Button`, `Card`) — no añadir shadcn completo sin pedirlo
+- Iconografía UI: `<Icon name={…} />` desde `components/ui/Icon.tsx` (SVG inline, `currentColor`); no emojis ni librerías externas para cromo de interfaz. Nuevos iconos → unión `IconName` + mapa `CONTENT`; catálogos en `lib/nav.ts` y `lib/preferences.ts`. `npm run icons` regenera PNG del lanzador Tauri, no los SVG in-app
 - Navegación por tabs en `App.tsx` (`lib/nav.ts`), sin react-router salvo necesidad
 
 ## Empaquetado
