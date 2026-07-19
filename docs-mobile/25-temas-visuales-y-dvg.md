@@ -1,4 +1,4 @@
-# 25 — Temas visuales y edición DVG
+# 25 — Temas visuales y ediciones DVG/UBG
 
 ## Objetivo
 
@@ -17,6 +17,7 @@ La sección **Perfil → Apariencia** permite adaptar toda la interfaz móvil al
 | Bosque | Oscuro | Verde sereno con acentos esmeralda |
 | Lavanda | Claro | Fondo suave, elegante y de bajo contraste visual |
 | DVG | Oscuro, solo administradores | Base borgoña, rojo principal y texto claro de alto contraste |
+| UBG | Oscuro, solo administradores | Base verde petróleo, verde principal y acentos azules |
 
 Las paletas viven en [`mobile/constants/Colors.ts`](../mobile/constants/Colors.ts). Todas exponen los mismos tokens semánticos (`background`, `card`, `text`, `textMuted`, `primary`, `primaryForeground`, `danger`, etc.), por lo que las pantallas no dependen de colores fijos.
 
@@ -28,17 +29,17 @@ Las paletas viven en [`mobile/constants/Colors.ts`](../mobile/constants/Colors.t
 - nombre y descripción del ambiente;
 - indicador de selección;
 - estado accesible de tipo `radio`;
-- distintivo `ADMIN` en la edición DVG.
+- distintivo `ADMIN` en las ediciones DVG y UBG.
 
 La selección se guarda mediante `expo-secure-store` con la clave `bibliaapp_theme_mode`, por lo que se conserva entre reinicios.
 
-## Restricción administrativa de DVG
+## Restricción administrativa de DVG y UBG
 
-DVG no solo se oculta en la interfaz para invitados y usuarios normales. [`mobile/app/_layout.tsx`](../mobile/app/_layout.tsx) monta una protección global que revisa la sesión después de cargarla:
+DVG y UBG no solo se ocultan en la interfaz para invitados y usuarios normales. [`mobile/app/_layout.tsx`](../mobile/app/_layout.tsx) monta una protección global que revisa la sesión después de cargarla:
 
 ```text
-tema DVG + rol admin       → conservar DVG
-tema DVG + cualquier otro → volver a Sistema
+tema DVG/UBG + rol admin       → conservar el tema
+tema DVG/UBG + cualquier otro → volver a Sistema
 ```
 
 Esto también cubre una selección persistida por una sesión administrativa anterior. La condición usa el mismo rol `admin` empleado por el resto de las funciones administrativas móviles.
@@ -65,5 +66,5 @@ Pruebas manuales recomendadas:
 1. Cambiar entre todos los temas desde **Perfil → Apariencia**.
 2. Reiniciar la app y confirmar que la selección persiste.
 3. Cambiar el tema del dispositivo con **Sistema** activo.
-4. Verificar que DVG aparece para `role === "admin"` y no aparece para otros roles.
-5. Cerrar una sesión administradora con DVG activo y confirmar el regreso automático a **Sistema**.
+4. Verificar que DVG y UBG aparecen para `role === "admin"` y no aparecen para otros roles.
+5. Cerrar una sesión administradora con DVG o UBG activo y confirmar el regreso automático a **Sistema**.

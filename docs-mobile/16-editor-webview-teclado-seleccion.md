@@ -67,11 +67,41 @@ La implementación anterior usaba `color: inherit`. Eso no funcionaba si el text
 - El mismo marcador y swatch se implementan en `lib/note-editor-html.ts` para mantener paridad con el editor web.
 - En móvil, el cambio de color automático también crea una instantánea del historial, por lo que se puede deshacer y rehacer.
 
+## Rueda cromática: selector libre de color (julio 2026)
+
+Al final de la fila de colores (`colors-row`) hay un botón circular con degradado arcoíris que abre un **círculo cromático** para elegir cualquier color, no solo los de la paleta de favoritos.
+
+### Cómo funciona
+
+- Todo vive en el HTML del WebView (`mobile/lib/editorHtml.ts`), sin dependencias nuevas.
+- El panel (`#cw-overlay` / `#cw-panel`) contiene:
+  - Un **disco matiz/saturación** dibujado una sola vez en `<canvas>` (modelo HSV: ángulo = matiz, radio = saturación).
+  - Un **slider de brillo** (valor V del HSV) con degradado de negro al color elegido.
+  - **Vista previa** con el código hex y botones **Cancelar / Aplicar**.
+- Se puede arrastrar el dedo sobre el disco (touch y mouse); el marcador y la vista previa se actualizan en vivo.
+- Al abrir, si `activeColor` es un hex, la rueda arranca posicionada en ese color.
+- **Aplicar** usa el mismo `applyColor(hex)` de los swatches (pasa por `wrapRangeStyle`, historial de deshacer y `notifyChange`). La selección del editor se conserva porque `bindToolbarButton` guarda `savedRange` al tocar el botón y `saveSelection()` solo la sobreescribe si la selección está dentro del editor.
+- Si el color activo es personalizado (no está en la paleta ni es "auto"), el botón arcoíris se marca como activo.
+- El color elegido **no se agrega** a la paleta de favoritos persistida (`NOTE_FAVORITE_COLORS`); solo se aplica al texto.
+
+### Pendiente de paridad
+
+El editor web (`lib/note-editor-html.ts`) aún no tiene este selector; si se quiere paridad, replicar ahí el mismo panel.
+
+### Cómo probar
+
+1. Abre una nota, selecciona texto y toca el botón arcoíris al final de la fila de colores.
+2. Arrastra sobre el disco y mueve el slider de brillo; la vista previa y el hex deben seguir el gesto.
+3. Pulsa **Aplicar**: el texto seleccionado toma el color y se puede deshacer con ↶.
+4. Reabre la rueda: debe arrancar en el color aplicado. **Cancelar** o tocar fuera del panel cierra sin aplicar.
+
+---
+
 ## Archivos tocados
 
 | Archivo | Cambio |
 |---------|--------|
-| `mobile/lib/editorHtml.ts` | `scrollCaretIntoView()` preserva selección; `handleAction()` sin `focus()` en lecturas/insets; swatch "Auto" + marcador semántico `note-color-auto` |
+| `mobile/lib/editorHtml.ts` | `scrollCaretIntoView()` preserva selección; `handleAction()` sin `focus()` en lecturas/insets; swatch "Auto" + marcador semántico `note-color-auto`; rueda cromática (`#cw-overlay`, `openColorWheel`) |
 | `mobile/app/note/[noteId].tsx` | `blurEditor` al cerrar teclado en Android |
 | `lib/note-editor-html.ts` | Paridad web del swatch "Auto" y resolución del color según el tema |
 

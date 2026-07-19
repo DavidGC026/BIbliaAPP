@@ -6,6 +6,8 @@ Documentación del cliente móvil de **BibliaAPP** (React Native + Expo). La app
 
 **Producción web / API:** https://biblia2.dvguzman.com
 
+**Documentación específica de iOS:** [`docs-mobile-ios/`](../docs-mobile-ios/)
+
 ---
 
 ## Índice
@@ -27,7 +29,7 @@ Documentación del cliente móvil de **BibliaAPP** (React Native + Expo). La app
 | [13-build-apk-release.md](./13-build-apk-release.md) | Compilar e instalar APK release |
 | [14-notas-autoguardado-y-preview.md](./14-notas-autoguardado-y-preview.md) | Auto-guardado al salir del editor y preview de texto en libretas |
 | [15-widget-versiculo-del-dia.md](./15-widget-versiculo-del-dia.md) | Arquitectura, funcionamiento y mejoras recientes del widget de Android |
-| [16-editor-webview-teclado-seleccion.md](./16-editor-webview-teclado-seleccion.md) | Corrección de «Seleccionar todo» y foco del teclado en el editor de notas |
+| [16-editor-webview-teclado-seleccion.md](./16-editor-webview-teclado-seleccion.md) | Corrección de «Seleccionar todo» y foco del teclado en el editor de notas; color «Auto» y rueda cromática |
 | [17-notas-productividad-general.md](./17-notas-productividad-general.md) | Mejoras de notas como herramienta general: búsqueda, métricas, orden y estado de guardado |
 | [18-lector-biblia-e-imagenes.md](./18-lector-biblia-e-imagenes.md) | Mejoras de lectura bíblica y generador de imágenes de versículos |
 | [19-descargas-offline.md](./19-descargas-offline.md) | Descargas offline visibles, cola en segundo plano de app y reanudación |
@@ -36,13 +38,16 @@ Documentación del cliente móvil de **BibliaAPP** (React Native + Expo). La app
 | [22-notas-diseno-profesional.md](./22-notas-diseno-profesional.md) | Rediseño visual profesional de notas, libretas, tarjetas y editor |
 | [23-paridad-web-mobile-global.md](./23-paridad-web-mobile-global.md) | Seguimiento global de paridad entre la aplicación web y móvil |
 | [24-reduccion-secciones-web.md](./24-reduccion-secciones-web.md) | Simplificación de secciones web durante el trabajo de paridad |
-| [25-temas-visuales-y-dvg.md](./25-temas-visuales-y-dvg.md) | Nuevos temas móviles, selector visual y edición DVG exclusiva para administradores |
+| [25-temas-visuales-y-dvg.md](./25-temas-visuales-y-dvg.md) | Temas móviles, selector visual y ediciones DVG/UBG exclusivas para administradores |
+| [26-variantes-y-licencias-biblicas.md](./26-variantes-y-licencias-biblicas.md) | Variantes pública/interna, capacidades bíblicas, pantalla legal y descargas autorizadas |
+| [27-oauth-google-android-esquema.md](./27-oauth-google-android-esquema.md) | Diagnóstico y corrección del OAuth de Google congelado en Android por desfase de esquema nativo/JS |
+| [28-admin-usuarios-y-aceptacion-legal.md](./28-admin-usuarios-y-aceptacion-legal.md) | Panel de administración de usuarios, documentos legales nativos y aceptación obligatoria de términos en el primer login móvil |
 
 ---
 
 ## Versión documentada
 
-- **App móvil:** `1.0.0` (inicial)
+- **App móvil:** `3.3`
 - **Expo SDK:** ~56
 - **React Native:** 0.85.3
 - **Fecha de referencia:** julio 2026
