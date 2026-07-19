@@ -4,6 +4,29 @@ Registro cronológico de cambios en `desktop/`. Lo más reciente arriba.
 
 ---
 
+## 2026-07-19 — v0.3.2: paridad completa del editor de notas
+
+### Color y formato
+
+- Color **Auto** semántico mediante `note-color-auto`, adaptable a cualquier tema sin guardar negro/blanco fijo
+- Escritura con cursor colapsado para colores y tamaños; deshacer/rehacer, H1/H2 y seleccionar todo
+
+### Imágenes
+
+- Formato `note-image-block` compatible con móvil y migración automática del bloque usado por desktop 0.3.1
+- Modos **Normal** y **Fondo**, ancho 20–100 %, alineación, ancho completo, orden y borrado
+- Selección específica de fondos y arrastre libre con ratón, toque o lápiz
+- Serialización limpia que preserva tamaño, modo y posición, pero no guarda contornos ni estados transitorios
+
+### Autoguardado
+
+- Cobertura de título, contenido, formato y todas las mutaciones de imágenes
+- Cola para cambios producidos durante un guardado y reintento silencioso tras error
+- Guardado final al volver, perder foco, ocultar la app o abandonar el editor desde otra sección
+- Protección contra notas vacías y duplicados después de crear una nota nueva
+
+Detalle: [13-editor-notas.md](./13-editor-notas.md).
+
 ## 2026-07-19 — v0.3.1: cierre de paridad avanzada
 
 ### Notas y libretas

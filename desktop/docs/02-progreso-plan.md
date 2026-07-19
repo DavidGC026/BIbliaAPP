@@ -86,5 +86,5 @@ Leyenda: ✅ hecho · 🟡 parcial · ⬜ pendiente
 ## Siguiente sprint
 
 1. Publicar `latest.json` y artefactos firmados en producción.
-2. Verificar instalación limpia de v0.3.1 en Arch / Debian / Windows.
+2. Verificar instalación limpia de v0.3.2 en Arch / Debian / Windows.
 3. Añadir recordatorios nativos en segundo plano si se requiere ejecución con la app cerrada.

@@ -118,10 +118,11 @@ desktop/
 
 Permisos en `src-tauri/capabilities/default.json`: `core`, `opener`, `store`, `sql`, `deep-link`, `core:event`.
 
-## Estado y preferencias v0.3.1
+## Estado y preferencias v0.3.2
 
 - `ThemeContext` aplica `data-theme` y conserva el modo elegido.
 - `lib/preferences.ts` centraliza lector, último pasaje, Inicio, historial y plantilla de imagen.
 - `lib/nav.ts` interpreta `allowedSections` para navegación y subpestañas.
 - `bibles.capabilities_json` conserva licencia y capacidades para decisiones offline.
 - `App.tsx` resuelve búsqueda, estadísticas, actividad, subrayados, administración y legal.
+- El editor serializa imágenes con `note-image-block` y color automático con `note-color-auto`, compatibles con móvil.

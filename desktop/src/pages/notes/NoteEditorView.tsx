@@ -9,6 +9,8 @@ import {
   buildImageBlockHtml,
   buildTableBlockHtml,
   initNoteEditorBlocks,
+  serializeNoteHtml,
+  setImageBackgroundSelection,
   wrapAllContentBlocks,
 } from "@/lib/noteEditorBlocks";
 import {
@@ -81,10 +83,16 @@ export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
   const appliedRef = useRef(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const autosaveTimerRef = useRef<number | null>(null);
-  const savingRef = useRef(false);
+  const savePromiseRef = useRef<Promise<boolean> | null>(null);
+  const persistRef = useRef<(navigateAfter: boolean, silent: boolean) => Promise<boolean>>(
+    async () => true,
+  );
+  const mountedRef = useRef(true);
+  const deletedRef = useRef(false);
   const createdIdRef = useRef<number | null>(null);
   const initialHtmlRef = useRef("");
   const initialTitleRef = useRef("");
+  const latestHtmlRef = useRef("");
   const titleRef = useRef("");
   const activeFontRef = useRef(getNoteFont(noteId));
   const [title, setTitle] = useState("");
@@ -102,6 +110,9 @@ export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
     "saved",
   );
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<HTMLElement | null>(null);
+  const [, setImageRevision] = useState(0);
+  const [backgroundSelection, setBackgroundSelection] = useState(false);
 
   useEffect(() => {
     if (isNew || !noteId) return;
@@ -113,6 +124,7 @@ export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
         setTitle(note.title);
         titleRef.current = note.title;
         pendingHtmlRef.current = plainToHtml(note.content);
+        latestHtmlRef.current = pendingHtmlRef.current;
         initialTitleRef.current = note.title;
         initialHtmlRef.current = pendingHtmlRef.current;
         const plain = document.createElement("div");
@@ -124,6 +136,8 @@ export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
         ensureNoteFontLoaded(font);
         if (editorRef.current && !appliedRef.current) {
           editorRef.current.innerHTML = pendingHtmlRef.current;
+          wrapAllContentBlocks(editorRef.current);
+          latestHtmlRef.current = serializeNoteHtml(editorRef.current);
           appliedRef.current = true;
         }
       })
@@ -134,9 +148,20 @@ export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
   }, [isNew, noteId]);
 
   useEffect(() => {
+    mountedRef.current = true;
+    const flush = () => void persistRef.current(false, true);
+    const flushWhenHidden = () => {
+      if (document.visibilityState === "hidden") flush();
+    };
+    window.addEventListener("blur", flush);
+    document.addEventListener("visibilitychange", flushWhenHidden);
     return () => {
+      mountedRef.current = false;
       if (autosaveTimerRef.current)
         window.clearTimeout(autosaveTimerRef.current);
+      window.removeEventListener("blur", flush);
+      document.removeEventListener("visibilitychange", flushWhenHidden);
+      flush();
     };
   }, []);
 
@@ -148,6 +173,7 @@ export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
     if (node && !appliedRef.current) {
       node.innerHTML = pendingHtmlRef.current;
       wrapAllContentBlocks(node);
+      latestHtmlRef.current = serializeNoteHtml(node);
       appliedRef.current = true;
     }
   }, []);
@@ -156,8 +182,15 @@ export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
     const editor = editorRef.current;
     if (!editor || preview || loading) return;
     wrapAllContentBlocks(editor);
-    return initNoteEditorBlocks(editor);
+    latestHtmlRef.current = serializeNoteHtml(editor);
+    return initNoteEditorBlocks(editor, (block) => {
+      if (mountedRef.current) setSelectedImage(block);
+    });
   }, [loading, preview]);
+
+  useEffect(() => {
+    setImageBackgroundSelection(editorRef.current, backgroundSelection);
+  }, [backgroundSelection, loading, preview]);
 
   function saveSelection() {
     const sel = window.getSelection();
@@ -181,12 +214,34 @@ export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
 
   // ponytail: execCommand está deprecado pero funciona en WebKitGTK y es la
   // forma más simple de editar HTML enriquecido; sin libs de RTE.
-  function exec(cmd: string) {
+  function exec(cmd: string, value?: string) {
     editorRef.current?.focus();
     restoreSelection();
-    document.execCommand(cmd, false);
+    document.execCommand(cmd, false, value);
     saveSelection();
     markChanged();
+  }
+
+  function selectAllContent() {
+    const editor = editorRef.current;
+    const selection = window.getSelection();
+    if (!editor || !selection) return;
+    editor.focus();
+    const range = document.createRange();
+    range.selectNodeContents(editor);
+    selection.removeAllRanges();
+    selection.addRange(range);
+    savedRangeRef.current = range.cloneRange();
+  }
+
+  function toggleHeading(tag: "h1" | "h2") {
+    let current = "";
+    try {
+      current = String(document.queryCommandValue("formatBlock")).toLowerCase();
+    } catch {
+      // WebKitGTK puede no devolver un bloque cuando el editor está vacío.
+    }
+    exec("formatBlock", current === tag ? "p" : tag);
   }
 
   function insertHtml(html: string) {
@@ -205,47 +260,106 @@ export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
     const sel = window.getSelection();
     if (!sel || sel.rangeCount === 0) return;
     const range = sel.getRangeAt(0);
-    if (range.collapsed) return; // necesita texto seleccionado
     const span = document.createElement("span");
     span.style[prop] = value;
-    try {
-      range.surroundContents(span);
-    } catch {
-      const frag = range.extractContents();
-      span.appendChild(frag);
+    if (range.collapsed) {
+      span.appendChild(document.createTextNode("\u200B"));
       range.insertNode(span);
+      range.setStart(span.firstChild!, 1);
+      range.setEnd(span.firstChild!, 1);
+    } else {
+      try {
+        range.surroundContents(span);
+      } catch {
+        const frag = range.extractContents();
+        span.appendChild(frag);
+        range.insertNode(span);
+      }
+      range.selectNodeContents(span);
+      range.collapse(false);
     }
-    const r = document.createRange();
-    r.selectNodeContents(span);
     sel.removeAllRanges();
-    sel.addRange(r);
+    sel.addRange(range);
+    saveSelection();
+    markChanged();
+  }
+
+  function applyAutoColor() {
+    editorRef.current?.focus();
+    restoreSelection();
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return;
+    const range = sel.getRangeAt(0);
+    const span = document.createElement("span");
+    span.className = "note-color-auto";
+    if (range.collapsed) {
+      span.appendChild(document.createTextNode("\u200B"));
+      range.insertNode(span);
+      range.setStart(span.firstChild!, 1);
+      range.setEnd(span.firstChild!, 1);
+    } else {
+      try {
+        range.surroundContents(span);
+      } catch {
+        const fragment = range.extractContents();
+        span.appendChild(fragment);
+        range.insertNode(span);
+      }
+      span.querySelectorAll<HTMLElement>("[style]").forEach((node) => {
+        node.style.removeProperty("color");
+        if (!node.getAttribute("style")) node.removeAttribute("style");
+      });
+      span.querySelectorAll("font[color]").forEach((node) =>
+        node.removeAttribute("color"),
+      );
+      range.selectNodeContents(span);
+      range.collapse(false);
+    }
+    sel.removeAllRanges();
+    sel.addRange(range);
     saveSelection();
     markChanged();
   }
 
   function togglePreview() {
     // El editor queda montado (oculto), así que conserva su contenido al volver.
-    if (!preview) setPreviewHtml(editorRef.current?.innerHTML ?? "");
+    if (!preview) {
+      const html = currentHtml();
+      latestHtmlRef.current = html;
+      setPreviewHtml(html);
+    }
     setPreview((p) => !p);
   }
 
   function markChanged() {
     const html = currentHtml();
+    latestHtmlRef.current = html;
     const node = document.createElement("div");
     node.innerHTML = html;
     setWordCount(countWords(node.textContent ?? ""));
     setSaveStatus("pending");
+    scheduleAutosave();
+  }
+
+  function scheduleAutosave(delay = 4000) {
     if (autosaveTimerRef.current) window.clearTimeout(autosaveTimerRef.current);
     autosaveTimerRef.current = window.setTimeout(() => {
+      autosaveTimerRef.current = null;
       void persist(false, true);
-    }, 4000);
+    }, delay);
   }
 
   async function persist(navigateAfter: boolean, silent: boolean) {
-    if (savingRef.current) return false;
-    const html = currentHtml();
+    if (deletedRef.current) return true;
+    if (savePromiseRef.current) await savePromiseRef.current;
+    if (deletedRef.current) return true;
+    const html = latestHtmlRef.current || currentHtml();
     const currentTitle = titleRef.current;
     const finalTitle = currentTitle.trim() || "Sin título";
+    if (!silent && !currentTitle.trim()) {
+      if (mountedRef.current) setError("Escribe un título para la nota.");
+      return false;
+    }
     const hasContent = /<img\b/i.test(html) || countWords(stripHtml(html)) > 0;
     if (
       silent &&
@@ -260,41 +374,62 @@ export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
       currentTitle.trim() === initialTitleRef.current.trim()
     ) {
       if (navigateAfter) onSaved();
+      if (mountedRef.current) setSaveStatus("saved");
       return true;
     }
-    savingRef.current = true;
-    setSaving(!silent);
-    setSaveStatus("saving");
-    if (!silent) setError(null);
-    try {
-      let realId = noteId ?? createdIdRef.current;
-      if (realId == null) {
-        const created = await repo.repoCreateNotebookNote(
-          notebookId,
-          finalTitle,
-          html,
-        );
-        realId = created.id;
-        createdIdRef.current = realId;
-      } else {
-        await repo.repoUpdateNotebookNote(realId, finalTitle, html);
+    if (mountedRef.current) {
+      setSaving(!silent);
+      setSaveStatus("saving");
+      if (!silent) setError(null);
+    }
+    const operation = (async () => {
+      try {
+        let realId = noteId ?? createdIdRef.current;
+        if (realId == null) {
+          const created = await repo.repoCreateNotebookNote(
+            notebookId,
+            finalTitle,
+            html,
+          );
+          realId = created.id;
+          createdIdRef.current = realId;
+        } else {
+          await repo.repoUpdateNotebookNote(realId, finalTitle, html);
+        }
+        saveNoteFont(realId, activeFontRef.current);
+        initialHtmlRef.current = html;
+        initialTitleRef.current = currentTitle.trim();
+        const stillCurrent =
+          latestHtmlRef.current === html &&
+          titleRef.current.trim() === currentTitle.trim();
+        if (mountedRef.current)
+          setSaveStatus(stillCurrent ? "saved" : "pending");
+        return true;
+      } catch (err) {
+        if (mountedRef.current) {
+          setSaveStatus("pending");
+          if (silent) scheduleAutosave();
+          if (!silent)
+            setError(err instanceof Error ? err.message : "Error al guardar");
+        }
+        return false;
+      } finally {
+        if (mountedRef.current && !silent) setSaving(false);
       }
-      saveNoteFont(realId, activeFontRef.current);
-      initialHtmlRef.current = html;
-      initialTitleRef.current = currentTitle.trim();
-      setSaveStatus("saved");
-      if (navigateAfter) onSaved();
-      return true;
-    } catch (err) {
-      setSaveStatus("pending");
-      if (!silent)
-        setError(err instanceof Error ? err.message : "Error al guardar");
-      return false;
-    } finally {
-      savingRef.current = false;
-      if (!silent) setSaving(false);
-    }
+    })();
+    savePromiseRef.current = operation;
+    const saved = await operation;
+    if (savePromiseRef.current === operation) savePromiseRef.current = null;
+    if (!saved) return false;
+    const changedWhileSaving =
+      latestHtmlRef.current !== initialHtmlRef.current ||
+      titleRef.current.trim() !== initialTitleRef.current.trim();
+    if (navigateAfter && changedWhileSaving) return persist(true, silent);
+    if (navigateAfter) onSaved();
+    return true;
   }
+
+  persistRef.current = persist;
 
   function save() {
     void persist(true, false);
@@ -309,11 +444,20 @@ export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
   async function remove() {
     const realId = noteId ?? createdIdRef.current;
     if (!realId || !confirm("¿Eliminar esta nota?")) return;
+    if (autosaveTimerRef.current) {
+      window.clearTimeout(autosaveTimerRef.current);
+      autosaveTimerRef.current = null;
+    }
     setSaving(true);
     try {
+      if (savePromiseRef.current) await savePromiseRef.current;
+      deletedRef.current = true;
       await repo.repoDeleteNotebookNote(realId);
       deleteNoteFont(realId);
       onSaved();
+    } catch (err) {
+      deletedRef.current = false;
+      setError(err instanceof Error ? err.message : "No se pudo eliminar");
     } finally {
       setSaving(false);
     }
@@ -329,7 +473,7 @@ export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
     ensureNoteFontLoaded(fontId);
     const realId = noteId ?? createdIdRef.current;
     if (realId) saveNoteFont(realId, fontId);
-    setSaveStatus("pending");
+    setSaveStatus("saved");
   }
 
   function addFavoriteColor(color: string) {
@@ -377,8 +521,102 @@ export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
     }
   }
 
+  function commitImageChange() {
+    setImageRevision((value) => value + 1);
+    editorRef.current?.dispatchEvent(new Event("input", { bubbles: true }));
+  }
+
+  function closeImageEditor() {
+    selectedImage?.classList.remove("is-selected", "is-dragging");
+    setSelectedImage(null);
+  }
+
+  function setImageMode(mode: "normal" | "background") {
+    if (!selectedImage || !editorRef.current) return;
+    if (mode === "background") {
+      const blockRect = selectedImage.getBoundingClientRect();
+      const editorRect = editorRef.current.getBoundingClientRect();
+      const left = blockRect.left - editorRect.left + editorRef.current.scrollLeft;
+      const top = blockRect.top - editorRect.top + editorRef.current.scrollTop;
+      selectedImage.classList.add("is-background");
+      selectedImage.style.position = "absolute";
+      selectedImage.style.left = `${Math.max(0, left)}px`;
+      selectedImage.style.top = `${Math.max(0, top)}px`;
+      selectedImage.style.zIndex = "-1";
+      selectedImage.style.margin = "0";
+      selectedImage.style.float = "none";
+      setBackgroundSelection(true);
+    } else {
+      selectedImage.classList.remove("is-background");
+      selectedImage.style.removeProperty("position");
+      selectedImage.style.removeProperty("left");
+      selectedImage.style.removeProperty("top");
+      selectedImage.style.removeProperty("z-index");
+      selectedImage.style.display = "block";
+      selectedImage.style.float = "none";
+      selectedImage.style.margin = "12px auto";
+      selectedImage.style.textAlign = "center";
+    }
+    commitImageChange();
+  }
+
+  function setImageWidth(width: number) {
+    if (!selectedImage) return;
+    selectedImage.style.width = `${width}%`;
+    commitImageChange();
+  }
+
+  function setImageAlign(align: "left" | "center" | "right" | "full") {
+    if (!selectedImage || selectedImage.classList.contains("is-background"))
+      return;
+    selectedImage.style.display = "block";
+    selectedImage.style.float = "none";
+    selectedImage.style.margin = "12px auto";
+    selectedImage.style.textAlign = "center";
+    if (align === "left") {
+      selectedImage.style.display = "inline-block";
+      selectedImage.style.float = "left";
+      selectedImage.style.margin = "8px 16px 8px 0";
+      selectedImage.style.textAlign = "left";
+    } else if (align === "right") {
+      selectedImage.style.display = "inline-block";
+      selectedImage.style.float = "right";
+      selectedImage.style.margin = "8px 0 8px 16px";
+      selectedImage.style.textAlign = "right";
+    } else if (align === "full") {
+      selectedImage.style.width = "100%";
+      selectedImage.style.margin = "12px 0";
+    }
+    commitImageChange();
+  }
+
+  function moveImage(direction: "up" | "down") {
+    if (!selectedImage || selectedImage.classList.contains("is-background"))
+      return;
+    const parent = selectedImage.parentNode;
+    if (!parent) return;
+    const sibling =
+      direction === "up"
+        ? selectedImage.previousElementSibling
+        : selectedImage.nextElementSibling;
+    if (!sibling) return;
+    if (direction === "up") parent.insertBefore(selectedImage, sibling);
+    else parent.insertBefore(sibling, selectedImage);
+    commitImageChange();
+  }
+
+  function deleteImage() {
+    if (!selectedImage) return;
+    selectedImage.remove();
+    setSelectedImage(null);
+    commitImageChange();
+  }
+
   function currentHtml() {
-    return preview ? previewHtml : (editorRef.current?.innerHTML ?? "");
+    if (preview) return previewHtml;
+    return editorRef.current
+      ? serializeNoteHtml(editorRef.current)
+      : latestHtmlRef.current;
   }
 
   function safeExportHtml() {
@@ -442,6 +680,18 @@ export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
 
   const toolBtn =
     "flex h-9 min-w-9 items-center justify-center rounded-md px-2 text-sm text-foreground hover:bg-accent";
+  const imageIsBackground = selectedImage?.classList.contains("is-background") ?? false;
+  const selectedImageWidth = Math.max(
+    20,
+    Math.min(100, Number.parseInt(selectedImage?.style.width || "60", 10) || 60),
+  );
+  const selectedImageAlign = selectedImage?.style.float === "left"
+    ? "left"
+    : selectedImage?.style.float === "right"
+      ? "right"
+      : selectedImage?.style.width === "100%"
+        ? "full"
+        : "center";
 
   return (
     <div className="mx-auto max-w-5xl space-y-4">
@@ -455,12 +705,7 @@ export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
             setTitle(e.target.value);
             titleRef.current = e.target.value;
             setSaveStatus("pending");
-            if (autosaveTimerRef.current)
-              window.clearTimeout(autosaveTimerRef.current);
-            autosaveTimerRef.current = window.setTimeout(
-              () => void persist(false, true),
-              4000,
-            );
+            scheduleAutosave();
           }}
           placeholder="Título"
           className="w-full border-0 bg-transparent text-2xl font-bold text-foreground outline-none"
@@ -478,6 +723,51 @@ export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
       {!preview ? (
         <div className="space-y-2 rounded-lg border border-border bg-card p-2">
           <div className="flex flex-wrap items-center gap-1">
+            <button
+              type="button"
+              title="Deshacer"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                exec("undo");
+              }}
+              className={toolBtn}
+            >
+              ↶
+            </button>
+            <button
+              type="button"
+              title="Rehacer"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                exec("redo");
+              }}
+              className={toolBtn}
+            >
+              ↷
+            </button>
+            <div className="mx-1 h-6 w-px bg-border" />
+            <button
+              type="button"
+              title="Encabezado 1"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                toggleHeading("h1");
+              }}
+              className={`${toolBtn} font-extrabold`}
+            >
+              H1
+            </button>
+            <button
+              type="button"
+              title="Encabezado 2"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                toggleHeading("h2");
+              }}
+              className={`${toolBtn} font-bold`}
+            >
+              H2
+            </button>
             {FORMAT_BUTTONS.map((b) => (
               <button
                 key={b.cmd}
@@ -533,9 +823,32 @@ export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
             >
               ⊞
             </button>
+            <button
+              type="button"
+              title="Seleccionar toda la nota"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                selectAllContent();
+              }}
+              className={toolBtn}
+            >
+              Todo
+            </button>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              title="Color automático: sigue el tema claro, oscuro o sepia"
+              aria-label="Color automático"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                applyAutoColor();
+              }}
+              className="flex h-7 w-7 items-center justify-center rounded-full border border-border bg-muted text-xs font-extrabold text-foreground"
+            >
+              A
+            </button>
             {favoriteColors.map((c) => (
               <button
                 key={c}
@@ -563,6 +876,18 @@ export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
           </div>
 
           <div className="flex flex-wrap items-center gap-2 pt-1">
+            <button
+              type="button"
+              aria-pressed={backgroundSelection}
+              onClick={() => setBackgroundSelection((active) => !active)}
+              className={`flex h-9 items-center gap-1 rounded-md border px-3 text-sm font-semibold ${
+                backgroundSelection
+                  ? "border-sky-600 bg-sky-600 text-white"
+                  : "border-sky-500/40 bg-sky-500/10 text-sky-600 dark:text-sky-300"
+              }`}
+            >
+              Fondos 🖼️
+            </button>
             <button
               type="button"
               onMouseDown={(e) => {
@@ -608,6 +933,115 @@ export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
               }}
             />
           </div>
+
+          {selectedImage ? (
+            <div className="space-y-3 rounded-lg border border-primary/30 bg-background p-3">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-extrabold uppercase tracking-wide text-muted-foreground">
+                    Imagen seleccionada
+                  </p>
+                  <p className="text-sm font-bold text-foreground">
+                    {imageIsBackground
+                      ? "Fondo libre"
+                      : "Imagen dentro de la nota"}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={closeImageEditor}
+                  className={toolBtn}
+                  aria-label="Cerrar edición de imagen"
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs font-bold text-muted-foreground">Modo</span>
+                <Button
+                  variant={imageIsBackground ? "outline" : "primary"}
+                  className="px-3 py-1.5 text-xs"
+                  onClick={() => setImageMode("normal")}
+                >
+                  Normal
+                </Button>
+                <Button
+                  variant={imageIsBackground ? "primary" : "outline"}
+                  className="px-3 py-1.5 text-xs"
+                  onClick={() => setImageMode("background")}
+                >
+                  Fondo
+                </Button>
+              </div>
+
+              <label className="flex items-center gap-3 text-xs font-bold text-muted-foreground">
+                Tamaño
+                <input
+                  type="range"
+                  min="20"
+                  max="100"
+                  step="5"
+                  value={selectedImageWidth}
+                  onChange={(event) => setImageWidth(Number(event.target.value))}
+                  className="min-w-40 flex-1 accent-primary"
+                />
+                <span className="min-w-10 text-right text-primary">
+                  {selectedImageWidth}%
+                </span>
+              </label>
+
+              {imageIsBackground ? (
+                <p className="text-xs text-muted-foreground">
+                  Arrastra la imagen sobre la nota para colocar el fondo. Activa
+                  “Fondos” para volver a seleccionar fondos ocultos bajo el texto.
+                </p>
+              ) : (
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs font-bold text-muted-foreground">
+                    Alineación
+                  </span>
+                  {(
+                    [
+                      ["left", "Izq."],
+                      ["center", "Centro"],
+                      ["right", "Der."],
+                      ["full", "100%"],
+                    ] as const
+                  ).map(([align, label]) => (
+                    <Button
+                      key={align}
+                      variant={selectedImageAlign === align ? "primary" : "outline"}
+                      className="px-3 py-1.5 text-xs"
+                      onClick={() => setImageAlign(align)}
+                    >
+                      {label}
+                    </Button>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex flex-wrap gap-2">
+                {!imageIsBackground ? (
+                  <>
+                    <Button className="px-3 py-1.5 text-xs" variant="outline" onClick={() => moveImage("up")}>
+                      Subir
+                    </Button>
+                    <Button className="px-3 py-1.5 text-xs" variant="outline" onClick={() => moveImage("down")}>
+                      Bajar
+                    </Button>
+                  </>
+                ) : null}
+                <Button
+                  variant="outline"
+                  className="border-red-500/50 px-3 py-1.5 text-xs text-red-600 dark:text-red-300"
+                  onClick={deleteImage}
+                >
+                  Borrar
+                </Button>
+              </div>
+            </div>
+          ) : null}
         </div>
       ) : null}
 

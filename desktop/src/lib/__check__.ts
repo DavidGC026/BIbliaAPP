@@ -41,7 +41,8 @@ const imageHtml = buildImageBlockHtml(
   'data:image/png;base64,abc" onerror="alert(1)',
   "Portada <prueba>",
 );
-check(imageHtml.includes("biblia-image-block"), "note image block class");
+check(imageHtml.includes("note-image-block"), "mobile-compatible note image class");
+check(imageHtml.includes('style="text-align: center; width: 60%'), "note image defaults");
 check(
   !imageHtml.includes(' onerror="alert(1)"'),
   "note image attributes escaped",

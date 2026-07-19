@@ -1,6 +1,6 @@
 # 12 — Paridad con móvil (julio de 2026)
 
-Este documento registra el port de las novedades de `mobile/` posteriores al punto de paridad de junio. La versión resultante del cliente de escritorio es **0.3.1**.
+Este documento registra el port de las novedades de `mobile/` posteriores al punto de paridad de junio. La revisión más reciente del cliente de escritorio es **0.3.2**.
 
 ## Alcance implementado
 
@@ -20,7 +20,7 @@ Este documento registra el port de las novedades de `mobile/` posteriores al pun
 | Administración                 | Lista/búsqueda, alta, edición, roles, permisos y eliminación segura                                           | `AdminUsersPage.tsx`                                 |
 | Legal                          | Enlaces, catálogo de licencias y aceptación bloqueante para cuentas pendientes                                | `LegalPage.tsx`, `LegalAcceptanceGate.tsx`           |
 | Licencias de Biblias           | Aplica `canDownload`, `canCopy`, `canShare` y `canCreateImages`                                               | lector, descargas, versículo diario y SQLite         |
-| Editor avanzado                | Autoguardado, palabras, fuente por nota, paleta propia e imágenes redimensionables                            | `NoteEditorView.tsx`, `noteEditorBlocks.ts`          |
+| Editor avanzado                | Auto semántico, toolbar completo, guardado robusto e imágenes normales/de fondo editables                      | `NoteEditorView.tsx`, `noteEditorBlocks.ts`          |
 | Portadas de libretas           | Unsplash con búsqueda/paginación, URL, archivo propio y gradientes                                            | `NotebookFormModal.tsx`                              |
 | Calendario                     | Eventos de iglesia/grupo, RSVP y CRUD administrativo                                                          | `EventsPage.tsx`                                     |
 | Diario                         | Lectura detallada, compartir y apertura del pasaje                                                            | `DevotionalsView.tsx`                                |
@@ -36,6 +36,8 @@ Los temas DVG y UBG solo aparecen para administradores. Si una sesión no admini
 - La búsqueda universal también está disponible como elemento de la barra lateral.
 - Las fuentes de nota usan fuentes del sistema o Google Fonts y aprovechan el caché del WebView; la elección por nota queda en almacenamiento local.
 - Las imágenes de nota intentan subirse al servidor y, si no hay conexión, se conservan como `data:` hasta el siguiente guardado.
+- El HTML de imágenes usa `note-image-block`, igual que móvil; desktop migra sus bloques 0.3.1 al abrirlos.
+- El color Auto usa `note-color-auto` y se resuelve con el tema activo. Véase [13-editor-notas.md](./13-editor-notas.md).
 - Las políticas se abren desde las rutas públicas del backend para mantener una fuente jurídica única.
 
 ## Licencias y SQLite

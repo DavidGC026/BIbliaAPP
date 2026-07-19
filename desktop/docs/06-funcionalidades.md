@@ -138,11 +138,14 @@ Pestañas: **Libretas** | **Diario** | **Libros** | **Planes**
 - Crear / editar / eliminar libretas con gradientes, Unsplash, URL o archivo propio
 - Notas por libreta (título + contenido; compatible con HTML de la web)
 - Botón **📚 Diccionario** en el editor para insertar entradas Strong
-- Autoguardado, conteo de palabras, tipografía por nota y colores favoritos
-- Imágenes subidas o locales como bloques seleccionables y redimensionables
+- Autoguardado a 4 s con cola, reintento y guardado al abandonar la vista
+- Conteo de palabras, tipografía por nota, colores favoritos y **Auto** adaptable al tema
+- Imágenes subidas o locales en modo normal/fondo, con tamaño, alineación, orden y arrastre libre
 - Compartir y exportar mediante el diálogo PDF del sistema
 - **Offline:** SQLite + `syncAll()` al reconectar (como móvil)
 - Capa: `repo.repoListNotebooks`, `repoCreateNotebook`, etc.
+
+Comportamiento y formato interoperable: [13-editor-notas.md](./13-editor-notas.md).
 
 ### Diario espiritual
 

@@ -59,7 +59,7 @@ chmod +x packaging/debian/build-deb.sh
 Artefacto:
 
 ```text
-src-tauri/target/release/bundle/deb/bibliaapp-desktop_0.3.1_amd64.deb
+src-tauri/target/release/bundle/deb/bibliaapp-desktop_0.3.2_amd64.deb
 ```
 
 (ruta exacta puede variar según versión de Tauri)

@@ -196,7 +196,7 @@ Arch consume el AppImage o el `.pkg.tar.zst` del workflow / release.
 
 ## 9. Estado actual y documentación
 
-**Implementado hasta v0.3.1:** auth, navegación y permisos por sección, lector avanzado, búsqueda universal, planes, calendario/RSVP, actividad/estadísticas, temas, offline SQLite + sync/licencias, feed, grupos, notificaciones, notas/libretas con editor avanzado, administración, legal, empaquetado Arch/Debian y CI Windows/Linux.
+**Implementado hasta v0.3.2:** auth, navegación y permisos por sección, lector avanzado, búsqueda universal, planes, calendario/RSVP, actividad/estadísticas, temas, offline SQLite + sync/licencias, feed, grupos, notificaciones, notas/libretas con editor interoperable, administración, legal, empaquetado Arch/Debian y CI Windows/Linux.
 
 Documentación completa en [`docs/README.md`](./docs/README.md).
 
