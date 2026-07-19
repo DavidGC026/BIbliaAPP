@@ -66,6 +66,7 @@ La implementación anterior usaba `color: inherit`. Eso no funcionaba si el text
 - Resuelve el caso "cambié el color y ya no podía volver al automático".
 - El mismo marcador y swatch se implementan en `lib/note-editor-html.ts` para mantener paridad con el editor web.
 - En móvil, el cambio de color automático también crea una instantánea del historial, por lo que se puede deshacer y rehacer.
+- En **web**, el color auto sigue la paleta global elegida en **Apariencia** (sepia, medianoche, DVG, etc.), no solo claro/oscuro. Ver [`docs/temas-visuales-web.md`](../docs/temas-visuales-web.md) y [`docs/notas-web-paridad-movil.md`](../docs/notas-web-paridad-movil.md).
 
 ## Archivos tocados
 

@@ -105,9 +105,9 @@ El swatch **A** no guarda negro o blanco como valor fijo. Al aplicarlo:
 1. `clearColor()` envuelve la selección o el punto de escritura en `<span class="note-color-auto">`.
 2. Se eliminan `style.color` y atributos `<font color>` que estén dentro del tramo seleccionado.
 3. `#editor .note-color-auto` resuelve el texto con el token `colors.text` del tema actual y usa `!important` para superar un color explícito heredado de un ancestro.
-4. Al abrir nuevamente la nota, el iframe se genera con los tokens del tema vigente; por eso el mismo HTML aparece oscuro en tema claro y claro en tema oscuro.
+4. Al abrir nuevamente la nota, el iframe se genera con los tokens del tema vigente; por eso el mismo HTML se adapta al cambiar entre claro, oscuro, sepia, medianoche y el resto de paletas web (ver [`temas-visuales-web.md`](./temas-visuales-web.md)).
 
-No se usa `color: inherit`: si la selección estaba dentro de un `span` rojo, heredar significaba conservar precisamente ese rojo. La clase semántica evita ese caso y mantiene el contenido adaptable.
+No se usa `color: inherit`: si la selección estaba dentro de un `span` rojo, heredar significaba conservar precisamente ese rojo. La clase semántica evita ese caso y mantiene el contenido adaptable a **cualquier** paleta global, no solo claro/oscuro.
 
 Implementación: `lib/note-editor-html.ts`. Paridad móvil: `mobile/lib/editorHtml.ts`.
 
@@ -199,9 +199,20 @@ Recarga el navegador con **Ctrl+Shift+R** en https://biblia2.dvguzman.com → me
 8. Inserta una entrada del diccionario y confirma que la toolbar ya no muestra **Insertar referencias**.
 9. Activa **Vista previa** y verifica que el contenido se ve bien.
 10. Guarda y vuelve a la lista: el resumen debe ser texto legible, no HTML crudo.
-11. Aplica un color a un texto, selecciónalo y pulsa **A**; debe recuperar el color normal del tema y adaptarse al alternar claro/oscuro.
+11. Aplica un color a un texto, selecciónalo y pulsa **A**; debe recuperar el color normal del tema y adaptarse al alternar paletas (claro, oscuro, sepia, medianoche, etc.) desde **Apariencia**.
 
 ---
+
+## Documentos relacionados
+
+| Documento | Contenido |
+|-----------|-----------|
+| [`temas-visuales-web.md`](./temas-visuales-web.md) | Selector de apariencia, tokens CSS y paridad con paletas móviles |
+| [`docs-mobile/21-insercion-y-edicion-de-imagenes.md`](../docs-mobile/21-insercion-y-edicion-de-imagenes.md) | Imágenes en notas (mobile) |
+| [`docs-mobile/16-editor-webview-teclado-seleccion.md`](../docs-mobile/16-editor-webview-teclado-seleccion.md) | Color automático y teclado del editor |
+| [`docs-mobile/17-notas-productividad-general.md`](../docs-mobile/17-notas-productividad-general.md) | Retiro de inserción de referencias |
+| [`docs-mobile/22-notas-diseno-profesional.md`](../docs-mobile/22-notas-diseno-profesional.md) | Rediseño visual de notas |
+| [`nuevas-secciones.md`](./nuevas-secciones.md) | Hubs web (Notas, Leer, Perfil) |
 
 ## Notas técnicas
 
