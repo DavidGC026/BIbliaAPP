@@ -46,6 +46,7 @@ Regla Cursor para agentes: [`.cursor/rules/desktop.mdc`](../../.cursor/rules/des
 - Editor interoperable con Auto semántico, imágenes normales/de fondo y autoguardado robusto
 - Portadas avanzadas de libretas y calendario completo con RSVP
 - Devocionales compartibles con apertura directa del pasaje
+- Contenedor `.desktop-page` (hasta 1536 px) en las vistas principales para aprovechar monitores amplios
 
 ---
 

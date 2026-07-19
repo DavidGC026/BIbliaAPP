@@ -22,6 +22,7 @@ Cliente Tauri v2 + React SPA. **No accede a MariaDB** — solo REST + Bearer com
 - Tailwind 4 + paleta OKLCH de la web
 - Componentes mínimos propios (`Button`, `Card`) — no añadir shadcn completo sin pedirlo
 - Navegación por tabs en `App.tsx` (`lib/nav.ts`), sin react-router salvo necesidad
+- Layout: `.desktop-page` en `globals.css` (fluido, centrado, `max-width: 96rem`) para pantallas principales; Perfil, Legal y formularios admin usan `max-w-3xl`/`max-w-4xl`
 
 ## Empaquetado
 

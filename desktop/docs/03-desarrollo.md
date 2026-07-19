@@ -130,6 +130,31 @@ packaging/arch/
 
 ---
 
+## Layout de pantallas
+
+Las vistas principales comparten la clase **`.desktop-page`** definida en `src/styles/globals.css`:
+
+```css
+.desktop-page {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 96rem; /* 1536 px */
+  margin-inline: auto;
+}
+```
+
+| Tipo de vista | Contenedor | Ejemplos |
+| ------------- | ---------- | -------- |
+| Contenido principal (listas, lectores, feeds) | `.desktop-page` | `HomePage`, `BibleReader`, `FeedPage`, `NotesPage`, `AdminUsersPage` (lista) |
+| Formularios y lectura densa | `max-w-3xl` / `max-w-4xl` centrado | `ProfilePage`, formulario crear/editar usuario en `AdminUsersPage`, `LegalPage` |
+| Auth / modales | `max-w-md` / `max-w-xl` | `LoginPage`, `LegalAcceptanceGate`, diálogos |
+
+**Al añadir una pantalla nueva:** envuelve el contenido en `.desktop-page` salvo que sea un formulario largo o texto legal donde conviene un ancho de lectura más estrecho. No reutilices `max-w-5xl` / `max-w-6xl` sueltos: el límite anterior (`64rem` / `72rem`) dejaba márgenes excesivos en monitores amplios.
+
+Detalle de arquitectura: [05-arquitectura.md](./05-arquitectura.md#estado-y-preferencias-v033).
+
+---
+
 ## Solución de problemas
 
 | Problema                        | Solución                                                                      |
