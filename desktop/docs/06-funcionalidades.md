@@ -6,7 +6,7 @@
 | ------------------ | ------------------------------------------------------------ |
 | Email / contraseña | `POST /api/auth/login`                                       |
 | Google             | OAuth localhost (ver [03-desarrollo.md](./03-desarrollo.md)) |
-| Recuperar acceso   | `POST /api/auth/forgot-password`                             |
+| Recuperar acceso   | `POST /api/auth/forgot-password` — respuesta no enumerativa («Si la dirección está registrada…») |
 | Logo               | `/logo.png` (mismo que la web)                               |
 
 Requiere conexión para el primer login. Tras eso la sesión persiste offline.
