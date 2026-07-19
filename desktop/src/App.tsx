@@ -15,9 +15,10 @@ import { UniversalSearchPage } from "@/pages/UniversalSearchPage";
 import { InsightsPage } from "@/pages/InsightsPage";
 import { AdminUsersPage } from "@/pages/AdminUsersPage";
 import { LegalPage } from "@/pages/LegalPage";
+import { EventsPage } from "@/pages/EventsPage";
 import { getChurchSettings } from "@/lib/api";
 import { initOffline } from "@/lib/repo";
-import type { AppTab } from "@/lib/nav";
+import { canOpenTab, type AppTab } from "@/lib/nav";
 import type { BibleTarget } from "@/lib/types";
 
 type OpenGroup = {
@@ -45,6 +46,13 @@ function MainApp() {
       .catch(() => {});
   }, [user]);
 
+  useEffect(() => {
+    if (!user || canOpenTab(tab, user)) return;
+    if (canOpenTab("home", user)) setTab("home");
+    else if (canOpenTab("profile", user)) setTab("profile");
+    else setTab("legal");
+  }, [tab, user]);
+
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
@@ -58,11 +66,17 @@ function MainApp() {
   }
 
   function openBible(target: BibleTarget) {
+    if (!canOpenTab("bible", user)) return;
     setBibleTarget(target);
     setTab("bible");
   }
 
+  function navigate(next: AppTab) {
+    if (canOpenTab(next, user)) setTab(next);
+  }
+
   function navigateToGroup(groupId: number, groupTab?: "prayers" | "events") {
+    if (!canOpenTab("groups", user)) return;
     setOpenGroup({ id: groupId, tab: groupTab });
     setTab("groups");
   }
@@ -70,19 +84,19 @@ function MainApp() {
   return (
     <AppLayout
       tab={tab}
-      onTabChange={setTab}
+      onTabChange={navigate}
       churchName={churchName}
-      onNavigateToFeed={() => setTab("feed")}
-      onNavigateToGroups={() => setTab("groups")}
+      onNavigateToFeed={() => navigate("feed")}
+      onNavigateToGroups={() => navigate("groups")}
       onNavigateToGroup={navigateToGroup}
     >
       {tab === "home" && (
         <HomePage
           onOpenBible={openBible}
-          onNavigate={setTab}
+          onNavigate={navigate}
           onOpenNote={(notebookId, noteId) => {
             setNoteTarget({ notebookId, noteId });
-            setTab("notes");
+            navigate("notes");
           }}
         />
       )}
@@ -97,7 +111,7 @@ function MainApp() {
           onOpenBible={openBible}
           onOpenNote={(notebookId, noteId) => {
             setNoteTarget({ notebookId, noteId });
-            setTab("notes");
+            navigate("notes");
           }}
         />
       )}
@@ -115,8 +129,9 @@ function MainApp() {
           onOpenGroupConsumed={() => setOpenGroup(null)}
         />
       )}
+      {tab === "events" && <EventsPage />}
       {tab === "profile" && (
-        <ProfilePage onOpenBible={openBible} onNavigate={setTab} />
+        <ProfilePage onOpenBible={openBible} onNavigate={navigate} />
       )}
       {tab === "statistics" && <InsightsPage mode="statistics" />}
       {tab === "activity" && <InsightsPage mode="activity" />}

@@ -4,6 +4,7 @@
 import { isAuthError, isNetworkError } from "./authError";
 import { parseFeedContent } from "./media";
 import { formatVerseHtml } from "./verseInsert";
+import { buildImageBlockHtml } from "./noteEditorBlocks";
 
 function check(cond: boolean, msg: string) {
   if (!cond) throw new Error(msg);
@@ -31,6 +32,19 @@ const verseHtml = formatVerseHtml(
 );
 check(verseHtml.includes("Génesis 1:1-2 (RVR1960)"), "verse ref range");
 check(verseHtml.includes("&lt;vacía&gt;"), "verse text escaped");
-check(verseHtml.includes('class="biblia-verse-quote"'), "verse blockquote class");
+check(
+  verseHtml.includes('class="biblia-verse-quote"'),
+  "verse blockquote class",
+);
+
+const imageHtml = buildImageBlockHtml(
+  'data:image/png;base64,abc" onerror="alert(1)',
+  "Portada <prueba>",
+);
+check(imageHtml.includes("biblia-image-block"), "note image block class");
+check(
+  !imageHtml.includes(' onerror="alert(1)"'),
+  "note image attributes escaped",
+);
 
 console.log("desktop lib __check__: ok");

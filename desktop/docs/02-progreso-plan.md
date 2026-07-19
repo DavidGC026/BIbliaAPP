@@ -77,11 +77,14 @@ Leyenda: ✅ hecho · 🟡 parcial · ⬜ pendiente
 | Temas visuales y del lector               | ✅                                                         |
 | Administración y permisos                 | ✅                                                         |
 | Legal + licencias de traducciones         | ✅                                                         |
+| Calendario + RSVP                         | ✅ iglesia y grupos; CRUD admin                            |
+| Editor avanzado de notas                  | ✅ imágenes, fuentes, autoguardado y PDF                   |
+| Portadas avanzadas                        | ✅ Unsplash, archivo, URL y gradientes                     |
 
 ---
 
 ## Siguiente sprint
 
 1. Publicar `latest.json` y artefactos firmados en producción.
-2. Verificar instalación limpia de v0.3.0 en Arch / Debian / Windows.
+2. Verificar instalación limpia de v0.3.1 en Arch / Debian / Windows.
 3. Añadir recordatorios nativos en segundo plano si se requiere ejecución con la app cerrada.

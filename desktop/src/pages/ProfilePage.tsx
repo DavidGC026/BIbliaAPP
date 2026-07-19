@@ -6,6 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import { APP_VERSION, checkForUpdates, installUpdate } from "@/lib/updater";
 import type { BibleTarget } from "@/lib/types";
 import type { AppTab } from "@/lib/nav";
+import { parseAllowedSections } from "@/lib/nav";
 import { ThemeSwitch } from "@/components/ThemeSwitch";
 import { LEGAL_URLS } from "@/lib/config";
 import { ReminderSettings } from "@/components/ReminderSettings";
@@ -17,6 +18,11 @@ type Props = {
 
 export function ProfilePage({ onOpenBible, onNavigate }: Props) {
   const { user, isOffline } = useAuth();
+  const allowedSections = parseAllowedSections(user?.allowedSections);
+  const allows = (section: string) =>
+    user?.role === "admin" ||
+    !allowedSections ||
+    allowedSections.includes(section);
   const [showFavorites, setShowFavorites] = useState(false);
   const [updateMsg, setUpdateMsg] = useState<string | null>(null);
   const [updateAvailable, setUpdateAvailable] = useState(false);
@@ -91,34 +97,42 @@ export function ProfilePage({ onOpenBible, onNavigate }: Props) {
         <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
           Contenido
         </p>
-        <Button
-          variant="outline"
-          fullWidth
-          onClick={() => setShowFavorites(true)}
-        >
-          ♥ Mis favoritos
-        </Button>
-        <Button
-          variant="outline"
-          fullWidth
-          onClick={() => onNavigate("highlights")}
-        >
-          ✦ Mis subrayados
-        </Button>
-        <Button
-          variant="outline"
-          fullWidth
-          onClick={() => onNavigate("activity")}
-        >
-          ◫ Actividad
-        </Button>
-        <Button
-          variant="outline"
-          fullWidth
-          onClick={() => onNavigate("statistics")}
-        >
-          ▥ Estadísticas
-        </Button>
+        {allows("favorites") ? (
+          <Button
+            variant="outline"
+            fullWidth
+            onClick={() => setShowFavorites(true)}
+          >
+            ♥ Mis favoritos
+          </Button>
+        ) : null}
+        {allows("highlights") ? (
+          <Button
+            variant="outline"
+            fullWidth
+            onClick={() => onNavigate("highlights")}
+          >
+            ✦ Mis subrayados
+          </Button>
+        ) : null}
+        {allows("activity") ? (
+          <Button
+            variant="outline"
+            fullWidth
+            onClick={() => onNavigate("activity")}
+          >
+            ◫ Actividad
+          </Button>
+        ) : null}
+        {allows("statistics") ? (
+          <Button
+            variant="outline"
+            fullWidth
+            onClick={() => onNavigate("statistics")}
+          >
+            ▥ Estadísticas
+          </Button>
+        ) : null}
       </Card>
 
       <Card className="space-y-3">

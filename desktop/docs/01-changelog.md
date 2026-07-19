@@ -4,6 +4,26 @@ Registro cronológico de cambios en `desktop/`. Lo más reciente arriba.
 
 ---
 
+## 2026-07-19 — v0.3.1: cierre de paridad avanzada
+
+### Notas y libretas
+
+- Autoguardado a los cuatro segundos, estado de guardado y conteo de palabras
+- Tipografía persistente por nota y paleta de colores personalizable
+- Imágenes desde archivo, subida autenticada o fallback local; bloques seleccionables y redimensionables
+- Portadas de libreta con Unsplash, búsqueda, URL, archivo propio y gradientes
+
+### Calendario, devocionales y navegación
+
+- Recuperación de contraseña desde la pantalla de acceso
+- Calendario completo con eventos de iglesia/grupo, RSVP y CRUD administrativo
+- Lectura detallada, compartir y apertura de pasaje desde el diario devocional
+- Accesos rápidos, métricas y rutas protegidos también por `allowedSections`
+- Comunidad y Grupos desactivados por defecto en la variante pública
+- Búsqueda universal y mapa arcoíris resuelven la Biblia predeterminada del catálogo autorizado
+
+Detalle: [12-paridad-mobile-2026-07.md](./12-paridad-mobile-2026-07.md).
+
 ## 2026-07-19 — v0.3.0: paridad con móvil 3.9.5
 
 ### Navegación e Inicio

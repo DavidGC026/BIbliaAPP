@@ -4,10 +4,12 @@ const ENV =
 
 export const API_BASE_URL = ENV.VITE_API_URL ?? "https://biblia2.dvguzman.com";
 
-export const DEFAULT_BIBLE_ID = 149;
 export const APP_VARIANT = ENV.VITE_APP_VARIANT ?? "internal";
+export const DEFAULT_BIBLE_ID = Number(
+  ENV.VITE_DEFAULT_BIBLE_ID ?? (APP_VARIANT === "internal" ? 149 : 0),
+);
 export const COMMUNITY_ENABLED =
-  ENV.VITE_COMMUNITY_ENABLED !== "false" || APP_VARIANT === "internal";
+  ENV.VITE_COMMUNITY_ENABLED === "true" || APP_VARIANT === "internal";
 
 export const LEGAL_URLS = {
   terms: ENV.VITE_TERMS_URL ?? `${API_BASE_URL}/terminos`,

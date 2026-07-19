@@ -57,16 +57,18 @@ Implementación: `src/lib/api.ts`
 
 ### Actividad, administración y legal
 
-| Método     | Ruta                      | Uso                             |
-| ---------- | ------------------------- | ------------------------------- |
-| GET/POST   | `/api/activity`           | Historial y registro de lectura |
-| GET        | `/api/statistics`         | Progreso por libro              |
-| GET        | `/api/events`             | Calendario unificado            |
-| GET        | `/api/feed/announcements` | Anuncios oficiales              |
-| POST       | `/api/legal/accept`       | Aceptación legal                |
-| GET/POST   | `/api/admin/users`        | Usuarios administrados          |
-| PUT/DELETE | `/api/admin/users/:id`    | Editar/eliminar usuario         |
-| GET        | `/api/admin/sections`     | Catálogo de permisos            |
+| Método          | Ruta                      | Uso                             |
+| --------------- | ------------------------- | ------------------------------- |
+| GET/POST        | `/api/activity`           | Historial y registro de lectura |
+| GET             | `/api/statistics`         | Progreso por libro              |
+| GET/POST/DELETE | `/api/events`             | Calendario, RSVP y CRUD admin   |
+| GET             | `/api/feed/announcements` | Anuncios oficiales              |
+| GET             | `/api/unsplash`           | Buscar portadas e imágenes      |
+| POST            | `/api/upload`             | Subir imágenes autenticadas     |
+| POST            | `/api/legal/accept`       | Aceptación legal                |
+| GET/POST        | `/api/admin/users`        | Usuarios administrados          |
+| PUT/DELETE      | `/api/admin/users/:id`    | Editar/eliminar usuario         |
+| GET             | `/api/admin/sections`     | Catálogo de permisos            |
 
 ---
 

@@ -45,6 +45,7 @@ Archivo `desktop/.env` (opcional):
 VITE_API_URL=https://biblia2.dvguzman.com
 VITE_APP_VARIANT=internal
 VITE_COMMUNITY_ENABLED=true
+VITE_DEFAULT_BIBLE_ID=149
 
 # Opcionales: sobrescribir enlaces legales
 # VITE_TERMS_URL=https://...
@@ -56,6 +57,11 @@ VITE_COMMUNITY_ENABLED=true
 # Desarrollo local
 # VITE_API_URL=http://127.0.0.1:3000
 ```
+
+En `VITE_APP_VARIANT=public`, Comunidad y Grupos quedan ocultos salvo que se
+defina expresamente `VITE_COMMUNITY_ENABLED=true`. Si no se configura
+`VITE_DEFAULT_BIBLE_ID`, el cliente usa `defaultBibleId` del catálogo autorizado
+y nunca supone el ID interno `149`.
 
 ---
 
@@ -117,9 +123,9 @@ Tras `npm run build:arch`:
 ```text
 src-tauri/target/release/bibliaapp-desktop          # binario
 src-tauri/target/release/bundle/appimage/
-  BibliaAPP_0.3.0_amd64.AppImage
+  BibliaAPP_0.3.1_amd64.AppImage
 packaging/arch/
-  bibliaapp-desktop-0.3.0-1-x86_64.pkg.tar.zst      # npm run pack:arch
+  bibliaapp-desktop-0.3.1-1-x86_64.pkg.tar.zst      # npm run pack:arch
 ```
 
 ---

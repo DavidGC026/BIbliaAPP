@@ -101,6 +101,16 @@ export async function getMe() {
   return request<{ user: User | null }>("/api/auth/me");
 }
 
+export async function forgotPassword(email: string) {
+  return request<{ success: boolean; message: string }>(
+    "/api/auth/forgot-password",
+    {
+      method: "POST",
+      body: JSON.stringify({ email: email.trim().toLowerCase() }),
+    },
+  );
+}
+
 export async function acceptLegalTerms() {
   return request<{ success: boolean; legalAcceptedAt: string | null }>(
     "/api/legal/accept",
@@ -618,6 +628,54 @@ export async function setEventRsvp(
     method: "POST",
     body: JSON.stringify({ action: "rsvp", eventId, status }),
   });
+}
+
+export async function createChurchEvent(event: {
+  title: string;
+  description: string;
+  startTime: string;
+  endTime?: string | null;
+  location: string;
+  category: string;
+}) {
+  return request<{ success: boolean; id: number }>("/api/events", {
+    method: "POST",
+    body: JSON.stringify(event),
+  });
+}
+
+export async function deleteChurchEvent(id: number) {
+  return request<{ success: boolean }>(`/api/events?id=${id}`, {
+    method: "DELETE",
+  });
+}
+
+// — Archivos e imágenes —
+export function getImageProxyUrl(imageUrl: string) {
+  return `${API_BASE_URL}/api/image-proxy?url=${encodeURIComponent(imageUrl)}`;
+}
+
+export async function uploadImage(file: File, purpose = "other") {
+  const formData = new FormData();
+  formData.append("file", file, file.name);
+  formData.append("purpose", purpose);
+  const headers = new Headers();
+  const token = getToken();
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+  const response = await fetch(`${API_BASE_URL}/api/upload`, {
+    method: "POST",
+    headers,
+    body: formData,
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error((data as ApiError).error ?? `Error ${response.status}`);
+  }
+  return data as { url: string; mediaId: number; filename?: string };
+}
+
+export function getPublicUploadUrl(filename: string) {
+  return `${API_BASE_URL}/uploads/${encodeURIComponent(filename)}`;
 }
 
 export async function getStatistics() {

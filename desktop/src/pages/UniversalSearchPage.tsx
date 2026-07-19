@@ -37,6 +37,7 @@ export function UniversalSearchPage({
   onOpenNote?: (notebookId: number, noteId: number) => void;
 }) {
   const [query, setQuery] = useState("");
+  const [bibleId, setBibleId] = useState(DEFAULT_BIBLE_ID);
   const [filters, setFilters] = useState<Set<Filter>>(
     () => new Set(FILTERS.map(([key]) => key)),
   );
@@ -48,6 +49,15 @@ export function UniversalSearchPage({
   const requestId = useRef(0);
 
   useEffect(() => {
+    repo
+      .repoListBibles()
+      .then(({ bibles, defaultBibleId }) =>
+        setBibleId(defaultBibleId ?? bibles[0]?.bibleId ?? 0),
+      )
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
     const q = query.trim();
     if (q.length < 2) {
       setVerses(empty());
@@ -56,6 +66,7 @@ export function UniversalSearchPage({
       setDictionary(empty());
       return;
     }
+    if (!bibleId) return;
     const id = ++requestId.current;
     setVerses(filters.has("verses") ? { items: [], loading: true } : empty());
     setNotes(filters.has("notes") ? { items: [], loading: true } : empty());
@@ -69,7 +80,7 @@ export function UniversalSearchPage({
       setHistory(addSearchHistory(q));
       if (filters.has("verses"))
         repo
-          .repoSearchVerses(DEFAULT_BIBLE_ID, q)
+          .repoSearchVerses(bibleId, q)
           .then(
             (r) =>
               requestId.current === id &&
@@ -114,7 +125,7 @@ export function UniversalSearchPage({
           .catch(() => requestId.current === id && setDevotionals(empty()));
     }, 300);
     return () => window.clearTimeout(timer);
-  }, [query, filters]);
+  }, [query, filters, bibleId]);
 
   const loading =
     verses.loading ||
@@ -228,7 +239,11 @@ export function UniversalSearchPage({
             <button
               key={verse.id}
               onClick={() =>
-                onOpenBible({ bookId: verse.bookId, chapter: verse.chapter })
+                onOpenBible({
+                  bibleId,
+                  bookId: verse.bookId,
+                  chapter: verse.chapter,
+                })
               }
               className="block w-full border-b border-border py-3 text-left last:border-0"
             >

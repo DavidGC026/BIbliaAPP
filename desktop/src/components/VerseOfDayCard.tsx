@@ -42,6 +42,8 @@ export function VerseOfDayCard({ onReadInBible }: Props) {
 
   useEffect(() => {
     let cancelled = false;
+    setLoading(true);
+    setError(null);
     getVerseOfDay(bibleId || undefined)
       .then(async (v) => {
         if (cancelled) return;

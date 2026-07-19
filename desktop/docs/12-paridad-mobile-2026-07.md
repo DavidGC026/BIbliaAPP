@@ -1,6 +1,6 @@
 # 12 — Paridad con móvil (julio de 2026)
 
-Este documento registra el port de las novedades de `mobile/` posteriores al punto de paridad de junio. La versión resultante del cliente de escritorio es **0.3.0**.
+Este documento registra el port de las novedades de `mobile/` posteriores al punto de paridad de junio. La versión resultante del cliente de escritorio es **0.3.1**.
 
 ## Alcance implementado
 
@@ -20,6 +20,11 @@ Este documento registra el port de las novedades de `mobile/` posteriores al pun
 | Administración                 | Lista/búsqueda, alta, edición, roles, permisos y eliminación segura                                           | `AdminUsersPage.tsx`                                 |
 | Legal                          | Enlaces, catálogo de licencias y aceptación bloqueante para cuentas pendientes                                | `LegalPage.tsx`, `LegalAcceptanceGate.tsx`           |
 | Licencias de Biblias           | Aplica `canDownload`, `canCopy`, `canShare` y `canCreateImages`                                               | lector, descargas, versículo diario y SQLite         |
+| Editor avanzado                | Autoguardado, palabras, fuente por nota, paleta propia e imágenes redimensionables                            | `NoteEditorView.tsx`, `noteEditorBlocks.ts`          |
+| Portadas de libretas           | Unsplash con búsqueda/paginación, URL, archivo propio y gradientes                                            | `NotebookFormModal.tsx`                              |
+| Calendario                     | Eventos de iglesia/grupo, RSVP y CRUD administrativo                                                          | `EventsPage.tsx`                                     |
+| Diario                         | Lectura detallada, compartir y apertura del pasaje                                                            | `DevotionalsView.tsx`                                |
+| Recuperación de acceso         | Solicitud de enlace desde Login con respuesta no enumerativa                                                  | `LoginPage.tsx`                                      |
 
 Los temas DVG y UBG solo aparecen para administradores. Si una sesión no administradora conserva uno de esos valores, vuelve automáticamente a Sistema.
 
@@ -29,6 +34,8 @@ Los temas DVG y UBG solo aparecen para administradores. Si una sesión no admini
 - “Exportar PDF” abre el diálogo de impresión nativo; el usuario elige **Guardar como PDF**.
 - Los recordatorios usan la API de notificaciones del WebView mientras BibliaAPP está abierta. No se añadió un servicio residente en segundo plano.
 - La búsqueda universal también está disponible como elemento de la barra lateral.
+- Las fuentes de nota usan fuentes del sistema o Google Fonts y aprovechan el caché del WebView; la elección por nota queda en almacenamiento local.
+- Las imágenes de nota intentan subirse al servidor y, si no hay conexión, se conservan como `data:` hasta el siguiente guardado.
 - Las políticas se abren desde las rutas públicas del backend para mantener una fuente jurídica única.
 
 ## Licencias y SQLite
@@ -47,7 +54,9 @@ La tabla `bibles` incorpora `capabilities_json`. Al actualizar desde una base an
 - `GET /api/highlights/all`
 - `GET/POST /api/activity`
 - `GET /api/statistics`
-- `GET /api/events`
+- `GET/POST/DELETE /api/events`
+- `POST /api/upload`
+- `GET /api/unsplash`
 - `GET /api/feed/announcements`
 - `POST /api/legal/accept`
 - `GET/POST /api/admin/users`
@@ -68,6 +77,8 @@ La tabla `bibles` incorpora `capabilities_json`. Al actualizar desde una base an
 | `bibliaapp_onboarding_dismissed` | Onboarding ocultado                                |
 | `bibliaapp_verse_image_template` | Formato/gradiente favorito                         |
 | `bibliaapp_reminder_preferences` | Recordatorios activados                            |
+| `bibliaapp_note_font_{id}`       | Tipografía local de cada nota                      |
+| `bibliaapp_note_favorite_colors` | Paleta personal del editor                         |
 
 ## Validación
 

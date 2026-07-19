@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { useAuth } from "@/context/AuthContext";
 import { LEGAL_URLS } from "@/lib/config";
+import * as api from "@/lib/api";
 
 type Props = {
   onSuccess?: () => void;
@@ -15,6 +16,10 @@ export function LoginPage({ onSuccess }: Props) {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [recovering, setRecovering] = useState(false);
+  const [recoveryEmail, setRecoveryEmail] = useState("");
+  const [recoveryLoading, setRecoveryLoading] = useState(false);
+  const [recoverySent, setRecoverySent] = useState(false);
 
   const busy = loading || googleLoading;
 
@@ -54,6 +59,26 @@ export function LoginPage({ onSuccess }: Props) {
     }
   }
 
+  async function handleRecovery(e: FormEvent) {
+    e.preventDefault();
+    if (!recoveryEmail.trim()) {
+      setError("El correo electrónico es obligatorio.");
+      return;
+    }
+    setRecoveryLoading(true);
+    setError(null);
+    try {
+      await api.forgotPassword(recoveryEmail);
+      setRecoverySent(true);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "No se pudo enviar la solicitud",
+      );
+    } finally {
+      setRecoveryLoading(false);
+    }
+  }
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-6">
       <div className="w-full max-w-md space-y-6">
@@ -79,6 +104,18 @@ export function LoginPage({ onSuccess }: Props) {
               onChange={(e) => setEmail(e.target.value)}
               className="w-full rounded-lg border border-input bg-background px-4 py-3 text-foreground outline-none focus:ring-2 focus:ring-ring"
             />
+            <button
+              type="button"
+              className="block w-full text-right text-xs font-semibold text-primary hover:underline"
+              onClick={() => {
+                setRecoveryEmail(email);
+                setRecoverySent(false);
+                setError(null);
+                setRecovering(true);
+              }}
+            >
+              ¿Olvidaste tu contraseña?
+            </button>
             <input
               type="password"
               autoComplete="current-password"
@@ -134,6 +171,49 @@ export function LoginPage({ onSuccess }: Props) {
           </a>
           .
         </p>
+        {recovering ? (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <Card className="w-full max-w-md space-y-4">
+              <h2 className="text-xl font-bold text-foreground">
+                {recoverySent ? "Enlace enviado" : "Recuperar acceso"}
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                {recoverySent
+                  ? "Si la dirección está registrada, recibirás un enlace de restablecimiento a la brevedad."
+                  : "Ingresa tu correo y te enviaremos instrucciones para restablecer la contraseña."}
+              </p>
+              {!recoverySent ? (
+                <form onSubmit={handleRecovery} className="space-y-3">
+                  <input
+                    type="email"
+                    autoComplete="email"
+                    value={recoveryEmail}
+                    onChange={(event) => setRecoveryEmail(event.target.value)}
+                    className="w-full rounded-lg border border-input bg-background px-4 py-3 text-foreground"
+                    placeholder="Correo electrónico"
+                    autoFocus
+                  />
+                  {error ? (
+                    <p className="text-sm text-destructive">{error}</p>
+                  ) : null}
+                  <Button type="submit" fullWidth loading={recoveryLoading}>
+                    Enviar enlace
+                  </Button>
+                </form>
+              ) : null}
+              <Button
+                variant="ghost"
+                fullWidth
+                onClick={() => {
+                  setRecovering(false);
+                  setError(null);
+                }}
+              >
+                Volver a iniciar sesión
+              </Button>
+            </Card>
+          </div>
+        ) : null}
       </div>
     </div>
   );

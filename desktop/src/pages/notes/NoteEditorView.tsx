@@ -2,13 +2,25 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { InsertDictionaryModal } from "@/components/InsertDictionaryModal";
 import { InsertVerseModal } from "@/components/InsertVerseModal";
+import * as api from "@/lib/api";
 import { formatDictionaryHtml } from "@/lib/dictionary";
 import {
   buildDictBlockHtml,
+  buildImageBlockHtml,
   buildTableBlockHtml,
   initNoteEditorBlocks,
   wrapAllContentBlocks,
 } from "@/lib/noteEditorBlocks";
+import {
+  deleteNoteFont,
+  ensureNoteFontLoaded,
+  getFavoriteNoteColors,
+  getNoteFont,
+  getNoteFontFamily,
+  NOTE_FONTS,
+  saveFavoriteNoteColors,
+  saveNoteFont,
+} from "@/lib/notePreferences";
 import * as repo from "@/lib/repo";
 import { plainToHtml } from "@/lib/notebookCovers";
 import type { CSSProperties } from "react";
@@ -61,24 +73,20 @@ const FONT_SIZES = [
   { px: "28px", label: "28" },
 ];
 
-const TEXT_COLORS = [
-  "#E7E5E4",
-  "#92700C",
-  "#E8B84A",
-  "#EF4444",
-  "#F97316",
-  "#10B981",
-  "#0EA5E9",
-  "#8B5CF6",
-  "#EC4899",
-];
-
 export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
   const isNew = noteId === null;
   const editorRef = useRef<HTMLDivElement | null>(null);
   const savedRangeRef = useRef<Range | null>(null);
   const pendingHtmlRef = useRef<string>("");
   const appliedRef = useRef(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const autosaveTimerRef = useRef<number | null>(null);
+  const savingRef = useRef(false);
+  const createdIdRef = useRef<number | null>(null);
+  const initialHtmlRef = useRef("");
+  const initialTitleRef = useRef("");
+  const titleRef = useRef("");
+  const activeFontRef = useRef(getNoteFont(noteId));
   const [title, setTitle] = useState("");
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
@@ -87,6 +95,13 @@ export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
   const [verseOpen, setVerseOpen] = useState(false);
   const [preview, setPreview] = useState(false);
   const [previewHtml, setPreviewHtml] = useState("");
+  const [activeFont, setActiveFont] = useState(() => getNoteFont(noteId));
+  const [favoriteColors, setFavoriteColors] = useState(getFavoriteNoteColors);
+  const [wordCount, setWordCount] = useState(0);
+  const [saveStatus, setSaveStatus] = useState<"saved" | "pending" | "saving">(
+    "saved",
+  );
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   useEffect(() => {
     if (isNew || !noteId) return;
@@ -96,7 +111,17 @@ export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
       .repoGetNotebookNote(noteId)
       .then(({ note }) => {
         setTitle(note.title);
+        titleRef.current = note.title;
         pendingHtmlRef.current = plainToHtml(note.content);
+        initialTitleRef.current = note.title;
+        initialHtmlRef.current = pendingHtmlRef.current;
+        const plain = document.createElement("div");
+        plain.innerHTML = pendingHtmlRef.current;
+        setWordCount(countWords(plain.textContent ?? ""));
+        const font = getNoteFont(noteId);
+        setActiveFont(font);
+        activeFontRef.current = font;
+        ensureNoteFontLoaded(font);
         if (editorRef.current && !appliedRef.current) {
           editorRef.current.innerHTML = pendingHtmlRef.current;
           appliedRef.current = true;
@@ -107,6 +132,13 @@ export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
       )
       .finally(() => setLoading(false));
   }, [isNew, noteId]);
+
+  useEffect(() => {
+    return () => {
+      if (autosaveTimerRef.current)
+        window.clearTimeout(autosaveTimerRef.current);
+    };
+  }, []);
 
   // ponytail: el div es contentEditable, no controlado por React; aplicamos el
   // HTML cargado una sola vez cuando el nodo se monta. useCallback estabiliza el
@@ -154,6 +186,7 @@ export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
     restoreSelection();
     document.execCommand(cmd, false);
     saveSelection();
+    markChanged();
   }
 
   function insertHtml(html: string) {
@@ -162,6 +195,7 @@ export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
     document.execCommand("insertHTML", false, html);
     if (editorRef.current) wrapAllContentBlocks(editorRef.current);
     saveSelection();
+    markChanged();
   }
 
   /** Envuelve la selección en un <span> con el estilo dado (color, tamaño…). */
@@ -186,6 +220,7 @@ export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
     sel.removeAllRanges();
     sel.addRange(r);
     saveSelection();
+    markChanged();
   }
 
   function togglePreview() {
@@ -194,30 +229,90 @@ export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
     setPreview((p) => !p);
   }
 
-  async function save() {
-    const html = preview ? previewHtml : (editorRef.current?.innerHTML ?? "");
-    const finalTitle = title.trim() || "Sin título";
-    setSaving(true);
-    setError(null);
+  function markChanged() {
+    const html = currentHtml();
+    const node = document.createElement("div");
+    node.innerHTML = html;
+    setWordCount(countWords(node.textContent ?? ""));
+    setSaveStatus("pending");
+    if (autosaveTimerRef.current) window.clearTimeout(autosaveTimerRef.current);
+    autosaveTimerRef.current = window.setTimeout(() => {
+      void persist(false, true);
+    }, 4000);
+  }
+
+  async function persist(navigateAfter: boolean, silent: boolean) {
+    if (savingRef.current) return false;
+    const html = currentHtml();
+    const currentTitle = titleRef.current;
+    const finalTitle = currentTitle.trim() || "Sin título";
+    const hasContent = /<img\b/i.test(html) || countWords(stripHtml(html)) > 0;
+    if (
+      silent &&
+      isNew &&
+      !createdIdRef.current &&
+      !currentTitle.trim() &&
+      !hasContent
+    )
+      return true;
+    if (
+      html === initialHtmlRef.current &&
+      currentTitle.trim() === initialTitleRef.current.trim()
+    ) {
+      if (navigateAfter) onSaved();
+      return true;
+    }
+    savingRef.current = true;
+    setSaving(!silent);
+    setSaveStatus("saving");
+    if (!silent) setError(null);
     try {
-      if (isNew) {
-        await repo.repoCreateNotebookNote(notebookId, finalTitle, html);
-      } else if (noteId) {
-        await repo.repoUpdateNotebookNote(noteId, finalTitle, html);
+      let realId = noteId ?? createdIdRef.current;
+      if (realId == null) {
+        const created = await repo.repoCreateNotebookNote(
+          notebookId,
+          finalTitle,
+          html,
+        );
+        realId = created.id;
+        createdIdRef.current = realId;
+      } else {
+        await repo.repoUpdateNotebookNote(realId, finalTitle, html);
       }
-      onSaved();
+      saveNoteFont(realId, activeFontRef.current);
+      initialHtmlRef.current = html;
+      initialTitleRef.current = currentTitle.trim();
+      setSaveStatus("saved");
+      if (navigateAfter) onSaved();
+      return true;
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al guardar");
+      setSaveStatus("pending");
+      if (!silent)
+        setError(err instanceof Error ? err.message : "Error al guardar");
+      return false;
     } finally {
-      setSaving(false);
+      savingRef.current = false;
+      if (!silent) setSaving(false);
     }
   }
 
+  function save() {
+    void persist(true, false);
+  }
+
+  async function back() {
+    if (autosaveTimerRef.current) window.clearTimeout(autosaveTimerRef.current);
+    const saved = await persist(false, true);
+    if (saved) onBack();
+  }
+
   async function remove() {
-    if (!noteId || !confirm("¿Eliminar esta nota?")) return;
+    const realId = noteId ?? createdIdRef.current;
+    if (!realId || !confirm("¿Eliminar esta nota?")) return;
     setSaving(true);
     try {
-      await repo.repoDeleteNotebookNote(noteId);
+      await repo.repoDeleteNotebookNote(realId);
+      deleteNoteFont(realId);
       onSaved();
     } finally {
       setSaving(false);
@@ -226,6 +321,60 @@ export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
 
   function insertDictionary(entry: StrongEntry) {
     insertHtml(buildDictBlockHtml(formatDictionaryHtml(entry)));
+  }
+
+  function changeFont(fontId: string) {
+    setActiveFont(fontId);
+    activeFontRef.current = fontId;
+    ensureNoteFontLoaded(fontId);
+    const realId = noteId ?? createdIdRef.current;
+    if (realId) saveNoteFont(realId, fontId);
+    setSaveStatus("pending");
+  }
+
+  function addFavoriteColor(color: string) {
+    const normalized = color.toUpperCase();
+    const next = [
+      normalized,
+      ...favoriteColors.filter((item) => item.toUpperCase() !== normalized),
+    ].slice(0, 16);
+    setFavoriteColors(next);
+    saveFavoriteNoteColors(next);
+    wrapStyle("color", normalized);
+  }
+
+  async function insertImage(file: File) {
+    if (!file.type.startsWith("image/")) {
+      setError("Selecciona un archivo de imagen.");
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setError("La imagen supera el máximo de 10 MB.");
+      return;
+    }
+    setUploadingImage(true);
+    setError(null);
+    try {
+      let src = "";
+      if (navigator.onLine) {
+        try {
+          const uploaded = await api.uploadImage(file);
+          if (uploaded.filename)
+            src = api.getPublicUploadUrl(uploaded.filename);
+        } catch {
+          // Conserva la nota operativa offline mediante data URL.
+        }
+      }
+      if (!src) src = await fileToDataUrl(file);
+      insertHtml(buildImageBlockHtml(src, file.name || "Imagen de la nota"));
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "No se pudo insertar la imagen",
+      );
+    } finally {
+      setUploadingImage(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
   }
 
   function currentHtml() {
@@ -296,15 +445,35 @@ export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
 
   return (
     <div className="mx-auto max-w-5xl space-y-4">
-      <Button variant="ghost" onClick={onBack}>
+      <Button variant="ghost" onClick={() => void back()}>
         ← Volver
       </Button>
-      <input
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        placeholder="Título"
-        className="w-full border-0 bg-transparent text-2xl font-bold text-foreground outline-none"
-      />
+      <div>
+        <input
+          value={title}
+          onChange={(e) => {
+            setTitle(e.target.value);
+            titleRef.current = e.target.value;
+            setSaveStatus("pending");
+            if (autosaveTimerRef.current)
+              window.clearTimeout(autosaveTimerRef.current);
+            autosaveTimerRef.current = window.setTimeout(
+              () => void persist(false, true),
+              4000,
+            );
+          }}
+          placeholder="Título"
+          className="w-full border-0 bg-transparent text-2xl font-bold text-foreground outline-none"
+        />
+        <p className="mt-1 text-xs text-muted-foreground">
+          {saveStatus === "saving"
+            ? "Guardando…"
+            : saveStatus === "pending"
+              ? "Cambios pendientes"
+              : "Guardado"}
+          {` · ${wordCount} ${wordCount === 1 ? "palabra" : "palabras"}`}
+        </p>
+      </div>
 
       {!preview ? (
         <div className="space-y-2 rounded-lg border border-border bg-card p-2">
@@ -340,6 +509,19 @@ export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
               </button>
             ))}
             <div className="mx-1 h-6 w-px bg-border" />
+            <select
+              aria-label="Tipografía de la nota"
+              value={activeFont}
+              onChange={(e) => changeFont(e.target.value)}
+              className="h-9 max-w-44 rounded-md border border-border bg-background px-2 text-xs"
+            >
+              {NOTE_FONTS.map((font) => (
+                <option key={font.id} value={font.id}>
+                  {font.label}
+                </option>
+              ))}
+            </select>
+            <div className="mx-1 h-6 w-px bg-border" />
             <button
               type="button"
               title="Insertar tabla"
@@ -354,7 +536,7 @@ export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            {TEXT_COLORS.map((c) => (
+            {favoriteColors.map((c) => (
               <button
                 key={c}
                 type="button"
@@ -367,6 +549,17 @@ export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
                 style={{ backgroundColor: c }}
               />
             ))}
+            <label
+              title="Añadir color personalizado"
+              className="relative flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border border-dashed border-border text-xs text-muted-foreground"
+            >
+              +
+              <input
+                type="color"
+                className="absolute inset-0 cursor-pointer opacity-0"
+                onChange={(e) => addFavoriteColor(e.target.value)}
+              />
+            </label>
           </div>
 
           <div className="flex flex-wrap items-center gap-2 pt-1">
@@ -392,6 +585,28 @@ export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
             >
               📚 Diccionario
             </button>
+            <button
+              type="button"
+              disabled={uploadingImage}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                saveSelection();
+                fileInputRef.current?.click();
+              }}
+              className="flex h-9 items-center gap-1 rounded-md border border-sky-500/40 bg-sky-500/10 px-3 text-sm font-semibold text-sky-600 hover:opacity-90 disabled:opacity-50 dark:text-sky-300"
+            >
+              🖼️ {uploadingImage ? "Insertando…" : "Imagen"}
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              hidden
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) void insertImage(file);
+              }}
+            />
           </div>
         </div>
       ) : null}
@@ -414,13 +629,16 @@ export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
           data-placeholder="Escribe tu nota…"
           onKeyUp={saveSelection}
           onMouseUp={saveSelection}
+          onInput={markChanged}
           className="note-rich min-h-[55vh] w-full rounded-xl border border-border bg-card px-4 py-3 text-base text-foreground outline-none focus:ring-2 focus:ring-ring"
+          style={{ fontFamily: getNoteFontFamily(activeFont) }}
         />
       </div>
 
       {preview ? (
         <div
           className="note-rich note-rich-readonly min-h-[55vh] w-full rounded-xl border border-border bg-card px-4 py-3 text-base text-foreground"
+          style={{ fontFamily: getNoteFontFamily(activeFont) }}
           dangerouslySetInnerHTML={{
             __html: previewHtml || "<p>Sin contenido</p>",
           }}
@@ -432,7 +650,7 @@ export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
         <Button onClick={save} loading={saving}>
           Guardar
         </Button>
-        {!isNew ? (
+        {!isNew || createdIdRef.current ? (
           <Button variant="ghost" onClick={remove} loading={saving}>
             Eliminar
           </Button>
@@ -457,4 +675,27 @@ export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
       />
     </div>
   );
+}
+
+function stripHtml(html: string) {
+  const node = document.createElement("div");
+  node.innerHTML = html;
+  return node.textContent ?? "";
+}
+
+function countWords(value: string) {
+  const clean = value.replace(/\s+/g, " ").trim();
+  return clean ? clean.split(" ").length : 0;
+}
+
+function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () =>
+      typeof reader.result === "string"
+        ? resolve(reader.result)
+        : reject(new Error("No se pudo leer la imagen."));
+    reader.onerror = () => reject(new Error("No se pudo leer la imagen."));
+    reader.readAsDataURL(file);
+  });
 }

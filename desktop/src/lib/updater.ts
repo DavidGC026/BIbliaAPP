@@ -19,7 +19,11 @@ export async function checkForUpdates(): Promise<{
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       // ponytail: sin servidor de releases configurado → mensaje claro
-      if (msg.includes("404") || msg.includes("fetch") || msg.includes("network")) {
+      if (
+        msg.includes("404") ||
+        msg.includes("fetch") ||
+        msg.includes("network")
+      ) {
         return {
           available: false,
           message: "Servidor de actualizaciones no configurado aún.",
@@ -47,4 +51,4 @@ function isTauri(): boolean {
   return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 }
 
-export const APP_VERSION = import.meta.env.PACKAGE_VERSION ?? "0.3.0";
+export const APP_VERSION = import.meta.env.PACKAGE_VERSION ?? "0.3.1";

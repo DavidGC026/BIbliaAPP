@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { useAuth } from "@/context/AuthContext";
 import * as api from "@/lib/api";
+import { COMMUNITY_ENABLED } from "@/lib/config";
 import {
   dismissOnboarding,
   getHomeActions,
@@ -17,6 +18,7 @@ import {
 import * as repo from "@/lib/repo";
 import type { RecentNotebookNote } from "@/lib/repo";
 import type { AppTab } from "@/lib/nav";
+import { parseAllowedSections } from "@/lib/nav";
 import type {
   BibleTarget,
   ChurchEvent,
@@ -33,6 +35,11 @@ type Props = {
 
 export function HomePage({ onOpenBible, onNavigate, onOpenNote }: Props) {
   const { user } = useAuth();
+  const allowedSections = parseAllowedSections(user?.allowedSections);
+  const allows = (section: string) =>
+    user?.role === "admin" ||
+    !allowedSections ||
+    allowedSections.includes(section);
   const [churchName, setChurchName] = useState("BibliaAPP");
   const [lastPassage, setLastPassage] = useState<LastPassage | null>(
     getLastPassage,
@@ -107,6 +114,11 @@ export function HomePage({ onOpenBible, onNavigate, onOpenNote }: Props) {
   }, []);
 
   const firstName = user?.name?.split(" ")[0] ?? "hermano";
+  const availableActions = HOME_ACTION_CATALOG.filter((item) => {
+    const section = HOME_ACTION_SECTIONS[item.key];
+    if (item.key === "community" && !COMMUNITY_ENABLED) return false;
+    return !section || allows(section);
+  });
   function runAction(key: HomeActionKey) {
     if (key === "read") {
       if (lastPassage)
@@ -163,9 +175,11 @@ export function HomePage({ onOpenBible, onNavigate, onOpenNote }: Props) {
             <Button variant="outline" onClick={() => onNavigate("profile")}>
               2. Ver favoritos
             </Button>
-            <Button variant="outline" onClick={() => onNavigate("notes")}>
-              3. Crear libreta
-            </Button>
+            {allows("notebook") ? (
+              <Button variant="outline" onClick={() => onNavigate("notes")}>
+                3. Crear libreta
+              </Button>
+            ) : null}
           </div>
         </Card>
       ) : null}
@@ -206,7 +220,7 @@ export function HomePage({ onOpenBible, onNavigate, onOpenNote }: Props) {
           </Button>
         </Card>
       ) : null}
-      {notes.length ? (
+      {allows("notebook") && notes.length ? (
         <HomeSection
           title="Notas recientes"
           action="Ver libretas →"
@@ -234,7 +248,7 @@ export function HomePage({ onOpenBible, onNavigate, onOpenNote }: Props) {
           </div>
         </HomeSection>
       ) : null}
-      {favorites.length ? (
+      {allows("favorites") && favorites.length ? (
         <HomeSection
           title="Versículos guardados"
           action="Ver todos →"
@@ -265,7 +279,7 @@ export function HomePage({ onOpenBible, onNavigate, onOpenNote }: Props) {
           </div>
         </HomeSection>
       ) : null}
-      {highlights.length ? (
+      {allows("highlights") && highlights.length ? (
         <HomeSection
           title="Subrayados recientes"
           action="Ver todos →"
@@ -318,11 +332,19 @@ export function HomePage({ onOpenBible, onNavigate, onOpenNote }: Props) {
           </div>
         </HomeSection>
       ) : null}
-      {events.length ? (
-        <HomeSection title="Próximos eventos">
+      {allows("calendar") && events.length ? (
+        <HomeSection
+          title="Próximos eventos"
+          action="Ver calendario →"
+          onAction={() => onNavigate("events")}
+        >
           <div className="grid gap-3 md:grid-cols-3">
             {events.map((event) => (
-              <Card key={`${event.source}-${event.id}`}>
+              <Card
+                key={`${event.source}-${event.id}`}
+                className="cursor-pointer hover:bg-accent/40"
+                onClick={() => onNavigate("events")}
+              >
                 <span className="text-xs font-bold uppercase text-primary">
                   {event.category || event.source}
                 </span>
@@ -340,23 +362,47 @@ export function HomePage({ onOpenBible, onNavigate, onOpenNote }: Props) {
       ) : null}
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {[
-          [counts.notebooks, "Libretas", "notes"],
-          [counts.highlights, "Subrayados", "highlights"],
-          [counts.favorites, "Favoritos", "profile"],
-          [counts.devotionals, "Devocionales", "notes"],
-        ].map(([value, label, tab]) => (
-          <Card key={String(label)}>
-            <button
-              className="w-full text-left"
-              onClick={() => onNavigate(tab as AppTab)}
-            >
-              <span className="text-2xl font-bold text-primary">{value}</span>
-              <span className="ml-2 text-sm text-muted-foreground">
-                {label}
-              </span>
-            </button>
-          </Card>
-        ))}
+          {
+            value: counts.notebooks,
+            label: "Libretas",
+            tab: "notes" as AppTab,
+            section: "notebook",
+          },
+          {
+            value: counts.highlights,
+            label: "Subrayados",
+            tab: "highlights" as AppTab,
+            section: "highlights",
+          },
+          {
+            value: counts.favorites,
+            label: "Favoritos",
+            tab: "profile" as AppTab,
+            section: "favorites",
+          },
+          {
+            value: counts.devotionals,
+            label: "Devocionales",
+            tab: "notes" as AppTab,
+            section: "devotionals",
+          },
+        ]
+          .filter((item) => allows(item.section))
+          .map((item) => (
+            <Card key={item.label}>
+              <button
+                className="w-full text-left"
+                onClick={() => onNavigate(item.tab)}
+              >
+                <span className="text-2xl font-bold text-primary">
+                  {item.value}
+                </span>
+                <span className="ml-2 text-sm text-muted-foreground">
+                  {item.label}
+                </span>
+              </button>
+            </Card>
+          ))}
       </section>
       <HomeSection
         title="Acciones rápidas"
@@ -365,7 +411,7 @@ export function HomePage({ onOpenBible, onNavigate, onOpenNote }: Props) {
       >
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {actions.map((key) => {
-            const item = HOME_ACTION_CATALOG.find((entry) => entry.key === key);
+            const item = availableActions.find((entry) => entry.key === key);
             return item ? (
               <button
                 key={key}
@@ -395,7 +441,7 @@ export function HomePage({ onOpenBible, onNavigate, onOpenNote }: Props) {
               Elige qué acciones aparecen en Inicio.
             </p>
             <div className="mt-4 space-y-2">
-              {HOME_ACTION_CATALOG.map((item) => (
+              {availableActions.map((item) => (
                 <label
                   key={item.key}
                   className="flex items-center gap-3 rounded-lg border border-border p-3"
@@ -482,3 +528,16 @@ function highlightColor(value: string) {
     )[value] ?? value
   );
 }
+
+const HOME_ACTION_SECTIONS: Partial<Record<HomeActionKey, string>> = {
+  read: "reading",
+  search: "search",
+  universalSearch: "search",
+  note: "notebook",
+  downloads: "reading",
+  image: "reading",
+  stats: "statistics",
+  activity: "activity",
+  dictionary: "dictionary",
+  community: "feed",
+};

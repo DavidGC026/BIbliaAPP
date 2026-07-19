@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Genera latest.json para tauri-plugin-updater.
-# Uso: ./generate-latest-json.sh 0.3.0 [directorio-artefactos] [salida.json]
-# Plantilla sin artefactos: ./generate-latest-json.sh --dry 0.3.0
+# Uso: ./generate-latest-json.sh 0.3.1 [directorio-artefactos] [salida.json]
+# Plantilla sin artefactos: ./generate-latest-json.sh --dry 0.3.1
 
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -12,11 +12,11 @@ OUT=""
 
 if [[ "${1:-}" == "--dry" ]]; then
   DRY=true
-  VERSION="${2:?Versión requerida (ej. 0.3.0)}"
+  VERSION="${2:?Versión requerida (ej. 0.3.1)}"
   OUT="${3:-$(dirname "$0")/latest.json}"
   ARTIFACTS_DIR=""
 else
-  VERSION="${1:?Versión requerida (ej. 0.3.0)}"
+  VERSION="${1:?Versión requerida (ej. 0.3.1)}"
   ARTIFACTS_DIR="${2:-$ROOT/src-tauri/target/release/bundle}"
   OUT="${3:-$(dirname "$0")/latest.json}"
 fi

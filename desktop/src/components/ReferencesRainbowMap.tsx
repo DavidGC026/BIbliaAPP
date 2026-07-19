@@ -54,16 +54,28 @@ export function ReferencesRainbowMap() {
       setError(null);
       setHtml(null);
       try {
-        const [{ keys, arcs }, { books }] = await Promise.all([
+        const [{ keys, arcs }, catalog] = await Promise.all([
           api.getChapterArcs(),
-          api.listBooks(DEFAULT_BIBLE_ID),
+          api.listBibles(),
         ]);
+        const bibleId =
+          catalog.defaultBibleId ??
+          catalog.bibles.find((item) => item.bibleId === DEFAULT_BIBLE_ID)
+            ?.bibleId ??
+          catalog.bibles[0]?.bibleId;
+        if (!bibleId)
+          throw new Error("No hay una Biblia autorizada disponible");
+        const { books } = await api.listBooks(bibleId);
         if (cancelled) return;
         if (!keys.length) throw new Error("No hay referencias cruzadas");
-        setHtml(getRainbowHtml(readRainbowTheme(), buildPayload(keys, arcs, books)));
+        setHtml(
+          getRainbowHtml(readRainbowTheme(), buildPayload(keys, arcs, books)),
+        );
       } catch (err) {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Error al cargar el mapa");
+          setError(
+            err instanceof Error ? err.message : "Error al cargar el mapa",
+          );
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -75,7 +87,11 @@ export function ReferencesRainbowMap() {
   }, []);
 
   if (loading) {
-    return <p className="py-24 text-center text-muted-foreground">Preparando visualización…</p>;
+    return (
+      <p className="py-24 text-center text-muted-foreground">
+        Preparando visualización…
+      </p>
+    );
   }
 
   if (error || !html) {

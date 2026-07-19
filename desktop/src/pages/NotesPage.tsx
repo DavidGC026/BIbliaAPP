@@ -161,6 +161,7 @@ export function NotesPage({
         <DevotionalsView
           onEdit={(id) => setView({ kind: "devotional-edit", id })}
           onNew={() => setView({ kind: "devotional-edit", id: null })}
+          onOpenBible={onOpenBible}
         />
       ) : null}
       {section === "libros" ? (

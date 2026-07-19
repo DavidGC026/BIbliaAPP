@@ -6,6 +6,7 @@
 | ------------------ | ------------------------------------------------------------ |
 | Email / contraseña | `POST /api/auth/login`                                       |
 | Google             | OAuth localhost (ver [03-desarrollo.md](./03-desarrollo.md)) |
+| Recuperar acceso   | `POST /api/auth/forgot-password`                             |
 | Logo               | `/logo.png` (mismo que la web)                               |
 
 Requiere conexión para el primer login. Tras eso la sesión persiste offline.
@@ -22,6 +23,7 @@ Requiere conexión para el primer login. Tras eso la sesión persiste offline.
 - Notas, favoritos y subrayados recientes
 - Anuncios, próximos eventos y métricas personales
 - Acciones rápidas configurables y onboarding descartable
+- Accesos y contenido filtrados por permisos de sección
 
 ---
 
@@ -89,6 +91,15 @@ Tres sub-pestañas: **Lector** | **Buscar** | **Referencias** | **Diccionario** 
 
 ---
 
+## Calendario (`EventsPage`)
+
+- Eventos combinados de iglesia y grupos
+- Confirmación **Voy / Tal vez / No puedo** en eventos de iglesia
+- Creación y eliminación de eventos para administradores
+- Ubicación, categoría, descripción y recuento de confirmados
+
+---
+
 ## Perfil (`ProfilePage`)
 
 - Datos de cuenta, racha, estado de sesión
@@ -111,7 +122,7 @@ Tres sub-pestañas: **Lector** | **Buscar** | **Referencias** | **Diccionario** 
 ## Barra lateral (`AppLayout`)
 
 - Logo + iglesia
-- Navegación: Inicio, Biblia, Comunidad, Grupos, Perfil
+- Navegación: Inicio, Biblia, Búsqueda, Notas, Comunidad, Grupos, Calendario, Perfil
 - **Notificaciones** 🔔 (SSE + polling)
 - Indicador “Sin conexión”
 - Cerrar sesión
@@ -124,15 +135,19 @@ Pestañas: **Libretas** | **Diario** | **Libros** | **Planes**
 
 ### Libretas
 
-- Crear / editar / eliminar libretas con portadas de gradiente
+- Crear / editar / eliminar libretas con gradientes, Unsplash, URL o archivo propio
 - Notas por libreta (título + contenido; compatible con HTML de la web)
 - Botón **📚 Diccionario** en el editor para insertar entradas Strong
+- Autoguardado, conteo de palabras, tipografía por nota y colores favoritos
+- Imágenes subidas o locales como bloques seleccionables y redimensionables
+- Compartir y exportar mediante el diálogo PDF del sistema
 - **Offline:** SQLite + `syncAll()` al reconectar (como móvil)
 - Capa: `repo.repoListNotebooks`, `repoCreateNotebook`, etc.
 
 ### Diario espiritual
 
 - Entradas con emoción, versículo, reflexión y aplicación
+- Vista de lectura, compartir y apertura del pasaje en la Biblia
 - API: `/api/devotionals`
 
 ### Libros de estudio

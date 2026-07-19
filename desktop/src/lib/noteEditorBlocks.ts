@@ -22,6 +22,10 @@ function tableBlockLabel(table: HTMLTableElement): string {
   return `Tabla ${cols}×${rows}`;
 }
 
+function imageLabel(image: HTMLImageElement | null): string {
+  return image?.alt?.trim() || "Imagen de la nota";
+}
+
 function buildBlockHandleHtml(icon: string, label: string): string {
   return (
     `<div class="biblia-block-handle" contenteditable="false">` +
@@ -110,11 +114,32 @@ export function buildTableBlockHtml(
   );
 }
 
+function escapeAttribute(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+export function buildImageBlockHtml(src: string, alt = "Imagen de la nota") {
+  const safeSrc = escapeAttribute(src);
+  const safeAlt = escapeAttribute(alt);
+  return (
+    `<div class="biblia-content-block biblia-image-block">` +
+    buildBlockHandleHtml("🖼️", safeAlt) +
+    `<div class="biblia-note-image-frame" contenteditable="false">` +
+    `<img src="${safeSrc}" alt="${safeAlt}" />` +
+    `</div></div><p><br></p>`
+  );
+}
+
 function blockMainNode(block: Element): Element | null {
   return (
     block.querySelector("blockquote.biblia-verse-quote") ??
     block.querySelector("aside.biblia-dict-entry") ??
     block.querySelector("table.biblia-note-table") ??
+    block.querySelector(".biblia-note-image-frame") ??
     block.querySelector("table")
   );
 }
@@ -155,7 +180,27 @@ function wrapTableElement(table: HTMLTableElement) {
   block.appendChild(table);
 }
 
+function wrapImageElement(image: HTMLImageElement) {
+  if (image.closest(".biblia-content-block")) return;
+  const block = document.createElement("div");
+  block.className = "biblia-content-block biblia-image-block";
+  block.innerHTML = buildBlockHandleHtml("🖼️", imageLabel(image));
+  const frame = document.createElement("div");
+  frame.className = "biblia-note-image-frame";
+  frame.setAttribute("contenteditable", "false");
+  const width = image.getAttribute("width");
+  if (width) frame.style.width = /^\d+$/.test(width) ? `${width}px` : width;
+  image.removeAttribute("width");
+  image.parentNode?.insertBefore(block, image);
+  frame.appendChild(image);
+  block.appendChild(frame);
+}
+
 export function wrapAllContentBlocks(editor: HTMLElement) {
+  editor.querySelectorAll("img").forEach((image) => {
+    if (image.closest(".biblia-content-block")) return;
+    wrapImageElement(image as HTMLImageElement);
+  });
   editor.querySelectorAll("table").forEach((table) => {
     if (
       table.closest(".biblia-table-widget") ||
@@ -188,6 +233,10 @@ export function initNoteEditorBlocks(editor: HTMLElement): () => void {
     selectedBlock = null;
   }
 
+  function notifyChange() {
+    editor.dispatchEvent(new Event("input", { bubbles: true }));
+  }
+
   function selectBlock(block: Element) {
     clearSelection();
     selectedBlock = block;
@@ -215,11 +264,13 @@ export function initNoteEditorBlocks(editor: HTMLElement): () => void {
     if (direction === "up") parent.insertBefore(block, sibling);
     else parent.insertBefore(sibling, block);
     selectBlock(block);
+    notifyChange();
   }
 
   function removeBlock(block: Element) {
     block.remove();
     clearSelection();
+    notifyChange();
   }
 
   function copyBlock(block: Element) {
@@ -270,7 +321,11 @@ export function initNoteEditorBlocks(editor: HTMLElement): () => void {
       return true;
     }
 
-    if (main.tagName === "BLOCKQUOTE" || main.tagName === "ASIDE") {
+    if (
+      main.tagName === "BLOCKQUOTE" ||
+      main.tagName === "ASIDE" ||
+      main.classList.contains("biblia-note-image-frame")
+    ) {
       selectBlock(block);
       return true;
     }

@@ -20,8 +20,8 @@ npm run pack:win
 Artefactos en:
 
 ```text
-src-tauri\target\release\bundle\msi\BibliaAPP_0.3.0_x64_en-US.msi
-src-tauri\target\release\bundle\nsis\BibliaAPP_0.3.0_x64-setup.exe
+src-tauri\target\release\bundle\msi\BibliaAPP_0.3.1_x64_en-US.msi
+src-tauri\target\release\bundle\nsis\BibliaAPP_0.3.1_x64-setup.exe
 ```
 
 ---
@@ -43,8 +43,8 @@ El workflow [`.github/workflows/desktop-build.yml`](../../.github/workflows/desk
 Para publicar release:
 
 ```bash
-git tag desktop-v0.3.0
-git push origin desktop-v0.3.0
+git tag desktop-v0.3.1
+git push origin desktop-v0.3.1
 ```
 
 Los instaladores aparecen como **draft release** en GitHub. Opcionalmente súbelos también a `https://biblia2.dvguzman.com/desktop/releases/` para el auto-updater.
@@ -68,7 +68,7 @@ Configurado en `tauri.conf.json` → endpoint `latest.json`. Plataforma Windows:
 ```json
 "windows-x86_64": {
   "signature": "…",
-      "url": "https://…/BibliaAPP_0.3.0_x64-setup.nsis.zip"
+      "url": "https://…/BibliaAPP_0.3.1_x64-setup.nsis.zip"
 }
 ```
 

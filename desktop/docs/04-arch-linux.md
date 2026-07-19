@@ -52,7 +52,7 @@ npm run build:arch
 Equivale a `npm run tauri build`. El artefacto queda en:
 
 ```text
-src-tauri/target/release/bundle/appimage/BibliaAPP_0.3.0_amd64.AppImage
+src-tauri/target/release/bundle/appimage/BibliaAPP_0.3.1_amd64.AppImage
 ```
 
 Ejecutar sin instalar:
@@ -118,7 +118,7 @@ En **Biblia** hay tres pestañas:
 ```bash
 cd desktop
 npm run pack:arch
-sudo pacman -U packaging/arch/bibliaapp-desktop-0.3.0-1-x86_64.pkg.tar.zst
+sudo pacman -U packaging/arch/bibliaapp-desktop-0.3.1-1-x86_64.pkg.tar.zst
 ```
 
 O paso a paso:

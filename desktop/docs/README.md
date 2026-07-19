@@ -2,7 +2,7 @@
 
 Cliente de escritorio (Tauri v2 + React) para congregaciones. Consume la API REST de BibliaAPP; no accede directamente a MariaDB.
 
-**Versión actual:** `0.3.0`
+**Versión actual:** `0.3.1`
 **Backend por defecto:** `https://biblia2.dvguzman.com`
 
 ---
@@ -30,7 +30,7 @@ Regla Cursor para agentes: [`.cursor/rules/desktop.mdc`](../../.cursor/rules/des
 
 ---
 
-## Resumen v0.3.0
+## Resumen v0.3.1
 
 - Auth (email + Google OAuth localhost), sesión offline
 - Lector con resaltados, notas, favoritos, imagen de versículo — **sync offline**
@@ -41,13 +41,16 @@ Regla Cursor para agentes: [`.cursor/rules/desktop.mdc`](../../.cursor/rules/des
 - Inicio inteligente, búsqueda universal, planes, actividad y preferencias avanzadas
 - Diez temas, permisos por sección, administración y flujo legal
 - Capacidades/licencias aplicadas también al caché SQLite
+- Editor con autoguardado, tipografías, colores e imágenes redimensionables
+- Portadas avanzadas de libretas y calendario completo con RSVP
+- Devocionales compartibles con apertura directa del pasaje
 
 ---
 
 ## Instalación rápida (Arch)
 
 ```bash
-sudo pacman -U packaging/arch/bibliaapp-desktop-0.3.0-1-x86_64.pkg.tar.zst
+sudo pacman -U packaging/arch/bibliaapp-desktop-0.3.1-1-x86_64.pkg.tar.zst
 ```
 
 Debian: [09-debian-linux.md](./09-debian-linux.md)
