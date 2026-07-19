@@ -28,6 +28,24 @@ Este documento registra el port de las novedades de `mobile/` posteriores al pun
 
 Los temas DVG y UBG solo aparecen para administradores. Si una sesión no administradora conserva uno de esos valores, vuelve automáticamente a Sistema.
 
+## Variante de compilación y Biblia predeterminada
+
+| Variable | Efecto |
+| -------- | ------ |
+| `VITE_APP_VARIANT=internal` (default) | Comunidad y Grupos visibles; fallback local `DEFAULT_BIBLE_ID=149` |
+| `VITE_APP_VARIANT=public` | Comunidad y Grupos ocultos salvo `VITE_COMMUNITY_ENABLED=true` |
+| `VITE_DEFAULT_BIBLE_ID` | Sobrescribe el fallback antes de cargar `/api/bibles` |
+
+Tras cargar el catálogo, el lector, búsqueda, mapa arcoíris, versículo del día y devocionales usan `defaultBibleId` del servidor (`GET /api/bibles`). Si falta, eligen la primera traducción autorizada. Detalle de variables: [03-desarrollo.md](./03-desarrollo.md).
+
+## Editor de notas (bloques y preferencias)
+
+- **Autoguardado:** 4 s de inactividad; estados `pending` / `saving` / `saved`.
+- **Bloques:** `noteEditorBlocks.ts` genera HTML con clases `biblia-content-block` y manijas no editables; soporta redimensionado de imágenes y subida vía `POST /api/upload` con fallback `data:` offline.
+- **Tipografías:** catálogo en `notePreferences.ts` (sistema + Google Fonts bajo demanda).
+- **Colores:** hasta 16 tonos `#RRGGBB` en `bibliaapp_note_favorite_colors`.
+- **PDF:** `window.print()` del sistema; el usuario elige «Guardar como PDF».
+
 ## Adaptaciones propias de escritorio
 
 - Las preferencias no sensibles se guardan en el almacenamiento persistente del WebView. El token continúa en `tauri-plugin-store`.

@@ -45,39 +45,26 @@ Identificador Tauri: `com.bibliaapp.desktop`
 ```text
 desktop/
 ├── docs/                    # Documentación (este directorio)
-├── packaging/arch/          # PKGBUILD, build-pacman-pkg.sh, .pkg.tar.zst
+├── packaging/               # Arch, Debian, Windows, releases
 ├── public/logo.png          # Logo web (copiado por npm run icons)
 ├── src/
-│   ├── App.tsx              # Auth + routing por pestaña
-│   ├── context/AuthContext.tsx
-│   ├── components/
-│   │   ├── AppLayout.tsx    # Sidebar
-│   │   ├── BibleReader.tsx
-│   │   ├── BibleSearch.tsx
-│   │   ├── VerseOfDayCard.tsx
-│   │   └── ui/              # Button, Card
-│   ├── pages/
-│   │   ├── LoginPage.tsx
-│   │   ├── HomePage.tsx
-│   │   ├── BiblePage.tsx    # Lector | Buscar | Descargas
-│   │   ├── FeedPage.tsx
-│   │   ├── GroupsPage.tsx
-│   │   ├── ProfilePage.tsx
-│   │   └── DownloadsPage.tsx
+│   ├── App.tsx              # Auth + routing por pestaña (lib/nav.ts)
+│   ├── context/             # AuthContext, ThemeContext
+│   ├── components/          # AppLayout, BibleReader, modales, etc.
+│   ├── pages/               # Home, Biblia, Notas, Calendario, Perfil…
+│   │   └── notes/           # NoteEditorView, DevotionalsView, libretas
 │   └── lib/
 │       ├── api.ts           # Cliente HTTP REST
-│       ├── repo.ts          # Online/offline unificado (Biblia)
-│       ├── config.ts        # VITE_API_URL, DEFAULT_BIBLE_ID
+│       ├── repo.ts          # Online/offline unificado
+│       ├── sync.ts          # Sync libretas, notas, resaltados, favoritos
+│       ├── config.ts        # API, variant, comunidad, Biblia por defecto
+│       ├── nav.ts           # Pestañas, allowedSections, variant public
+│       ├── preferences.ts   # Lector, Inicio, historial, recordatorios
+│       ├── noteEditorBlocks.ts  # Bloques versículo/diccionario/imagen/tabla
+│       ├── notePreferences.ts   # Tipografías y paleta del editor
 │       ├── sessionStore.ts  # Token en plugin-store
-│       ├── googleAuth.ts    # OAuth localhost
-│       ├── types.ts
-│       └── offline/
-│           ├── db.ts        # SQLite schema
-│           └── bibleStore.ts
-└── src-tauri/
-    ├── src/lib.rs           # Plugins + OAuth listener
-    ├── tauri.conf.json
-    └── capabilities/default.json
+│       └── offline/         # db.ts, bibleStore.ts
+└── src-tauri/               # Rust: plugins, OAuth listener, tauri.conf.json
 ```
 
 ---
@@ -122,6 +109,8 @@ Permisos en `src-tauri/capabilities/default.json`: `core`, `opener`, `store`, `s
 
 - `ThemeContext` aplica `data-theme` y conserva el modo elegido.
 - `lib/preferences.ts` centraliza lector, último pasaje, Inicio, historial y plantilla de imagen.
-- `lib/nav.ts` interpreta `allowedSections` para navegación y subpestañas.
+- `lib/notePreferences.ts` guarda tipografía por nota y paleta de colores (localStorage).
+- `lib/noteEditorBlocks.ts` envuelve versículos, Strong, tablas e imágenes con barra ↑↓ Copiar/Cortar/Eliminar (paridad móvil).
+- `lib/nav.ts` interpreta `allowedSections` y oculta Comunidad/Grupos en variant `public` salvo `VITE_COMMUNITY_ENABLED=true`.
 - `bibles.capabilities_json` conserva licencia y capacidades para decisiones offline.
 - `App.tsx` resuelve búsqueda, estadísticas, actividad, subrayados, administración y legal.

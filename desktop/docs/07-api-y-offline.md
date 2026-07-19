@@ -4,9 +4,16 @@
 
 ```typescript
 // src/lib/config.ts
-VITE_API_URL  → default https://biblia2.dvguzman.com
-DEFAULT_BIBLE_ID = 149  // RVR1960
+VITE_API_URL       → default https://biblia2.dvguzman.com
+VITE_APP_VARIANT   → "internal" (default) | "public"
+VITE_COMMUNITY_ENABLED → "true" fuerza Comunidad/Grupos en variant=public
+VITE_DEFAULT_BIBLE_ID  → opcional; si falta, 149 solo en internal, 0 en public
+DEFAULT_BIBLE_ID   → valor inicial hasta cargar el catálogo
 ```
+
+Tras el login, la mayoría de pantallas de Biblia resuelven la versión activa con
+`repo.repoListBibles()` → `defaultBibleId ?? bibles[0]?.bibleId ?? DEFAULT_BIBLE_ID`.
+En variant `public` no se asume RVR1960 (`149`) si el servidor no lo autoriza.
 
 Todas las peticiones autenticadas llevan:
 
@@ -23,6 +30,7 @@ Authorization: Bearer <token>
 | Método | Ruta                                | Uso                       |
 | ------ | ----------------------------------- | ------------------------- |
 | POST   | `/api/auth/login`                   | Login email               |
+| POST   | `/api/auth/forgot-password`         | Recuperación de acceso    |
 | POST   | `/api/auth/logout`                  | Cerrar sesión             |
 | GET    | `/api/auth/me`                      | Perfil / revalidar sesión |
 | GET    | `/api/auth/google?desktop=1&port=N` | Inicio OAuth Google       |
@@ -170,4 +178,6 @@ Implementado en `BibleReader` y `FavoritesPage`. Sync offline vía `lib/sync.ts`
 npm run check   # src/lib/__check__.ts
 ```
 
-Verifica helpers de errores auth y parseo de URLs OAuth.
+Comprueba helpers de auth (`isAuthError`, `isNetworkError`), parseo de callback
+Google, bloques de feed con imágenes, inserción de versículos (`formatVerseHtml`)
+y escape de atributos en bloques de imagen del editor (`buildImageBlockHtml`).
