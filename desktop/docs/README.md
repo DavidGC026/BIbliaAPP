@@ -26,6 +26,8 @@ Cliente de escritorio (Tauri v2 + React) para congregaciones. Consume la API RES
 | 11  | [11-windows.md](./11-windows.md)                               | Windows / `.msi`                   |
 | 12  | [12-paridad-mobile-2026-07.md](./12-paridad-mobile-2026-07.md) | Port de novedades móviles de julio |
 
+**Paridad web (Next.js):** [`../../docs/temas-visuales-web.md`](../../docs/temas-visuales-web.md) · [`../../docs/mejoras-uso-diario-web.md`](../../docs/mejoras-uso-diario-web.md) · [`../../docs/estilos-moviles-web.md`](../../docs/estilos-moviles-web.md)
+
 Regla Cursor para agentes: [`.cursor/rules/desktop.mdc`](../../.cursor/rules/desktop.mdc)
 
 ---

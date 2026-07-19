@@ -133,3 +133,63 @@ Pruebas manuales recomendadas:
    **Sistema**.
 6. Revisar el mapa arcoíris de referencias y el editor de notas en un tema
    oscuro no-`dark` (p. ej. Medianoche): ambos deben usar su variante oscura.
+
+## Añadir un tema nuevo
+
+Checklist mínima (sin tocar componentes individuales):
+
+1. [`app/globals.css`](../app/globals.css) — clase en `<html>` con variables
+   semánticas, `color-scheme` y, si es oscuro, entrada en `@custom-variant dark`.
+2. [`app/layout.tsx`](../app/layout.tsx) — valor en la prop `themes` del
+   `ThemeProvider`.
+3. [`components/theme-toggle.tsx`](../components/theme-toggle.tsx) — entrada en
+   `THEME_OPTIONS` con miniatura y descripción.
+4. [`lib/theme.ts`](../lib/theme.ts) — incluir en `DARK_THEMES` si el tema es
+   oscuro (para `dark:` de Tailwind y `isDarkThemeName`).
+5. [`lib/note-editor-theme.ts`](../lib/note-editor-theme.ts) — par
+   `primarySoft` / `primaryBorder` en `PRIMARY_EXTRAS` (no existen como
+   variables CSS).
+
+Los componentes que consumen solo variables semánticas (`bg-background`,
+`text-foreground`, etc.) no requieren cambios.
+
+## Solución de problemas
+
+### Base UI error #31 al abrir el selector
+
+Base UI exige que `Menu.GroupLabel` (exportado como `DropdownMenuLabel`) viva
+**dentro** de `Menu.Group` (`DropdownMenuGroup`). Si el label queda suelto en
+`DropdownMenuContent`, al abrir el menú aparece el error #31.
+
+Patrón correcto en [`components/theme-toggle.tsx`](../components/theme-toggle.tsx):
+
+```tsx
+<DropdownMenuContent>
+  <DropdownMenuGroup>
+    <DropdownMenuLabel>Apariencia</DropdownMenuLabel>
+  </DropdownMenuGroup>
+  …
+</DropdownMenuContent>
+```
+
+El mismo patrón aplica a `SelectLabel` → `SelectGroup` en otros menús.
+
+### `dark:` no aplica en Medianoche, Bosque, DVG, etc.
+
+Comprobar que el tema esté listado en `@custom-variant dark` de
+`globals.css` **y** en `DARK_THEMES` de `lib/theme.ts`. Solo `.dark` no basta.
+
+### Color automático del editor de notas
+
+El marcador `.note-color-auto` se resuelve con las variables del tema activo vía
+[`lib/note-editor-theme.ts`](../lib/note-editor-theme.ts). Si un tema nuevo no
+tiene entrada en `PRIMARY_EXTRAS`, el editor cae al fallback claro.
+
+## Documentación relacionada
+
+| Documento | Relación |
+|-----------|----------|
+| [docs-mobile/25-temas-visuales-y-dvg.md](../docs-mobile/25-temas-visuales-y-dvg.md) | Origen móvil: `Colors.ts`, `ThemeSwitch`, `AdminThemeGuard` |
+| [estilos-moviles-web.md](./estilos-moviles-web.md) | Viewport global (`interactiveWidget`) que afecta a toda la app |
+| [mejoras-uso-diario-web.md](./mejoras-uso-diario-web.md) | Temas globales vs. tema de superficie del lector (pendiente) |
+| [desktop/docs/12-paridad-mobile-2026-07.md](../desktop/docs/12-paridad-mobile-2026-07.md) | Paridad de los diez temas en el cliente Tauri |

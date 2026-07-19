@@ -85,3 +85,41 @@ Pruebas manuales:
    los bloques de recientes; tocar uno abre el lector en el pasaje.
 5. En **Buscador Avanzado**: buscar algo, vaciar el campo y ver el chip;
    tocarlo repite la búsqueda; probar quitar uno y "Borrar todo".
+
+## Trampas conocidas
+
+### Dos historiales de búsqueda distintos
+
+La web mantiene **dos** claves en `localStorage`, no unificadas como en la
+búsqueda universal móvil:
+
+| Clave | Componente | Límite |
+|-------|------------|--------|
+| `biblia_search_history` | [`search-advanced.tsx`](../components/search-advanced.tsx) | 10 |
+| `recent_searches` | [`reader-search.tsx`](../components/bible-reader/reader-search.tsx) | 5 |
+
+Unificarlas implicaría decidir UX (¿mismo historial en lector y buscador
+avanzado?) y migrar datos existentes.
+
+### Continuar lectura en el Dashboard requiere `onSelectVerse`
+
+La tarjeta **Continuar lectura** solo abre el lector en el capítulo correcto si
+el Dashboard recibe `onSelectVerse` desde
+[`sections.client.tsx`](../lib/app-section-registry/sections.client.tsx)
+(`ctx.handleSelectVerse`). Sin esa prop, tocar la tarjeta cambia de pestaña pero
+no navega al pasaje.
+
+### Biblia por defecto no es fija
+
+El lector obtiene `defaultBibleId` de `GET /api/bibles` (preferencia de la
+iglesia). La restauración de `biblia_last_reading` usa el `bibleId` guardado en
+el dispositivo, no un ID hardcodeado.
+
+## Documentación relacionada
+
+| Documento | Relación |
+|-----------|----------|
+| [docs-mobile/20-plan-maestro-mejoras-generales.md](../docs-mobile/20-plan-maestro-mejoras-generales.md) | Plan maestro móvil de origen |
+| [temas-visuales-web.md](./temas-visuales-web.md) | Temas globales ya portados; tema de superficie del lector pendiente |
+| [estilos-moviles-web.md](./estilos-moviles-web.md) | Viewport y modo inmersivo (afecta Inicio en móvil, no estas features) |
+| [desktop/docs/12-paridad-mobile-2026-07.md](../desktop/docs/12-paridad-mobile-2026-07.md) | Inicio inteligente y búsqueda universal en Tauri |

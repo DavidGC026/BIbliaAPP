@@ -18,7 +18,8 @@ Antes de escribir o modificar código, **lee la documentación del área corresp
 
 1. Identifica si el cambio es **web**, **mobile** o **ambos**.
 2. Abre el índice:
-   - Web: archivos en `docs/` (p. ej. despliegue, colores, notas, iglesias…).
+   - Web (versionados en Git): [`docs/temas-visuales-web.md`](./docs/temas-visuales-web.md), [`docs/mejoras-uso-diario-web.md`](./docs/mejoras-uso-diario-web.md), [`docs/estilos-moviles-web.md`](./docs/estilos-moviles-web.md); más docs locales en `docs/` según `.gitignore`.
+   - Desktop: [`desktop/docs/README.md`](./desktop/docs/README.md).
    - Mobile: [`docs-mobile/README.md`](./docs-mobile/README.md) y el doc numerado de la feature.
 3. Lee al menos el documento de la feature afectada (arquitectura, pantallas, API, build, etc.) **antes** de implementar.
 4. Si el cambio toca API o paridad web↔móvil, revisa también docs del otro lado (`docs/` ↔ `docs-mobile/`).

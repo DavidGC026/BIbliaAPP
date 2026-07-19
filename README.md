@@ -23,10 +23,19 @@ lib/              # Lógica de negocio, MySQL, auth, grupos, oración…
 mobile/           # App React Native (Expo)
 docs-mobile/      # Documentación del cliente móvil
 public/           # Estáticos y uploads
-docs/             # Documentación local web (no se sube a Git; ver .gitignore)
+docs/             # Documentación técnica web (parcialmente versionada; ver .gitignore)
 ```
 
-Documentación local útil (en `docs/`, solo en tu servidor):
+Documentación local útil:
+
+| Archivo | Contenido |
+|---------|-----------|
+| [`docs/temas-visuales-web.md`](docs/temas-visuales-web.md) | Paletas de apariencia web (paridad móvil, DVG/UBG admin) |
+| [`docs/mejoras-uso-diario-web.md`](docs/mejoras-uso-diario-web.md) | Continuar lectura, recientes en Inicio, historial de búsqueda |
+| [`docs/estilos-moviles-web.md`](docs/estilos-moviles-web.md) | Teclado, viewport y área de escritura en Notas (móvil web) |
+| [`desktop/docs/README.md`](desktop/docs/README.md) | Cliente de escritorio Tauri v0.3.0 |
+
+Solo en el servidor (no versionados; ver `.gitignore`):
 
 | Archivo | Contenido |
 |---------|-----------|
