@@ -120,9 +120,19 @@ bottom-[calc(96px+env(safe-area-inset-bottom))] md:bottom-6
 96 px = 12 (offset de la tabbar) + 72 (su alto) + 12 de aire.
 
 **Regla general:** cualquier elemento `fixed` anclado abajo en móvil debe
-despejar esa franja — como ya hace el FAB de `components/feed.tsx`
-(`fixed bottom-20`). Si el elemento necesita el fondo entero, el patrón
+despejar esa franja. Si el elemento necesita el fondo entero, el patrón
 alternativo es el de `body.note-immersive`, que oculta header y tabbar.
+
+Inventario actual de anclajes inferiores en móvil:
+
+| Elemento | Archivo | Offset en móvil | Notas |
+|----------|---------|-----------------|-------|
+| Tabbar principal | [`app/page.tsx`](../app/page.tsx) | `bottom: calc(12px + safe-area)` · `h-[72px]` · `z-40` | Oculta desde `md` |
+| Toolbar de selección (lector) | [`reader-toolbar.tsx`](../components/bible-reader/reader-toolbar.tsx) | `bottom: calc(96px + safe-area)` · `z-50` | Vuelve a `bottom-6` desde `md` |
+| FAB de publicar (Comunidad) | [`feed.tsx`](../components/feed.tsx) | `bottom-20` (80 px) · `z-20` | Aproxima la franja; no usa la fórmula exacta de 96 px |
+
+Si cambias el alto o el offset de `.mobile-tabbar`, recalcula **96 px**
+(12 + 72 + 12) o centraliza la constante antes de tocar cada consumidor.
 
 ## Resultado medido
 
@@ -168,3 +178,48 @@ Pruebas manuales en un teléfono real (lo que no cubre el navegador headless):
 7. En **Biblia**, seleccionar un versículo: la toolbar de subrayado debe quedar
    completa por encima de la tabbar, sin montarse sobre ella. Ensanchar a
    escritorio (`md`) y comprobar que vuelve a pegarse al borde inferior.
+
+## Trampas conocidas
+
+### `interactiveWidget` afecta a toda la app
+
+El viewport de [`app/layout.tsx`](../app/layout.tsx) es global: cualquier pantalla
+móvil reflowa con el teclado, no solo Notas. Si una sección dependía de altura
+fija con `100dvh`, conviene revisarla tras el cambio.
+
+### Detección de teclado con altura acumulada
+
+Con `resizes-content`, `window.innerHeight` **también** encoge al abrir el
+teclado. La detección en [`notebook-sidebar.tsx`](../components/notebook-sidebar.tsx)
+usa la **mayor** altura vista (`baseline`) y marca `body.keyboard-open` cuando
+la altura cae más de 120 px por debajo. No usar la altura inicial del montaje.
+
+### Modo inmersivo es opt-in
+
+Solo la sección Notas pasa `immersiveOnMobile` al sidebar. El editor embebido del
+lector (`embedded`) **no** debe activarlo: vive dentro de un panel dividido y
+necesita header/tabbar visibles.
+
+### Autoguardado web vs. `beforeRemove` móvil
+
+En web el autoguardado espera **4 s** de inactividad. **Volver** no fuerza
+guardado inmediato (a diferencia del hook `beforeRemove` de Expo). Para no
+perder cambios, esperar el indicador de guardado o pulsar **Guardar** antes de
+salir.
+
+### `z-index` no sustituye al offset inferior
+
+Un control `fixed bottom-6` con `z-50` puede quedar **visualmente encima** de la
+tabbar (`z-40`) y aun así tapar sus botones o quedar tapado por ellos. En móvil
+hay que reservar la franja de 96 px (más `safe-area-inset-bottom`), no confiar
+solo en el stacking context.
+
+## Documentación relacionada
+
+| Documento | Relación |
+|-----------|----------|
+| [temas-visuales-web.md](./temas-visuales-web.md) | Paletas globales; el editor lee variables CSS del tema activo |
+| [mejoras-uso-diario-web.md](./mejoras-uso-diario-web.md) | Continuar lectura, recientes en Inicio y lector (`bible-reader`) |
+| [docs-mobile/16-editor-webview-teclado-seleccion.md](../docs-mobile/16-editor-webview-teclado-seleccion.md) | Origen móvil del editor y teclado |
+| [docs-mobile/22-notas-diseno-profesional.md](../docs-mobile/22-notas-diseno-profesional.md) | Diseño visual de notas en móvil nativo |
+| [desktop/docs/12-paridad-mobile-2026-07.md](../desktop/docs/12-paridad-mobile-2026-07.md) | Cliente de escritorio (sin viewport móvil ni teclado virtual) |

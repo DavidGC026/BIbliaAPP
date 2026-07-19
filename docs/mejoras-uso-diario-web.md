@@ -55,6 +55,9 @@ Los devocionales recientes ya existían en la web.
 - Nota: el buscador interno del lector
   ([`components/bible-reader/reader-search.tsx`](../components/bible-reader/reader-search.tsx))
   ya tenía su propio historial (`recent_searches`); se dejó como está.
+- Posicionamiento móvil de la toolbar de selección (subrayado, copiar, compartir):
+  [`docs/estilos-moviles-web.md`](estilos-moviles-web.md) — debe quedar por encima de
+  `.mobile-tabbar`, no montada sobre ella.
 
 ## Pendiente de portar (candidatos siguientes)
 
