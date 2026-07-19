@@ -27,6 +27,16 @@ import type {
   CrossReference,
   StrongEntry,
   DictionaryInfo,
+  AdminSectionGroup,
+  ManagedUser,
+  ReadingPlan,
+  UserReadingPlan,
+  ChurchEvent,
+  BookStat,
+  HeatmapDay,
+  ProgressBook,
+  FeedAnnouncement,
+  HighlightItem,
 } from "@/lib/types";
 
 type TokenGetter = () => string | null;
@@ -61,7 +71,9 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
   if (!response.ok) {
     const err = data as ApiError;
-    const error = new Error(err.error ?? `Error ${response.status}`) as Error & {
+    const error = new Error(
+      err.error ?? `Error ${response.status}`,
+    ) as Error & {
       status?: number;
       code?: string;
     };
@@ -89,6 +101,49 @@ export async function getMe() {
   return request<{ user: User | null }>("/api/auth/me");
 }
 
+export async function acceptLegalTerms() {
+  return request<{ success: boolean; legalAcceptedAt: string | null }>(
+    "/api/legal/accept",
+    {
+      method: "POST",
+      body: JSON.stringify({ accept: true }),
+    },
+  );
+}
+
+export interface AdminUserPayload {
+  name: string;
+  email: string;
+  password?: string;
+  role: string;
+  allowedSections: string[] | null;
+}
+export async function adminListUsers() {
+  return request<{ users: ManagedUser[] }>("/api/admin/users");
+}
+export async function adminListSections() {
+  return request<{ groups: AdminSectionGroup[]; defaults: string[] }>(
+    "/api/admin/sections",
+  );
+}
+export async function adminCreateUser(payload: AdminUserPayload) {
+  return request<{ success: boolean; user: ManagedUser }>("/api/admin/users", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+export async function adminUpdateUser(id: number, payload: AdminUserPayload) {
+  return request<{ success: boolean }>(`/api/admin/users/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+export async function adminDeleteUser(id: number) {
+  return request<{ success: boolean }>(`/api/admin/users/${id}`, {
+    method: "DELETE",
+  });
+}
+
 // — Biblia —
 export async function getVerseOfDay(idBible?: number) {
   const query = idBible ? `?idBible=${idBible}` : "";
@@ -96,14 +151,20 @@ export async function getVerseOfDay(idBible?: number) {
 }
 
 export async function listBibles() {
-  return request<{ bibles: BibleVersion[] }>("/api/bibles");
+  return request<{ bibles: BibleVersion[]; defaultBibleId: number | null }>(
+    "/api/bibles",
+  );
 }
 
 export async function listBooks(bibleId: number) {
   return request<{ books: Book[] }>(`/api/books?bible=${bibleId}`);
 }
 
-export async function getVerses(bibleId: number, bookId: number, chapter: number) {
+export async function getVerses(
+  bibleId: number,
+  bookId: number,
+  chapter: number,
+) {
   return request<{ verses: Verse[] }>(
     `/api/verses?bible=${bibleId}&book=${bookId}&chapter=${chapter}`,
   );
@@ -163,7 +224,11 @@ export async function searchDictionary(opts: {
 }
 
 // — Resaltados y notas —
-export async function getHighlights(bookId: number, chapter: number, bibleId: number) {
+export async function getHighlights(
+  bookId: number,
+  chapter: number,
+  bibleId: number,
+) {
   return request<{ highlights: VerseHighlight[] }>(
     `/api/highlights?book=${bookId}&chapter=${chapter}&bibleId=${bibleId}`,
   );
@@ -179,6 +244,29 @@ export async function setHighlights(
   return request<{ ok: boolean }>("/api/highlights", {
     method: "POST",
     body: JSON.stringify({ bookId, chapter, verses, color, bibleId }),
+  });
+}
+
+export async function getAllHighlights() {
+  return request<{ highlights: HighlightItem[] }>("/api/highlights/all");
+}
+
+// — Planes de lectura —
+export async function getReadingPlans() {
+  return request<{ plans: ReadingPlan[]; userPlans: UserReadingPlan[] }>(
+    "/api/plans",
+  );
+}
+export async function joinReadingPlan(planId: number) {
+  return request<{ success: boolean; message: string }>("/api/plans", {
+    method: "POST",
+    body: JSON.stringify({ action: "join", planId }),
+  });
+}
+export async function updatePlanProgress(planId: number, progress: number[]) {
+  return request<{ success: boolean; message: string }>("/api/plans", {
+    method: "POST",
+    body: JSON.stringify({ action: "progress", planId, progress }),
   });
 }
 
@@ -235,11 +323,18 @@ export async function listNotebooks() {
 export async function createNotebook(name: string, coverImage?: string | null) {
   return request<{ id: number; name: string; coverImage?: string | null }>(
     "/api/notebooks",
-    { method: "POST", body: JSON.stringify({ name, coverImage: coverImage ?? null }) },
+    {
+      method: "POST",
+      body: JSON.stringify({ name, coverImage: coverImage ?? null }),
+    },
   );
 }
 
-export async function updateNotebook(id: number, name: string, coverImage?: string | null) {
+export async function updateNotebook(
+  id: number,
+  name: string,
+  coverImage?: string | null,
+) {
   return request<{ ok: boolean }>(`/api/notebooks/${id}`, {
     method: "PUT",
     body: JSON.stringify({ name, coverImage: coverImage ?? null }),
@@ -251,10 +346,16 @@ export async function deleteNotebook(id: number) {
 }
 
 export async function listNotebookNotes(notebookId: number) {
-  return request<{ notes: NotebookNote[] }>(`/api/notebooks/${notebookId}/notes`);
+  return request<{ notes: NotebookNote[] }>(
+    `/api/notebooks/${notebookId}/notes`,
+  );
 }
 
-export async function createNotebookNote(notebookId: number, title: string, content: string) {
+export async function createNotebookNote(
+  notebookId: number,
+  title: string,
+  content: string,
+) {
   return request<{ id: number; title: string; content: string }>(
     `/api/notebooks/${notebookId}/notes`,
     { method: "POST", body: JSON.stringify({ title, content }) },
@@ -345,7 +446,9 @@ function mapBookLog(row: Record<string, unknown>): BookLog {
 }
 
 export async function listExternalBooks() {
-  const res = await request<{ books: Record<string, unknown>[] }>("/api/external-books");
+  const res = await request<{ books: Record<string, unknown>[] }>(
+    "/api/external-books",
+  );
   return { books: res.books.map(mapExternalBook) };
 }
 
@@ -361,19 +464,27 @@ export async function createExternalBook(
 }
 
 export async function getExternalBook(id: number) {
-  const res = await request<{ book: Record<string, unknown>; logs: Record<string, unknown>[] }>(
-    `/api/external-books/${id}`,
-  );
+  const res = await request<{
+    book: Record<string, unknown>;
+    logs: Record<string, unknown>[];
+  }>(`/api/external-books/${id}`);
   return { book: mapExternalBook(res.book), logs: res.logs.map(mapBookLog) };
 }
 
 export async function deleteExternalBook(id: number) {
-  return request<{ success: boolean }>(`/api/external-books/${id}`, { method: "DELETE" });
+  return request<{ success: boolean }>(`/api/external-books/${id}`, {
+    method: "DELETE",
+  });
 }
 
 export async function addExternalBookLog(
   bookId: number,
-  payload: { title?: string; pages_read?: string; chapter?: string; reflection: string },
+  payload: {
+    title?: string;
+    pages_read?: string;
+    chapter?: string;
+    reflection: string;
+  },
 ) {
   return request<{ success: boolean }>(`/api/external-books/${bookId}/logs`, {
     method: "POST",
@@ -459,7 +570,10 @@ export async function getGroupPrayers(groupId: number) {
   return request<{ prayers: GroupPrayer[] }>(`/api/groups/${groupId}/prayers`);
 }
 
-export async function joinPrayerIntercession(groupId: number, prayerId: number) {
+export async function joinPrayerIntercession(
+  groupId: number,
+  prayerId: number,
+) {
   return request<{ success: boolean }>(`/api/groups/${groupId}/prayers`, {
     method: "POST",
     body: JSON.stringify({ prayerId }),
@@ -477,15 +591,60 @@ export async function getGroupPosts(groupId: number) {
 }
 
 export async function joinGroupByCode(inviteCode: string) {
-  return request<{ success: boolean; groupId: number; alreadyMember?: boolean }>(
-    "/api/groups/join",
-    { method: "POST", body: JSON.stringify({ inviteCode: inviteCode.trim() }) },
-  );
+  return request<{
+    success: boolean;
+    groupId: number;
+    alreadyMember?: boolean;
+  }>("/api/groups/join", {
+    method: "POST",
+    body: JSON.stringify({ inviteCode: inviteCode.trim() }),
+  });
 }
 
 // — Iglesia —
 export async function getChurchSettings() {
   return request<{ settings: ChurchSettings }>("/api/church-settings");
+}
+
+export async function listChurchEvents() {
+  return request<{ events: ChurchEvent[] }>("/api/events");
+}
+
+export async function setEventRsvp(
+  eventId: number,
+  status: "going" | "maybe" | "declined",
+) {
+  return request<{ success: boolean }>("/api/events", {
+    method: "POST",
+    body: JSON.stringify({ action: "rsvp", eventId, status }),
+  });
+}
+
+export async function getStatistics() {
+  return request<{ statistics: BookStat[] }>("/api/statistics");
+}
+
+export async function getActivity() {
+  return request<{ heatmap: HeatmapDay[]; recentProgress: ProgressBook[] }>(
+    "/api/activity",
+  );
+}
+
+export async function recordReadingActivity(
+  bookId: number,
+  chaptersCount = 1,
+  versesCount = 0,
+) {
+  return request<{ success: boolean }>("/api/activity", {
+    method: "POST",
+    body: JSON.stringify({ bookId, chaptersCount, versesCount }),
+  });
+}
+
+export async function getFeedAnnouncements() {
+  return request<{ announcements: FeedAnnouncement[] }>(
+    "/api/feed/announcements",
+  );
 }
 
 // — Notificaciones —

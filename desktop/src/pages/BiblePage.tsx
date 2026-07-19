@@ -5,15 +5,22 @@ import { ReferencesExplorer } from "@/components/ReferencesExplorer";
 import { StrongDictionary } from "@/components/StrongDictionary";
 import { DownloadsPage } from "@/pages/DownloadsPage";
 import type { BibleTarget } from "@/lib/types";
+import { useAuth } from "@/context/AuthContext";
+import { parseAllowedSections } from "@/lib/nav";
 
-type BibleMode = "reader" | "search" | "references" | "dictionary" | "downloads";
+type BibleMode =
+  | "reader"
+  | "search"
+  | "references"
+  | "dictionary"
+  | "downloads";
 
-const MODES: { key: BibleMode; label: string }[] = [
-  { key: "reader", label: "Lector" },
-  { key: "search", label: "Buscar" },
-  { key: "references", label: "Referencias" },
-  { key: "dictionary", label: "Diccionario" },
-  { key: "downloads", label: "Descargas" },
+const MODES: { key: BibleMode; label: string; section: string }[] = [
+  { key: "reader", label: "Lector", section: "reading" },
+  { key: "search", label: "Buscar", section: "search" },
+  { key: "references", label: "Referencias", section: "references" },
+  { key: "dictionary", label: "Diccionario", section: "dictionary" },
+  { key: "downloads", label: "Descargas", section: "reading" },
 ];
 
 type Props = {
@@ -22,8 +29,21 @@ type Props = {
 };
 
 export function BiblePage({ target, onTargetConsumed }: Props) {
+  const { user } = useAuth();
   const [mode, setMode] = useState<BibleMode>("reader");
-  const [readerTarget, setReaderTarget] = useState<BibleTarget | undefined>(target);
+  const [readerTarget, setReaderTarget] = useState<BibleTarget | undefined>(
+    target,
+  );
+  const allowed = parseAllowedSections(user?.allowedSections);
+  const visibleModes = MODES.filter(
+    (item) =>
+      user?.role === "admin" || !allowed || allowed.includes(item.section),
+  );
+
+  useEffect(() => {
+    if (!visibleModes.some((item) => item.key === mode) && visibleModes[0])
+      setMode(visibleModes[0].key);
+  }, [mode, user?.role, user?.allowedSections]);
 
   useEffect(() => {
     if (!target) return;
@@ -40,7 +60,7 @@ export function BiblePage({ target, onTargetConsumed }: Props) {
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="flex gap-1 border-b border-border bg-card/50 px-4 py-2">
-        {MODES.map((m) => (
+        {visibleModes.map((m) => (
           <button
             key={m.key}
             type="button"

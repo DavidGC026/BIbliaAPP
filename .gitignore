@@ -26,6 +26,8 @@ public/uploads
 scripts
 .continue
 docs
+!desktop/docs/
+!desktop/docs/**
 
 docs-mobile
 # App móvil: tiene su propio repositorio

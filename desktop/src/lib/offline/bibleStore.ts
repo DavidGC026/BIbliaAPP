@@ -2,12 +2,17 @@ import * as api from "@/lib/api";
 import { getAll, getFirst, nowIso, run } from "@/lib/offline/db";
 import type { BibleVersion, Book, Verse } from "@/lib/types";
 
-export type DownloadProgress = { phase: string; current: number; total: number };
+export type DownloadProgress = {
+  phase: string;
+  current: number;
+  total: number;
+};
 
 interface BibleRow {
   bible_id: number;
   abbr: string;
   name: string;
+  capabilities_json: string | null;
   downloaded: number;
   downloaded_at: string | null;
 }
@@ -16,13 +21,29 @@ export async function listLocalBibles(): Promise<
   (BibleVersion & { downloaded: boolean; downloadedAt?: string })[]
 > {
   const rows = await getAll<BibleRow>("SELECT * FROM bibles ORDER BY name");
-  return rows.map((r) => ({
-    bibleId: r.bible_id,
-    abbr: r.abbr,
-    name: r.name,
-    downloaded: r.downloaded === 1,
-    downloadedAt: r.downloaded_at ?? undefined,
-  }));
+  return rows.map((r) => {
+    let capabilities: Partial<BibleVersion> = {};
+    try {
+      capabilities = r.capabilities_json ? JSON.parse(r.capabilities_json) : {};
+    } catch {
+      capabilities = {};
+    }
+    return {
+      ...capabilities,
+      bibleId: r.bible_id,
+      abbr: r.abbr,
+      name: r.name,
+      downloaded: r.downloaded === 1,
+      downloadedAt: r.downloaded_at ?? undefined,
+    };
+  });
+}
+
+export async function canCacheBible(bibleId: number): Promise<boolean> {
+  const bible = (await listLocalBibles()).find(
+    (item) => item.bibleId === bibleId,
+  );
+  return bible?.canDownload === true;
 }
 
 export async function isBibleDownloaded(bibleId: number) {
@@ -122,11 +143,25 @@ export async function getDownloadedSize(bibleId: number): Promise<number> {
 }
 
 async function upsertBibleMeta(b: BibleVersion) {
+  const capabilities = JSON.stringify({
+    license: b.license,
+    copyright: b.copyright,
+    attribution: b.attribution,
+    sourceUrl: b.sourceUrl,
+    catalogScope: b.catalogScope,
+    canRead: b.canRead,
+    canDownload: b.canDownload,
+    canCopy: b.canCopy,
+    canShare: b.canShare,
+    canCreateImages: b.canCreateImages,
+    canUseAudio: b.canUseAudio,
+    cacheMaxAgeDays: b.cacheMaxAgeDays,
+  });
   await run(
-    `INSERT INTO bibles (bible_id, abbr, name, downloaded, downloaded_at)
-     VALUES (?, ?, ?, 0, NULL)
-     ON CONFLICT(bible_id) DO UPDATE SET abbr = excluded.abbr, name = excluded.name`,
-    [b.bibleId, b.abbr, b.name],
+    `INSERT INTO bibles (bible_id, abbr, name, capabilities_json, downloaded, downloaded_at)
+     VALUES (?, ?, ?, ?, 0, NULL)
+     ON CONFLICT(bible_id) DO UPDATE SET abbr = excluded.abbr, name = excluded.name, capabilities_json = excluded.capabilities_json`,
+    [b.bibleId, b.abbr, b.name, capabilities],
   );
 }
 
@@ -140,11 +175,15 @@ async function insertVerses(bibleId: number, verses: Verse[]) {
   }
 }
 
-async function fetchBookVersesBulk(bibleId: number, bookId: number): Promise<Verse[] | null> {
+async function fetchBookVersesBulk(
+  bibleId: number,
+  bookId: number,
+): Promise<Verse[] | null> {
   try {
     const { verses } = await api.getVersesBulk(bibleId, bookId);
     return verses;
-  } catch {
+  } catch (error) {
+    if ((error as Error & { status?: number }).status === 403) throw error;
     return null;
   }
 }
@@ -169,6 +208,10 @@ export async function downloadBible(
   const { bibles } = await api.listBibles();
   const meta = bibles.find((b) => b.bibleId === bibleId);
   if (!meta) throw new Error("Versión no encontrada");
+  if (meta.canDownload !== true)
+    throw new Error(
+      "La licencia de esta versión solo permite lectura en línea.",
+    );
 
   await upsertBibleMeta(meta);
   const { books } = await api.listBooks(bibleId);
@@ -190,29 +233,43 @@ export async function downloadBible(
 
     let verses = await fetchBookVersesBulk(bibleId, book.bookId);
     if (!verses) {
-      verses = await fetchBookVersesByChapter(bibleId, book.bookId, book.chapters);
+      verses = await fetchBookVersesByChapter(
+        bibleId,
+        book.bookId,
+        book.chapters,
+      );
     }
     await insertVerses(bibleId, verses);
   }
 
-  await run("UPDATE bibles SET downloaded = 1, downloaded_at = ? WHERE bible_id = ?", [
-    nowIso(),
-    bibleId,
-  ]);
+  await run(
+    "UPDATE bibles SET downloaded = 1, downloaded_at = ? WHERE bible_id = ?",
+    [nowIso(), bibleId],
+  );
 }
 
 export async function deleteDownloadedBible(bibleId: number) {
   await run("DELETE FROM verses WHERE bible_id = ?", [bibleId]);
   await run("DELETE FROM books WHERE bible_id = ?", [bibleId]);
-  await run("UPDATE bibles SET downloaded = 0, downloaded_at = NULL WHERE bible_id = ?", [
-    bibleId,
-  ]);
+  await run(
+    "UPDATE bibles SET downloaded = 0, downloaded_at = NULL WHERE bible_id = ?",
+    [bibleId],
+  );
 }
 
 export async function cacheBibleCatalog(bibles: BibleVersion[]) {
   for (const b of bibles) {
     await upsertBibleMeta(b);
   }
+  const allowedIds = new Set(
+    bibles
+      .filter((bible) => bible.canDownload === true)
+      .map((bible) => bible.bibleId),
+  );
+  const local = await listLocalBibles();
+  for (const bible of local)
+    if (bible.downloaded && !allowedIds.has(bible.bibleId))
+      await deleteDownloadedBible(bible.bibleId);
 }
 
 export async function cacheBooks(bibleId: number, books: Book[]) {

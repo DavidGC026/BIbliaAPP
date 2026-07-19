@@ -26,15 +26,24 @@ export function ReferencesExplorer({ onOpenReference }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    api.listBibles().then(({ bibles: list }) => setBibles(list)).catch(() => {});
+    api
+      .listBibles()
+      .then(({ bibles: list, defaultBibleId }) => {
+        setBibles(list);
+        if (!list.some((bible) => bible.bibleId === bibleId))
+          setBibleId(defaultBibleId ?? list[0]?.bibleId ?? 0);
+      })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
+    if (!bibleId) return;
     api
       .listBooks(bibleId)
       .then(({ books: list }) => {
         setBooks(list);
-        if (!list.some((b) => b.bookId === bookId)) setBookId(list[0]?.bookId ?? 1);
+        if (!list.some((b) => b.bookId === bookId))
+          setBookId(list[0]?.bookId ?? 1);
       })
       .catch(() => {});
   }, [bibleId, bookId]);
@@ -78,10 +87,12 @@ export function ReferencesExplorer({ onOpenReference }: Props) {
           ← Volver al explorador
         </button>
         <header>
-          <h2 className="text-xl font-bold text-foreground">🌈 Mapa de referencias</h2>
+          <h2 className="text-xl font-bold text-foreground">
+            🌈 Mapa de referencias
+          </h2>
           <p className="text-sm text-muted-foreground">
-            Cada arco conecta dos capítulos que se citan entre sí. Haz clic en un capítulo para ver
-            sus conexiones.
+            Cada arco conecta dos capítulos que se citan entre sí. Haz clic en
+            un capítulo para ver sus conexiones.
           </p>
         </header>
         <ReferencesRainbowMap />
@@ -92,7 +103,9 @@ export function ReferencesExplorer({ onOpenReference }: Props) {
   return (
     <div className="mx-auto max-w-5xl space-y-4 p-6">
       <header>
-        <h2 className="text-xl font-bold text-foreground">Referencias cruzadas</h2>
+        <h2 className="text-xl font-bold text-foreground">
+          Referencias cruzadas
+        </h2>
         <p className="text-sm text-muted-foreground">
           Versículos relacionados con el pasaje seleccionado.
         </p>
@@ -107,8 +120,12 @@ export function ReferencesExplorer({ onOpenReference }: Props) {
           🌈
         </span>
         <span className="flex-1">
-          <span className="block font-semibold text-foreground">Mapa de referencias</span>
-          <span className="block text-xs text-muted-foreground">Toda la Biblia en un vistazo</span>
+          <span className="block font-semibold text-foreground">
+            Mapa de referencias
+          </span>
+          <span className="block text-xs text-muted-foreground">
+            Toda la Biblia en un vistazo
+          </span>
         </span>
       </button>
 
@@ -172,11 +189,15 @@ export function ReferencesExplorer({ onOpenReference }: Props) {
           <p className="font-bold text-primary">
             {bookName} {chapter}:{verse}
           </p>
-          <p className="mt-2 font-serif italic leading-relaxed text-foreground">{sourceText}</p>
+          <p className="mt-2 font-serif italic leading-relaxed text-foreground">
+            {sourceText}
+          </p>
         </Card>
       ) : null}
 
-      <h3 className="text-lg font-extrabold text-foreground">Referencias ({refs.length})</h3>
+      <h3 className="text-lg font-extrabold text-foreground">
+        Referencias ({refs.length})
+      </h3>
 
       {loading ? (
         <p className="text-muted-foreground">Cargando…</p>
@@ -190,14 +211,20 @@ export function ReferencesExplorer({ onOpenReference }: Props) {
             <Card
               key={`${item.book_id}-${item.chapter}-${item.verse}-${i}`}
               className="cursor-pointer transition-colors hover:bg-accent/50"
-              onClick={() => onOpenReference?.(item.book_id, item.chapter, bibleId)}
+              onClick={() =>
+                onOpenReference?.(item.book_id, item.chapter, bibleId)
+              }
             >
               <p className="font-bold text-primary">
                 {item.book_name} {item.chapter}:{item.verse}
               </p>
-              <p className="mt-1 font-serif leading-relaxed text-foreground">{item.text}</p>
+              <p className="mt-1 font-serif leading-relaxed text-foreground">
+                {item.text}
+              </p>
               {item.votos > 0 ? (
-                <p className="mt-1 text-xs text-muted-foreground">{item.votos} votos</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {item.votos} votos
+                </p>
               ) : null}
             </Card>
           ))}

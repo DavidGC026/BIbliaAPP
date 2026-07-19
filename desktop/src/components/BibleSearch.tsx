@@ -19,7 +19,14 @@ export function BibleSearch({ onOpenVerse }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    repo.repoListBibles().then(({ bibles: list }) => setBibles(list)).catch(() => {});
+    repo
+      .repoListBibles()
+      .then(({ bibles: list, defaultBibleId }) => {
+        setBibles(list);
+        if (!list.some((bible) => bible.bibleId === bibleId))
+          setBibleId(defaultBibleId ?? list[0]?.bibleId ?? 0);
+      })
+      .catch(() => {});
   }, []);
 
   async function search() {
@@ -45,9 +52,12 @@ export function BibleSearch({ onOpenVerse }: Props) {
   return (
     <div className="mx-auto max-w-5xl space-y-4 p-6">
       <header>
-        <h1 className="text-2xl font-bold text-foreground">Buscar en la Biblia</h1>
+        <h1 className="text-2xl font-bold text-foreground">
+          Buscar en la Biblia
+        </h1>
         <p className="text-sm text-muted-foreground">
-          Texto o referencia (ej. Juan 3:16). Offline: requiere versión descargada.
+          Texto o referencia (ej. Juan 3:16). Offline: requiere versión
+          descargada.
         </p>
       </header>
 
@@ -79,7 +89,9 @@ export function BibleSearch({ onOpenVerse }: Props) {
       </Card>
 
       {isReference && results.length > 0 ? (
-        <p className="text-xs text-muted-foreground">Resultado por referencia bíblica</p>
+        <p className="text-xs text-muted-foreground">
+          Resultado por referencia bíblica
+        </p>
       ) : null}
 
       <div className="space-y-3">

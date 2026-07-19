@@ -6,12 +6,57 @@ export interface User {
   role: string;
   allowedSections?: string | string[] | null;
   streakCount?: number;
+  createdAt?: string | null;
+  legalAcceptedAt?: string | null;
+}
+
+export interface ManagedUser {
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+  allowedSections: string | string[] | null;
+  createdAt: string;
+}
+export interface AdminSection {
+  id: string;
+  label: string;
+}
+export interface AdminSectionGroup {
+  id: string;
+  label: string;
+  sections: AdminSection[];
 }
 
 export interface BibleVersion {
   bibleId: number;
   abbr: string;
   name: string;
+  license?: string | null;
+  copyright?: string | null;
+  attribution?: string | null;
+  sourceUrl?: string | null;
+  catalogScope?: "public" | "internal";
+  canRead?: boolean;
+  canDownload?: boolean;
+  canCopy?: boolean;
+  canShare?: boolean;
+  canCreateImages?: boolean;
+  canUseAudio?: boolean;
+  cacheMaxAgeDays?: number | null;
+}
+
+export interface ReadingPlan {
+  id: number;
+  name: string;
+  description: string;
+  chaptersData: string;
+  durationDays: number;
+}
+export interface UserReadingPlan extends ReadingPlan {
+  planId: number;
+  progress: string;
+  startedAt: string;
 }
 
 export interface Book {
@@ -98,6 +143,55 @@ export interface GroupEvent {
   end_time: string | null;
   location: string | null;
   creator_name: string;
+}
+
+export interface ChurchEvent {
+  id: number;
+  title: string;
+  description: string | null;
+  start_time: string;
+  end_time: string | null;
+  location: string | null;
+  category?: string;
+  creator_name: string;
+  going_count?: number;
+  my_rsvp?: string | null;
+  source: "church" | "group";
+  group_name?: string;
+  group_id?: number;
+}
+
+export interface BookStat {
+  book_id: number;
+  book_name: string;
+  total_chapters: number;
+}
+export interface HeatmapDay {
+  date: string;
+  total_chapters: number;
+}
+export interface ProgressBook {
+  book_id: number;
+  book_name: string;
+  total_chapters: number;
+}
+export interface FeedAnnouncement {
+  id: number;
+  content: string;
+  user_name: string;
+  created_at: string;
+}
+export interface HighlightItem {
+  id: number;
+  book_id: number;
+  chapter: number;
+  verse: number;
+  color: string;
+  created_at: string;
+  book_name: string;
+  text: string;
+  bible_id: number;
+  bible_abbr?: string;
 }
 
 export interface GroupPost {

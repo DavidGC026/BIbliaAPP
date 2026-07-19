@@ -2,12 +2,33 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { VerseImageCreatorModal } from "@/components/VerseImageCreatorModal";
 import { CrossReferencesModal } from "@/components/CrossReferencesModal";
 import { OfflineBanner } from "@/components/OfflineBanner";
+import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/context/AuthContext";
 import { DEFAULT_BIBLE_ID } from "@/lib/config";
-import { HIGHLIGHT_COLORS, highlightSwatch, verseHighlightStyle } from "@/lib/highlightColors";
+import {
+  HIGHLIGHT_COLORS,
+  highlightSwatch,
+  verseHighlightStyle,
+} from "@/lib/highlightColors";
 import * as repo from "@/lib/repo";
 import { buildImageCreatorData } from "@/lib/verseUtils";
-import type { BibleTarget, Book, BibleVersion, Verse, VerseHighlight, VerseNoteLink } from "@/lib/types";
+import {
+  DEFAULT_READER_PREFERENCES,
+  getReaderPreferences,
+  saveLastPassage,
+  saveReaderPreferences,
+  type ReaderPreferences,
+  type ReaderTheme,
+} from "@/lib/preferences";
+import * as api from "@/lib/api";
+import type {
+  BibleTarget,
+  Book,
+  BibleVersion,
+  Verse,
+  VerseHighlight,
+  VerseNoteLink,
+} from "@/lib/types";
 
 const SELECT_CLS =
   "w-full rounded-lg border border-border bg-card px-3 py-2 text-foreground";
@@ -51,6 +72,10 @@ export function BibleReader({ target }: Props) {
   const [loading, setLoading] = useState(true);
   const [loadingChapter, setLoadingChapter] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [preferences, setPreferences] = useState<ReaderPreferences>(() =>
+    getReaderPreferences(),
+  );
+  const [showPreferences, setShowPreferences] = useState(false);
 
   const lastSelectedRef = useRef<number | null>(null);
   const isDark = document.documentElement.classList.contains("dark");
@@ -60,7 +85,10 @@ export function BibleReader({ target }: Props) {
   const currentBible = bibles.find((b) => b.bibleId === bibleId);
   const highlightMap = new Map(highlights.map((h) => [h.verse, h.color]));
   const noteMap = new Map(noteLinks.map((n) => [n.verse, n]));
-  const primaryVerse = selectedVerses.length === 1 ? selectedVerses[0] : selectedVerses[0] ?? null;
+  const primaryVerse =
+    selectedVerses.length === 1
+      ? selectedVerses[0]
+      : (selectedVerses[0] ?? null);
 
   const imageCreatorData = useMemo(() => {
     if (!selectedBook || selectedVerses.length === 0) return null;
@@ -115,20 +143,22 @@ export function BibleReader({ target }: Props) {
       try {
         setLoading(true);
         setError(null);
-        const { bibles: list } = await repo.repoListBibles();
+        const { bibles: list, defaultBibleId } = await repo.repoListBibles();
         if (cancelled) return;
         setBibles(list);
         const startBible =
           (target?.bibleId && list.some((b) => b.bibleId === target.bibleId)
             ? target.bibleId
             : null) ??
-          list.find((b) => b.bibleId === DEFAULT_BIBLE_ID)?.bibleId ??
+          list.find((b) => b.bibleId === (defaultBibleId ?? DEFAULT_BIBLE_ID))
+            ?.bibleId ??
           list[0]?.bibleId ??
           DEFAULT_BIBLE_ID;
         setBibleId(startBible);
         const { books: bookList } = await repo.repoListBooks(startBible);
         if (cancelled) return;
-        if (bookList.length === 0) throw new Error("No se encontraron libros para esta versión.");
+        if (bookList.length === 0)
+          throw new Error("No se encontraron libros para esta versión.");
         setBooks(bookList);
         const startBook =
           target?.bookId && bookList.some((b) => b.bookId === target.bookId)
@@ -138,7 +168,9 @@ export function BibleReader({ target }: Props) {
         setChapter(target?.chapter && target.chapter > 0 ? target.chapter : 1);
       } catch (err) {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Error al cargar la Biblia");
+          setError(
+            err instanceof Error ? err.message : "Error al cargar la Biblia",
+          );
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -162,6 +194,43 @@ export function BibleReader({ target }: Props) {
     clearSelection();
     void loadChapter();
   }, [loadChapter, clearSelection]);
+
+  useEffect(() => {
+    if (
+      loadingChapter ||
+      verses.length === 0 ||
+      !selectedBook ||
+      !currentBible ||
+      !bookId ||
+      !chapter
+    )
+      return;
+    saveLastPassage({
+      bibleId,
+      bibleAbbr: currentBible.abbr,
+      bookId,
+      bookName: selectedBook.bookName,
+      chapter,
+    });
+    const activityKey = `bibliaapp_read_${new Date().toISOString().slice(0, 10)}_${bookId}_${chapter}`;
+    if (!sessionStorage.getItem(activityKey)) {
+      sessionStorage.setItem(activityKey, "1");
+      api.recordReadingActivity(bookId, 1, verses.length).catch(() => {});
+    }
+  }, [
+    bibleId,
+    bookId,
+    chapter,
+    selectedBook,
+    currentBible,
+    loadingChapter,
+    verses.length,
+  ]);
+
+  function updatePreferences(next: ReaderPreferences) {
+    setPreferences(next);
+    saveReaderPreferences(next);
+  }
 
   function toggleVerse(verseNum: number, extend: boolean) {
     if (extend && lastSelectedRef.current !== null) {
@@ -188,7 +257,8 @@ export function BibleReader({ target }: Props) {
     try {
       setLoadingChapter(true);
       const { books: bookList } = await repo.repoListBooks(nextId);
-      if (bookList.length === 0) throw new Error("No se encontraron libros para esta versión.");
+      if (bookList.length === 0)
+        throw new Error("No se encontraron libros para esta versión.");
       setBooks(bookList);
       setBookId(bookList[0]?.bookId ?? null);
       setChapter(1);
@@ -204,7 +274,15 @@ export function BibleReader({ target }: Props) {
     setSaving(true);
     try {
       for (const verseNum of selectedVerses) {
-        await repo.repoAddFavorite(bibleId, bookId, chapter, verseNum);
+        const verse = verses.find((item) => item.verse === verseNum);
+        await repo.repoAddFavorite(
+          bibleId,
+          bookId,
+          chapter,
+          verseNum,
+          verse?.text,
+          selectedBook?.bookName,
+        );
       }
       clearSelection();
     } finally {
@@ -216,7 +294,13 @@ export function BibleReader({ target }: Props) {
     if (!bookId || selectedVerses.length === 0 || !canAnnotate) return;
     setSaving(true);
     try {
-      await repo.repoSetHighlights(bookId, chapter, selectedVerses, color, bibleId);
+      await repo.repoSetHighlights(
+        bookId,
+        chapter,
+        selectedVerses,
+        color,
+        bibleId,
+      );
       clearSelection();
       await loadChapter();
     } finally {
@@ -228,7 +312,13 @@ export function BibleReader({ target }: Props) {
     if (!bookId || selectedVerses.length === 0 || !canAnnotate) return;
     setSaving(true);
     try {
-      await repo.repoSetHighlights(bookId, chapter, selectedVerses, null, bibleId);
+      await repo.repoSetHighlights(
+        bookId,
+        chapter,
+        selectedVerses,
+        null,
+        bibleId,
+      );
       clearSelection();
       await loadChapter();
     } finally {
@@ -238,6 +328,10 @@ export function BibleReader({ target }: Props) {
 
   async function copySelection() {
     if (!selectedBook || selectedVerses.length === 0) return;
+    if (currentBible?.canCopy === false) {
+      setError("La licencia de esta versión no permite copiar el texto.");
+      return;
+    }
     const sorted = [...selectedVerses].sort((a, b) => a - b);
     const lines = sorted
       .map((n) => {
@@ -252,6 +346,30 @@ export function BibleReader({ target }: Props) {
     await navigator.clipboard.writeText(`${ref}\n\n${lines.join("\n")}`);
   }
 
+  async function shareSelection() {
+    if (!selectedBook || selectedVerses.length === 0) return;
+    if (currentBible?.canShare === false) {
+      setError("La licencia de esta versión no permite compartir el texto.");
+      return;
+    }
+    const sorted = [...selectedVerses].sort((a, b) => a - b);
+    const text = sorted
+      .map((number) => verses.find((item) => item.verse === number)?.text)
+      .filter(Boolean)
+      .join(" ");
+    const reference = selectionLabel(
+      selectedBook.bookName,
+      chapter,
+      selectedVerses,
+    );
+    const message = `“${text}”\n\n— ${reference}${currentBible?.abbr ? ` (${currentBible.abbr})` : ""}\n\nCompartido desde BibliaAPP`;
+    if (navigator.share)
+      await navigator
+        .share({ title: reference, text: message })
+        .catch(() => {});
+    else await navigator.clipboard.writeText(message);
+  }
+
   function openNoteModal() {
     if (primaryVerse === null) return;
     setNoteText(noteMap.get(primaryVerse)?.noteContent ?? "");
@@ -262,7 +380,12 @@ export function BibleReader({ target }: Props) {
     if (!bookId || primaryVerse === null || !canAnnotate) return;
     setSaving(true);
     try {
-      await repo.repoSaveVerseNote(bookId, chapter, primaryVerse, noteText.trim());
+      await repo.repoSaveVerseNote(
+        bookId,
+        chapter,
+        primaryVerse,
+        noteText.trim(),
+      );
       setNoteModalOpen(false);
       await loadChapter();
     } finally {
@@ -295,12 +418,25 @@ export function BibleReader({ target }: Props) {
 
   return (
     <div className="relative mx-auto max-w-5xl space-y-6 p-6 pb-28">
-      <OfflineBanner />
+      <OfflineBanner bibleId={bibleId} autoHideMs={10000} />
       <header>
-        <h1 className="text-2xl font-bold text-foreground">Lector bíblico</h1>
-        <p className="text-sm text-muted-foreground">
-          {currentBible?.name ?? "Versión"} · {selectedBook?.bookName ?? "—"} {chapter}
-        </p>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">
+              Lector bíblico
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              {currentBible?.name ?? "Versión"} ·{" "}
+              {selectedBook?.bookName ?? "—"} {chapter}
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            onClick={() => setShowPreferences((value) => !value)}
+          >
+            Aa
+          </Button>
+        </div>
         {!canAnnotate ? (
           <p className="mt-2 text-xs text-muted-foreground">
             Inicia sesión para subrayar versículos y añadir notas.
@@ -311,6 +447,85 @@ export function BibleReader({ target }: Props) {
           </p>
         )}
       </header>
+
+      {showPreferences ? (
+        <div className="grid gap-4 rounded-xl border border-border bg-card p-4 sm:grid-cols-2 lg:grid-cols-4">
+          <label className="text-sm text-muted-foreground">
+            Tamaño{" "}
+            <input
+              type="range"
+              min={16}
+              max={24}
+              value={preferences.fontSize}
+              onChange={(e) =>
+                updatePreferences({
+                  ...preferences,
+                  fontSize: Number(e.target.value),
+                })
+              }
+              className="mt-2 block w-full"
+            />
+            <span className="text-xs">{preferences.fontSize}px</span>
+          </label>
+          <label className="text-sm text-muted-foreground">
+            Espaciado
+            <select
+              value={preferences.density}
+              onChange={(e) =>
+                updatePreferences({
+                  ...preferences,
+                  density: e.target.value as ReaderPreferences["density"],
+                })
+              }
+              className={SELECT_CLS}
+            >
+              <option value="relaxed">Relajado</option>
+              <option value="compact">Compacto</option>
+            </select>
+          </label>
+          <label className="text-sm text-muted-foreground">
+            Alineación
+            <select
+              value={preferences.align}
+              onChange={(e) =>
+                updatePreferences({
+                  ...preferences,
+                  align: e.target.value as ReaderPreferences["align"],
+                })
+              }
+              className={SELECT_CLS}
+            >
+              <option value="left">Izquierda</option>
+              <option value="justify">Justificado</option>
+            </select>
+          </label>
+          <label className="text-sm text-muted-foreground">
+            Tema de lectura
+            <select
+              value={preferences.theme}
+              onChange={(e) =>
+                updatePreferences({
+                  ...preferences,
+                  theme: e.target.value as ReaderTheme,
+                })
+              }
+              className={SELECT_CLS}
+            >
+              <option value="auto">Automático</option>
+              <option value="light">Claro</option>
+              <option value="sepia">Sepia</option>
+              <option value="night">Noche</option>
+              <option value="contrast">Contraste</option>
+            </select>
+          </label>
+          <button
+            className="text-left text-xs font-semibold text-primary"
+            onClick={() => updatePreferences(DEFAULT_READER_PREFERENCES)}
+          >
+            Restaurar preferencias
+          </button>
+        </div>
+      ) : null}
 
       <div className="grid gap-3 sm:grid-cols-3">
         <label className="block text-sm">
@@ -392,11 +607,19 @@ export function BibleReader({ target }: Props) {
 
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
 
-      <article className="rounded-xl border border-border bg-card p-6">
+      <article
+        className={`reader-theme-${preferences.theme} rounded-xl border border-border p-6`}
+      >
         {loadingChapter ? (
           <p className="text-muted-foreground">Cargando capítulo…</p>
         ) : (
-          <div className="space-y-3 font-serif text-lg leading-relaxed text-foreground">
+          <div
+            className={`font-serif ${preferences.density === "compact" ? "space-y-1 leading-snug" : "space-y-3 leading-relaxed"}`}
+            style={{
+              fontSize: preferences.fontSize,
+              textAlign: preferences.align,
+            }}
+          >
             {verses.map((v) => {
               const hl = highlightMap.get(v.verse);
               const hasNote = noteMap.has(v.verse);
@@ -407,9 +630,15 @@ export function BibleReader({ target }: Props) {
                   type="button"
                   onClick={(e) => toggleVerse(v.verse, e.shiftKey)}
                   className={`block w-full cursor-pointer rounded-md py-1 text-left transition-colors ${
-                    isSelected ? "bg-primary/20 ring-1 ring-primary/40" : "hover:bg-accent/50"
+                    isSelected
+                      ? "bg-primary/20 ring-1 ring-primary/40"
+                      : "hover:bg-accent/50"
                   }`}
-                  style={hl && !isSelected ? verseHighlightStyle(hl, isDark) : undefined}
+                  style={
+                    hl && !isSelected
+                      ? verseHighlightStyle(hl, isDark)
+                      : undefined
+                  }
                 >
                   <sup className="mr-1 text-xs font-bold text-primary">
                     {v.verse}
@@ -427,7 +656,11 @@ export function BibleReader({ target }: Props) {
         <div className="fixed bottom-4 left-1/2 z-50 w-[min(640px,calc(100%-2rem))] -translate-x-1/2 rounded-xl border border-border bg-card p-3 shadow-lg">
           <div className="mb-2 flex items-center justify-between gap-2">
             <span className="truncate text-xs font-medium text-muted-foreground">
-              {selectionLabel(selectedBook?.bookName ?? "", chapter, selectedVerses)}
+              {selectionLabel(
+                selectedBook?.bookName ?? "",
+                chapter,
+                selectedVerses,
+              )}
             </span>
             <button
               type="button"
@@ -445,11 +678,20 @@ export function BibleReader({ target }: Props) {
             >
               Copiar
             </button>
+            <button
+              type="button"
+              onClick={() => shareSelection()}
+              disabled={currentBible?.canShare === false}
+              className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-primary disabled:opacity-40"
+            >
+              Compartir
+            </button>
             {imageCreatorData ? (
               <button
                 type="button"
                 onClick={() => setImageCreatorOpen(true)}
-                className="rounded-lg border border-primary px-3 py-1.5 text-xs font-semibold text-primary"
+                disabled={currentBible?.canCreateImages === false}
+                className="rounded-lg border border-primary px-3 py-1.5 text-xs font-semibold text-primary disabled:opacity-40"
               >
                 Imagen
               </button>

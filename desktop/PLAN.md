@@ -11,6 +11,7 @@ Versión de escritorio multiplataforma para **Arch Linux**, **Debian** y **Windo
 Una app de escritorio nativa, ligera y con el mismo diseño que la web/móvil, que **consuma el backend existente** (`app/api/*` de Next.js, hoy en `https://biblia2.dvguzman.com`). No reimplementa lógica de negocio ni accede directo a MariaDB: habla REST + Bearer token, igual que la app móvil.
 
 Casos de uso prioritarios (paridad con móvil v2.x):
+
 - Lector bíblico (versiones, libros, capítulos, versículos).
 - Versículo del día.
 - Comunidad (feed), grupos, perfil.
@@ -22,12 +23,12 @@ Casos de uso prioritarios (paridad con móvil v2.x):
 
 ## 2. Análisis del proyecto actual (resumen)
 
-| Capa | Tecnología | Reutilizable en desktop |
-|------|-----------|--------------------------|
-| Backend / API | Next.js 16 (`app/api/*`), MariaDB (`mysql2`), SSE | **Sí, tal cual.** Mismo contrato que móvil |
-| Auth | Token AES `Authorization: Bearer <token>` | Sí. Guardar token en keychain del SO |
-| Web UI | React 19, Tailwind 4 (OKLCH), shadcn, lucide | Componentes y paleta reutilizables |
-| Móvil | Expo / React Native v2.0.7, consume la API, offline con `expo-sqlite` | **Patrón de referencia** (`mobile/lib/api.ts`, `mobile/lib/offline/*`) |
+| Capa          | Tecnología                                                            | Reutilizable en desktop                                                |
+| ------------- | --------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| Backend / API | Next.js 16 (`app/api/*`), MariaDB (`mysql2`), SSE                     | **Sí, tal cual.** Mismo contrato que móvil                             |
+| Auth          | Token AES `Authorization: Bearer <token>`                             | Sí. Guardar token en keychain del SO                                   |
+| Web UI        | React 19, Tailwind 4 (OKLCH), shadcn, lucide                          | Componentes y paleta reutilizables                                     |
+| Móvil         | Expo / React Native v2.0.7, consume la API, offline con `expo-sqlite` | **Patrón de referencia** (`mobile/lib/api.ts`, `mobile/lib/offline/*`) |
 
 Conclusión: el backend ya está desacoplado del cliente. El desktop es **otro cliente más** sobre la misma API. La paleta de colores está documentada en `docs/esquema-colores.md` (variables OKLCH para web).
 
@@ -39,13 +40,14 @@ Conclusión: el backend ya está desacoplado del cliente. El desktop es **otro c
 
 Por qué Tauri y no las otras opciones que mencionaste:
 
-| Opción | Arch | Debian | Windows | Tamaño | Veredicto |
-|--------|:----:|:------:|:-------:|--------|-----------|
-| **Tauri v2** | AppImage / `.pacman` | `.deb` | `.msi` + NSIS `.exe` | ~3–10 MB | **Elegida.** Empaqueta nativo para los 3 destinos de fábrica, usa el WebView del SO |
-| Electron | AppImage / pacman | `.deb` | `.exe` | ~120 MB+ | Pesado, empaqueta Chromium completo |
-| React Native desktop | ❌ Linux | ❌ Linux | RN-Windows | — | No hay historia viable de RN para Linux. Descartado |
+| Opción               |         Arch         |  Debian  |       Windows        | Tamaño   | Veredicto                                                                           |
+| -------------------- | :------------------: | :------: | :------------------: | -------- | ----------------------------------------------------------------------------------- |
+| **Tauri v2**         | AppImage / `.pacman` |  `.deb`  | `.msi` + NSIS `.exe` | ~3–10 MB | **Elegida.** Empaqueta nativo para los 3 destinos de fábrica, usa el WebView del SO |
+| Electron             |  AppImage / pacman   |  `.deb`  |        `.exe`        | ~120 MB+ | Pesado, empaqueta Chromium completo                                                 |
+| React Native desktop |       ❌ Linux       | ❌ Linux |      RN-Windows      | —        | No hay historia viable de RN para Linux. Descartado                                 |
 
 Ventajas concretas de Tauri para tu caso:
+
 - **Genera los tres formatos pedidos** con `tauri build` (`.deb` para Debian, AppImage para Arch/cualquier distro, `.msi`/`.exe` para Windows). Para Arch además puedes empaquetar un `PKGBUILD` que instale el `.AppImage` o el binario.
 - Binarios pequeños porque reutiliza WebKitGTK (Linux) / WebView2 (Windows).
 - Reutilizamos **React + Tailwind + shadcn**, así que el código de UI converge con la web.
@@ -77,6 +79,7 @@ Reutilización de UI: portamos el frontend como **SPA (Vite)**, no como el servi
 ```
 
 Decisiones:
+
 - **API base configurable** por variable de entorno en build (`VITE_API_URL`), default producción. Igual que `EXPO_PUBLIC_API_URL` en móvil.
 - **Token**: guardado en el keychain del SO con `tauri-plugin-store` cifrado o `keyring` (Rust). Equivalente a `expo-secure-store` del móvil.
 - **CORS / peticiones**: usar `@tauri-apps/plugin-http` (las peticiones salen desde Rust, sin restricciones CORS del navegador).
@@ -121,6 +124,7 @@ desktop/
 ## 6. Plan por fases
 
 ### Fase 0 — Prerrequisitos por SO (una vez)
+
 - [x] Rust (`rustup`) + Node 20+.
 - [x] **Arch**: `webkit2gtk-4.1 base-devel curl wget file openssl appmenu-gtk-module libappindicator-gtk3 librsvg`.
 - [ ] **Debian**: `libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev`.
@@ -128,12 +132,14 @@ desktop/
 - [x] Verificar backend: `curl -s https://biblia2.dvguzman.com/api/health`.
 
 ### Fase 1 — Scaffold y arranque (MVP de cascarón)
+
 - [x] `npm create tauri-app@latest` en `desktop/` (template React + TS + Vite).
 - [x] Configurar Tailwind 4 + portar paleta OKLCH desde `app/globals.css`.
 - [~] Integrar shadcn (mismos componentes base que la web). → UI mínima propia
 - [x] `tauri dev` abre ventana con pantalla de inicio.
 
 ### Fase 2 — Capa de API y auth (paridad con móvil)
+
 - [x] Portar `src/lib/config.ts`, `types.ts` y `api.ts` desde `mobile/lib/`.
 - [x] Login (`POST /api/auth/login`) → guardar token en store.
 - [~] Cliente HTTP con `@tauri-apps/plugin-http` → usa fetch del WebView
@@ -142,6 +148,7 @@ desktop/
 - [x] **Check runnable**: `src/lib/__check__.ts`.
 
 ### Fase 3 — Pantallas núcleo (paridad móvil v1)
+
 - [x] Inicio: versículo del día (`/api/verse-of-the-day`).
 - [x] Lector: versiones / libros / capítulos / versículos.
 - [x] Comunidad: feed (`/api/feed`).
@@ -149,6 +156,7 @@ desktop/
 - [x] Perfil + logout.
 
 ### Fase 4 — Empaquetado multiplataforma
+
 - [x] `tauri.conf.json`: targets `appimage`, `deb`.
 - [x] Iconos desde `public/logo.png` (`npm run icons`).
 - [x] **Debian**: `.deb` (`npm run pack:deb`).
@@ -157,6 +165,7 @@ desktop/
 - [ ] Verificar instalación limpia en cada SO.
 
 ### Fase 5 — Extras (opcional, post-MVP)
+
 - [x] Offline SQLite + sync libretas/notas/resaltados/favoritos (paridad móvil).
 - [x] Detalle grupo, comentarios feed, notificaciones SSE.
 - [~] Auto-update (`tauri-plugin-updater` + UI + CI; `latest.json` en producción pendiente).
@@ -187,7 +196,7 @@ Arch consume el AppImage o el `.pkg.tar.zst` del workflow / release.
 
 ## 9. Estado actual y documentación
 
-**Implementado hasta v0.2.0:** auth, navegación, lector, búsqueda, offline SQLite + sync, feed, grupos, notificaciones, notas/libretas, empaquetado Arch/Debian, CI Windows/Linux.
+**Implementado hasta v0.3.0:** auth, navegación y permisos por sección, lector avanzado, búsqueda universal, planes, actividad/estadísticas, temas, offline SQLite + sync/licencias, feed, grupos, notificaciones, notas/libretas, administración, legal, empaquetado Arch/Debian y CI Windows/Linux.
 
 Documentación completa en [`docs/README.md`](./docs/README.md).
 

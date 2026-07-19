@@ -11,7 +11,8 @@ function verseLabelFromBlockquote(bq: Element | null): string {
 function dictLabelFromAside(aside: Element | null): string {
   if (!aside) return "Diccionario";
   const code = aside.getAttribute("data-strong") ?? "";
-  const lemma = aside.querySelector(".biblia-dict-lemma")?.textContent?.trim() ?? "";
+  const lemma =
+    aside.querySelector(".biblia-dict-lemma")?.textContent?.trim() ?? "";
   return code ? `${code}${lemma ? ` · ${lemma}` : ""}` : "Diccionario Strong";
 }
 
@@ -35,22 +36,33 @@ function buildBlockHandleHtml(icon: string, label: string): string {
   );
 }
 
+function plainHtmlLabel(html: string, fallback: string): string {
+  const text = html
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return (text || fallback).slice(0, 72).replace(/[<>&"]/g, "");
+}
+
 export function buildVerseBlockHtml(innerHtml: string): string {
-  const tmp = document.createElement("div");
-  tmp.innerHTML = `<blockquote class="biblia-verse-quote" contenteditable="false">${innerHtml}</blockquote>`;
-  const bq = tmp.querySelector("blockquote");
+  const blockquote = `<blockquote class="biblia-verse-quote" contenteditable="false">${innerHtml}</blockquote>`;
   return (
     `<div class="biblia-content-block biblia-verse-block">` +
-    buildBlockHandleHtml("📖", verseLabelFromBlockquote(bq)) +
-    (bq?.outerHTML ?? "") +
+    buildBlockHandleHtml("📖", plainHtmlLabel(innerHtml, "Versículo")) +
+    blockquote +
     `</div><p><br></p>`
   );
 }
 
 export function buildDictBlockHtml(asideHtml: string): string {
+  if (typeof document === "undefined") {
+    return `<div class="biblia-content-block biblia-dict-block">${buildBlockHandleHtml("📚", plainHtmlLabel(asideHtml, "Diccionario Strong"))}${asideHtml}</div><p><br></p>`;
+  }
   const tmp = document.createElement("div");
   tmp.innerHTML = asideHtml;
-  const aside = tmp.querySelector("aside.biblia-dict-entry") ?? tmp.firstElementChild;
+  const aside =
+    tmp.querySelector("aside.biblia-dict-entry") ?? tmp.firstElementChild;
   if (aside) {
     aside.classList.add("biblia-dict-entry");
     aside.setAttribute("contenteditable", "false");
@@ -63,7 +75,11 @@ export function buildDictBlockHtml(asideHtml: string): string {
   );
 }
 
-export function buildTableBlockHtml(cols = 3, rows = 3, withHeader = false): string {
+export function buildTableBlockHtml(
+  cols = 3,
+  rows = 3,
+  withHeader = false,
+): string {
   let tableHtml = '<table class="biblia-note-table">';
   if (withHeader) {
     tableHtml += "<thead><tr>";
@@ -85,10 +101,7 @@ export function buildTableBlockHtml(cols = 3, rows = 3, withHeader = false): str
     tableHtml += "</tbody>";
   }
   tableHtml += "</table>";
-  const tmp = document.createElement("div");
-  tmp.innerHTML = tableHtml;
-  const table = tmp.querySelector("table");
-  const label = table ? tableBlockLabel(table) : "Tabla";
+  const label = `Tabla ${cols}×${rows}`;
   return (
     `<div class="biblia-content-block biblia-table-block">` +
     buildBlockHandleHtml("⊞", label) +
@@ -112,7 +125,10 @@ function wrapVerseElement(blockquote: Element) {
   blockquote.setAttribute("contenteditable", "false");
   const block = document.createElement("div");
   block.className = "biblia-content-block biblia-verse-block";
-  block.innerHTML = buildBlockHandleHtml("📖", verseLabelFromBlockquote(blockquote));
+  block.innerHTML = buildBlockHandleHtml(
+    "📖",
+    verseLabelFromBlockquote(blockquote),
+  );
   blockquote.parentNode?.insertBefore(block, blockquote);
   block.appendChild(blockquote);
 }
@@ -130,7 +146,8 @@ function wrapDictElement(aside: Element) {
 
 function wrapTableElement(table: HTMLTableElement) {
   if (table.closest(".biblia-content-block")) return;
-  if (!table.classList.contains("biblia-note-table")) table.classList.add("biblia-note-table");
+  if (!table.classList.contains("biblia-note-table"))
+    table.classList.add("biblia-note-table");
   const block = document.createElement("div");
   block.className = "biblia-content-block biblia-table-block";
   block.innerHTML = buildBlockHandleHtml("⊞", tableBlockLabel(table));
@@ -140,11 +157,19 @@ function wrapTableElement(table: HTMLTableElement) {
 
 export function wrapAllContentBlocks(editor: HTMLElement) {
   editor.querySelectorAll("table").forEach((table) => {
-    if (table.closest(".biblia-table-widget") || table.closest(".biblia-table-compact-preview")) return;
+    if (
+      table.closest(".biblia-table-widget") ||
+      table.closest(".biblia-table-compact-preview")
+    )
+      return;
     wrapTableElement(table as HTMLTableElement);
   });
   editor.querySelectorAll("blockquote").forEach((bq) => {
-    if (bq.closest(".biblia-table-compact-preview") || bq.closest(".biblia-content-block")) return;
+    if (
+      bq.closest(".biblia-table-compact-preview") ||
+      bq.closest(".biblia-content-block")
+    )
+      return;
     wrapVerseElement(bq);
   });
   editor.querySelectorAll("aside.biblia-dict-entry").forEach((aside) => {
@@ -173,14 +198,18 @@ export function initNoteEditorBlocks(editor: HTMLElement): () => void {
     const parent = block.parentNode;
     if (!parent) return;
     let sibling =
-      direction === "up" ? block.previousElementSibling : block.nextElementSibling;
+      direction === "up"
+        ? block.previousElementSibling
+        : block.nextElementSibling;
     while (
       sibling &&
       sibling.tagName === "P" &&
       !(sibling.textContent ?? "").replace(/\u200B/g, "").trim()
     ) {
       sibling =
-        direction === "up" ? sibling.previousElementSibling : sibling.nextElementSibling;
+        direction === "up"
+          ? sibling.previousElementSibling
+          : sibling.nextElementSibling;
     }
     if (!sibling) return;
     if (direction === "up") parent.insertBefore(block, sibling);
@@ -254,14 +283,16 @@ export function initNoteEditorBlocks(editor: HTMLElement): () => void {
       e.preventDefault();
       e.stopPropagation();
       const block = actionBtn.closest(".biblia-content-block");
-      if (block) handleAction(block, actionBtn.getAttribute("data-block-action") ?? "");
+      if (block)
+        handleAction(block, actionBtn.getAttribute("data-block-action") ?? "");
       return;
     }
     if (trySelectFromTarget(e.target)) {
       e.preventDefault();
       return;
     }
-    if (!(e.target as Element).closest(".biblia-content-block")) clearSelection();
+    if (!(e.target as Element).closest(".biblia-content-block"))
+      clearSelection();
   }
 
   function onKeyDown(e: KeyboardEvent) {

@@ -5,12 +5,17 @@ import { FavoritesPage } from "@/pages/FavoritesPage";
 import { useAuth } from "@/context/AuthContext";
 import { APP_VERSION, checkForUpdates, installUpdate } from "@/lib/updater";
 import type { BibleTarget } from "@/lib/types";
+import type { AppTab } from "@/lib/nav";
+import { ThemeSwitch } from "@/components/ThemeSwitch";
+import { LEGAL_URLS } from "@/lib/config";
+import { ReminderSettings } from "@/components/ReminderSettings";
 
 type Props = {
   onOpenBible: (target: BibleTarget) => void;
+  onNavigate: (tab: AppTab) => void;
 };
 
-export function ProfilePage({ onOpenBible }: Props) {
+export function ProfilePage({ onOpenBible, onNavigate }: Props) {
   const { user, isOffline } = useAuth();
   const [showFavorites, setShowFavorites] = useState(false);
   const [updateMsg, setUpdateMsg] = useState<string | null>(null);
@@ -68,7 +73,9 @@ export function ProfilePage({ onOpenBible }: Props) {
         <p className="text-xl font-semibold text-foreground">{user?.name}</p>
         <p className="text-muted-foreground">{user?.email}</p>
         {user?.username ? (
-          <p className="mt-1 text-sm font-medium text-primary">@{user.username}</p>
+          <p className="mt-1 text-sm font-medium text-primary">
+            @{user.username}
+          </p>
         ) : null}
         <p className="mt-3 text-sm capitalize text-muted-foreground">
           Rol: {user?.role ?? "reader"}
@@ -84,9 +91,70 @@ export function ProfilePage({ onOpenBible }: Props) {
         <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
           Contenido
         </p>
-        <Button variant="outline" fullWidth onClick={() => setShowFavorites(true)}>
+        <Button
+          variant="outline"
+          fullWidth
+          onClick={() => setShowFavorites(true)}
+        >
           ♥ Mis favoritos
         </Button>
+        <Button
+          variant="outline"
+          fullWidth
+          onClick={() => onNavigate("highlights")}
+        >
+          ✦ Mis subrayados
+        </Button>
+        <Button
+          variant="outline"
+          fullWidth
+          onClick={() => onNavigate("activity")}
+        >
+          ◫ Actividad
+        </Button>
+        <Button
+          variant="outline"
+          fullWidth
+          onClick={() => onNavigate("statistics")}
+        >
+          ▥ Estadísticas
+        </Button>
+      </Card>
+
+      <Card className="space-y-3">
+        <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+          Apariencia
+        </p>
+        <ThemeSwitch isAdmin={user?.role === "admin"} />
+      </Card>
+      <Card>
+        <ReminderSettings />
+      </Card>
+
+      {user?.role === "admin" ? (
+        <Card className="space-y-3">
+          <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+            Administración
+          </p>
+          <Button fullWidth onClick={() => onNavigate("admin")}>
+            Gestión de usuarios
+          </Button>
+        </Card>
+      ) : null}
+
+      <Card className="space-y-3">
+        <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+          Legal y ayuda
+        </p>
+        <Button variant="outline" fullWidth onClick={() => onNavigate("legal")}>
+          Información legal y licencias
+        </Button>
+        <a
+          className="block text-center text-sm font-semibold text-primary"
+          href={LEGAL_URLS.accountDeletion}
+        >
+          Solicitar eliminación de cuenta
+        </a>
       </Card>
 
       <Card>
@@ -99,6 +167,27 @@ export function ProfilePage({ onOpenBible }: Props) {
             : "Conectado al servidor."}
         </p>
       </Card>
+      <div className="flex flex-wrap justify-center gap-3 text-xs text-muted-foreground">
+        <button className="underline" onClick={() => onNavigate("legal")}>
+          Términos
+        </button>
+        <a
+          className="underline"
+          href={LEGAL_URLS.privacy}
+          target="_blank"
+          rel="noreferrer"
+        >
+          Privacidad
+        </a>
+        <a
+          className="underline"
+          href={LEGAL_URLS.communityGuidelines}
+          target="_blank"
+          rel="noreferrer"
+        >
+          Normas de la comunidad
+        </a>
+      </div>
 
       <Card className="space-y-3">
         <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">

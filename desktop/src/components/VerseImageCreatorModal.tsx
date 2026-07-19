@@ -9,17 +9,56 @@ import {
   formatById,
   previewDimensions,
 } from "@/lib/verseImageFormats";
+import {
+  getFavoriteVerseTemplate,
+  saveFavoriteVerseTemplate,
+} from "@/lib/preferences";
 
 const GRADIENTS = [
-  { id: "gold", css: "linear-gradient(160deg, #92400e, #451a03, #1c1917)", colors: ["#92400e", "#451a03", "#1c1917"] },
-  { id: "sunset", css: "linear-gradient(160deg, #ea580c, #7c2d12, #431407)", colors: ["#ea580c", "#7c2d12", "#431407"] },
-  { id: "ocean", css: "linear-gradient(160deg, #0369a1, #155e75, #083344)", colors: ["#0369a1", "#155e75", "#083344"] },
-  { id: "forest", css: "linear-gradient(160deg, #15803d, #14532d, #052e16)", colors: ["#15803d", "#14532d", "#052e16"] },
-  { id: "purple", css: "linear-gradient(160deg, #7e22ce, #4c1d95, #2e1065)", colors: ["#7e22ce", "#4c1d95", "#2e1065"] },
-  { id: "night", css: "linear-gradient(160deg, #1d4ed8, #312e81, #0f172a)", colors: ["#1d4ed8", "#312e81", "#0f172a"] },
+  {
+    id: "gold",
+    css: "linear-gradient(160deg, #92400e, #451a03, #1c1917)",
+    colors: ["#92400e", "#451a03", "#1c1917"],
+  },
+  {
+    id: "sunset",
+    css: "linear-gradient(160deg, #ea580c, #7c2d12, #431407)",
+    colors: ["#ea580c", "#7c2d12", "#431407"],
+  },
+  {
+    id: "ocean",
+    css: "linear-gradient(160deg, #0369a1, #155e75, #083344)",
+    colors: ["#0369a1", "#155e75", "#083344"],
+  },
+  {
+    id: "forest",
+    css: "linear-gradient(160deg, #15803d, #14532d, #052e16)",
+    colors: ["#15803d", "#14532d", "#052e16"],
+  },
+  {
+    id: "purple",
+    css: "linear-gradient(160deg, #7e22ce, #4c1d95, #2e1065)",
+    colors: ["#7e22ce", "#4c1d95", "#2e1065"],
+  },
+  {
+    id: "night",
+    css: "linear-gradient(160deg, #1d4ed8, #312e81, #0f172a)",
+    colors: ["#1d4ed8", "#312e81", "#0f172a"],
+  },
 ] as const;
 
-const HINTS = ["naturaleza", "cielo", "mar", "montaña", "amanecer", "flores", "cruz", "bosque", "atardecer", "lluvia"];
+const HINTS = [
+  "naturaleza",
+  "cielo",
+  "mar",
+  "montaña",
+  "amanecer",
+  "flores",
+  "cruz",
+  "bosque",
+  "atardecer",
+  "lluvia",
+];
 const PREVIEW_MAX_W = 320;
 const PREVIEW_MAX_H = 220;
 
@@ -45,7 +84,11 @@ function loadImage(url: string): Promise<HTMLImageElement> {
   });
 }
 
-function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
+function wrapText(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  maxWidth: number,
+): string[] {
   const words = text.split(/\s+/);
   const lines: string[] = [];
   let line = "";
@@ -100,7 +143,9 @@ async function renderToCanvas(
       drawImageCover(ctx, img, exportW, exportH, bgPosX, bgPosY, bgZoom);
     } catch {
       const grd = ctx.createLinearGradient(0, 0, exportW, exportH);
-      g.colors.forEach((c, i) => grd.addColorStop(i / (g.colors.length - 1), c));
+      g.colors.forEach((c, i) =>
+        grd.addColorStop(i / (g.colors.length - 1), c),
+      );
       ctx.fillStyle = grd;
       ctx.fillRect(0, 0, exportW, exportH);
     }
@@ -116,7 +161,11 @@ async function renderToCanvas(
 
   const pad = exportW * 0.1;
   const maxW = exportW - pad * 2;
-  const preview = previewDimensions(formatById(format), PREVIEW_MAX_W, PREVIEW_MAX_H);
+  const preview = previewDimensions(
+    formatById(format),
+    PREVIEW_MAX_W,
+    PREVIEW_MAX_H,
+  );
   const scale = exportW / preview.width;
   const fontSize = Math.round(textSizeForLength(text.length) * scale);
 
@@ -152,7 +201,13 @@ type Props = {
   abbr: string;
 };
 
-export function VerseImageCreatorModal({ open, onClose, text, reference, abbr }: Props) {
+export function VerseImageCreatorModal({
+  open,
+  onClose,
+  text,
+  reference,
+  abbr,
+}: Props) {
   const [gradientIdx, setGradientIdx] = useState(0);
   const [imageFormat, setImageFormat] = useState<ImageFormatId>("9:16");
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
@@ -176,34 +231,48 @@ export function VerseImageCreatorModal({ open, onClose, text, reference, abbr }:
   const textSize = textSizeForLength(text.length);
   const gradient = GRADIENTS[gradientIdx];
 
-  const loadPhotos = useCallback(async (
-    query?: string,
-    page = 1,
-    append = false,
-    formatId?: ImageFormatId,
-  ) => {
-    if (page === 1) setLoadingPhotos(true);
-    else setLoadingMorePhotos(true);
-    try {
-      const res = await api.fetchUnsplashImages(query, {
-        page,
-        orientation: formatById(formatId ?? imageFormatRef.current).unsplashOrientation,
-      });
-      setPhotos((prev) => (append ? mergePhotos(prev, res.images) : res.images));
-      setPhotosPage(page);
-      setHasMorePhotos(res.hasMore);
-    } catch {
-      if (!append) setPhotos([]);
-    } finally {
-      setLoadingPhotos(false);
-      setLoadingMorePhotos(false);
-    }
-  }, []);
+  const loadPhotos = useCallback(
+    async (
+      query?: string,
+      page = 1,
+      append = false,
+      formatId?: ImageFormatId,
+    ) => {
+      if (page === 1) setLoadingPhotos(true);
+      else setLoadingMorePhotos(true);
+      try {
+        const res = await api.fetchUnsplashImages(query, {
+          page,
+          orientation: formatById(formatId ?? imageFormatRef.current)
+            .unsplashOrientation,
+        });
+        setPhotos((prev) =>
+          append ? mergePhotos(prev, res.images) : res.images,
+        );
+        setPhotosPage(page);
+        setHasMorePhotos(res.hasMore);
+      } catch {
+        if (!append) setPhotos([]);
+      } finally {
+        setLoadingPhotos(false);
+        setLoadingMorePhotos(false);
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
     if (!open) return;
-    setGradientIdx(0);
-    setImageFormat("9:16");
+    const [savedFormat, savedGradient] = getFavoriteVerseTemplate().split(":");
+    const validFormat = IMAGE_FORMATS.some((item) => item.id === savedFormat)
+      ? (savedFormat as ImageFormatId)
+      : "9:16";
+    const validGradient = Math.max(
+      0,
+      GRADIENTS.findIndex((item) => item.id === savedGradient),
+    );
+    setGradientIdx(validGradient);
+    setImageFormat(validFormat);
     setPhotoUrl(null);
     setSelectedPhotoId(null);
     setSearch("");
@@ -213,7 +282,7 @@ export function VerseImageCreatorModal({ open, onClose, text, reference, abbr }:
     setBgPosX(50);
     setBgPosY(50);
     setBgZoom(100);
-    void loadPhotos(undefined, 1, false);
+    void loadPhotos(undefined, 1, false, validFormat);
   }, [open, loadPhotos]);
 
   const runSearch = () => {
@@ -269,12 +338,18 @@ export function VerseImageCreatorModal({ open, onClose, text, reference, abbr }:
       <div className="max-h-[94vh] w-full max-w-lg overflow-y-auto rounded-xl border border-border bg-card p-4 shadow-xl">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-lg font-bold text-foreground">Crear imagen</h2>
-          <button type="button" onClick={onClose} className="text-xl text-muted-foreground">
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-xl text-muted-foreground"
+          >
             ×
           </button>
         </div>
 
-        <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">Formato</p>
+        <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+          Formato
+        </p>
         <div className="mb-4 flex gap-2 overflow-x-auto pb-1">
           {IMAGE_FORMATS.map((fmt) => (
             <button
@@ -282,7 +357,9 @@ export function VerseImageCreatorModal({ open, onClose, text, reference, abbr }:
               type="button"
               onClick={() => selectFormat(fmt.id)}
               className={`flex shrink-0 flex-col items-center gap-1 rounded-lg border px-2.5 py-2 ${
-                imageFormat === fmt.id ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground"
+                imageFormat === fmt.id
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-border text-muted-foreground"
               }`}
             >
               <div
@@ -301,13 +378,27 @@ export function VerseImageCreatorModal({ open, onClose, text, reference, abbr }:
             style={{ width: preview.width, height: preview.height }}
           >
             {photoUrl ? (
-              <img src={photoUrl} alt="" style={bgImgStyle(bgPosX, bgPosY, bgZoom)} />
+              <img
+                src={photoUrl}
+                alt=""
+                style={bgImgStyle(bgPosX, bgPosY, bgZoom)}
+              />
             ) : (
-              <div className="absolute inset-0" style={{ backgroundImage: gradient.css }} />
+              <div
+                className="absolute inset-0"
+                style={{ backgroundImage: gradient.css }}
+              />
             )}
             <div className="absolute inset-0 bg-black/40" />
             <div className="relative flex h-full flex-col items-center justify-center px-6 text-center text-white">
-              <p style={{ fontSize: textSize, lineHeight: `${textSize * 1.45}px` }}>"{text}"</p>
+              <p
+                style={{
+                  fontSize: textSize,
+                  lineHeight: `${textSize * 1.45}px`,
+                }}
+              >
+                "{text}"
+              </p>
               <p className="mt-5 text-sm font-bold">{reference}</p>
               <p className="mt-1 text-xs text-white/55">{abbr}</p>
             </div>
@@ -320,21 +411,47 @@ export function VerseImageCreatorModal({ open, onClose, text, reference, abbr }:
               <span>Zoom fondo</span>
               <span>{bgZoom}%</span>
             </label>
-            <input type="range" min={100} max={200} step={5} value={bgZoom} onChange={(e) => setBgZoom(Number(e.target.value))} className="w-full accent-primary" />
+            <input
+              type="range"
+              min={100}
+              max={200}
+              step={5}
+              value={bgZoom}
+              onChange={(e) => setBgZoom(Number(e.target.value))}
+              className="w-full accent-primary"
+            />
             <label className="flex items-center justify-between text-xs text-muted-foreground">
               <span>Posición horizontal</span>
               <span>{bgPosX}%</span>
             </label>
-            <input type="range" min={0} max={100} step={5} value={bgPosX} onChange={(e) => setBgPosX(Number(e.target.value))} className="w-full accent-primary" />
+            <input
+              type="range"
+              min={0}
+              max={100}
+              step={5}
+              value={bgPosX}
+              onChange={(e) => setBgPosX(Number(e.target.value))}
+              className="w-full accent-primary"
+            />
             <label className="flex items-center justify-between text-xs text-muted-foreground">
               <span>Posición vertical</span>
               <span>{bgPosY}%</span>
             </label>
-            <input type="range" min={0} max={100} step={5} value={bgPosY} onChange={(e) => setBgPosY(Number(e.target.value))} className="w-full accent-primary" />
+            <input
+              type="range"
+              min={0}
+              max={100}
+              step={5}
+              value={bgPosY}
+              onChange={(e) => setBgPosY(Number(e.target.value))}
+              className="w-full accent-primary"
+            />
           </div>
         ) : null}
 
-        <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">Colores</p>
+        <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+          Colores
+        </p>
         <div className="mb-4 flex flex-wrap gap-2">
           {GRADIENTS.map((g, i) => (
             <button
@@ -351,6 +468,17 @@ export function VerseImageCreatorModal({ open, onClose, text, reference, abbr }:
             />
           ))}
         </div>
+        <button
+          type="button"
+          className="mb-4 text-xs font-semibold text-primary"
+          onClick={() =>
+            saveFavoriteVerseTemplate(
+              `${imageFormat}:${GRADIENTS[gradientIdx].id}`,
+            )
+          }
+        >
+          ★ Guardar este formato y color como favorito
+        </button>
 
         <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
           Fotos (Unsplash)
@@ -363,7 +491,11 @@ export function VerseImageCreatorModal({ open, onClose, text, reference, abbr }:
             placeholder="Buscar fondo (mar, cielo, cruz…)"
             className="min-w-0 flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground"
           />
-          <Button variant="outline" onClick={runSearch} disabled={loadingPhotos}>
+          <Button
+            variant="outline"
+            onClick={runSearch}
+            disabled={loadingPhotos}
+          >
             Buscar
           </Button>
         </div>
@@ -390,7 +522,9 @@ export function VerseImageCreatorModal({ open, onClose, text, reference, abbr }:
 
         <div className="mb-2 grid grid-cols-4 gap-2 sm:grid-cols-5">
           {loadingPhotos ? (
-            <p className="col-span-full text-sm text-muted-foreground">Cargando fotos…</p>
+            <p className="col-span-full text-sm text-muted-foreground">
+              Cargando fotos…
+            </p>
           ) : (
             photos.map((img) => (
               <button
@@ -401,10 +535,16 @@ export function VerseImageCreatorModal({ open, onClose, text, reference, abbr }:
                   setSelectedPhotoId(img.id);
                 }}
                 className={`aspect-[4/5] overflow-hidden rounded-lg border-2 ${
-                  selectedPhotoId === img.id ? "border-primary" : "border-transparent"
+                  selectedPhotoId === img.id
+                    ? "border-primary"
+                    : "border-transparent"
                 }`}
               >
-                <img src={img.thumb} alt="" className="h-full w-full object-cover" />
+                <img
+                  src={img.thumb}
+                  alt=""
+                  className="h-full w-full object-cover"
+                />
               </button>
             ))
           )}

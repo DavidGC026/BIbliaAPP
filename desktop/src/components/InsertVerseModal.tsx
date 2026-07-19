@@ -5,7 +5,8 @@ import * as repo from "@/lib/repo";
 import { formatVerseHtml } from "@/lib/verseInsert";
 import type { BibleVersion, Book, Verse } from "@/lib/types";
 
-const SELECT_CLS = "w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground";
+const SELECT_CLS =
+  "w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground";
 
 type Props = {
   open: boolean;
@@ -25,7 +26,14 @@ export function InsertVerseModal({ open, onClose, onInsert }: Props) {
 
   useEffect(() => {
     if (!open) return;
-    repo.repoListBibles().then(({ bibles: list }) => setBibles(list)).catch(() => {});
+    repo
+      .repoListBibles()
+      .then(({ bibles: list, defaultBibleId }) => {
+        setBibles(list);
+        if (!list.some((bible) => bible.bibleId === bibleId))
+          setBibleId(defaultBibleId ?? list[0]?.bibleId ?? 0);
+      })
+      .catch(() => {});
   }, [open]);
 
   useEffect(() => {
@@ -60,14 +68,22 @@ export function InsertVerseModal({ open, onClose, onInsert }: Props) {
 
   function toggleVerse(v: Verse) {
     setSelected((prev) => {
-      if (prev.some((s) => s.verse === v.verse)) return prev.filter((s) => s.verse !== v.verse);
-      return [...prev, { verse: v.verse, text: v.text }].sort((a, b) => a.verse - b.verse);
+      if (prev.some((s) => s.verse === v.verse))
+        return prev.filter((s) => s.verse !== v.verse);
+      return [...prev, { verse: v.verse, text: v.text }].sort(
+        (a, b) => a.verse - b.verse,
+      );
     });
   }
 
   function insert() {
     if (selected.length === 0 || !selectedBook || !selectedBible) return;
-    const html = formatVerseHtml(selected, selectedBook.bookName, chapter, selectedBible.abbr);
+    const html = formatVerseHtml(
+      selected,
+      selectedBook.bookName,
+      chapter,
+      selectedBible.abbr,
+    );
     onInsert(html);
     setSelected([]);
     onClose();
@@ -78,7 +94,11 @@ export function InsertVerseModal({ open, onClose, onInsert }: Props) {
       <div className="flex max-h-[90vh] w-full max-w-lg flex-col rounded-xl border border-border bg-card shadow-xl">
         <div className="flex items-center justify-between border-b border-border p-4">
           <h2 className="font-bold text-foreground">Insertar versículos</h2>
-          <button type="button" onClick={onClose} className="text-sm text-muted-foreground">
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-sm text-muted-foreground"
+          >
             Cerrar
           </button>
         </div>
@@ -123,7 +143,9 @@ export function InsertVerseModal({ open, onClose, onInsert }: Props) {
         </div>
 
         <div className="flex items-center justify-between px-4 py-2">
-          <span className="text-xs font-semibold text-muted-foreground">SELECCIONA VERSÍCULOS</span>
+          <span className="text-xs font-semibold text-muted-foreground">
+            SELECCIONA VERSÍCULOS
+          </span>
           {verses.length > 0 ? (
             <button
               type="button"
@@ -136,7 +158,9 @@ export function InsertVerseModal({ open, onClose, onInsert }: Props) {
                 )
               }
             >
-              {selected.length === verses.length ? "Deseleccionar todo" : "Seleccionar todo"}
+              {selected.length === verses.length
+                ? "Deseleccionar todo"
+                : "Seleccionar todo"}
             </button>
           ) : null}
         </div>
@@ -159,7 +183,9 @@ export function InsertVerseModal({ open, onClose, onInsert }: Props) {
                   }`}
                 >
                   <span className="font-extrabold text-primary">{v.verse}</span>
-                  <span className="flex-1 text-sm text-foreground">{v.text}</span>
+                  <span className="flex-1 text-sm text-foreground">
+                    {v.text}
+                  </span>
                 </button>
               );
             })

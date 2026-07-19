@@ -5,6 +5,7 @@ import {
   cacheBibleCatalog,
   cacheBooks,
   cacheChapterVerses,
+  canCacheBible,
   deleteDownloadedBible,
   downloadBible,
   getDownloadedSize,
@@ -44,7 +45,13 @@ import {
   upsertVerseNotesFromServer,
 } from "@/lib/offline/readerStore";
 import { syncAll } from "@/lib/sync";
-import type { BibleVersion, Book, Notebook, NotebookNote, Verse } from "@/lib/types";
+import type {
+  BibleVersion,
+  Book,
+  Notebook,
+  NotebookNote,
+  Verse,
+} from "@/lib/types";
 
 export {
   downloadBible,
@@ -111,7 +118,10 @@ export async function initOffline() {
   }
 }
 
-export async function repoListBibles(): Promise<{ bibles: BibleVersion[] }> {
+export async function repoListBibles(): Promise<{
+  bibles: BibleVersion[];
+  defaultBibleId: number | null;
+}> {
   if (getIsOnline()) {
     try {
       const res = await api.listBibles();
@@ -125,7 +135,12 @@ export async function repoListBibles(): Promise<{ bibles: BibleVersion[] }> {
           await initOffline();
           const local = await listLocalBibles();
           if (local.length > 0) {
-            return { bibles: local.map(({ downloaded: _d, downloadedAt: _a, ...b }) => b) };
+            return {
+              bibles: local.map(
+                ({ downloaded: _d, downloadedAt: _a, ...b }) => b,
+              ),
+              defaultBibleId: local[0]?.bibleId ?? null,
+            };
           }
         } catch {
           // ponytail: cae al error de red original
@@ -138,14 +153,20 @@ export async function repoListBibles(): Promise<{ bibles: BibleVersion[] }> {
   try {
     await initOffline();
     const local = await listLocalBibles();
-    if (local.length === 0) throw new Error("Sin conexión y no hay versiones descargadas");
-    return { bibles: local.map(({ downloaded: _d, downloadedAt: _a, ...b }) => b) };
+    if (local.length === 0)
+      throw new Error("Sin conexión y no hay versiones descargadas");
+    return {
+      bibles: local.map(({ downloaded: _d, downloadedAt: _a, ...b }) => b),
+      defaultBibleId: local[0]?.bibleId ?? null,
+    };
   } catch (err) {
     throw err instanceof Error ? err : new Error("Sin conexión");
   }
 }
 
-export async function repoListBooks(bibleId: number): Promise<{ books: Book[] }> {
+export async function repoListBooks(
+  bibleId: number,
+): Promise<{ books: Book[] }> {
   const local = await localBooksIfReady(bibleId);
   if (local) return { books: local };
 
@@ -176,8 +197,10 @@ export async function repoGetVerses(
   if (getIsOnline()) {
     try {
       const res = await api.getVerses(bibleId, bookId, chapter);
-      if (isSqliteAvailable()) {
-        await tryCache(() => cacheChapterVerses(bibleId, bookId, chapter, res.verses));
+      if (isSqliteAvailable() && (await canCacheBible(bibleId))) {
+        await tryCache(() =>
+          cacheChapterVerses(bibleId, bookId, chapter, res.verses),
+        );
       }
       return res;
     } catch (onlineErr) {
@@ -196,7 +219,9 @@ export async function repoGetVerses(
   if (!isSqliteAvailable()) throw new Error("Sin conexión");
   const verses = await getLocalVerses(bibleId, bookId, chapter);
   if (verses.length === 0) {
-    throw new Error("Capítulo no disponible offline. Descarga la versión en Biblia → Descargas.");
+    throw new Error(
+      "Capítulo no disponible offline. Descarga la versión en Biblia → Descargas.",
+    );
   }
   return { verses };
 }
@@ -295,7 +320,9 @@ async function loadNotebooksView(): Promise<{ notebooks: Notebook[] }> {
   }
 }
 
-async function loadNotebookNotesView(notebookId: number): Promise<{ notes: NotebookNote[] }> {
+async function loadNotebookNotesView(
+  notebookId: number,
+): Promise<{ notes: NotebookNote[] }> {
   if (!isSqliteAvailable()) {
     if (useRemote()) return api.listNotebookNotes(notebookId);
     throw new Error("Sin conexión");
@@ -336,11 +363,15 @@ export async function repoListNotebooks(): Promise<{ notebooks: Notebook[] }> {
   return loadNotebooksView();
 }
 
-export async function repoListNotebookNotes(notebookId: number): Promise<{ notes: NotebookNote[] }> {
+export async function repoListNotebookNotes(
+  notebookId: number,
+): Promise<{ notes: NotebookNote[] }> {
   return loadNotebookNotesView(notebookId);
 }
 
-export async function repoGetNotebookNote(noteId: number): Promise<{ note: NotebookNote }> {
+export async function repoGetNotebookNote(
+  noteId: number,
+): Promise<{ note: NotebookNote }> {
   if (useRemote() && noteId > 0) {
     try {
       const res = await api.getNotebookNote(noteId);
@@ -356,12 +387,20 @@ export async function repoGetNotebookNote(noteId: number): Promise<{ note: Noteb
   return { note };
 }
 
-export async function repoCreateNotebook(name: string, coverImage?: string | null) {
+export async function repoCreateNotebook(
+  name: string,
+  coverImage?: string | null,
+) {
   if (useRemote() && isSqliteAvailable()) {
     try {
       const res = await api.createNotebook(name, coverImage);
       const ts = nowIso();
-      await upsertNotebookFromServer({ id: res.id, name: res.name, coverImage: res.coverImage, createdAt: ts });
+      await upsertNotebookFromServer({
+        id: res.id,
+        name: res.name,
+        coverImage: res.coverImage,
+        createdAt: ts,
+      });
       return { id: res.id, name: res.name, coverImage: res.coverImage ?? null };
     } catch {
       // cae a cola offline
@@ -375,7 +414,11 @@ export async function repoCreateNotebook(name: string, coverImage?: string | nul
   return { id: local.id, name: local.name, coverImage: local.coverImage };
 }
 
-export async function repoUpdateNotebook(id: number, name: string, coverImage?: string | null) {
+export async function repoUpdateNotebook(
+  id: number,
+  name: string,
+  coverImage?: string | null,
+) {
   if (useRemote() && id > 0 && isSqliteAvailable()) {
     try {
       await api.updateNotebook(id, name, coverImage);
@@ -418,7 +461,11 @@ export async function repoDeleteNotebook(id: number) {
   return { ok: true };
 }
 
-export async function repoCreateNotebookNote(notebookId: number, title: string, content: string) {
+export async function repoCreateNotebookNote(
+  notebookId: number,
+  title: string,
+  content: string,
+) {
   const finalTitle = title.trim() || "Sin título";
   if (useRemote() && notebookId > 0 && isSqliteAvailable()) {
     try {
@@ -472,7 +519,12 @@ export async function repoUpdateNotebookNote(
     }
     throw new Error("Sin conexión");
   }
-  await updateLocalNote(noteId, finalTitle, content, tags ? JSON.stringify(tags) : undefined);
+  await updateLocalNote(
+    noteId,
+    finalTitle,
+    content,
+    tags ? JSON.stringify(tags) : undefined,
+  );
   return { ok: true };
 }
 
@@ -497,12 +549,18 @@ export async function repoDeleteNotebookNote(noteId: number) {
   return { ok: true };
 }
 
-export async function repoGetHighlights(bookId: number, chapter: number, bibleId: number) {
+export async function repoGetHighlights(
+  bookId: number,
+  chapter: number,
+  bibleId: number,
+) {
   if (getIsOnline()) {
     try {
       const res = await api.getHighlights(bookId, chapter, bibleId);
       if (isSqliteAvailable()) {
-        await tryCache(() => upsertHighlightsFromServer(bookId, chapter, bibleId, res.highlights));
+        await tryCache(() =>
+          upsertHighlightsFromServer(bookId, chapter, bibleId, res.highlights),
+        );
       }
       return res;
     } catch {
@@ -585,7 +643,11 @@ export async function repoListFavorites() {
   };
 }
 
-export async function repoGetChapterFavorites(bibleId: number, bookId: number, chapter: number) {
+export async function repoGetChapterFavorites(
+  bibleId: number,
+  bookId: number,
+  chapter: number,
+) {
   if (getIsOnline()) {
     try {
       const res = await api.listFavorites();
@@ -607,13 +669,22 @@ export async function repoAddFavorite(
   bookName?: string,
 ) {
   if (isSqliteAvailable()) {
-    await addLocalFavorite(bibleId, bookId, chapter, verse, verseText, bookName);
+    await addLocalFavorite(
+      bibleId,
+      bookId,
+      chapter,
+      verse,
+      verseText,
+      bookName,
+    );
   }
   if (getIsOnline()) {
     try {
       const res = await api.addFavorite(bibleId, bookId, chapter, verse);
       if (isSqliteAvailable()) {
-        const { setFavoriteServerId } = await import("@/lib/offline/readerStore");
+        const { setFavoriteServerId } = await import(
+          "@/lib/offline/readerStore"
+        );
         const { getAll } = await import("@/lib/offline/db");
         const row = await getAll<{ id: number }>(
           `SELECT id FROM favorites WHERE bible_id = ? AND book_id = ? AND chapter = ? AND verse = ? AND dirty = 1 ORDER BY id DESC LIMIT 1`,
@@ -645,7 +716,9 @@ export async function repoGetChapterNotes(bookId: number, chapter: number) {
     try {
       const res = await api.getChapterNotes(bookId, chapter);
       if (isSqliteAvailable()) {
-        await tryCache(() => upsertVerseNotesFromServer(bookId, chapter, res.links));
+        await tryCache(() =>
+          upsertVerseNotesFromServer(bookId, chapter, res.links),
+        );
       }
       return res;
     } catch {
@@ -658,6 +731,86 @@ export async function repoGetChapterNotes(bookId: number, chapter: number) {
   } catch {
     return { links: [] };
   }
+}
+
+export type RecentNotebookNote = NotebookNote & { notebookName: string };
+
+export async function repoListRecentNotebookNotes(
+  limit = 3,
+): Promise<{ notes: RecentNotebookNote[] }> {
+  const { notebooks } = await repoListNotebooks();
+  const batches = await Promise.all(
+    notebooks.map(async (notebook) => {
+      const { notes } = await repoListNotebookNotes(notebook.id).catch(() => ({
+        notes: [] as NotebookNote[],
+      }));
+      return notes.map((note) => ({ ...note, notebookName: notebook.name }));
+    }),
+  );
+  return {
+    notes: batches
+      .flat()
+      .sort(
+        (a, b) =>
+          new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+      )
+      .slice(0, limit),
+  };
+}
+
+function stripHtml(value: string) {
+  const node = document.createElement("div");
+  node.innerHTML = value;
+  return node.textContent ?? "";
+}
+
+export async function repoSearchNotes(
+  query: string,
+  limit = 20,
+): Promise<{ notes: RecentNotebookNote[] }> {
+  const q = query.trim().toLowerCase();
+  const { notes } = await repoListRecentNotebookNotes(Number.MAX_SAFE_INTEGER);
+  return {
+    notes: notes
+      .filter(
+        (note) =>
+          note.title.toLowerCase().includes(q) ||
+          stripHtml(note.content).toLowerCase().includes(q),
+      )
+      .slice(0, limit),
+  };
+}
+
+export async function repoSearchDictionary(opts: {
+  q: string;
+  lang?: "all" | "hebrew" | "greek";
+  dict?: string;
+}) {
+  return api.searchDictionary(opts);
+}
+
+export async function repoListRecentHighlights(limit = 3) {
+  if (getIsOnline()) {
+    try {
+      const { highlights } = await api.getAllHighlights();
+      return { highlights: highlights.slice(0, limit) };
+    } catch {
+      // usa SQLite si está disponible
+    }
+  }
+  if (!isSqliteAvailable()) return { highlights: [] };
+  const { getAll } = await import("@/lib/offline/db");
+  const rows = await getAll<any>(
+    `SELECT h.id, h.book_id, h.chapter, h.verse, h.color, h.created_at,
+      COALESCE(b.book_name, '') AS book_name, COALESCE(v.text, '') AS text,
+      h.bible_id, '' AS bible_abbr
+     FROM highlights h
+     LEFT JOIN books b ON b.bible_id = h.bible_id AND b.book_id = h.book_id
+     LEFT JOIN verses v ON v.bible_id = h.bible_id AND v.book_id = h.book_id AND v.chapter = h.chapter AND v.verse = h.verse
+     WHERE h.deleted = 0 ORDER BY h.created_at DESC LIMIT ?`,
+    [limit],
+  ).catch(() => []);
+  return { highlights: rows };
 }
 
 export async function repoDeleteVerseNote(noteId: number) {
@@ -681,7 +834,8 @@ export async function repoSaveVerseNote(
   verse: number,
   noteContent: string,
 ) {
-  if (isSqliteAvailable()) await saveLocalVerseNote(bookId, chapter, verse, noteContent);
+  if (isSqliteAvailable())
+    await saveLocalVerseNote(bookId, chapter, verse, noteContent);
   if (getIsOnline()) {
     try {
       await api.saveVerseNote(bookId, chapter, verse, noteContent);

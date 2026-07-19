@@ -2,6 +2,7 @@ import { FormEvent, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { useAuth } from "@/context/AuthContext";
+import { LEGAL_URLS } from "@/lib/config";
 
 type Props = {
   onSuccess?: () => void;
@@ -87,9 +88,7 @@ export function LoginPage({ onSuccess }: Props) {
               className="w-full rounded-lg border border-input bg-background px-4 py-3 text-foreground outline-none focus:ring-2 focus:ring-ring"
             />
 
-            {error ? (
-              <p className="text-sm text-destructive">{error}</p>
-            ) : null}
+            {error ? <p className="text-sm text-destructive">{error}</p> : null}
 
             <Button type="submit" fullWidth loading={loading} disabled={busy}>
               Entrar
@@ -114,6 +113,27 @@ export function LoginPage({ onSuccess }: Props) {
             {googleLoading ? "Conectando…" : "Continuar con Google"}
           </button>
         </Card>
+        <p className="px-4 text-center text-xs leading-relaxed text-muted-foreground">
+          Al iniciar sesión aceptas los{" "}
+          <a
+            className="font-semibold text-primary underline"
+            href={LEGAL_URLS.terms}
+            target="_blank"
+            rel="noreferrer"
+          >
+            términos y condiciones
+          </a>{" "}
+          y el{" "}
+          <a
+            className="font-semibold text-primary underline"
+            href={LEGAL_URLS.privacy}
+            target="_blank"
+            rel="noreferrer"
+          >
+            aviso de privacidad
+          </a>
+          .
+        </p>
       </div>
     </div>
   );

@@ -4,10 +4,13 @@ import { Card } from "@/components/ui/Card";
 import { FeedPostCard } from "@/components/FeedPostCard";
 import * as api from "@/lib/api";
 import type { FeedPost } from "@/lib/types";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 export function FeedPage() {
   const [posts, setPosts] = useState<FeedPost[]>([]);
-  const [feedType, setFeedType] = useState<"following" | "explore">("following");
+  const [feedType, setFeedType] = useState<"following" | "explore">(
+    "following",
+  );
   const [newPost, setNewPost] = useState("");
   const [loading, setLoading] = useState(true);
   const [publishing, setPublishing] = useState(false);
@@ -77,7 +80,11 @@ export function FeedPage() {
           rows={3}
           className="w-full resize-none rounded-lg border border-input bg-background px-3 py-2 text-foreground outline-none focus:ring-2 focus:ring-ring"
         />
-        <Button onClick={publish} loading={publishing} disabled={!newPost.trim()}>
+        <Button
+          onClick={publish}
+          loading={publishing}
+          disabled={!newPost.trim()}
+        >
           Publicar
         </Button>
       </Card>
@@ -87,7 +94,19 @@ export function FeedPage() {
       {loading ? (
         <p className="text-muted-foreground">Cargando publicaciones…</p>
       ) : posts.length === 0 ? (
-        <p className="text-muted-foreground">No hay publicaciones todavía.</p>
+        <EmptyState
+          icon="◉"
+          title={
+            feedType === "following"
+              ? "Tu comunidad está tranquila"
+              : "No hay publicaciones todavía"
+          }
+          description={
+            feedType === "following"
+              ? "Explora publicaciones o comparte la primera reflexión."
+              : "Vuelve más tarde para descubrir contenido nuevo."
+          }
+        />
       ) : (
         <div className="space-y-4">
           {posts.map((post) => (

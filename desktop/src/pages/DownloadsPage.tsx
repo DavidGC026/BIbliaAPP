@@ -2,7 +2,12 @@ import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { isSqliteAvailable } from "@/lib/offline/db";
-import { initOffline, downloadBible, deleteDownloadedBible, repoListBiblesWithStatus } from "@/lib/repo";
+import {
+  initOffline,
+  downloadBible,
+  deleteDownloadedBible,
+  repoListBiblesWithStatus,
+} from "@/lib/repo";
 
 type BibleRow = {
   bibleId: number;
@@ -11,6 +16,7 @@ type BibleRow = {
   downloaded: boolean;
   downloadedAt?: string;
   verseCount: number;
+  canDownload?: boolean;
 };
 
 export function DownloadsPage() {
@@ -27,7 +33,9 @@ export function DownloadsPage() {
       const list = await repoListBiblesWithStatus();
       setBibles(list);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al cargar versiones");
+      setError(
+        err instanceof Error ? err.message : "Error al cargar versiones",
+      );
     }
   }, []);
 
@@ -44,8 +52,10 @@ export function DownloadsPage() {
       await downloadBible(bibleId, (p) => {
         setProgress(`${p.phase} (${p.current}/${p.total})`);
       });
+      localStorage.removeItem("bibliaapp_download_error");
       await refresh();
     } catch (err) {
+      localStorage.setItem("bibliaapp_download_error", "1");
       setError(err instanceof Error ? err.message : "Error al descargar");
     } finally {
       setActiveId(null);
@@ -71,7 +81,8 @@ export function DownloadsPage() {
     return (
       <div className="p-6">
         <p className="text-muted-foreground">
-          Las descargas offline solo están disponibles en la app de escritorio (Tauri).
+          Las descargas offline solo están disponibles en la app de escritorio
+          (Tauri).
         </p>
       </div>
     );
@@ -80,7 +91,9 @@ export function DownloadsPage() {
   return (
     <div className="mx-auto max-w-5xl space-y-6 p-6">
       <header>
-        <h1 className="text-2xl font-bold text-foreground">Descargas offline</h1>
+        <h1 className="text-2xl font-bold text-foreground">
+          Descargas offline
+        </h1>
         <p className="text-sm text-muted-foreground">
           Guarda una versión completa en SQLite para leer y buscar sin internet.
         </p>
@@ -99,7 +112,10 @@ export function DownloadsPage() {
       ) : (
         <div className="space-y-3">
           {bibles.map((b) => (
-            <Card key={b.bibleId} className="flex flex-wrap items-center justify-between gap-3">
+            <Card
+              key={b.bibleId}
+              className="flex flex-wrap items-center justify-between gap-3"
+            >
               <div>
                 <p className="font-semibold text-foreground">
                   {b.abbr} — {b.name}
@@ -107,7 +123,9 @@ export function DownloadsPage() {
                 <p className="text-xs text-muted-foreground">
                   {b.downloaded
                     ? `Descargada · ${b.verseCount.toLocaleString("es")} versículos`
-                    : "No descargada"}
+                    : b.canDownload === true
+                      ? "No descargada"
+                      : "Disponible solo en línea"}
                   {b.downloadedAt
                     ? ` · ${new Date(b.downloadedAt).toLocaleDateString("es")}`
                     : null}
@@ -122,13 +140,17 @@ export function DownloadsPage() {
                   >
                     Eliminar
                   </Button>
-                ) : (
+                ) : b.canDownload === true ? (
                   <Button
                     onClick={() => handleDownload(b.bibleId)}
                     loading={activeId === b.bibleId}
                   >
                     Descargar
                   </Button>
+                ) : (
+                  <span className="text-xs font-semibold text-muted-foreground">
+                    Sin descarga
+                  </span>
                 )}
               </div>
             </Card>

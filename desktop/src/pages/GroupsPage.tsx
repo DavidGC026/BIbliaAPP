@@ -5,6 +5,7 @@ import { AuthedImage } from "@/components/AuthedImage";
 import { GroupDetailPage } from "@/pages/GroupDetailPage";
 import * as api from "@/lib/api";
 import type { GroupSummary } from "@/lib/types";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 type OpenGroup = {
   id: number;
@@ -140,7 +141,11 @@ export function GroupsPage({ openGroup, onOpenGroupConsumed }: Props) {
             placeholder="Código de invitación"
             className="min-w-0 flex-1 rounded-lg border border-input bg-background px-3 py-2 text-foreground"
           />
-          <Button onClick={joinByCode} loading={joining} disabled={!inviteCode.trim()}>
+          <Button
+            onClick={joinByCode}
+            loading={joining}
+            disabled={!inviteCode.trim()}
+          >
             Unirse
           </Button>
         </div>
@@ -152,7 +157,11 @@ export function GroupsPage({ openGroup, onOpenGroupConsumed }: Props) {
       {loading ? (
         <p className="text-muted-foreground">Cargando grupos…</p>
       ) : groups.length === 0 ? (
-        <p className="text-muted-foreground">Aún no perteneces a ningún grupo.</p>
+        <EmptyState
+          icon="◎"
+          title="Aún no perteneces a ningún grupo"
+          description="Escribe arriba el código de invitación que te compartió tu congregación."
+        />
       ) : (
         <div className="space-y-4">
           {groups.map((g) => (

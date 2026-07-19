@@ -2,7 +2,7 @@
 
 Cliente de escritorio (**Tauri v2 + React**) para lectura bíblica, comunidad y grupos.
 
-**Versión:** 0.2.0 · **Plataformas:** Arch Linux, Debian/Ubuntu, Windows
+**Versión:** 0.3.0 · **Plataformas:** Arch Linux, Debian/Ubuntu, Windows
 
 ---
 
@@ -10,13 +10,13 @@ Cliente de escritorio (**Tauri v2 + React**) para lectura bíblica, comunidad y 
 
 Índice: **[`docs/README.md`](./docs/README.md)**
 
-| Tema | Enlace |
-|------|--------|
-| Changelog | [docs/01-changelog.md](./docs/01-changelog.md) |
-| Arch Linux | [docs/04-arch-linux.md](./docs/04-arch-linux.md) |
-| Debian | [docs/09-debian-linux.md](./docs/09-debian-linux.md) |
-| Windows | [docs/11-windows.md](./docs/11-windows.md) |
-| Auto-update | [docs/10-auto-update.md](./docs/10-auto-update.md) |
+| Tema        | Enlace                                               |
+| ----------- | ---------------------------------------------------- |
+| Changelog   | [docs/01-changelog.md](./docs/01-changelog.md)       |
+| Arch Linux  | [docs/04-arch-linux.md](./docs/04-arch-linux.md)     |
+| Debian      | [docs/09-debian-linux.md](./docs/09-debian-linux.md) |
+| Windows     | [docs/11-windows.md](./docs/11-windows.md)           |
+| Auto-update | [docs/10-auto-update.md](./docs/10-auto-update.md)   |
 
 ---
 
@@ -34,14 +34,14 @@ npm run pack:win       # Windows (.msi + .exe) — requiere SO Windows
 ## Instalar en Arch
 
 ```bash
-sudo pacman -U packaging/arch/bibliaapp-desktop-0.2.0-3-x86_64.pkg.tar.zst
+sudo pacman -U packaging/arch/bibliaapp-desktop-0.3.0-1-x86_64.pkg.tar.zst
 ```
 
-Ruta en el repo: `desktop/packaging/arch/bibliaapp-desktop-0.2.0-3-x86_64.pkg.tar.zst`
+El paquete se genera en `desktop/packaging/arch/` con `npm run pack:arch`.
 
 ---
 
-## Qué incluye v0.2.0
+## Qué incluye v0.3.0
 
 - Login, sesión offline, Google OAuth
 - Lector (resaltados, notas de versículo, favoritos, imágenes) — **sync offline** como móvil
@@ -49,6 +49,9 @@ Ruta en el repo: `desktop/packaging/arch/bibliaapp-desktop-0.2.0-3-x86_64.pkg.ta
 - Biblia offline, búsqueda, **referencias cruzadas**, **diccionario Strong**, feed + comentarios, grupos, notificaciones
 - Empaquetado Arch + Debian + Windows; CI GitHub Actions
 - Auto-actualización (Perfil; publicar `latest.json` firmado pendiente)
+- Inicio inteligente, búsqueda universal, planes de lectura, actividad y estadísticas
+- Temas ampliados, preferencias del lector, permisos por sección y administración
+- Flujo legal completo y capacidades/licencias de Biblias también offline
 
 ---
 
@@ -56,4 +59,3 @@ Ruta en el repo: `desktop/packaging/arch/bibliaapp-desktop-0.2.0-3-x86_64.pkg.ta
 
 `https://biblia2.dvguzman.com` — configurable con `VITE_API_URL`  
 OAuth desktop: [docs/08-backend-desktop.md](./docs/08-backend-desktop.md)
-

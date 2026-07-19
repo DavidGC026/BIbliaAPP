@@ -3,6 +3,9 @@ import { Button } from "@/components/ui/Button";
 import { NotificationBell } from "@/components/NotificationBell";
 import { useAuth } from "@/context/AuthContext";
 import { NAV_ITEMS, type AppTab } from "@/lib/nav";
+import { parseAllowedSections } from "@/lib/nav";
+import { COMMUNITY_ENABLED } from "@/lib/config";
+import { SyncStatusBadge } from "@/components/SyncStatusBadge";
 
 type Props = {
   tab: AppTab;
@@ -23,14 +26,24 @@ export function AppLayout({
   onNavigateToGroup,
   children,
 }: Props) {
-  const { isOffline, logout } = useAuth();
+  const { user, isOffline, logout } = useAuth();
+  const allowed = parseAllowedSections(user?.allowedSections);
+  const visibleItems = NAV_ITEMS.filter((item) => {
+    if (!COMMUNITY_ENABLED && (item.id === "feed" || item.id === "groups"))
+      return false;
+    return user?.role === "admin" || !allowed || allowed.includes(item.section);
+  });
 
   return (
     <div className="flex min-h-screen bg-background">
       <aside className="flex w-56 shrink-0 flex-col border-r border-border bg-card">
         <div className="border-b border-border px-4 py-5">
           <div className="flex items-center gap-3">
-            <img src="/logo.png" alt="" className="h-10 w-10 rounded-xl object-cover" />
+            <img
+              src="/logo.png"
+              alt=""
+              className="h-10 w-10 rounded-xl object-cover"
+            />
             <div className="min-w-0">
               <p className="truncate font-bold text-foreground">BibliaAPP</p>
               <p className="truncate text-xs text-muted-foreground">
@@ -41,7 +54,7 @@ export function AppLayout({
         </div>
 
         <nav className="flex-1 space-y-1 p-3">
-          {NAV_ITEMS.map((item) => (
+          {visibleItems.map((item) => (
             <button
               key={item.id}
               type="button"
@@ -64,6 +77,7 @@ export function AppLayout({
               Sin conexión
             </p>
           ) : null}
+          <SyncStatusBadge />
           <NotificationBell
             onNavigateToFeed={onNavigateToFeed}
             onNavigateToGroups={onNavigateToGroups}

@@ -21,13 +21,33 @@ type Props = {
   onSaved: () => void;
 };
 
-type ToolbarButton = { cmd: string; label: string; title: string; style?: CSSProperties };
+type ToolbarButton = {
+  cmd: string;
+  label: string;
+  title: string;
+  style?: CSSProperties;
+};
 
 const FORMAT_BUTTONS: ToolbarButton[] = [
   { cmd: "bold", label: "B", title: "Negrita", style: { fontWeight: 900 } },
-  { cmd: "italic", label: "I", title: "Cursiva", style: { fontStyle: "italic" } },
-  { cmd: "underline", label: "U", title: "Subrayado", style: { textDecoration: "underline" } },
-  { cmd: "strikeThrough", label: "S", title: "Tachado", style: { textDecoration: "line-through" } },
+  {
+    cmd: "italic",
+    label: "I",
+    title: "Cursiva",
+    style: { fontStyle: "italic" },
+  },
+  {
+    cmd: "underline",
+    label: "U",
+    title: "Subrayado",
+    style: { textDecoration: "underline" },
+  },
+  {
+    cmd: "strikeThrough",
+    label: "S",
+    title: "Tachado",
+    style: { textDecoration: "line-through" },
+  },
   { cmd: "insertUnorderedList", label: "•≡", title: "Lista" },
   { cmd: "insertOrderedList", label: "1.", title: "Lista numerada" },
   { cmd: "outdent", label: "⇤", title: "Reducir sangría" },
@@ -82,7 +102,9 @@ export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
           appliedRef.current = true;
         }
       })
-      .catch((err) => setError(err instanceof Error ? err.message : "No se pudo cargar"))
+      .catch((err) =>
+        setError(err instanceof Error ? err.message : "No se pudo cargar"),
+      )
       .finally(() => setLoading(false));
   }, [isNew, noteId]);
 
@@ -107,7 +129,11 @@ export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
 
   function saveSelection() {
     const sel = window.getSelection();
-    if (sel && sel.rangeCount > 0 && editorRef.current?.contains(sel.anchorNode)) {
+    if (
+      sel &&
+      sel.rangeCount > 0 &&
+      editorRef.current?.contains(sel.anchorNode)
+    ) {
       savedRangeRef.current = sel.getRangeAt(0).cloneRange();
     }
   }
@@ -169,7 +195,7 @@ export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
   }
 
   async function save() {
-    const html = preview ? previewHtml : editorRef.current?.innerHTML ?? "";
+    const html = preview ? previewHtml : (editorRef.current?.innerHTML ?? "");
     const finalTitle = title.trim() || "Sin título";
     setSaving(true);
     setError(null);
@@ -200,6 +226,65 @@ export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
 
   function insertDictionary(entry: StrongEntry) {
     insertHtml(buildDictBlockHtml(formatDictionaryHtml(entry)));
+  }
+
+  function currentHtml() {
+    return preview ? previewHtml : (editorRef.current?.innerHTML ?? "");
+  }
+
+  function safeExportHtml() {
+    const container = document.createElement("div");
+    container.innerHTML = currentHtml();
+    container
+      .querySelectorAll("script, iframe, object, embed, link, style")
+      .forEach((node) => node.remove());
+    container.querySelectorAll("*").forEach((node) => {
+      for (const attribute of Array.from(node.attributes)) {
+        const name = attribute.name.toLowerCase();
+        const value = attribute.value.trim().toLowerCase();
+        if (name.startsWith("on") || value.startsWith("javascript:")) {
+          node.removeAttribute(attribute.name);
+        }
+      }
+    });
+    return container.innerHTML;
+  }
+
+  async function shareNote() {
+    const html = currentHtml();
+    const node = document.createElement("div");
+    node.innerHTML = html;
+    const message = `${title.trim() || "Nota"}\n\n${node.textContent?.trim() ?? ""}\n\nCompartido desde BibliaAPP`;
+    if (navigator.share)
+      await navigator
+        .share({ title: title.trim() || "Nota", text: message })
+        .catch(() => {});
+    else await navigator.clipboard.writeText(message);
+  }
+
+  function exportPdf() {
+    const iframe = document.createElement("iframe");
+    iframe.style.position = "fixed";
+    iframe.style.width = "1px";
+    iframe.style.height = "1px";
+    iframe.style.opacity = "0";
+    document.body.appendChild(iframe);
+    const doc = iframe.contentDocument;
+    if (!doc) {
+      iframe.remove();
+      return;
+    }
+    const safeTitle = (title.trim() || "Nota").replace(/[<>&]/g, "");
+    doc.open();
+    doc.write(
+      `<!doctype html><html lang="es"><head><title>${safeTitle}</title><style>@page{margin:48px}body{font-family:Georgia,serif;color:#1f2937;line-height:1.65;font-size:14px}h1{font-size:24px;margin:0 0 4px}.meta{font:11px system-ui;color:#6b7280;border-bottom:1px solid #e5e7eb;padding-bottom:12px;margin-bottom:24px}img{max-width:100%}blockquote{border-left:3px solid #92700c;padding:8px 16px;margin:12px 0}footer{margin-top:32px;border-top:1px solid #e5e7eb;padding-top:12px;font:10px system-ui;color:#9ca3af}</style></head><body><h1>${safeTitle}</h1><p class="meta">${new Date().toLocaleDateString("es", { dateStyle: "long" })}</p>${safeExportHtml()}<footer>Exportado desde BibliaAPP</footer></body></html>`,
+    );
+    doc.close();
+    window.setTimeout(() => {
+      iframe.contentWindow?.focus();
+      iframe.contentWindow?.print();
+      window.setTimeout(() => iframe.remove(), 1000);
+    }, 150);
   }
 
   if (loading) {
@@ -336,7 +421,9 @@ export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
       {preview ? (
         <div
           className="note-rich note-rich-readonly min-h-[55vh] w-full rounded-xl border border-border bg-card px-4 py-3 text-base text-foreground"
-          dangerouslySetInnerHTML={{ __html: previewHtml || "<p>Sin contenido</p>" }}
+          dangerouslySetInnerHTML={{
+            __html: previewHtml || "<p>Sin contenido</p>",
+          }}
         />
       ) : null}
 
@@ -350,9 +437,19 @@ export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
             Eliminar
           </Button>
         ) : null}
+        <Button variant="outline" onClick={shareNote}>
+          Compartir
+        </Button>
+        <Button variant="outline" onClick={exportPdf}>
+          Exportar PDF
+        </Button>
       </div>
 
-      <InsertVerseModal open={verseOpen} onClose={() => setVerseOpen(false)} onInsert={insertHtml} />
+      <InsertVerseModal
+        open={verseOpen}
+        onClose={() => setVerseOpen(false)}
+        onInsert={insertHtml}
+      />
       <InsertDictionaryModal
         open={dictOpen}
         onClose={() => setDictOpen(false)}

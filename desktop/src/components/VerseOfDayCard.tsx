@@ -1,8 +1,11 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { getVerseOfDay } from "@/lib/api";
+import { listBibles } from "@/lib/api";
+import { VerseImageCreatorModal } from "@/components/VerseImageCreatorModal";
+import { DEFAULT_BIBLE_ID } from "@/lib/config";
 import { resolveVerseBackgroundImage } from "@/lib/resolveVerseBackground";
-import type { BibleTarget, VerseOfDay } from "@/lib/types";
+import type { BibleTarget, BibleVersion, VerseOfDay } from "@/lib/types";
 
 const THEME_COLORS: Record<string, string> = {
   Amor: "bg-rose-500/20 text-rose-100 border-rose-400/30",
@@ -23,10 +26,23 @@ export function VerseOfDayCard({ onReadInBible }: Props) {
   const [verse, setVerse] = useState<VerseOfDay | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [bibles, setBibles] = useState<BibleVersion[]>([]);
+  const [bibleId, setBibleId] = useState(DEFAULT_BIBLE_ID);
+  const [imageOpen, setImageOpen] = useState(false);
+
+  useEffect(() => {
+    listBibles()
+      .then(({ bibles: list, defaultBibleId }) => {
+        setBibles(list);
+        if (!list.some((item) => item.bibleId === bibleId))
+          setBibleId(defaultBibleId ?? list[0]?.bibleId ?? 0);
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
-    getVerseOfDay()
+    getVerseOfDay(bibleId || undefined)
       .then(async (v) => {
         if (cancelled) return;
         if (!v.backgroundImage && v.theme) {
@@ -49,13 +65,22 @@ export function VerseOfDayCard({ onReadInBible }: Props) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [bibleId]);
 
   const hasBg = Boolean(verse?.backgroundImage);
   const themeClass =
     verse?.theme &&
     (THEME_COLORS[verse.theme] ??
       "bg-primary/20 text-primary-foreground border-primary/30");
+  const currentBible = bibles.find((item) => item.bibleId === verse?.idBible);
+
+  async function share() {
+    if (!verse || currentBible?.canShare === false) return;
+    const text = `“${verse.text}”\n\n— ${verse.reference}${currentBible?.abbr ? ` (${currentBible.abbr})` : ""}\n\nCompartido desde BibliaAPP`;
+    if (navigator.share)
+      await navigator.share({ title: verse.reference, text }).catch(() => {});
+    else await navigator.clipboard.writeText(text);
+  }
 
   if (loading) {
     return (
@@ -71,7 +96,9 @@ export function VerseOfDayCard({ onReadInBible }: Props) {
         <p className="text-xs font-bold uppercase tracking-wider text-primary">
           Versículo del día
         </p>
-        <p className="mt-3 text-sm text-destructive">{error ?? "No disponible"}</p>
+        <p className="mt-3 text-sm text-destructive">
+          {error ?? "No disponible"}
+        </p>
       </div>
     );
   }
@@ -90,6 +117,20 @@ export function VerseOfDayCard({ onReadInBible }: Props) {
           {verse.theme.toUpperCase()}
         </span>
       ) : null}
+      {bibles.length > 1 ? (
+        <select
+          aria-label="Versión del versículo diario"
+          value={bibleId}
+          onChange={(e) => setBibleId(Number(e.target.value))}
+          className={`mb-5 rounded-lg border px-3 py-1.5 text-xs ${hasBg ? "border-white/30 bg-black/25 text-white" : "border-border bg-card text-foreground"}`}
+        >
+          {bibles.map((item) => (
+            <option key={item.bibleId} value={item.bibleId}>
+              {item.abbr}
+            </option>
+          ))}
+        </select>
+      ) : null}
       <blockquote
         className={`max-w-2xl text-xl font-medium leading-relaxed md:text-2xl ${
           hasBg ? "text-white" : "text-foreground"
@@ -104,21 +145,50 @@ export function VerseOfDayCard({ onReadInBible }: Props) {
       >
         — {verse.reference}
       </p>
-      {onReadInBible ? (
-        <Button
-          variant="outline"
-          className={`mt-8 ${hasBg ? "border-white/30 bg-white/10 text-white hover:bg-white/20 hover:text-white" : ""}`}
-          onClick={() =>
-            onReadInBible({
-              bookId: verse.idBook,
-              chapter: verse.chapter,
-              bibleId: verse.idBible,
-            })
-          }
-        >
-          Leer en la Biblia
-        </Button>
-      ) : null}
+      <div className="mt-8 flex flex-wrap justify-center gap-2">
+        {onReadInBible ? (
+          <Button
+            variant="outline"
+            className={
+              hasBg
+                ? "border-white/30 bg-white/10 text-white hover:bg-white/20 hover:text-white"
+                : ""
+            }
+            onClick={() =>
+              onReadInBible({
+                bookId: verse.idBook,
+                chapter: verse.chapter,
+                bibleId: verse.idBible,
+              })
+            }
+          >
+            Leer en la Biblia
+          </Button>
+        ) : null}
+        {currentBible?.canCreateImages !== false ? (
+          <Button
+            variant="outline"
+            className={
+              hasBg
+                ? "border-white/30 bg-white/10 text-white hover:bg-white/20 hover:text-white"
+                : ""
+            }
+            onClick={() => setImageOpen(true)}
+          >
+            Crear imagen
+          </Button>
+        ) : null}
+        {currentBible?.canShare !== false ? (
+          <Button onClick={share}>Compartir</Button>
+        ) : null}
+      </div>
+      <VerseImageCreatorModal
+        open={imageOpen}
+        onClose={() => setImageOpen(false)}
+        text={verse.text}
+        reference={verse.reference}
+        abbr={currentBible?.abbr ?? ""}
+      />
     </>
   );
 

@@ -55,6 +55,139 @@
   --ring: oklch(0.7 0.1 70);
 }
 
+[data-theme="sepia"] {
+  --background: #f4ecd8;
+  --foreground: #433422;
+  --card: #fbf4e1;
+  --card-foreground: #433422;
+  --primary: #8a5a2b;
+  --primary-foreground: #fbf4e1;
+  --muted: #ece0c5;
+  --muted-foreground: #7a6a52;
+  --accent: #e6d8bc;
+  --accent-foreground: #433422;
+  --border: #e2d4b6;
+  --input: #e2d4b6;
+  --ring: #8a5a2b;
+}
+[data-theme="sepia-dark"] {
+  --background: #1b1510;
+  --foreground: #f3e7d3;
+  --card: #2a2119;
+  --card-foreground: #f3e7d3;
+  --primary: #d6a15d;
+  --primary-foreground: #1b1510;
+  --muted: #3a2d22;
+  --muted-foreground: #c4ad8b;
+  --accent: #463421;
+  --accent-foreground: #f3e7d3;
+  --border: rgb(218 190 150 / 20%);
+  --input: rgb(218 190 150 / 16%);
+  --ring: #d6a15d;
+}
+[data-theme="midnight"] {
+  --background: #0b1020;
+  --foreground: #eaf0ff;
+  --card: #141c32;
+  --card-foreground: #eaf0ff;
+  --primary: #8aa4ff;
+  --primary-foreground: #08101f;
+  --muted: #202b48;
+  --muted-foreground: #a6b2d0;
+  --accent: #26365d;
+  --accent-foreground: #eaf0ff;
+  --border: rgb(166 178 208 / 20%);
+  --input: rgb(166 178 208 / 16%);
+  --ring: #8aa4ff;
+}
+[data-theme="forest"] {
+  --background: #081713;
+  --foreground: #ecfdf5;
+  --card: #10251f;
+  --card-foreground: #ecfdf5;
+  --primary: #4adea7;
+  --primary-foreground: #052e23;
+  --muted: #1b382f;
+  --muted-foreground: #a7c7b5;
+  --accent: #21483a;
+  --accent-foreground: #ecfdf5;
+  --border: rgb(167 199 181 / 20%);
+  --input: rgb(167 199 181 / 16%);
+  --ring: #4adea7;
+}
+[data-theme="lavender"] {
+  --background: #f7f4ff;
+  --foreground: #302b45;
+  --card: #fffcff;
+  --card-foreground: #302b45;
+  --primary: #6748ad;
+  --primary-foreground: #fff;
+  --muted: #eee9fa;
+  --muted-foreground: #756d91;
+  --accent: #e6defa;
+  --accent-foreground: #302b45;
+  --border: #ded7f0;
+  --input: #ded7f0;
+  --ring: #6748ad;
+}
+[data-theme="dvg"] {
+  --background: #15090a;
+  --foreground: #fff7f7;
+  --card: #251012;
+  --card-foreground: #fff7f7;
+  --primary: #dc2626;
+  --primary-foreground: #fff;
+  --muted: #3a171b;
+  --muted-foreground: #d8a7ab;
+  --accent: #4a171d;
+  --accent-foreground: #fff7f7;
+  --border: rgb(248 113 113 / 22%);
+  --input: rgb(248 113 113 / 18%);
+  --ring: #f87171;
+}
+[data-theme="ubg"] {
+  --background: #061417;
+  --foreground: #f0fdfa;
+  --card: #0c2428;
+  --card-foreground: #f0fdfa;
+  --primary: #10b981;
+  --primary-foreground: #03231f;
+  --muted: #12363b;
+  --muted-foreground: #9cc8c8;
+  --accent: #123e4d;
+  --accent-foreground: #f0fdfa;
+  --border: rgb(45 212 191 / 24%);
+  --input: rgb(56 189 248 / 18%);
+  --ring: #38bdf8;
+}
+
+.theme-preview {
+  position: relative;
+  display: block;
+  width: 3.25rem;
+  height: 2.5rem;
+  flex: none;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--background);
+}
+.theme-preview i {
+  position: absolute;
+  inset: 0.45rem 0.85rem 0.45rem 0.4rem;
+  border-radius: 0.3rem;
+  background: var(--card);
+}
+.theme-preview b {
+  position: absolute;
+  right: 0.35rem;
+  bottom: 0.35rem;
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 999px;
+  background: var(--primary);
+}
+
 body {
   margin: 0;
   font-family:
@@ -69,6 +202,37 @@ body {
 
 #root {
   min-height: 100vh;
+}
+
+.reader-theme-auto {
+  background: var(--card);
+  color: var(--foreground);
+}
+.reader-theme-light {
+  background: #fff;
+  color: #1f2937;
+  border-color: #e5e7eb;
+}
+.reader-theme-sepia {
+  background: #f5ecd9;
+  color: #433422;
+  border-color: #dccba4;
+}
+.reader-theme-night {
+  background: #0b1220;
+  color: #e5e7eb;
+  border-color: #1e293b;
+}
+.reader-theme-contrast {
+  background: #000;
+  color: #fff;
+  border-color: #4b5563;
+}
+.reader-theme-light button,
+.reader-theme-sepia button,
+.reader-theme-night button,
+.reader-theme-contrast button {
+  color: inherit;
 }
 
 /* WebKitGTK ignora text-foreground en <select>; forzar contraste */
@@ -118,7 +282,9 @@ select option {
   border: 2px solid transparent;
   border-radius: 12px;
   position: relative;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
 }
 .note-rich .biblia-content-block.is-selected {
   border-color: var(--primary);
