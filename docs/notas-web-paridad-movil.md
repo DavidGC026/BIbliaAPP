@@ -20,6 +20,7 @@ La pestaña **Notas** del menú web ahora replica la estructura y el editor de l
 | Lista de notas | Resumen con regex markdown | `stripNotePreview()` — soporta HTML y markdown, métricas y orden profesional |
 | Cabecera del editor | Iconos + Publicar + tags | **Volver · Borrar · Guardar** con estado de guardado, palabras y lectura estimada |
 | Diseño visual | Web con estructura distinta | Header, estantería, detalle de libreta y editor adaptados al lenguaje visual mobile |
+| Área de escritura (móvil web) | El teclado virtual tapaba el editor (~200 px útiles en 640 px) | Viewport `resizes-content`, modo inmersivo al editar, altura ligada a `visualViewport`, colapso del bloque de título con teclado abierto y modales en `dvh` |
 
 ---
 
@@ -40,7 +41,13 @@ La pestaña **Notas** del menú web ahora replica la estructura y el editor de l
 
 | Archivo | Cambio |
 |---------|--------|
-| `components/notebook-sidebar.tsx` | Editor móvil, preview en lista, modo `embedded` dentro de pestañas |
+| `components/notebook-sidebar.tsx` | Editor móvil, preview en lista, modo `embedded`, prop `immersiveOnMobile`, cabecera compacta en móvil, detección `keyboard-open` |
+| `components/notes-section.tsx` | Pasa `immersiveOnMobile` al editor de la sección Notas |
+| `app/layout.tsx` | `viewport.interactiveWidget: 'resizes-content'` y `viewportFit: 'cover'` |
+| `app/globals.css` | Header con safe-area, clase `note-immersive`, variable `--app-visual-height` y colapso del bloque de título con `keyboard-open` |
+| `app/page.tsx` | Clase `mobile-content-frame`; hoja **Más** con `max-h-[84dvh]` |
+| `components/reading-plans.tsx` | Modales de devocional con `max-h-[90dvh]` |
+| `components/verse-image-creator.tsx` | Panel inferior con `max-h-[42dvh]` |
 | `components/note-rich-editor.tsx` | Puente iframe/web para imágenes, versículos y diccionario |
 | `lib/app-section-registry/sections.client.tsx` | La sección `notebook` renderiza `NotesSection` |
 | `lib/app-section-registry/nav.client.tsx` | Oculta destinos hijos agrupados, incluida `library`, sin eliminarlos del catálogo ni de permisos |
@@ -64,6 +71,75 @@ La pestaña **Notas** del menú web ahora replica la estructura y el editor de l
 - La biblioteca de libretas usa panel de acción, métricas, búsqueda y cards en cuadrícula con portada e indicadores.
 - El detalle de libreta usa cabecera compacta con portada, conteo de notas/palabras, acciones y búsqueda.
 - El editor agrupa título, estado de guardado, palabras, minutos y vista previa dentro de una cabecera de documento.
+
+### Área de escritura en móvil web (teclado y viewport)
+
+En navegadores móviles el teclado virtual solo encogía el **viewport visual**: el layout (y `100dvh`) no se reajustaba, el editor —último bloque del shell— quedaba debajo del teclado y el área útil caía a ~200 px en pantallas de 640 px.
+
+La corrección tiene cuatro capas complementarias:
+
+#### 1. Meta viewport (`app/layout.tsx`)
+
+```typescript
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  interactiveWidget: 'resizes-content', // el layout reflowa al abrir el teclado
+  viewportFit: 'cover',                 // activa env(safe-area-inset-*)
+}
+```
+
+- **`resizes-content`**: en Chrome/Android el contenido se reajusta cuando aparece el teclado.
+- **`viewport-fit=cover`**: los `env(safe-area-inset-*)` que ya usa el CSS devuelven valores reales. El header móvil crece con `calc(64px + env(safe-area-inset-top))` para no quedar bajo el notch (`app/globals.css`).
+
+#### 2. Modo inmersivo de escritura (solo sección Notas)
+
+Mientras se edita una nota desde **Notas → Notas**, el editor ocupa toda la pantalla:
+
+| Elemento | Comportamiento |
+|----------|----------------|
+| Header y tabbar de la app | Ocultos (`body.note-immersive`) |
+| Salida | Botón **Volver** del propio editor |
+| Altura del shell | `--app-visual-height`, sincronizada con `window.visualViewport` |
+| Ganancia típica | ~150 px extra de alto útil |
+
+**Opt-in:** `NotesSection` pasa `immersiveOnMobile` a `NotebookSidebar`. El editor **embebido del lector bíblico** (`embedded` sin `immersiveOnMobile`) conserva header y tabbar porque vive en un panel dividido.
+
+Implementación:
+
+1. `components/notebook-sidebar.tsx` — `useEffect` que añade/quita `note-immersive` en `<body>` y escucha `visualViewport.resize` y `orientationchange`.
+2. `app/globals.css` — reglas `@media (max-width: 767px)` para ocultar chrome y fijar alturas con `var(--app-visual-height, 100dvh)`.
+
+Esto cubre **iOS Safari**, donde `interactive-widget=resizes-content` no aplica y `100dvh` no encoge al abrir el teclado.
+
+#### 3. Colapso del bloque de título con teclado abierto (commit 1d3daf1)
+
+Tras el modo inmersivo, con el teclado abierto el alto útil puede caer a ~350 px. La cabecera de documento (estado de guardado, contador de palabras/minutos y pill de vista previa) seguía ocupando ~45 px que el área de escritura necesita más.
+
+**Detección:** en el mismo `useEffect` del modo inmersivo, `syncHeight()` mantiene un `baseline` con la **mayor altura observada** del viewport visible (`Math.max(baseline, height)`). Con `interactive-widget=resizes-content`, tanto `visualViewport.height` como `window.innerHeight` encogen al abrir el teclado, así que no basta comparar contra `innerHeight` inicial.
+
+Se añade `body.keyboard-open` cuando la altura actual cae más de **120 px** por debajo del baseline (margen para no confundir el teclado con la barra del navegador). Al salir del editor se quitan `note-immersive` y `keyboard-open`.
+
+**Marcado en JSX** (`notebook-sidebar.tsx`):
+
+| Clase | Elemento |
+|-------|----------|
+| `note-editor-titlebar` | Contenedor externo del bloque de título |
+| `note-editor-title-card` | Tarjeta con borde alrededor del título |
+| `note-editor-meta` | Fila de estado, métricas y vista previa |
+
+**CSS** (`app/globals.css`, solo `@media (max-width: 767px)` con `body.note-immersive.keyboard-open`):
+
+- Reduce padding de `.note-editor-titlebar` y `.note-editor-title-card`.
+- Oculta `.note-editor-meta` (`display: none`).
+
+El campo **Título** permanece visible y editable; solo desaparecen estado y métricas mientras el teclado está abierto. Al cerrarlo, la fila vuelve sola.
+
+#### 4. Cabecera compacta y modales en `dvh`
+
+- Cabecera del editor y bloque de título con menos padding en móvil (`px-3 py-2`, título `text-xl`).
+- Métricas secundarias (`N palabras · M min`) ocultas bajo breakpoint `sm` para no robar una línea entera cuando el teclado está cerrado.
+- Modales de notas (versículo, diccionario), devocionales de planes y panel del creador de imágenes pasan de `vh` a **`dvh`** para no desbordar con la barra dinámica del navegador.
 
 ### Selector de fuente
 
@@ -201,14 +277,33 @@ Recarga el navegador con **Ctrl+Shift+R** en https://biblia2.dvguzman.com → me
 10. Guarda y vuelve a la lista: el resumen debe ser texto legible, no HTML crudo.
 11. Aplica un color a un texto, selecciónalo y pulsa **A**; debe recuperar el color normal del tema y adaptarse al alternar claro/oscuro.
 
+### En móvil web (Chrome/Safari, viewport ≤767 px)
+
+12. Abre **Notas → Notas**, edita una nota: header y tabbar deben ocultarse; **Volver** restaura el chrome.
+13. Enfoca el cuerpo del editor: el área de escritura y la barra de formato del iframe deben quedar visibles sobre el teclado (no ~200 px tapados).
+14. Con el teclado abierto, el bloque de título debe mostrar **solo el campo de título** (sin estado «Guardado…», contador de palabras ni pill de vista previa); al cerrar el teclado, la fila de métricas reaparece.
+15. Gira el dispositivo o cierra/abre el teclado: la altura del editor debe seguir al viewport visible sin desbordes.
+16. Abre el modal **Insertar versículo**: no debe cortarse por la barra del navegador (`80dvh`).
+17. Desde el lector bíblico, abre el panel de notas lateral: header y tabbar **siguen visibles** (sin modo inmersivo).
+
 ---
 
 ## Notas técnicas
 
-- El lector bíblico (`components/bible-reader`) sigue usando `NotebookSidebar` directamente en el panel lateral, sin pestañas.
+- El lector bíblico (`components/bible-reader`) sigue usando `NotebookSidebar` con `embedded` y **sin** `immersiveOnMobile`; conserva header y tabbar.
 - La publicación de notas al feed de comunidad se retiró del editor web para igualar la UX móvil (solo Guardar / Borrar).
 - La inserción de referencias cruzadas se retiró de los editores web y mobile por decisión de producto. La consulta de referencias del lector/área de estudio permanece disponible; el contenido que ya estaba insertado en notas no se modifica.
 - La web ahora tiene autoguardado silencioso tras unos segundos sin escribir y solicita el HTML actual del iframe antes del guardado manual.
+- El modal **Insertar versículo** inicializa `insertBibleId` desde `/api/bibles` (`defaultBibleId` o primera versión), no desde un id fijo.
+- **Detección de teclado web:** no uses `window.innerHeight` fijo como referencia; con `resizes-content` también encoge. El baseline acumula la mayor altura vista en la sesión de edición.
+
+## Documentos relacionados
+
+| Documento | Contenido |
+|-----------|-----------|
+| [`docs-mobile/16-editor-webview-teclado-seleccion.md`](../docs-mobile/16-editor-webview-teclado-seleccion.md) | Teclado y foco en el WebView nativo; paridad web móvil |
+| [`docs-mobile/23-paridad-web-mobile-global.md`](../docs-mobile/23-paridad-web-mobile-global.md) | Shell móvil global, viewport y safe-area |
+| [`docs-mobile/22-notas-diseno-profesional.md`](../docs-mobile/22-notas-diseno-profesional.md) | Diseño del editor móvil nativo |
 
 ## Regla de documentación para cambios web
 
@@ -216,4 +311,4 @@ Todo cambio que afecte código web debe actualizar o crear documentación dentro
 
 ---
 
-*Última revisión: julio 2026.*
+*Última revisión: julio 2026 (colapso del bloque de título con teclado abierto, commit 1d3daf1).*
