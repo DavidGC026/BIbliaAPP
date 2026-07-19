@@ -347,9 +347,15 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
 
     const root = document.documentElement
     const viewport = window.visualViewport
+    // Altura de referencia sin teclado: se queda con la mayor vista, porque
+    // con interactive-widget=resizes-content innerHeight también encoge.
+    let baseline = 0
     const syncHeight = () => {
       const height = Math.round(viewport?.height ?? window.innerHeight)
       root.style.setProperty("--app-visual-height", `${height}px`)
+      baseline = Math.max(baseline, height)
+      // Margen de 120px para no confundir el teclado con la barra del navegador
+      document.body.classList.toggle("keyboard-open", height < baseline - 120)
     }
 
     document.body.classList.add("note-immersive")
@@ -359,6 +365,7 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
 
     return () => {
       document.body.classList.remove("note-immersive")
+      document.body.classList.remove("keyboard-open")
       root.style.removeProperty("--app-visual-height")
       viewport?.removeEventListener("resize", syncHeight)
       window.removeEventListener("orientationchange", syncHeight)
@@ -744,8 +751,8 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
           </div>
         </header>
 
-        <div className="shrink-0 px-3 py-2 md:px-4 md:py-3">
-          <div className="rounded-2xl border border-border bg-card px-3 py-2.5 shadow-sm md:px-3.5 md:py-3">
+        <div className="note-editor-titlebar shrink-0 px-3 py-2 md:px-4 md:py-3">
+          <div className="note-editor-title-card rounded-2xl border border-border bg-card px-3 py-2.5 shadow-sm md:px-3.5 md:py-3">
             <Input
               value={editingNote.title}
               onChange={(e) => {
@@ -756,7 +763,7 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
               disabled={imageEditMode}
               className="h-auto border-0 bg-transparent px-0 py-0 text-xl font-extrabold focus-visible:ring-0 placeholder:text-muted-foreground/40 md:text-2xl"
             />
-            <div className="mt-2 flex flex-wrap items-center justify-between gap-2 md:mt-3">
+            <div className="note-editor-meta mt-2 flex flex-wrap items-center justify-between gap-2 md:mt-3">
             <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-muted-foreground">
               <span className={cn("size-2 rounded-full", contentDirty ? "bg-amber-500" : "bg-primary")} />
               <span>{savingNote ? "Guardando..." : contentDirty ? "Sin guardar" : savedAt ? `Guardado ${savedAt}` : "Aún sin guardar"}</span>

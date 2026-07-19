@@ -460,5 +460,21 @@
       height: var(--app-visual-height, 100dvh);
       max-height: var(--app-visual-height, 100dvh);
     }
+
+    /* Con el teclado abierto el alto util es minimo: el bloque de titulo se
+       reduce a solo el titulo para devolver ~45px al area de escritura. */
+    body.note-immersive.keyboard-open .note-editor-titlebar {
+      padding-top: 4px;
+      padding-bottom: 4px;
+    }
+
+    body.note-immersive.keyboard-open .note-editor-title-card {
+      padding-top: 6px;
+      padding-bottom: 6px;
+    }
+
+    body.note-immersive.keyboard-open .note-editor-meta {
+      display: none;
+    }
   }
 }
