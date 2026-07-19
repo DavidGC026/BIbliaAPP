@@ -93,3 +93,17 @@ Además de la paridad visual del shell, se inició la consolidación funcional d
 - Todos los tabs internos se filtran mediante `allowedSections` y las lecturas elegidas desde Planes abren el lector principal.
 
 Archivos principales: `components/notes-section.tsx`, `lib/app-section-registry/sections.client.tsx` y `lib/app-section-registry/nav.client.tsx`.
+
+## Temas visuales globales (julio 2026)
+
+La web incorporó las paletas móviles de `Colors.ts` como clases CSS en `app/globals.css` y un selector **Apariencia** con vista previa (`components/theme-toggle.tsx`), reemplazando el antiguo toggle binario claro/oscuro.
+
+| Aspecto | Mobile | Web |
+|---------|--------|-----|
+| Selector | Perfil → Apariencia, cuadrícula de tarjetas | Barra superior, menú desplegable con miniatura |
+| Persistencia | `SecureStore` (`bibliaapp_theme_mode`) | `localStorage` vía `next-themes` |
+| Paletas admin | DVG | DVG + UBG (UBG solo web) |
+| Detección oscuro | `ThemeContext.isDarkTheme` | `lib/theme.ts` → `isDarkThemeName()` |
+| Protección admin | `AdminThemeGuard` en `_layout.tsx` | `ThemeToggle` + `/api/auth/me` |
+
+Detalle de implementación: [`docs/temas-visuales-web.md`](../docs/temas-visuales-web.md). Origen móvil: [`25-temas-visuales-y-dvg.md`](./25-temas-visuales-y-dvg.md).
