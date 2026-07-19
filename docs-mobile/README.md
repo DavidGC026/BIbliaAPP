@@ -36,7 +36,7 @@ Documentación del cliente móvil de **BibliaAPP** (React Native + Expo). La app
 | [22-notas-diseno-profesional.md](./22-notas-diseno-profesional.md) | Rediseño visual profesional de notas, libretas, tarjetas y editor |
 | [23-paridad-web-mobile-global.md](./23-paridad-web-mobile-global.md) | Seguimiento global de paridad entre la aplicación web y móvil |
 | [24-reduccion-secciones-web.md](./24-reduccion-secciones-web.md) | Simplificación de secciones web durante el trabajo de paridad |
-| [25-temas-visuales-y-dvg.md](./25-temas-visuales-y-dvg.md) | Nuevos temas móviles, selector visual y edición DVG exclusiva para administradores |
+| [25-temas-visuales-y-dvg.md](./25-temas-visuales-y-dvg.md) | Nuevos temas móviles, selector visual, DVG admin y paridad web ([`docs/temas-visuales-web.md`](../docs/temas-visuales-web.md)) |
 
 ---
 
