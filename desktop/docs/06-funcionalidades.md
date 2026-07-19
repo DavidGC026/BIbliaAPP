@@ -1,5 +1,16 @@
 # 06 — Funcionalidades por pantalla
 
+## Layout
+
+- **Barra lateral** fija (`AppLayout`); el área de contenido ocupa el resto del ancho.
+- **Vistas principales** (Inicio, Biblia, Notas, Comunidad, Grupos, Calendario, Búsqueda, administración de usuarios, etc.) usan `.desktop-page`: ancho fluido, centrado, hasta **1536 px** (`96rem`).
+- **Perfil**, **Legal** y los **formularios administrativos** de edición conservan contenedores más estrechos (`max-w-3xl` / `max-w-4xl`) para legibilidad.
+- Modales y login mantienen anchos propios (`max-w-md`–`max-w-xl`).
+
+Convención para desarrolladores: [03-desarrollo.md](./03-desarrollo.md#layout-de-pantallas).
+
+---
+
 ## Login (`LoginPage`)
 
 | Función            | Detalle                                                      |

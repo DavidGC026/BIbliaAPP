@@ -112,6 +112,20 @@ EXPO_PUBLIC_API_URL=http://192.168.x.x:3000 npm run start
 
 Pantallas incluidas en v1.0.0: Inicio (versículo del día), Lector bíblico, Comunidad (feed), Grupos y Perfil con login por token Bearer.
 
+## Cliente desktop (Tauri + React)
+
+La carpeta `desktop/` contiene el cliente de escritorio para Linux y Windows. Consume la misma API REST que web y móvil; no accede a MariaDB.
+
+**Documentación:** [`desktop/docs/README.md`](desktop/docs/README.md) · Versión actual: **0.3.3**
+
+```bash
+cd desktop
+npm install
+npm run tauri dev   # app nativa con SQLite y OAuth Google
+```
+
+Empaquetado Arch/Debian/Windows y flujos offline: ver `desktop/docs/03-desarrollo.md` y `desktop/docs/07-api-y-offline.md`.
+
 ## Base de datos
 
 No hay migraciones formales (Prisma, etc.). Las tablas se crean o amplían con funciones `ensure*Tables()` en `lib/` la primera vez que la app las necesita.
