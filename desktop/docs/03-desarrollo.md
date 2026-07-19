@@ -130,6 +130,53 @@ packaging/arch/
 
 ---
 
+## Iconografía vectorial (UI in-app)
+
+La interfaz usa SVG inline mediante **`components/ui/Icon.tsx`**. Sustituye emojis del sistema y fuentes externas para que navegación, acciones, estados vacíos y controles del lector/editor se vean igual en Linux y Windows, también offline.
+
+```tsx
+import { Icon } from "@/components/ui/Icon";
+
+<Icon name="book" size={22} className="text-primary" />
+```
+
+| Propiedad | Default | Uso |
+| --------- | ------- | --- |
+| `name` | — | Clave tipada (`IconName`) |
+| `size` | `20` | Ancho y alto en px |
+| `strokeWidth` | `1.8` | Grosor del trazo |
+| `className` | `""` | Color vía `currentColor` (p. ej. `text-muted-foreground`) |
+
+El componente fija `viewBox="0 0 24"`, `aria-hidden="true"` y no requiere red ni fuentes.
+
+### Nombres disponibles (`IconName`)
+
+`activity`, `alert`, `bell`, `book`, `calendar`, `chart`, `close`, `community`, `dictionary`, `download`, `edit`, `eye`, `file`, `heart`, `highlighter`, `home`, `image`, `inbox`, `notes`, `search`, `sparkles`, `table`, `user`, `users`
+
+### Dónde se usa
+
+| Módulo | Rol |
+| ------ | --- |
+| `lib/nav.ts` | Iconos de la barra lateral (`NAV_ITEMS`) |
+| `lib/preferences.ts` | Acciones rápidas de Inicio (`HOME_ACTION_CATALOG`) |
+| `components/ui/EmptyState.tsx` | Icono del estado vacío (default `inbox`) |
+| `components/AppLayout.tsx`, `NotificationBell.tsx` | Navegación y campana |
+| Lector, feed, editor de notas, búsqueda | Botones y acciones contextuales |
+
+### Añadir un icono nuevo
+
+1. Ampliar la unión `IconName` y el mapa `CONTENT` en `Icon.tsx` (paths SVG en el mismo estilo de trazo).
+2. Si afecta menú o Inicio, actualizar `nav.ts` o `HOME_ACTION_CATALOG` en `preferences.ts`.
+3. Preferir reutilizar un nombre existente antes de duplicar formas parecidas.
+
+**No usar** emojis ni librerías de iconos (Lucide, react-icons, etc.) para cromo de UI salvo petición explícita. Los emojis del diario devocional (`lib/devotional.ts`) son contenido de usuario, no iconografía de interfaz.
+
+**No confundir** con `npm run icons`: ese script copia `public/logo.png` y regenera PNG del **lanzador Tauri** (`hicolor`, `.desktop`, instaladores). No afecta a los SVG in-app.
+
+Detalle de arquitectura: [05-arquitectura.md](./05-arquitectura.md#estado-y-preferencias-v033).
+
+---
+
 ## Solución de problemas
 
 | Problema                        | Solución                                                                      |
@@ -139,7 +186,7 @@ packaging/arch/
 | Google login no completa        | Verificar despliegue backend [08-backend-desktop.md](./08-backend-desktop.md) |
 | Sin SQLite en `npm run dev`     | Normal: usar `npm run tauri dev`                                              |
 | Búsqueda offline vacía          | Descargar versión en Biblia → Descargas                                       |
-| Icono genérico en Hyprland      | `npm run icons` + reinstalar paquete pacman                                   |
+| Icono genérico en Hyprland      | `npm run icons` + reinstalar paquete pacman (PNG del lanzador, no SVG in-app) |
 | CORS en navegador puro          | Usar `tauri dev`                                                              |
 
 ---

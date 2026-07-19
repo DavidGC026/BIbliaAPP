@@ -1,5 +1,15 @@
 # 06 — Funcionalidades por pantalla
 
+## UI compartida
+
+- **Iconografía:** SVG local vía `<Icon name="…" />` (`components/ui/Icon.tsx`). Barra lateral, acciones de Inicio, campana, estados vacíos (`EmptyState`), lector, feed y editor usan los mismos trazos en todos los temas.
+- **Estados vacíos:** `EmptyState` acepta `icon` tipado (`search`, `book`, `calendar`, `users`, `alert`, …) en lugar de emojis del sistema.
+- **Emojis intencionales:** el diario devocional conserva emojis de emoción (`lib/devotional.ts`); no forman parte del sistema de iconos de UI.
+
+Guía para desarrolladores: [03-desarrollo.md](./03-desarrollo.md#iconografía-vectorial-ui-in-app).
+
+---
+
 ## Login (`LoginPage`)
 
 | Función            | Detalle                                                      |
@@ -123,7 +133,7 @@ Tres sub-pestañas: **Lector** | **Buscar** | **Referencias** | **Diccionario** 
 
 - Logo + iglesia
 - Navegación: Inicio, Biblia, Búsqueda, Notas, Comunidad, Grupos, Calendario, Perfil
-- **Notificaciones** 🔔 (SSE + polling)
+- **Notificaciones** (icono `bell`, SSE + polling)
 - Indicador “Sin conexión”
 - Cerrar sesión
 
@@ -137,7 +147,7 @@ Pestañas: **Libretas** | **Diario** | **Libros** | **Planes**
 
 - Crear / editar / eliminar libretas con gradientes, Unsplash, URL o archivo propio
 - Notas por libreta (título + contenido; compatible con HTML de la web)
-- Botón **📚 Diccionario** en el editor para insertar entradas Strong
+- Botón **Diccionario** (`Icon` `dictionary`) en el editor para insertar entradas Strong
 - Autoguardado a 4 s con cola, reintento y guardado al abandonar la vista
 - Conteo de palabras, tipografía por nota, colores favoritos y **Auto** adaptable al tema
 - Imágenes subidas o locales en modo normal/fondo, con tamaño, alineación, orden y arrastre libre
