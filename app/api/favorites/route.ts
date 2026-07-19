@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getPool } from "@/lib/mysql"
 import { getSession } from "@/lib/auth"
+import { assertBibleAccess, bibleAccessStatus, listAccessibleBibles } from "@/lib/bible-access"
 
 export async function GET(req: NextRequest) {
   try {
@@ -17,11 +18,12 @@ export async function GET(req: NextRequest) {
       [user.userId]
     )
 
-    return NextResponse.json({ favorites: rows })
+    const allowedIds = new Set((await listAccessibleBibles(req)).map((bible) => bible.bibleId))
+    return NextResponse.json({ favorites: rows.filter((row) => allowedIds.has(Number(row.bible_id))) })
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Error desconocido" },
-      { status: 500 }
+      { status: bibleAccessStatus(err) }
     )
   }
 }
@@ -33,6 +35,7 @@ export async function POST(req: NextRequest) {
 
     const { bibleId, bookId, chapter, verse } = await req.json()
     if (!bibleId || !bookId || !chapter || !verse) return NextResponse.json({ error: "Faltan datos" }, { status: 400 })
+    await assertBibleAccess(req, Number(bibleId))
 
     const [result] = await getPool().query<any>(
       "INSERT INTO bible_favorites (user_id, bible_id, book_id, chapter, verse) VALUES (?, ?, ?, ?, ?)",
@@ -43,7 +46,7 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Error desconocido" },
-      { status: 500 }
+      { status: bibleAccessStatus(err) }
     )
   }
 }

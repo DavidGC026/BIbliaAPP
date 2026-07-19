@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getPool } from "@/lib/mysql"
 import { getSession } from "@/lib/auth"
+import { assertBibleAccess, bibleAccessStatus } from "@/lib/bible-access"
 
 export async function GET(req: NextRequest) {
   try {
@@ -17,6 +18,7 @@ export async function GET(req: NextRequest) {
     if (!session) {
       return NextResponse.json({ error: "No autorizado." }, { status: 401 })
     }
+    await assertBibleAccess(req, bibleId)
 
     // Ensure database tables exist
     await getPool().query(`
@@ -43,7 +45,7 @@ export async function GET(req: NextRequest) {
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Error desconocido" },
-      { status: 500 }
+      { status: bibleAccessStatus(err) }
     )
   }
 }
@@ -60,6 +62,7 @@ export async function POST(req: NextRequest) {
     if (!session) {
       return NextResponse.json({ error: "No autorizado." }, { status: 401 })
     }
+    await assertBibleAccess(req, Number(bibleId))
 
     // Ensure database tables exist
     await getPool().query(`
@@ -99,7 +102,7 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Error desconocido" },
-      { status: 500 }
+      { status: bibleAccessStatus(err) }
     )
   }
 }

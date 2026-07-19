@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getPool } from "@/lib/mysql"
 import { getSession } from "@/lib/auth"
+import { bibleAccessStatus, listAccessibleBibles } from "@/lib/bible-access"
 
 export async function GET(req: NextRequest) {
   try {
@@ -43,11 +44,13 @@ export async function GET(req: NextRequest) {
       ORDER BY h.created_at DESC
     `, [session.userId])
 
-    return NextResponse.json({ highlights: rows })
+    const allowedIds = new Set((await listAccessibleBibles(req)).map((bible) => bible.bibleId))
+    const visibleRows = (rows as any[]).filter((row) => allowedIds.has(Number(row.bible_id)))
+    return NextResponse.json({ highlights: visibleRows })
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Error desconocido" },
-      { status: 500 }
+      { status: bibleAccessStatus(err) }
     )
   }
 }

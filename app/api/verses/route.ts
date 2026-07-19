@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getVerses } from "@/lib/bible"
+import { assertBibleAccess, bibleAccessStatus } from "@/lib/bible-access"
 
 export async function GET(req: NextRequest) {
   try {
@@ -10,12 +11,13 @@ export async function GET(req: NextRequest) {
     if (!bibleId || !bookId || !chapter) {
       return NextResponse.json({ error: "Parámetros 'bible', 'book' y 'chapter' requeridos." }, { status: 400 })
     }
+    await assertBibleAccess(req, bibleId)
     const verses = await getVerses(bibleId, bookId, chapter)
     return NextResponse.json({ verses })
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Error desconocido" },
-      { status: 500 },
+      { status: bibleAccessStatus(err) },
     )
   }
 }

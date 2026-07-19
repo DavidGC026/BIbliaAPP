@@ -1,11 +1,22 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getPool } from "@/lib/mysql"
 import { fetchThemeBackgroundImage } from "@/lib/verse-theme-unsplash"
+import { assertBibleAccess, bibleAccessStatus, listAccessibleBibles } from "@/lib/bible-access"
 
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url)
-    const idBible = Number(searchParams.get("idBible")) || 149 // Default a RVR1960 o similar
+    const requestedBibleId = Number(searchParams.get("idBible"))
+    const accessibleBibles = await listAccessibleBibles(req)
+    const configuredDefault = Number(process.env.DEFAULT_PUBLIC_BIBLE_ID)
+    const idBible = requestedBibleId ||
+      (accessibleBibles.some((bible) => bible.bibleId === configuredDefault)
+        ? configuredDefault
+        : accessibleBibles[0]?.bibleId)
+    if (!idBible) {
+      return NextResponse.json({ error: "No hay una versión bíblica disponible." }, { status: 404 })
+    }
+    await assertBibleAccess(req, idBible)
     
     // Obtener mes y día (ya sea pasados por query para testing o usando la fecha actual)
     const now = new Date()
@@ -68,7 +79,7 @@ export async function GET(req: NextRequest) {
     console.error("Error obteniendo el Versículo del Día:", err)
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Error desconocido" },
-      { status: 500 }
+      { status: bibleAccessStatus(err) }
     )
   }
 }

@@ -8,6 +8,18 @@ export interface BibleVersion {
   bibleId: number
   abbr: string
   name: string
+  license?: string | null
+  copyright?: string | null
+  attribution?: string | null
+  sourceUrl?: string | null
+  catalogScope?: "public" | "internal"
+  canRead?: boolean
+  canDownload?: boolean
+  canCopy?: boolean
+  canShare?: boolean
+  canCreateImages?: boolean
+  canUseAudio?: boolean
+  cacheMaxAgeDays?: number | null
 }
 
 export interface Verse {

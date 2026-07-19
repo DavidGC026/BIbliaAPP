@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { searchVerses } from "@/lib/bible"
 import { getPool } from "@/lib/mysql"
+import { assertBibleAccess, bibleAccessStatus } from "@/lib/bible-access"
 
 function normalize(str: string) {
   return str
@@ -28,6 +29,7 @@ export async function GET(req: NextRequest) {
         { status: 400 },
       )
     }
+    await assertBibleAccess(req, bibleId)
 
     // Match YouVersion or custom domain bible URLs
     // e.g. https://www.bible.com/es/bible/149/1PE.5.10-11.RVR1960
@@ -54,6 +56,7 @@ export async function GET(req: NextRequest) {
       const bookId = bookAbbrToIdMap[bookAbbr]
       if (bookId) {
         const targetBibleId = urlBibleId || bibleId
+        await assertBibleAccess(req, targetBibleId)
         let sql = `
           SELECT bv.idVerse AS id, bv.idBook AS bookId, bb.name AS bookName,
                  bv.chapter, bv.verse, bv.text
@@ -134,7 +137,7 @@ export async function GET(req: NextRequest) {
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Error desconocido" },
-      { status: 500 },
+      { status: bibleAccessStatus(err) },
     )
   }
 }

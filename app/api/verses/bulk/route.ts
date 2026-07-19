@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { getPool } from '@/lib/mysql';
+import { assertBibleAccess, bibleAccessStatus } from '@/lib/bible-access';
 
 export async function GET(req: NextRequest) {
   try {
@@ -9,6 +10,7 @@ export async function GET(req: NextRequest) {
     if (!bibleId || !bookId) {
       return NextResponse.json({ error: "Parámetros 'bible' y 'book' requeridos." }, { status: 400 });
     }
+    await assertBibleAccess(req, bibleId, 'canDownload');
 
     const [rows] = await getPool().query<any[]>(
       `SELECT bv.idVerse AS id, bv.idBook AS bookId, bb.name AS bookName,
@@ -24,7 +26,7 @@ export async function GET(req: NextRequest) {
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : 'Error desconocido' },
-      { status: 500 },
+      { status: bibleAccessStatus(err) },
     );
   }
 }

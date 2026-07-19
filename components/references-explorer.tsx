@@ -31,26 +31,35 @@ interface VerseRef {
 
 export function ReferencesExplorer() {
   const [view, setView] = useState<"list" | "map">("list")
-  const { data: biblesData } = useSWR<{ bibles: BibleVersion[] }>("/api/bibles", fetcher)
+  const { data: biblesData } = useSWR<{ bibles: BibleVersion[]; defaultBibleId: number | null }>("/api/bibles", fetcher)
   const bibles = biblesData?.bibles || []
   
-  const [selectedBibleId, setSelectedBibleId] = useState<number>(149)
-  const { data: booksData, isLoading: isLoadingBooks } = useSWR<{ books: BibleBook[] }>(`/api/books?bible=${selectedBibleId}`, fetcher)
+  const [selectedBibleId, setSelectedBibleId] = useState<number>(0)
+  const { data: booksData, isLoading: isLoadingBooks } = useSWR<{ books: BibleBook[] }>(
+    selectedBibleId ? `/api/books?bible=${selectedBibleId}` : null,
+    fetcher,
+  )
   
   const [selectedBook, setSelectedBook] = useState<number>(1)
   const [selectedChapter, setSelectedChapter] = useState<number>(1)
   const [selectedVerse, setSelectedVerse] = useState<number>(1)
+
+  useEffect(() => {
+    if (bibles.length > 0 && !bibles.some((bible) => bible.bibleId === selectedBibleId)) {
+      setSelectedBibleId(biblesData?.defaultBibleId ?? bibles[0].bibleId)
+    }
+  }, [bibles, biblesData?.defaultBibleId, selectedBibleId])
   
   // Para los dropdowns podríamos cargar el número de capítulos y versículos dinámicamente,
   // pero para mantenerlo simple asumiremos un máximo estándar y permitiremos que el usuario introduzca números.
   
   const { data: refsData, isLoading: isLoadingRefs, error } = useSWR<{ references: VerseRef[] }>(
-    `/api/references?bookId=${selectedBook}&chapter=${selectedChapter}&verse=${selectedVerse}&bible=${selectedBibleId}`,
+    selectedBibleId ? `/api/references?bookId=${selectedBook}&chapter=${selectedChapter}&verse=${selectedVerse}&bible=${selectedBibleId}` : null,
     fetcher
   )
 
   const { data: chapterData } = useSWR<{ verses: { verse: number; text: string }[] }>(
-    `/api/verses?bible=${selectedBibleId}&book=${selectedBook}&chapter=${selectedChapter}`,
+    selectedBibleId ? `/api/verses?bible=${selectedBibleId}&book=${selectedBook}&chapter=${selectedChapter}` : null,
     fetcher
   )
 

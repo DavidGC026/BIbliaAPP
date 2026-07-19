@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getPool } from "@/lib/mysql"
 import type { RowDataPacket } from "mysql2/promise"
+import { assertBibleAccess, bibleAccessStatus } from "@/lib/bible-access"
 
 interface ReferenceArcRow extends RowDataPacket {
   a: number
@@ -92,6 +93,7 @@ export async function GET(req: NextRequest) {
     if (!bookId || !chapter || !verse) {
       return NextResponse.json({ error: "Parámetros 'bookId', 'chapter' y 'verse' requeridos." }, { status: 400 })
     }
+    await assertBibleAccess(req, bibleId)
 
     const vidOrigen = (bookId * 1000000) + (chapter * 1000) + verse;
 
@@ -120,7 +122,7 @@ export async function GET(req: NextRequest) {
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Error desconocido" },
-      { status: 500 },
+      { status: bibleAccessStatus(err) },
     )
   }
 }

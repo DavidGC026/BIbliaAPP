@@ -15,6 +15,8 @@ interface BibleVersion {
   bibleId: number
   abbr: string
   name: string
+  canShare?: boolean
+  canCreateImages?: boolean
 }
 
 interface VerseOfTheDayData {
@@ -43,11 +45,17 @@ const THEME_COLORS: Record<string, string> = {
 import { VerseImageCreator } from "@/components/verse-image-creator"
 
 export function VerseOfTheDay() {
-  const { data: biblesData } = useSWR<{ bibles: BibleVersion[] }>("/api/bibles", fetcher)
+  const { data: biblesData } = useSWR<{ bibles: BibleVersion[]; defaultBibleId: number | null }>("/api/bibles", fetcher)
   const bibles = biblesData?.bibles ?? []
   
-  const [selectedBibleId, setSelectedBibleId] = useState<number>(149)
+  const [selectedBibleId, setSelectedBibleId] = useState<number>(0)
   const [isImageModalOpen, setIsImageModalOpen] = useState(false)
+
+  React.useEffect(() => {
+    if (bibles.length > 0 && !bibles.some((bible) => bible.bibleId === selectedBibleId)) {
+      setSelectedBibleId(biblesData?.defaultBibleId ?? bibles[0].bibleId)
+    }
+  }, [bibles, biblesData?.defaultBibleId, selectedBibleId])
 
   const { data, isLoading, error } = useSWR<VerseOfTheDayData>(
     `/api/verse-of-the-day?idBible=${selectedBibleId}`,
@@ -57,7 +65,7 @@ export function VerseOfTheDay() {
   const selectedBible = bibles.find(b => b.bibleId === selectedBibleId)
 
   const handleShare = async () => {
-    if (!data) return
+    if (!data || selectedBible?.canShare === false) return
 
     const shareText = `"${data.text}"\n\n- ${data.reference} (${selectedBible?.abbr})\nTema: ${data.theme}\n\nLee más en: https://biblia2.dvguzman.com`
     
@@ -111,23 +119,27 @@ export function VerseOfTheDay() {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <Button 
-        variant="outline"
-        onClick={() => setIsImageModalOpen(true)}
-        className={cn("h-10 rounded-full px-5 font-medium shadow-md transition-transform hover:scale-105 active:scale-95", onImage && "border-white/30 bg-white/10 text-white hover:bg-white/20 hover:text-white")}
-      >
-        <ImageIcon className="mr-2 h-4 w-4" />
-        Crear Imagen
-      </Button>
+      {selectedBible?.canCreateImages !== false ? (
+        <Button
+          variant="outline"
+          onClick={() => setIsImageModalOpen(true)}
+          className={cn("h-10 rounded-full px-5 font-medium shadow-md transition-transform hover:scale-105 active:scale-95", onImage && "border-white/30 bg-white/10 text-white hover:bg-white/20 hover:text-white")}
+        >
+          <ImageIcon className="mr-2 h-4 w-4" />
+          Crear Imagen
+        </Button>
+      ) : null}
 
-      <Button 
-        variant="default" 
-        onClick={handleShare}
-        className="h-10 rounded-full px-5 font-medium shadow-md transition-transform hover:scale-105 active:scale-95"
-      >
-        <Share2 className="mr-2 h-4 w-4" />
-        Compartir
-      </Button>
+      {selectedBible?.canShare !== false ? (
+        <Button
+          variant="default"
+          onClick={handleShare}
+          className="h-10 rounded-full px-5 font-medium shadow-md transition-transform hover:scale-105 active:scale-95"
+        >
+          <Share2 className="mr-2 h-4 w-4" />
+          Compartir
+        </Button>
+      ) : null}
     </div>
   )
 
