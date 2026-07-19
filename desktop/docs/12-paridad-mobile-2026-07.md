@@ -67,7 +67,13 @@ La tabla `bibles` incorpora `capabilities_json`. Al actualizar desde una base an
 | `bibliaapp_search_history`       | Últimas diez búsquedas                             |
 | `bibliaapp_onboarding_dismissed` | Onboarding ocultado                                |
 | `bibliaapp_verse_image_template` | Formato/gradiente favorito                         |
-| `bibliaapp_reminder_preferences` | Recordatorios activados                            |
+| `bibliaapp_reminder_preferences` | Recordatorios activados (`ReminderSettings.tsx`)   |
+
+Claves de recordatorios y tema viven fuera de `preferences.ts` (`ThemeContext.tsx`, `ReminderSettings.tsx`).
+
+## Versión bíblica por defecto
+
+El servidor expone `defaultBibleId` en `GET /api/bibles`. Componentes como `BibleReader`, `BibleSearch` y `VerseOfDayCard` lo prefieren sobre el fallback `DEFAULT_BIBLE_ID = 149` de `config.ts`.
 
 ## Validación
 

@@ -20,6 +20,7 @@ Aplicación web para lectura bíblica, estudio en comunidad, grupos, oración, c
 app/              # Páginas y API routes (Next.js App Router)
 components/       # UI (lector, grupos, feed, calendario, etc.)
 lib/              # Lógica de negocio, MySQL, auth, grupos, oración…
+desktop/          # Cliente de escritorio (Tauri v2 + React)
 mobile/           # App React Native (Expo)
 docs-mobile/      # Documentación del cliente móvil
 public/           # Estáticos y uploads
@@ -111,6 +112,29 @@ EXPO_PUBLIC_API_URL=http://192.168.x.x:3000 npm run start
 ```
 
 Pantallas incluidas en v1.0.0: Inicio (versículo del día), Lector bíblico, Comunidad (feed), Grupos y Perfil con login por token Bearer.
+
+## App de escritorio (Tauri + React)
+
+La carpeta `desktop/` contiene el cliente nativo para **Arch Linux**, **Debian/Ubuntu** y **Windows**. Consume la misma API REST que web y móvil; no accede a MariaDB.
+
+**Documentación completa:** [`desktop/docs/README.md`](desktop/docs/README.md) · Paridad móvil 3.9.5: [`desktop/docs/12-paridad-mobile-2026-07.md`](desktop/docs/12-paridad-mobile-2026-07.md)
+
+```bash
+cd desktop
+npm install
+npm run tauri dev      # desarrollo con SQLite y OAuth Google
+npm run pack:arch      # Arch (.pkg.tar.zst)
+npm run pack:deb       # Debian (.deb)
+npm run pack:win       # Windows (.msi + .exe) — requiere SO Windows
+```
+
+Por defecto usa `https://biblia2.dvguzman.com`. Para apuntar a tu servidor local, crea `desktop/.env`:
+
+```env
+VITE_API_URL=http://127.0.0.1:3000
+```
+
+Versión actual: **0.3.0** — incluye inicio inteligente, búsqueda universal, planes de lectura, temas ampliados, sync offline de Biblia/notas y administración.
 
 ## Base de datos
 

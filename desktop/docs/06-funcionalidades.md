@@ -95,8 +95,11 @@ Tres sub-pestañas: **Lector** | **Buscar** | **Referencias** | **Diccionario** 
 - **Mis favoritos** → `FavoritesPage`
 - **Buscar actualizaciones** (Tauri updater) — ver [10-auto-update.md](./10-auto-update.md)
 - Cerrar sesión en barra lateral
-- Diez temas visuales (DVG/UBG solo admin)
-- Recordatorios de racha, devocional y descargas
+- Diez temas visuales (DVG/UBG solo admin) — `ThemeSwitch`
+- Recordatorios de racha, devocional y descargas — `ReminderSettings`
+- Enlaces a **Subrayados**, **Actividad** y **Estadísticas** (`InsightsPage`)
+- **Administración de usuarios** (solo admin) → `AdminUsersPage`
+- **Información legal y licencias** → `LegalPage`
 - Actividad, estadísticas, subrayados, legal y administración
 
 ---
@@ -111,10 +114,32 @@ Tres sub-pestañas: **Lector** | **Buscar** | **Referencias** | **Diccionario** 
 ## Barra lateral (`AppLayout`)
 
 - Logo + iglesia
-- Navegación: Inicio, Biblia, Comunidad, Grupos, Perfil
+- Navegación: Inicio, Biblia, **Búsqueda**, **Notas**, Comunidad, Grupos, Perfil (filtrada por `allowedSections`)
 - **Notificaciones** 🔔 (SSE + polling)
+- **SyncStatusBadge** — cambios pendientes de sync offline
 - Indicador “Sin conexión”
 - Cerrar sesión
+
+---
+
+## Búsqueda universal (`UniversalSearchPage`)
+
+- Pestaña lateral dedicada (también accesible desde acciones rápidas del Inicio)
+- Biblia, notas, devocionales y Strong en una consulta
+- Filtros, debounce e historial de diez búsquedas (`bibliaapp_search_history`)
+- Abre directamente el capítulo o la nota encontrada
+
+---
+
+## Actividad personal (`InsightsPage`)
+
+Tres modos renderizados según `AppTab` secundario (desde Perfil):
+
+| Modo          | Contenido                                      | API                    |
+| ------------- | ---------------------------------------------- | ---------------------- |
+| `statistics`  | Progreso por libro                             | `GET /api/statistics`  |
+| `activity`    | Mapa de días y lecturas recientes              | `GET /api/activity`    |
+| `highlights`  | Listado global de subrayados                   | `GET /api/highlights/all` |
 
 ---
 
@@ -148,12 +173,6 @@ Pestañas: **Libretas** | **Diario** | **Libros** | **Planes**
 
 - Unirse a planes, abrir la siguiente lectura y marcar días
 - Porcentaje, barra de progreso y calendario completo
-
-## Búsqueda universal (`UniversalSearchPage`)
-
-- Biblia, notas, devocionales y Strong en una consulta
-- Filtros, debounce e historial de diez búsquedas
-- Abre directamente el capítulo o la nota encontrada
 
 ## Administración y legal
 

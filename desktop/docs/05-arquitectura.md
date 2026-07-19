@@ -48,31 +48,36 @@ desktop/
 ├── packaging/arch/          # PKGBUILD, build-pacman-pkg.sh, .pkg.tar.zst
 ├── public/logo.png          # Logo web (copiado por npm run icons)
 ├── src/
-│   ├── App.tsx              # Auth + routing por pestaña
-│   ├── context/AuthContext.tsx
+│   ├── App.tsx              # Auth + routing por pestaña (AppTab)
+│   ├── context/
+│   │   ├── AuthContext.tsx
+│   │   └── ThemeContext.tsx # Temas globales (localStorage)
 │   ├── components/
-│   │   ├── AppLayout.tsx    # Sidebar
+│   │   ├── AppLayout.tsx    # Barra lateral + SyncStatusBadge
 │   │   ├── BibleReader.tsx
-│   │   ├── BibleSearch.tsx
-│   │   ├── VerseOfDayCard.tsx
-│   │   └── ui/              # Button, Card
+│   │   ├── ThemeSwitch.tsx
+│   │   ├── LegalAcceptanceGate.tsx
+│   │   ├── DesktopReminders.tsx
+│   │   └── ui/              # Button, Card, EmptyState
 │   ├── pages/
-│   │   ├── LoginPage.tsx
 │   │   ├── HomePage.tsx
-│   │   ├── BiblePage.tsx    # Lector | Buscar | Descargas
-│   │   ├── FeedPage.tsx
-│   │   ├── GroupsPage.tsx
-│   │   ├── ProfilePage.tsx
-│   │   └── DownloadsPage.tsx
+│   │   ├── UniversalSearchPage.tsx
+│   │   ├── BiblePage.tsx    # Lector | Buscar | Referencias | Diccionario | Descargas
+│   │   ├── NotesPage.tsx    # Libretas | Diario | Libros | Planes
+│   │   ├── InsightsPage.tsx # statistics | activity | highlights (desde Perfil)
+│   │   ├── AdminUsersPage.tsx
+│   │   ├── LegalPage.tsx
+│   │   └── …
 │   └── lib/
 │       ├── api.ts           # Cliente HTTP REST
-│       ├── repo.ts          # Online/offline unificado (Biblia)
+│       ├── repo.ts          # Online/offline unificado (Biblia + sync)
+│       ├── preferences.ts   # Lector, Inicio, historial (localStorage)
+│       ├── nav.ts           # NAV_ITEMS + allowedSections
 │       ├── config.ts        # VITE_API_URL, DEFAULT_BIBLE_ID
 │       ├── sessionStore.ts  # Token en plugin-store
-│       ├── googleAuth.ts    # OAuth localhost
-│       ├── types.ts
+│       ├── sync.ts          # Sync libretas/notas/resaltados
 │       └── offline/
-│           ├── db.ts        # SQLite schema
+│           ├── db.ts        # SQLite schema + migraciones
 │           └── bibleStore.ts
 └── src-tauri/
     ├── src/lib.rs           # Plugins + OAuth listener
@@ -118,10 +123,30 @@ desktop/
 
 Permisos en `src-tauri/capabilities/default.json`: `core`, `opener`, `store`, `sql`, `deep-link`, `core:event`.
 
+## Navegación
+
+La app no usa react-router. `App.tsx` mantiene un `AppTab` y `lib/nav.ts` define la barra lateral:
+
+| Pestaña lateral | `AppTab` | Sección `allowedSections` |
+| --------------- | -------- | --------------------------- |
+| Inicio          | `home`   | `dashboard`                 |
+| Biblia          | `bible`  | `reading`                   |
+| Búsqueda        | `search` | `search`                    |
+| Notas           | `notes`  | `notebook`                  |
+| Comunidad       | `feed`   | `feed`                      |
+| Grupos          | `groups` | `groups`                    |
+| Perfil          | `profile`| `profile`                   |
+
+Pestañas secundarias (sin entrada propia en la barra): `statistics`, `activity`, `highlights`, `admin` y `legal`. Se abren desde **Perfil** u otras pantallas mediante `onNavigate`.
+
+Si el usuario no es admin y el servidor envía `allowedSections`, `AppLayout` oculta entradas cuya sección no esté permitida. Comunidad y Grupos también respetan `VITE_COMMUNITY_ENABLED`.
+
 ## Estado y preferencias v0.3.0
 
-- `ThemeContext` aplica `data-theme` y conserva el modo elegido.
-- `lib/preferences.ts` centraliza lector, último pasaje, Inicio, historial y plantilla de imagen.
+- **Sesión:** token y usuario en `tauri-plugin-store` (`sessionStore.ts`).
+- **Preferencias de UI:** lector, Inicio, historial de búsqueda y plantilla de imagen en `localStorage` vía `lib/preferences.ts`.
+- **Tema global:** `ThemeContext` + clave `bibliaapp_theme_mode` en `localStorage`.
+- **Recordatorios:** `ReminderSettings.tsx` persiste `bibliaapp_reminder_preferences` en `localStorage`; `DesktopReminders.tsx` evalúa avisos mientras la app está abierta.
 - `lib/nav.ts` interpreta `allowedSections` para navegación y subpestañas.
 - `bibles.capabilities_json` conserva licencia y capacidades para decisiones offline.
 - `App.tsx` resuelve búsqueda, estadísticas, actividad, subrayados, administración y legal.

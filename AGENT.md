@@ -12,16 +12,18 @@ Antes de escribir o modificar código, **lee la documentación del área corresp
 | Ámbito | Carpeta de docs | Código |
 |--------|-----------------|--------|
 | Web (Next.js) | [`docs/`](./docs/) | raíz: `app/`, `components/`, `lib/`, etc. |
+| Escritorio (Tauri + React) | [`desktop/docs/`](./desktop/docs/) | [`desktop/`](./desktop/) |
 | Móvil (Expo / React Native) | [`docs-mobile/`](./docs-mobile/) | [`mobile/`](./mobile/) |
 
 ### Cómo hacerlo
 
-1. Identifica si el cambio es **web**, **mobile** o **ambos**.
+1. Identifica si el cambio es **web**, **desktop**, **mobile** o varios clientes.
 2. Abre el índice:
    - Web: archivos en `docs/` (p. ej. despliegue, colores, notas, iglesias…).
+   - Desktop: [`desktop/docs/README.md`](./desktop/docs/README.md) y el doc numerado de la feature.
    - Mobile: [`docs-mobile/README.md`](./docs-mobile/README.md) y el doc numerado de la feature.
 3. Lee al menos el documento de la feature afectada (arquitectura, pantallas, API, build, etc.) **antes** de implementar.
-4. Si el cambio toca API o paridad web↔móvil, revisa también docs del otro lado (`docs/` ↔ `docs-mobile/`).
+4. Si el cambio toca API o paridad entre clientes, revisa también docs del otro lado (`docs/` ↔ `docs-mobile/` ↔ `desktop/docs/`).
 
 **No inventes flujos ni estructuras nuevas sin contrastarlas con la documentación existente.**
 
@@ -41,6 +43,7 @@ Así se evita el **código espagueti**, se mantiene la estructura del proyecto y
 ### Ejemplos de dónde mirar primero
 
 - Web: `lib/`, `components/`, `app/api/`
+- Desktop: `desktop/src/lib/`, `desktop/src/components/`, `desktop/src/pages/`
 - Mobile: `mobile/lib/`, `mobile/components/`, `mobile/hooks/`
 - Formatos / imágenes de versículos, auth, sync offline, temas: suelen tener módulos ya compartidos.
 
@@ -112,7 +115,7 @@ Los módulos de alto nivel no deben acoplarse a detalles de bajo nivel; ambos de
 
 Todo cambio de comportamiento, arquitectura o flujo debe quedar reflejado en docs:
 
-1. **Trabajo nuevo** (feature, pantalla, flujo, endpoint) → crear un documento en la carpeta correcta (`docs/` o `docs-mobile/`) o una sección clara en un doc existente.
+1. **Trabajo nuevo** (feature, pantalla, flujo, endpoint) → crear un documento en la carpeta correcta (`docs/`, `desktop/docs/` o `docs-mobile/`) o una sección clara en un doc existente.
 2. **Cambio sobre algo ya documentado** → **actualizar** el archivo anterior (no dejar docs obsoletas).
 3. En `docs-mobile/`, si añades un doc nuevo numerado, actualiza también el índice en [`docs-mobile/README.md`](./docs-mobile/README.md).
 4. La documentación debe explicar: qué se hizo, dónde vive el código, y cómo usarlo / probarlo de forma breve.
@@ -123,7 +126,7 @@ Todo cambio de comportamiento, arquitectura o flujo debe quedar reflejado en doc
 
 ## Checklist rápido (antes de dar por terminada una tarea)
 
-- [ ] Leí docs de `docs/` o `docs-mobile/` según el ámbito
+- [ ] Leí docs de `docs/`, `desktop/docs/` o `docs-mobile/` según el ámbito
 - [ ] Busqué reutilizar código existente
 - [ ] Separé en componentes/módulos manejables (S)
 - [ ] Extensión sin romper lo existente cuando aplica (O / L)
@@ -135,5 +138,6 @@ Todo cambio de comportamiento, arquitectura o flujo debe quedar reflejado en doc
 ## Notas del repo
 
 - La app móvil vive en `mobile/` y tiene su propia guía Expo en `mobile/AGENTS.md` (versión de Expo).
-- Este `AGENT.md` en la raíz manda el **flujo de trabajo del proyecto** para web y mobile.
+- El cliente de escritorio vive en `desktop/`; regla Cursor en [`.cursor/rules/desktop.mdc`](./.cursor/rules/desktop.mdc).
+- Este `AGENT.md` en la raíz manda el **flujo de trabajo del proyecto** para web, desktop y mobile.
 - Preferir soluciones simples y alineadas con lo ya existente (menos abstracciones nuevas, más reutilización), **respetando SOLID cuando el diseño lo permita**.
