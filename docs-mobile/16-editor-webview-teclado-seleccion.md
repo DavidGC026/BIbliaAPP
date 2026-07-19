@@ -89,3 +89,30 @@ npm run android
 3. **Guardar:** pulsa Guardar con el teclado cerrado; no debe reabrirse solo.
 4. **Atrás + tap (Android):** edita la nota, cierra el teclado con el botón atrás del sistema, toca el editor: el teclado debe abrirse de nuevo.
 5. **Color automático:** aplica un color a un texto, vuelve a seleccionarlo y pulsa **A**. Debe verse con el color normal del tema; guarda y cambia entre tema claro y oscuro para confirmar que se adapta.
+
+---
+
+## 3. Paridad web móvil: teclado tapaba el editor (julio 2026)
+
+En la web abierta desde Chrome/Safari móvil, el teclado virtual solo encogía el viewport visual. El editor de notas —al final del layout con header + tabbar flotante— quedaba debajo del teclado (~200 px útiles en 640 px).
+
+La app nativa no sufre esto: React Native ajusta el layout con `KeyboardAvoidingView` y el inset del teclado se envía al WebView vía `setKeyboardInset`. En web móvil la solución es distinta pero el objetivo es el mismo: **mantener visible el área de escritura y la barra de formato del iframe**.
+
+### Solución en web
+
+| Capa | Archivo | Qué hace |
+|------|---------|----------|
+| Viewport | `app/layout.tsx` | `interactiveWidget: 'resizes-content'` reflowa el layout al abrir teclado (Chrome/Android); `viewportFit: 'cover'` activa safe-area |
+| Safe-area header | `app/globals.css` | `body .mobile-app-header` crece con `env(safe-area-inset-top)` |
+| Modo inmersivo | `components/notebook-sidebar.tsx` + `notes-section.tsx` | Oculta header/tabbar mientras se edita (`body.note-immersive`); solo en la sección **Notas**, no en el editor embebido del lector |
+| Altura dinámica | `notebook-sidebar.tsx` | `--app-visual-height` sincronizada con `window.visualViewport` (cubre iOS, donde `resizes-content` no aplica) |
+| Modales | `notebook-sidebar.tsx`, `reading-plans.tsx`, `verse-image-creator.tsx` | Alturas en `dvh` en lugar de `vh` |
+
+Documentación detallada: [`docs/notas-web-paridad-movil.md`](../docs/notas-web-paridad-movil.md) § *Área de escritura en móvil web*.
+
+### Cómo probar (web móvil)
+
+1. Abre https://biblia2.dvguzman.com en un teléfono o emulador con viewport ≤767 px.
+2. **Notas → Notas** → edita una nota: confirma que desaparecen header y tabbar y que el teclado no tapa el editor.
+3. Pulsa **Volver**: header y tabbar vuelven.
+4. Desde el **lector bíblico**, abre notas en el panel lateral: header y tabbar **permanecen** (sin modo inmersivo).

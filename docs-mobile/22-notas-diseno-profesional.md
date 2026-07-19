@@ -64,6 +64,7 @@ La vista de edición de notas de la web (`components/notebook-sidebar.tsx`) se a
 - **Cabecera de documento** (ya existente en tarjeta): título grande, punto de estado, texto `Guardando... / Sin guardar / Guardado hh:mm / Aún sin guardar`, contador `N palabras · M min` y pill de **Vista previa/Editar** ahora con icono (`Eye`/`Edit2`), igual que el toggle del móvil.
 - **Chip "Editando imagen"**: el editor del iframe ya emitía `{ type: 'imageEditMode', active }` (port del doc 21 §10); `NoteRichEditor` lo expone con la prop `onImageEditMode` y la vista muestra el mismo aviso que el móvil y **bloquea el input del título** mientras el panel de imagen está activo (equivalente web de `editable={!imageEditMode}`).
 - El estado se resetea al cambiar de nota y al pulsar Volver.
+- **Móvil web (julio 2026):** cabecera más compacta, métricas de palabras/min ocultas en pantallas `< sm`, modo inmersivo al editar desde la sección Notas (header/tabbar ocultos) y altura del editor ligada a `visualViewport`. Ver [`docs/notas-web-paridad-movil.md`](../docs/notas-web-paridad-movil.md) § *Área de escritura en móvil web*.
 
 Archivos: `components/note-rich-editor.tsx` (prop `onImageEditMode`), `components/notebook-sidebar.tsx` (header, chip, título, pill de preview).
 
