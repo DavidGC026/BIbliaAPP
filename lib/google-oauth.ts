@@ -9,16 +9,21 @@ import {
 
 export const GOOGLE_OAUTH_STATE_COOKIE = "google_oauth_state"
 export const MOBILE_GOOGLE_REDIRECT = "bibliaapp://auth/google"
+export const INTERNAL_MOBILE_GOOGLE_REDIRECT = "bibliaapp-internal://auth/google"
 
 export type GoogleOAuthPlatform = "web" | "mobile" | "desktop"
 
 export function buildGoogleOAuthState(
   platform: GoogleOAuthPlatform,
   desktopPort?: number,
+  mobileVariant?: "public" | "internal",
 ): string {
   const nonce = crypto.randomBytes(24).toString("hex")
   if (platform === "desktop" && desktopPort) {
     return `desktop:${desktopPort}:${nonce}`
+  }
+  if (platform === "mobile" && mobileVariant === "internal") {
+    return `mobile:internal:${nonce}`
   }
   return `${platform}:${nonce}`
 }
@@ -33,6 +38,12 @@ export function parseDesktopOAuthPort(state: string | null): number | undefined 
   if (!state?.startsWith("desktop:")) return undefined
   const port = Number.parseInt(state.split(":")[1] ?? "", 10)
   return Number.isFinite(port) && port >= 1024 && port <= 65535 ? port : undefined
+}
+
+export function getMobileOAuthRedirect(state: string | null): string {
+  return state?.startsWith("mobile:internal:")
+    ? INTERNAL_MOBILE_GOOGLE_REDIRECT
+    : MOBILE_GOOGLE_REDIRECT
 }
 
 export function buildDesktopOAuthRedirect(

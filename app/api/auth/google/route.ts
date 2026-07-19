@@ -16,13 +16,14 @@ function parseDesktopPort(raw: string | null): number | undefined {
 export async function GET(req: NextRequest) {
   try {
     const mobile = req.nextUrl.searchParams.get("mobile") === "1"
+    const mobileVariant = req.nextUrl.searchParams.get("variant") === "internal" ? "internal" : "public"
     const desktopPort = parseDesktopPort(req.nextUrl.searchParams.get("port"))
 
     let platform: GoogleOAuthPlatform = "web"
     if (desktopPort) platform = "desktop"
     else if (mobile) platform = "mobile"
 
-    const state = buildGoogleOAuthState(platform, desktopPort)
+    const state = buildGoogleOAuthState(platform, desktopPort, mobileVariant)
     const response = NextResponse.redirect(buildGoogleAuthUrl(state))
     response.headers.append(
       "Set-Cookie",

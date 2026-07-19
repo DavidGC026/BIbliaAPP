@@ -5,7 +5,7 @@ import {
   buildDesktopOAuthRedirect,
   exchangeGoogleCode,
   GOOGLE_OAUTH_STATE_COOKIE,
-  MOBILE_GOOGLE_REDIRECT,
+  getMobileOAuthRedirect,
   parseDesktopOAuthPort,
   parseGoogleOAuthPlatform,
   type GoogleOAuthPlatform,
@@ -25,7 +25,7 @@ function authErrorRedirect(
     }
   }
   if (platform === "mobile") {
-    const url = new URL(MOBILE_GOOGLE_REDIRECT)
+    const url = new URL(getMobileOAuthRedirect(state))
     url.searchParams.set("error", message)
     return NextResponse.redirect(url.toString())
   }
@@ -54,7 +54,7 @@ function authSuccessRedirect(
     }
   }
   if (platform === "mobile") {
-    const url = new URL(MOBILE_GOOGLE_REDIRECT)
+    const url = new URL(getMobileOAuthRedirect(state))
     url.searchParams.set("token", token)
     if (linkedExistingAccount) url.searchParams.set("linked", "1")
     const response = NextResponse.redirect(url.toString())
