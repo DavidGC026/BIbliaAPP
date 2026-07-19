@@ -79,3 +79,12 @@ cargo check --manifest-path src-tauri/Cargo.toml
 ```
 
 La respuesta pública de `/api/bibles` se comprobó contra producción y contiene `defaultBibleId` y las capacidades esperadas.
+
+## Documentación web relacionada
+
+Detalle de implementación en el cliente Next.js (viewport móvil, selector de
+temas, continuar lectura):
+
+- [`docs/temas-visuales-web.md`](../../docs/temas-visuales-web.md)
+- [`docs/mejoras-uso-diario-web.md`](../../docs/mejoras-uso-diario-web.md)
+- [`docs/estilos-moviles-web.md`](../../docs/estilos-moviles-web.md)
