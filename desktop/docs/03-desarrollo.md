@@ -141,11 +141,15 @@ packaging/arch/
 | Búsqueda offline vacía          | Descargar versión en Biblia → Descargas                                       |
 | Icono genérico en Hyprland      | `npm run icons` + reinstalar paquete pacman                                   |
 | CORS en navegador puro          | Usar `tauri dev`                                                              |
+| Imagen de nota no aparece en móvil | Comprobar que subió a `/api/upload` (no solo `data:`); reconectar y sync |
+| Color Auto no cambia con el tema | Verificar que el HTML usa `.note-color-auto`, no `color: inherit`       |
+| Nota duplicada al crear           | Esperar autoguardado o volver con **← Volver** (fuerza persist antes de salir) |
 
 ---
 
 ## Documentación relacionada
 
+- Editor de notas: [13-editor-notas.md](./13-editor-notas.md)
 - Arch Linux: [04-arch-linux.md](./04-arch-linux.md)
 - Debian: [09-debian-linux.md](./09-debian-linux.md)
 - Auto-update: [10-auto-update.md](./10-auto-update.md)

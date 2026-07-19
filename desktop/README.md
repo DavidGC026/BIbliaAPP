@@ -17,6 +17,7 @@ Cliente de escritorio (**Tauri v2 + React**) para lectura bíblica, comunidad y 
 | Debian      | [docs/09-debian-linux.md](./docs/09-debian-linux.md) |
 | Windows     | [docs/11-windows.md](./docs/11-windows.md)           |
 | Auto-update | [docs/10-auto-update.md](./docs/10-auto-update.md)   |
+| Editor notas | [docs/13-editor-notas.md](./docs/13-editor-notas.md) |
 
 ---
 
