@@ -130,7 +130,7 @@ export function EventsPage() {
         <p className="text-muted-foreground">Cargando eventos…</p>
       ) : events.length === 0 ? (
         <EmptyState
-          icon="📅"
+          icon="calendar"
           title="Sin eventos próximos"
           description="Cuando tu iglesia o tus grupos publiquen eventos aparecerán aquí."
           action={

@@ -10,6 +10,7 @@ import { parseAllowedSections } from "@/lib/nav";
 import { ThemeSwitch } from "@/components/ThemeSwitch";
 import { LEGAL_URLS } from "@/lib/config";
 import { ReminderSettings } from "@/components/ReminderSettings";
+import { Icon } from "@/components/ui/Icon";
 
 type Props = {
   onOpenBible: (target: BibleTarget) => void;
@@ -103,7 +104,8 @@ export function ProfilePage({ onOpenBible, onNavigate }: Props) {
             fullWidth
             onClick={() => setShowFavorites(true)}
           >
-            ♥ Mis favoritos
+            <Icon name="heart" size={17} />
+            Mis favoritos
           </Button>
         ) : null}
         {allows("highlights") ? (
@@ -112,7 +114,8 @@ export function ProfilePage({ onOpenBible, onNavigate }: Props) {
             fullWidth
             onClick={() => onNavigate("highlights")}
           >
-            ✦ Mis subrayados
+            <Icon name="highlighter" size={17} />
+            Mis subrayados
           </Button>
         ) : null}
         {allows("activity") ? (
@@ -121,7 +124,8 @@ export function ProfilePage({ onOpenBible, onNavigate }: Props) {
             fullWidth
             onClick={() => onNavigate("activity")}
           >
-            ◫ Actividad
+            <Icon name="activity" size={17} />
+            Actividad
           </Button>
         ) : null}
         {allows("statistics") ? (
@@ -130,7 +134,8 @@ export function ProfilePage({ onOpenBible, onNavigate }: Props) {
             fullWidth
             onClick={() => onNavigate("statistics")}
           >
-            ▥ Estadísticas
+            <Icon name="chart" size={17} />
+            Estadísticas
           </Button>
         ) : null}
       </Card>

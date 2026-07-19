@@ -7,6 +7,7 @@ Registro cronológico de cambios en `desktop/`. Lo más reciente arriba.
 ## 2026-07-19 — v0.3.3: robustez offline y paquete Arch
 
 - Las vistas principales usan un contenedor fluido, centrado y de hasta 1536 px para aprovechar mejor ventanas amplias.
+- Navegación, acciones, estados vacíos y controles del lector/editor usan SVG locales uniformes en lugar de emojis dependientes del sistema.
 - La Biblia predeterminada sin red prioriza una traducción realmente descargada.
 - Libretas y notas muestran el estado local, incluso si está vacío, cuando la API no responde.
 - Las sincronizaciones concurrentes esperan la misma operación y ya no duplican el envío de notas/libretas.

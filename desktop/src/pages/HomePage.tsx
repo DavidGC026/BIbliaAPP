@@ -22,6 +22,7 @@ import {
 } from "@/lib/offline/appCache";
 import type { RecentNotebookNote } from "@/lib/repo";
 import type { AppTab } from "@/lib/nav";
+import { Icon } from "@/components/ui/Icon";
 import { parseAllowedSections } from "@/lib/nav";
 import type {
   BibleTarget,
@@ -192,7 +193,9 @@ export function HomePage({ onOpenBible, onNavigate, onOpenNote }: Props) {
       <VerseOfDayCard onReadInBible={onOpenBible} />
       {lastPassage ? (
         <Card className="flex items-center gap-4 border-primary/25">
-          <span className="text-3xl">📖</span>
+          <span className="rounded-xl bg-primary/10 p-2 text-primary">
+            <Icon name="book" size={26} />
+          </span>
           <button
             className="min-w-0 flex-1 text-left"
             onClick={() =>
@@ -424,7 +427,9 @@ export function HomePage({ onOpenBible, onNavigate, onOpenNote }: Props) {
                 onClick={() => runAction(key)}
                 className="rounded-xl border border-border bg-card p-4 text-left hover:bg-accent"
               >
-                <span className="text-2xl text-primary">{item.icon}</span>
+                <span className="inline-flex rounded-xl bg-primary/10 p-2 text-primary">
+                  <Icon name={item.icon} size={22} />
+                </span>
                 <b className="mt-2 block text-foreground">{item.title}</b>
                 <span className="mt-1 block text-xs text-muted-foreground">
                   {item.description}

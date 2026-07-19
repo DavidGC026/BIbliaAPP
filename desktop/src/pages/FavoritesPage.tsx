@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { Icon } from "@/components/ui/Icon";
 import * as repo from "@/lib/repo";
 import type { BibleTarget, Favorite } from "@/lib/types";
 
@@ -65,8 +66,9 @@ export function FavoritesPage({ onOpenBible, onBack }: Props) {
       ) : favorites.length === 0 ? (
         <Card className="text-center">
           <p className="text-muted-foreground">No tienes versículos favoritos.</p>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Selecciona versículos en el lector y pulsa ♥ Favorito.
+          <p className="mt-2 flex items-center justify-center gap-1.5 text-sm text-muted-foreground">
+            Selecciona versículos en el lector y pulsa
+            <Icon name="heart" size={15} /> Favorito.
           </p>
         </Card>
       ) : (

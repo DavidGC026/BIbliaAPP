@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { AuthedImage } from "@/components/AuthedImage";
+import { Icon } from "@/components/ui/Icon";
 import * as api from "@/lib/api";
 import type { BookLog, ExternalBook } from "@/lib/types";
 
@@ -90,8 +91,8 @@ export function StudyBooksView({ onOpenBook }: Props) {
               {b.coverImage ? (
                 <AuthedImage uri={b.coverImage} className="mb-2 h-28 w-full rounded-lg object-cover" />
               ) : (
-                <div className="mb-2 flex h-28 items-center justify-center rounded-lg bg-primary/10 text-3xl">
-                  📚
+                <div className="mb-2 flex h-28 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <Icon name="book" size={34} />
                 </div>
               )}
               <p className="font-semibold text-foreground line-clamp-2">{b.title}</p>

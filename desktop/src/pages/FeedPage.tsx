@@ -95,7 +95,7 @@ export function FeedPage() {
         <p className="text-muted-foreground">Cargando publicaciones…</p>
       ) : posts.length === 0 ? (
         <EmptyState
-          icon="◉"
+          icon="community"
           title={
             feedType === "following"
               ? "Tu comunidad está tranquila"

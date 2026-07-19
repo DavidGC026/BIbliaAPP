@@ -3,6 +3,7 @@ import { VerseImageCreatorModal } from "@/components/VerseImageCreatorModal";
 import { CrossReferencesModal } from "@/components/CrossReferencesModal";
 import { OfflineBanner } from "@/components/OfflineBanner";
 import { Button } from "@/components/ui/Button";
+import { Icon } from "@/components/ui/Icon";
 import { useAuth } from "@/context/AuthContext";
 import { DEFAULT_BIBLE_ID } from "@/lib/config";
 import {
@@ -717,7 +718,10 @@ export function BibleReader({ target }: Props) {
                   onClick={addToFavorites}
                   className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-primary"
                 >
-                  ♥ Favorito
+                  <span className="flex items-center gap-1.5">
+                    <Icon name="heart" size={15} />
+                    Favorito
+                  </span>
                 </button>
                 <button
                   type="button"

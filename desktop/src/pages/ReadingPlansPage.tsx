@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { Icon } from "@/components/ui/Icon";
 import * as api from "@/lib/api";
 import {
   formatPlanReadings,
@@ -62,7 +63,7 @@ export function ReadingPlansPage({
   if (error)
     return (
       <EmptyState
-        icon="!"
+        icon="alert"
         title="No se pudieron cargar los planes"
         description={error}
         action={
@@ -83,7 +84,7 @@ export function ReadingPlansPage({
   if (!plans.length && !userPlans.length)
     return (
       <EmptyState
-        icon="☷"
+        icon="book"
         title="Aún no hay planes"
         description="Cuando haya planes disponibles podrás seguir las lecturas y registrar tu progreso aquí."
       />
@@ -92,7 +93,9 @@ export function ReadingPlansPage({
   return (
     <div className="space-y-6">
       <Card className="flex items-center gap-4">
-        <span className="text-3xl">📚</span>
+        <span className="rounded-xl bg-primary/10 p-2 text-primary">
+          <Icon name="book" size={24} />
+        </span>
         <div className="flex-1">
           <h2 className="text-lg font-bold text-foreground">
             Planes de lectura

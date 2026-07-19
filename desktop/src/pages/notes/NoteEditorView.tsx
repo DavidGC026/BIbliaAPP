@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
+import { Icon } from "@/components/ui/Icon";
 import { InsertDictionaryModal } from "@/components/InsertDictionaryModal";
 import { InsertVerseModal } from "@/components/InsertVerseModal";
 import * as api from "@/lib/api";
@@ -821,7 +822,7 @@ export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
               }}
               className={toolBtn}
             >
-              ⊞
+              <Icon name="table" size={16} />
             </button>
             <button
               type="button"
@@ -886,7 +887,8 @@ export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
                   : "border-sky-500/40 bg-sky-500/10 text-sky-600 dark:text-sky-300"
               }`}
             >
-              Fondos 🖼️
+              <Icon name="image" size={16} />
+              Fondos
             </button>
             <button
               type="button"
@@ -897,7 +899,8 @@ export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
               }}
               className="flex h-9 items-center gap-1 rounded-md border border-primary/40 bg-primary/10 px-3 text-sm font-semibold text-primary hover:opacity-90"
             >
-              📖 Versículo
+              <Icon name="book" size={16} />
+              Versículo
             </button>
             <button
               type="button"
@@ -908,7 +911,8 @@ export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
               }}
               className="flex h-9 items-center gap-1 rounded-md border border-[#7c3aed]/40 bg-[#7c3aed]/10 px-3 text-sm font-semibold text-[#7c3aed] hover:opacity-90"
             >
-              📚 Diccionario
+              <Icon name="dictionary" size={16} />
+              Diccionario
             </button>
             <button
               type="button"
@@ -920,7 +924,8 @@ export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
               }}
               className="flex h-9 items-center gap-1 rounded-md border border-sky-500/40 bg-sky-500/10 px-3 text-sm font-semibold text-sky-600 hover:opacity-90 disabled:opacity-50 dark:text-sky-300"
             >
-              🖼️ {uploadingImage ? "Insertando…" : "Imagen"}
+              <Icon name="image" size={16} />
+              {uploadingImage ? "Insertando…" : "Imagen"}
             </button>
             <input
               ref={fileInputRef}
@@ -1049,9 +1054,10 @@ export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
         <button
           type="button"
           onClick={togglePreview}
-          className="text-sm font-semibold text-primary hover:underline"
+          className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline"
         >
-          {preview ? "✏️ Modo edición" : "👁️ Vista previa"}
+          <Icon name={preview ? "edit" : "eye"} size={16} />
+          {preview ? "Modo edición" : "Vista previa"}
         </button>
       </div>
 

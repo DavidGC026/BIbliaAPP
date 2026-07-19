@@ -6,6 +6,7 @@ import { NAV_ITEMS, type AppTab } from "@/lib/nav";
 import { parseAllowedSections } from "@/lib/nav";
 import { COMMUNITY_ENABLED } from "@/lib/config";
 import { SyncStatusBadge } from "@/components/SyncStatusBadge";
+import { Icon } from "@/components/ui/Icon";
 
 type Props = {
   tab: AppTab;
@@ -65,7 +66,7 @@ export function AppLayout({
                   : "text-muted-foreground hover:bg-accent hover:text-foreground"
               }`}
             >
-              <span className="text-base">{item.icon}</span>
+              <Icon name={item.icon} size={18} />
               {item.label}
             </button>
           ))}

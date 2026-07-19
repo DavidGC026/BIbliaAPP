@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { Icon } from "@/components/ui/Icon";
 import * as api from "@/lib/api";
 import { DEFAULT_BIBLE_ID } from "@/lib/config";
 import {
@@ -157,7 +158,7 @@ export function UniversalSearchPage({
         </p>
       </header>
       <div className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3">
-        <span className="text-muted-foreground">⌕</span>
+        <Icon name="search" size={19} className="text-muted-foreground" />
         <input
           autoFocus
           value={query}
@@ -228,7 +229,7 @@ export function UniversalSearchPage({
       ) : null}
       {query.trim().length >= 2 && !loading && total === 0 ? (
         <EmptyState
-          icon="⌕"
+          icon="search"
           title="Sin resultados"
           description="Prueba otra palabra o activa más filtros."
         />

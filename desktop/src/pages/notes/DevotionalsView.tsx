@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { Icon } from "@/components/ui/Icon";
 import * as api from "@/lib/api";
 import * as repo from "@/lib/repo";
 import { DEVOTIONAL_EMOTIONS, parseDevotionalContent } from "@/lib/devotional";
@@ -105,7 +106,10 @@ export function DevotionalsView({ onEdit, onNew, onOpenBible }: Props) {
               className="flex w-full items-center justify-between rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 text-left font-semibold text-primary"
               onClick={() => void openVerse(selected.verseRef!)}
             >
-              <span>📖 {selected.verseRef}</span>
+              <span className="flex items-center gap-2">
+                <Icon name="book" size={18} />
+                {selected.verseRef}
+              </span>
               <span>Ir al pasaje →</span>
             </button>
           ) : null}

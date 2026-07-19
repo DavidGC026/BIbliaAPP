@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import * as api from "@/lib/api";
 import { subscribeNotificationStream } from "@/lib/notificationStream";
 import type { AppNotification } from "@/lib/types";
+import { Icon } from "@/components/ui/Icon";
 
 const TYPE_LABELS: Record<string, string> = {
   comment: "comentó tu publicación",
@@ -105,7 +106,7 @@ export function NotificationBell({ onNavigateToFeed, onNavigateToGroups, onNavig
         }`}
         title="Notificaciones"
       >
-        🔔
+        <Icon name="bell" size={19} />
         {unreadCount > 0 ? (
           <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-bold text-white">
             {unreadCount > 99 ? "99+" : unreadCount}

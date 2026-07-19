@@ -42,7 +42,7 @@ export function InsightsPage({
   if (error)
     return (
       <div className="p-6">
-        <EmptyState icon="!" title="No se pudo cargar" description={error} />
+        <EmptyState icon="alert" title="No se pudo cargar" description={error} />
       </div>
     );
   return (

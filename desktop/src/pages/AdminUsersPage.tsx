@@ -94,7 +94,7 @@ export function AdminUsersPage() {
         <p className="text-muted-foreground">Cargando…</p>
       ) : error ? (
         <EmptyState
-          icon="!"
+          icon="alert"
           title="No se pudieron cargar los usuarios"
           description={error}
         />

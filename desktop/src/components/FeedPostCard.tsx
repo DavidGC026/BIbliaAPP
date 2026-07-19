@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { FeedContent } from "@/components/FeedContent";
+import { Icon } from "@/components/ui/Icon";
 import * as api from "@/lib/api";
 import type { FeedComment, FeedPost } from "@/lib/types";
 
@@ -110,16 +111,18 @@ export function FeedPostCard({ post, onUpdate }: Props) {
           type="button"
           disabled={busy}
           onClick={toggleLike}
-          className={liked ? "font-semibold text-primary" : "text-muted-foreground hover:text-foreground"}
+          className={`inline-flex items-center gap-1.5 ${liked ? "font-semibold text-primary" : "text-muted-foreground hover:text-foreground"}`}
         >
-          {liked ? "♥" : "♡"} {post.like_count}
+          <Icon name="heart" size={16} fill={liked ? "currentColor" : "none"} />
+          {post.like_count}
         </button>
         <button
           type="button"
           onClick={toggleComments}
-          className={showComments ? "font-semibold text-primary" : "text-muted-foreground hover:text-foreground"}
+          className={`inline-flex items-center gap-1.5 ${showComments ? "font-semibold text-primary" : "text-muted-foreground hover:text-foreground"}`}
         >
-          💬 {post.comment_count}
+          <Icon name="community" size={16} />
+          {post.comment_count}
         </button>
       </div>
 

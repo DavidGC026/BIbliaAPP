@@ -1,4 +1,5 @@
 import { AuthedImage } from "@/components/AuthedImage";
+import { Icon } from "@/components/ui/Icon";
 import { openAuthedFile } from "@/lib/openMedia";
 import { parseFeedContent } from "@/lib/media";
 
@@ -30,7 +31,10 @@ export function FeedContent({ content }: Props) {
               onClick={() => openAuthedFile(block.url, block.label).catch(() => {})}
               className="w-full rounded-xl border border-border bg-primary/10 px-4 py-3 text-left transition-colors hover:bg-primary/15"
             >
-              <p className="font-semibold text-primary">📄 {block.label}</p>
+              <p className="flex items-center gap-2 font-semibold text-primary">
+                <Icon name="file" size={17} />
+                {block.label}
+              </p>
               <p className="text-xs text-muted-foreground">Clic para abrir</p>
             </button>
           );

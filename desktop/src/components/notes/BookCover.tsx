@@ -1,4 +1,5 @@
 import { AuthedImage } from "@/components/AuthedImage";
+import { Icon } from "@/components/ui/Icon";
 import {
   coverGradientStyle,
   getPresetCover,
@@ -32,8 +33,9 @@ export function BookCover({ title, coverImage, className = "", onClick }: Props)
         <p className="text-xs font-bold leading-tight tracking-wide text-white drop-shadow">
           {title.toUpperCase()}
         </p>
-        <p className="mt-2 text-[10px] font-semibold text-white/80">
-          📖 ESTUDIO
+        <p className="mt-2 flex items-center gap-1 text-[10px] font-semibold text-white/80">
+          <Icon name="book" size={11} />
+          ESTUDIO
         </p>
       </div>
       {!custom && preset ? (

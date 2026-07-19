@@ -1,4 +1,5 @@
 import { COMMUNITY_ENABLED } from "@/lib/config";
+import type { IconName } from "@/components/ui/Icon";
 
 export type AppTab =
   | "home"
@@ -18,17 +19,17 @@ export type AppTab =
 export const NAV_ITEMS: {
   id: AppTab;
   label: string;
-  icon: string;
+  icon: IconName;
   section: string;
 }[] = [
-  { id: "home", label: "Inicio", icon: "⌂", section: "dashboard" },
-  { id: "bible", label: "Biblia", icon: "✦", section: "reading" },
-  { id: "search", label: "Búsqueda", icon: "⌕", section: "search" },
-  { id: "notes", label: "Notas", icon: "✎", section: "notebook" },
-  { id: "feed", label: "Comunidad", icon: "◉", section: "feed" },
-  { id: "groups", label: "Grupos", icon: "◎", section: "groups" },
-  { id: "events", label: "Calendario", icon: "□", section: "calendar" },
-  { id: "profile", label: "Perfil", icon: "◐", section: "profile" },
+  { id: "home", label: "Inicio", icon: "home", section: "dashboard" },
+  { id: "bible", label: "Biblia", icon: "book", section: "reading" },
+  { id: "search", label: "Búsqueda", icon: "search", section: "search" },
+  { id: "notes", label: "Notas", icon: "notes", section: "notebook" },
+  { id: "feed", label: "Comunidad", icon: "community", section: "feed" },
+  { id: "groups", label: "Grupos", icon: "users", section: "groups" },
+  { id: "events", label: "Calendario", icon: "calendar", section: "calendar" },
+  { id: "profile", label: "Perfil", icon: "user", section: "profile" },
 ];
 
 export const TAB_SECTIONS: Partial<Record<AppTab, string>> = {

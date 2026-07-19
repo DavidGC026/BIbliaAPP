@@ -32,7 +32,7 @@ export function formatDictionaryPlainText(entry: StrongEntry): string {
   const lang = entry.strongCode.startsWith("H") ? "Hebreo" : "Griego";
   const sections = parseDictionaryDefinition(entry.definition);
   const lines = [
-    `📚 Diccionario Strong · ${entry.strongCode} (${lang})`,
+    `Diccionario Strong · ${entry.strongCode} (${lang})`,
     `${entry.lemma}${entry.transliteration ? ` — ${entry.transliteration}` : ""}`,
     "",
   ];
@@ -65,7 +65,7 @@ export function formatDictionaryHtml(entry: StrongEntry): string {
 
   return (
     `<aside class="biblia-dict-entry" data-strong="${escapeHtml(entry.strongCode)}" contenteditable="false">` +
-    `<div class="biblia-dict-label">📚 Diccionario Strong · ${langLabel}</div>` +
+    `<div class="biblia-dict-label">Diccionario Strong · ${langLabel}</div>` +
     `<div class="biblia-dict-head">` +
     `<span class="biblia-dict-code">${escapeHtml(entry.strongCode)}</span>` +
     `<span class="biblia-dict-lemma">${escapeHtml(entry.lemma)}</span>` +

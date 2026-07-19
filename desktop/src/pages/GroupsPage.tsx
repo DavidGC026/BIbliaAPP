@@ -158,7 +158,7 @@ export function GroupsPage({ openGroup, onOpenGroupConsumed }: Props) {
         <p className="text-muted-foreground">Cargando grupos…</p>
       ) : groups.length === 0 ? (
         <EmptyState
-          icon="◎"
+          icon="users"
           title="Aún no perteneces a ningún grupo"
           description="Escribe arriba el código de invitación que te compartió tu congregación."
         />

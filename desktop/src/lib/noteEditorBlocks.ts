@@ -22,10 +22,11 @@ function tableBlockLabel(table: HTMLTableElement): string {
   return `Tabla ${cols}×${rows}`;
 }
 
-function buildBlockHandleHtml(icon: string, label: string): string {
+function buildBlockHandleHtml(kind: string, label: string): string {
   return (
     `<div class="biblia-block-handle" contenteditable="false">` +
-    `<span class="biblia-block-label">${icon} ${label}</span>` +
+    `<span class="biblia-block-kind">${kind}</span>` +
+    `<span class="biblia-block-label">${label}</span>` +
     `<div class="biblia-block-actions">` +
     `<button type="button" class="biblia-block-btn" data-block-action="up" contenteditable="false">↑</button>` +
     `<button type="button" class="biblia-block-btn" data-block-action="down" contenteditable="false">↓</button>` +
@@ -49,7 +50,7 @@ export function buildVerseBlockHtml(innerHtml: string): string {
   const blockquote = `<blockquote class="biblia-verse-quote" contenteditable="false">${innerHtml}</blockquote>`;
   return (
     `<div class="biblia-content-block biblia-verse-block">` +
-    buildBlockHandleHtml("📖", plainHtmlLabel(innerHtml, "Versículo")) +
+    buildBlockHandleHtml("Versículo", plainHtmlLabel(innerHtml, "Versículo")) +
     blockquote +
     `</div><p><br></p>`
   );
@@ -57,7 +58,7 @@ export function buildVerseBlockHtml(innerHtml: string): string {
 
 export function buildDictBlockHtml(asideHtml: string): string {
   if (typeof document === "undefined") {
-    return `<div class="biblia-content-block biblia-dict-block">${buildBlockHandleHtml("📚", plainHtmlLabel(asideHtml, "Diccionario Strong"))}${asideHtml}</div><p><br></p>`;
+    return `<div class="biblia-content-block biblia-dict-block">${buildBlockHandleHtml("Strong", plainHtmlLabel(asideHtml, "Diccionario Strong"))}${asideHtml}</div><p><br></p>`;
   }
   const tmp = document.createElement("div");
   tmp.innerHTML = asideHtml;
@@ -69,7 +70,7 @@ export function buildDictBlockHtml(asideHtml: string): string {
   }
   return (
     `<div class="biblia-content-block biblia-dict-block">` +
-    buildBlockHandleHtml("📚", dictLabelFromAside(aside)) +
+    buildBlockHandleHtml("Strong", dictLabelFromAside(aside)) +
     (aside?.outerHTML ?? asideHtml) +
     `</div><p><br></p>`
   );
@@ -104,7 +105,7 @@ export function buildTableBlockHtml(
   const label = `Tabla ${cols}×${rows}`;
   return (
     `<div class="biblia-content-block biblia-table-block">` +
-    buildBlockHandleHtml("⊞", label) +
+    buildBlockHandleHtml("Tabla", label) +
     tableHtml +
     `</div><p><br></p>`
   );
@@ -147,7 +148,7 @@ function wrapVerseElement(blockquote: Element) {
   const block = document.createElement("div");
   block.className = "biblia-content-block biblia-verse-block";
   block.innerHTML = buildBlockHandleHtml(
-    "📖",
+    "Versículo",
     verseLabelFromBlockquote(blockquote),
   );
   blockquote.parentNode?.insertBefore(block, blockquote);
@@ -160,7 +161,7 @@ function wrapDictElement(aside: Element) {
   aside.setAttribute("contenteditable", "false");
   const block = document.createElement("div");
   block.className = "biblia-content-block biblia-dict-block";
-  block.innerHTML = buildBlockHandleHtml("📚", dictLabelFromAside(aside));
+  block.innerHTML = buildBlockHandleHtml("Strong", dictLabelFromAside(aside));
   aside.parentNode?.insertBefore(block, aside);
   block.appendChild(aside);
 }
@@ -171,7 +172,7 @@ function wrapTableElement(table: HTMLTableElement) {
     table.classList.add("biblia-note-table");
   const block = document.createElement("div");
   block.className = "biblia-content-block biblia-table-block";
-  block.innerHTML = buildBlockHandleHtml("⊞", tableBlockLabel(table));
+  block.innerHTML = buildBlockHandleHtml("Tabla", tableBlockLabel(table));
   table.parentNode?.insertBefore(block, table);
   block.appendChild(table);
 }

@@ -13,7 +13,7 @@ Desktop conserva su núcleo de trabajo sin red después del primer inicio de ses
 - cola SQLite y sincronización al recuperar conexión;
 - Inicio con contenido personal local, último pasaje, nombre de iglesia y último versículo diario cacheado.
 
-La compilación final también incorpora el contenedor visual compartido de hasta 1536 px para reducir los márgenes laterales en ventanas amplias.
+La compilación final también incorpora el contenedor visual compartido de hasta 1536 px para reducir los márgenes laterales en ventanas amplias y un sistema local de iconos SVG que no depende de fuentes o recursos online.
 
 ## Correcciones de la auditoría
 
@@ -37,8 +37,8 @@ Las imágenes nuevas de una nota intentan subirse online; si no hay servidor se 
 packaging/arch/bibliaapp-desktop-0.3.3-1-x86_64.pkg.tar.zst
 ```
 
-- Tamaño: `11,265,290` bytes.
-- SHA-256: `6b582b0d732cd6ea2fe6c1d8b8fa56b18d936a37a1d90701365ecd217aa595a5`.
+- Tamaño: `11,204,471` bytes.
+- SHA-256: `4dc686515573973b65080e12a380a80905ff3098391ac40ae9961ffc06c40c91`.
 - Arquitectura: ELF64 x86-64 PIE.
 - Dependencias principales comprobadas: GTK 3, WebKitGTK 4.1, GLib, libsoup 3 y SQLite.
 - Ninguna biblioteca enlazada apareció como `not found` durante la validación.

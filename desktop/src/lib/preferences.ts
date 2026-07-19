@@ -1,3 +1,5 @@
+import type { IconName } from "@/components/ui/Icon";
+
 export type ReaderDensity = "relaxed" | "compact";
 export type ReaderAlign = "left" | "justify";
 export type ReaderTheme = "auto" | "light" | "sepia" | "night" | "contrast";
@@ -34,67 +36,67 @@ export const HOME_ACTION_CATALOG: Array<{
   key: HomeActionKey;
   title: string;
   description: string;
-  icon: string;
+  icon: IconName;
 }> = [
   {
     key: "read",
     title: "Ir a lectura",
     description: "Continúa leyendo capítulo a capítulo",
-    icon: "📖",
+    icon: "book",
   },
   {
     key: "search",
     title: "Buscador bíblico",
     description: "Busca palabras en una versión",
-    icon: "⌕",
+    icon: "search",
   },
   {
     key: "universalSearch",
     title: "Búsqueda universal",
     description: "Biblia, notas, diario y diccionario",
-    icon: "✦",
+    icon: "sparkles",
   },
   {
     key: "note",
     title: "Nota rápida",
     description: "Captura una idea en tus libretas",
-    icon: "✎",
+    icon: "notes",
   },
   {
     key: "downloads",
     title: "Descargas offline",
     description: "Administra Biblias locales",
-    icon: "⇩",
+    icon: "download",
   },
   {
     key: "image",
     title: "Imagen de versículo",
     description: "Selecciona un texto en el lector",
-    icon: "▧",
+    icon: "image",
   },
   {
     key: "stats",
     title: "Estadísticas",
     description: "Revisa tu progreso de lectura",
-    icon: "▥",
+    icon: "chart",
   },
   {
     key: "activity",
     title: "Actividad",
     description: "Consulta tu calendario reciente",
-    icon: "◫",
+    icon: "activity",
   },
   {
     key: "dictionary",
     title: "Diccionario Strong",
     description: "Explora griego y hebreo",
-    icon: "A",
+    icon: "dictionary",
   },
   {
     key: "community",
     title: "Comunidad",
     description: "Publicaciones de tu iglesia",
-    icon: "◉",
+    icon: "community",
   },
 ];
 
