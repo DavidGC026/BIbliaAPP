@@ -141,3 +141,41 @@ Pruebas manuales en un teléfono real (lo que no cubre el navegador headless):
 5. En iPhone con notch, comprobar que el header no queda bajo la barra de estado
    y que la tabbar no pisa el indicador de inicio.
 6. Editar una nota desde el lector: ahí el chrome **no** debe ocultarse.
+
+## Trampas conocidas
+
+### `interactiveWidget` afecta a toda la app
+
+El viewport de [`app/layout.tsx`](../app/layout.tsx) es global: cualquier pantalla
+móvil reflowa con el teclado, no solo Notas. Si una sección dependía de altura
+fija con `100dvh`, conviene revisarla tras el cambio.
+
+### Detección de teclado con altura acumulada
+
+Con `resizes-content`, `window.innerHeight` **también** encoge al abrir el
+teclado. La detección en [`notebook-sidebar.tsx`](../components/notebook-sidebar.tsx)
+usa la **mayor** altura vista (`baseline`) y marca `body.keyboard-open` cuando
+la altura cae más de 120 px por debajo. No usar la altura inicial del montaje.
+
+### Modo inmersivo es opt-in
+
+Solo la sección Notas pasa `immersiveOnMobile` al sidebar. El editor embebido del
+lector (`embedded`) **no** debe activarlo: vive dentro de un panel dividido y
+necesita header/tabbar visibles.
+
+### Autoguardado web vs. `beforeRemove` móvil
+
+En web el autoguardado espera **4 s** de inactividad. **Volver** no fuerza
+guardado inmediato (a diferencia del hook `beforeRemove` de Expo). Para no
+perder cambios, esperar el indicador de guardado o pulsar **Guardar** antes de
+salir.
+
+## Documentación relacionada
+
+| Documento | Relación |
+|-----------|----------|
+| [temas-visuales-web.md](./temas-visuales-web.md) | Paletas globales; el editor lee variables CSS del tema activo |
+| [mejoras-uso-diario-web.md](./mejoras-uso-diario-web.md) | Otras mejoras de paridad móvil en Inicio y lector |
+| [docs-mobile/16-editor-webview-teclado-seleccion.md](../docs-mobile/16-editor-webview-teclado-seleccion.md) | Origen móvil del editor y teclado |
+| [docs-mobile/22-notas-diseno-profesional.md](../docs-mobile/22-notas-diseno-profesional.md) | Diseño visual de notas en móvil nativo |
+| [desktop/docs/12-paridad-mobile-2026-07.md](../desktop/docs/12-paridad-mobile-2026-07.md) | Cliente de escritorio (sin viewport móvil ni teclado virtual) |
