@@ -9,6 +9,7 @@ import React, {
 import * as api from "@/lib/api";
 import { isAuthError } from "@/lib/authError";
 import { setIsOnline } from "@/lib/network";
+import { prepareOfflineForUser } from "@/lib/repo";
 import { startGoogleSignIn } from "@/lib/googleAuth";
 import { syncAll } from "@/lib/sync";
 import {
@@ -44,6 +45,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       api.setApiTokenGetter(() => sessionToken);
 
       if (initialUser) {
+        await prepareOfflineForUser(initialUser.id);
         setUser(initialUser);
         await saveSession(sessionToken, initialUser);
       } else {
@@ -51,6 +53,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!nextUser) {
           throw new Error("No se pudo cargar tu perfil.");
         }
+        await prepareOfflineForUser(nextUser.id);
         setUser(nextUser);
         await saveSession(sessionToken, nextUser);
       }
@@ -64,6 +67,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const refreshUser = useCallback(async () => {
     try {
       const { user: nextUser } = await api.getMe();
+      if (nextUser) await prepareOfflineForUser(nextUser.id);
       setUser(nextUser);
       await persistUser(nextUser);
       setIsOffline(false);
@@ -117,12 +121,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         setToken(stored);
         api.setApiTokenGetter(() => stored);
-        if (cachedUser) setUser(cachedUser);
+        if (cachedUser) {
+          // En la primera migración, la sesión cacheada identifica al dueño
+          // de los datos privados existentes y permite conservarlos offline.
+          await prepareOfflineForUser(cachedUser.id, true);
+          setUser(cachedUser);
+        }
 
         try {
           const { user: nextUser } = await api.getMe();
           if (cancelled) return;
           if (nextUser) {
+            await prepareOfflineForUser(nextUser.id);
             setUser(nextUser);
             await persistUser(nextUser);
             setIsOffline(false);

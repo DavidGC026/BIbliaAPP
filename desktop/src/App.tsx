@@ -18,6 +18,10 @@ import { LegalPage } from "@/pages/LegalPage";
 import { EventsPage } from "@/pages/EventsPage";
 import { getChurchSettings } from "@/lib/api";
 import { initOffline } from "@/lib/repo";
+import {
+  cacheChurchName,
+  getCachedChurchName,
+} from "@/lib/offline/appCache";
 import { canOpenTab, type AppTab } from "@/lib/nav";
 import type { BibleTarget } from "@/lib/types";
 
@@ -29,7 +33,7 @@ type OpenGroup = {
 function MainApp() {
   const { user, isLoading } = useAuth();
   const [tab, setTab] = useState<AppTab>("home");
-  const [churchName, setChurchName] = useState("BibliaAPP");
+  const [churchName, setChurchName] = useState(getCachedChurchName);
   const [bibleTarget, setBibleTarget] = useState<BibleTarget | undefined>();
   const [openGroup, setOpenGroup] = useState<OpenGroup | null>(null);
   const [noteTarget, setNoteTarget] = useState<
@@ -40,9 +44,11 @@ function MainApp() {
     if (!user) return;
     initOffline().catch(() => {});
     getChurchSettings()
-      .then(({ settings }) =>
-        setChurchName(settings.church_name || "BibliaAPP"),
-      )
+      .then(({ settings }) => {
+        const name = settings.church_name || "BibliaAPP";
+        setChurchName(name);
+        cacheChurchName(name);
+      })
       .catch(() => {});
   }, [user]);
 

@@ -55,7 +55,7 @@ export TAURI_SIGNING_PRIVATE_KEY_PASSWORD='TU_PASSWORD'
 1. Compilar: `npm run pack:arch` o `npm run pack:deb`
 2. Firmar el bundle (Tauri CLI / GitHub Action `tauri-action`)
 3. Subir artefacto al servidor (o GitHub Release vía tag `desktop-v*`)
-4. Generar manifest: `./packaging/releases/generate-latest-json.sh 0.3.2`
+4. Generar manifest: `./packaging/releases/generate-latest-json.sh 0.3.3`
 5. Publicar `latest.json` en el servidor
 
 Ejemplo de endpoint:

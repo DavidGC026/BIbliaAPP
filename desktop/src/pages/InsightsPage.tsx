@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import * as api from "@/lib/api";
+import * as repo from "@/lib/repo";
 import type {
   BookStat,
   HeatmapDay,
@@ -29,7 +30,9 @@ export function InsightsPage({
               setHeatmap(r.heatmap);
               setRecent(r.recentProgress);
             })
-          : api.getAllHighlights().then((r) => setHighlights(r.highlights));
+          : repo
+              .repoListRecentHighlights(Number.MAX_SAFE_INTEGER)
+              .then((r) => setHighlights(r.highlights));
     task
       .catch((e) => setError(e instanceof Error ? e.message : "Error"))
       .finally(() => setLoading(false));

@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react";
 import { isSqliteAvailable } from "@/lib/offline/db";
 import { getDirtyNotebooks, getDirtyNotes } from "@/lib/offline/notesStore";
+import {
+  getDirtyFavorites,
+  getDirtyHighlights,
+  getDirtyVerseNotes,
+} from "@/lib/offline/readerStore";
 import { syncAll } from "@/lib/sync";
 import { useAuth } from "@/context/AuthContext";
 
@@ -12,11 +17,17 @@ export function SyncStatusBadge() {
     if (!isSqliteAvailable()) return;
     let active = true;
     const check = () =>
-      Promise.all([getDirtyNotes(), getDirtyNotebooks()])
-        .then(
-          ([notes, notebooks]) =>
-            active && setPending(notes.length + notebooks.length),
-        )
+      Promise.all([
+        getDirtyNotes(),
+        getDirtyNotebooks(),
+        getDirtyHighlights(),
+        getDirtyFavorites(),
+        getDirtyVerseNotes(),
+      ])
+        .then((groups) => {
+          if (active)
+            setPending(groups.reduce((total, group) => total + group.length, 0));
+        })
         .catch(() => {});
     check();
     const id = window.setInterval(check, 10000);
@@ -34,11 +45,16 @@ export function SyncStatusBadge() {
         setSyncing(true);
         try {
           await syncAll();
-          const [notes, notebooks] = await Promise.all([
+          const groups = await Promise.all([
             getDirtyNotes(),
             getDirtyNotebooks(),
+            getDirtyHighlights(),
+            getDirtyFavorites(),
+            getDirtyVerseNotes(),
           ]);
-          setPending(notes.length + notebooks.length);
+          setPending(
+            groups.reduce((total, group) => total + group.length, 0),
+          );
         } finally {
           setSyncing(false);
         }

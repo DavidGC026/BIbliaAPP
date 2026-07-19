@@ -1,6 +1,6 @@
 # 12 — Paridad con móvil (julio de 2026)
 
-Este documento registra el port de las novedades de `mobile/` posteriores al punto de paridad de junio. La revisión más reciente del cliente de escritorio es **0.3.2**.
+Este documento registra el port de las novedades de `mobile/` posteriores al punto de paridad de junio. La revisión más reciente del cliente de escritorio es **0.3.3**.
 
 ## Alcance implementado
 

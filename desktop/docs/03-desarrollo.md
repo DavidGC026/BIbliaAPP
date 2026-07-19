@@ -123,9 +123,9 @@ Tras `npm run build:arch`:
 ```text
 src-tauri/target/release/bibliaapp-desktop          # binario
 src-tauri/target/release/bundle/appimage/
-  BibliaAPP_0.3.2_amd64.AppImage
+  BibliaAPP_0.3.3_amd64.AppImage
 packaging/arch/
-  bibliaapp-desktop-0.3.2-1-x86_64.pkg.tar.zst      # npm run pack:arch
+  bibliaapp-desktop-0.3.3-1-x86_64.pkg.tar.zst      # npm run pack:arch
 ```
 
 ---

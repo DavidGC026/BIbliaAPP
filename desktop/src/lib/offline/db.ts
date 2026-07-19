@@ -167,6 +167,37 @@ export async function setMeta(key: string, value: string) {
   ]);
 }
 
+async function clearPrivateOfflineData() {
+  for (const table of [
+    "notes",
+    "notebooks",
+    "highlights",
+    "favorites",
+    "verse_notes",
+  ]) {
+    await run(`DELETE FROM ${table}`);
+  }
+  await setMeta("last_sync", "");
+}
+
+/** Evita que datos privados de una cuenta aparezcan al iniciar otra cuenta. */
+export async function prepareOfflineUserScope(
+  userId: number,
+  preserveUnscopedData = false,
+) {
+  const key = "offline_user_id";
+  const current = await getMeta(key);
+  const next = String(userId);
+  if (!current) {
+    if (!preserveUnscopedData) await clearPrivateOfflineData();
+    await setMeta(key, next);
+    return;
+  }
+  if (current === next) return;
+  await clearPrivateOfflineData();
+  await setMeta(key, next);
+}
+
 export function tempId() {
   return -Math.abs(Date.now());
 }

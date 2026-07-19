@@ -1,6 +1,6 @@
 # 13 — Editor de notas: formato, imágenes y autoguardado
 
-Estado en desktop **v0.3.2**. Esta implementación replica el comportamiento del editor móvil y conserva un HTML compatible entre ambos clientes.
+Estado en desktop **v0.3.3**. Esta implementación replica el comportamiento del editor móvil y conserva un HTML compatible entre ambos clientes.
 
 ## Barra de formato
 

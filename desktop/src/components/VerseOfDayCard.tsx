@@ -1,7 +1,11 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { getVerseOfDay } from "@/lib/api";
-import { listBibles } from "@/lib/api";
+import * as repo from "@/lib/repo";
+import {
+  cacheVerseOfDay,
+  getCachedVerseOfDay,
+} from "@/lib/offline/appCache";
 import { VerseImageCreatorModal } from "@/components/VerseImageCreatorModal";
 import { DEFAULT_BIBLE_ID } from "@/lib/config";
 import { resolveVerseBackgroundImage } from "@/lib/resolveVerseBackground";
@@ -31,7 +35,7 @@ export function VerseOfDayCard({ onReadInBible }: Props) {
   const [imageOpen, setImageOpen] = useState(false);
 
   useEffect(() => {
-    listBibles()
+    repo.repoListBibles()
       .then(({ bibles: list, defaultBibleId }) => {
         setBibles(list);
         if (!list.some((item) => item.bibleId === bibleId))
@@ -54,11 +58,23 @@ export function VerseOfDayCard({ onReadInBible }: Props) {
               (await resolveVerseBackgroundImage(v)) ?? undefined,
           };
         }
+        cacheVerseOfDay(bibleId || v.idBible, v);
         setVerse(v);
       })
       .catch((err) => {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : "No se pudo cargar");
+          const cached = getCachedVerseOfDay(bibleId);
+          if (cached) {
+            setVerse({
+              ...cached,
+              backgroundImage: cached.backgroundImage?.startsWith("data:")
+                ? cached.backgroundImage
+                : undefined,
+            });
+            setError(null);
+          } else {
+            setError(err instanceof Error ? err.message : "No se pudo cargar");
+          }
         }
       })
       .finally(() => {

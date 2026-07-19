@@ -16,6 +16,10 @@ import {
   type LastPassage,
 } from "@/lib/preferences";
 import * as repo from "@/lib/repo";
+import {
+  cacheChurchName,
+  getCachedChurchName,
+} from "@/lib/offline/appCache";
 import type { RecentNotebookNote } from "@/lib/repo";
 import type { AppTab } from "@/lib/nav";
 import { parseAllowedSections } from "@/lib/nav";
@@ -40,7 +44,7 @@ export function HomePage({ onOpenBible, onNavigate, onOpenNote }: Props) {
     user?.role === "admin" ||
     !allowedSections ||
     allowedSections.includes(section);
-  const [churchName, setChurchName] = useState("BibliaAPP");
+  const [churchName, setChurchName] = useState(getCachedChurchName);
   const [lastPassage, setLastPassage] = useState<LastPassage | null>(
     getLastPassage,
   );
@@ -66,9 +70,11 @@ export function HomePage({ onOpenBible, onNavigate, onOpenNote }: Props) {
     Promise.allSettled([
       api
         .getChurchSettings()
-        .then(({ settings }) =>
-          setChurchName(settings.church_name || "BibliaAPP"),
-        ),
+        .then(({ settings }) => {
+          const name = settings.church_name || "BibliaAPP";
+          setChurchName(name);
+          cacheChurchName(name);
+        }),
       repo.repoListRecentNotebookNotes(3).then((r) => setNotes(r.notes)),
       repo.repoListFavorites().then((r) => {
         const sorted = [...r.favorites].sort(
@@ -81,8 +87,8 @@ export function HomePage({ onOpenBible, onNavigate, onOpenNote }: Props) {
       repo.repoListRecentHighlights(3).then((r) => {
         setHighlights(r.highlights);
       }),
-      api
-        .getAllHighlights()
+      repo
+        .repoListRecentHighlights(Number.MAX_SAFE_INTEGER)
         .then((r) =>
           setCounts((c) => ({ ...c, highlights: r.highlights.length })),
         ),

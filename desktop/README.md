@@ -2,7 +2,7 @@
 
 Cliente de escritorio (**Tauri v2 + React**) para lectura bíblica, comunidad y grupos.
 
-**Versión:** 0.3.2 · **Plataformas:** Arch Linux, Debian/Ubuntu, Windows
+**Versión:** 0.3.3 · **Plataformas:** Arch Linux, Debian/Ubuntu, Windows
 
 ---
 
@@ -34,14 +34,14 @@ npm run pack:win       # Windows (.msi + .exe) — requiere SO Windows
 ## Instalar en Arch
 
 ```bash
-sudo pacman -U packaging/arch/bibliaapp-desktop-0.3.2-1-x86_64.pkg.tar.zst
+sudo pacman -U packaging/arch/bibliaapp-desktop-0.3.3-1-x86_64.pkg.tar.zst
 ```
 
 El paquete se genera en `desktop/packaging/arch/` con `npm run pack:arch`.
 
 ---
 
-## Qué incluye v0.3.2
+## Qué incluye v0.3.3
 
 - Login, sesión offline, Google OAuth
 - Lector (resaltados, notas de versículo, favoritos, imágenes) — **sync offline** como móvil

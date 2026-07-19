@@ -124,6 +124,21 @@ Sync: `lib/sync.ts` — `syncAll()` en login y al reconectar.
 
 El caché respeta `canDownload`: no almacena capítulos de versiones solo online y elimina descargas cuyo permiso haya sido retirado.
 
+### Garantías offline en v0.3.3
+
+| Área | Sin conexión |
+| ---- | ------------ |
+| Sesión | Restaura usuario y permisos cacheados; solo un 401/403 real borra la sesión |
+| Biblia descargada | Lectura por libro/capítulo y búsqueda local; se prioriza una versión marcada `downloaded = 1` |
+| Libretas y notas | Listar, crear, editar y eliminar en SQLite, incluyendo imágenes `data:` y autoguardado |
+| Lector | Subrayados, favoritos y notas de versículo se escriben primero en SQLite |
+| Sincronización | Cinco colas privadas; una sola sincronización concurrente y reintento al reconectar |
+| Inicio | Notas/favoritos/subrayados locales, último pasaje, nombre de iglesia y último versículo diario cacheado |
+
+Los datos privados se vinculan mediante `meta.offline_user_id`. Si inicia sesión una cuenta distinta, se eliminan las tablas privadas de la cuenta anterior antes de sincronizar; las Biblias descargadas se conservan y el catálogo de licencias vuelve a validarse online.
+
+Comunidad, grupos, administración, RSVP, búsquedas Strong/referencias y cargas al servidor requieren red por naturaleza. La app sigue abriendo y el lector/notas permanecen operativos, pero esas acciones no se presentan como sincronización offline. Diario y libros de estudio todavía son online, tal como registra [02-progreso-plan.md](./02-progreso-plan.md).
+
 Referencia: `mobile/lib/offline/*`, `mobile/lib/sync.ts`.
 
 ---

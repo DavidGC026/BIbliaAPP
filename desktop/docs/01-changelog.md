@@ -4,6 +4,17 @@ Registro cronológico de cambios en `desktop/`. Lo más reciente arriba.
 
 ---
 
+## 2026-07-19 — v0.3.3: robustez offline y paquete Arch
+
+- La Biblia predeterminada sin red prioriza una traducción realmente descargada.
+- Libretas y notas muestran el estado local, incluso si está vacío, cuando la API no responde.
+- Las sincronizaciones concurrentes esperan la misma operación y ya no duplican el envío de notas/libretas.
+- El contador de cambios pendientes incluye notas, libretas, subrayados, favoritos y notas de versículo.
+- La sincronización completa guarda todos los subrayados en SQLite para Inicio y Perfil offline.
+- Los datos privados SQLite quedan asociados a la cuenta cacheada y se limpian al cambiar de usuario.
+- Inicio conserva localmente el nombre de iglesia y el último versículo del día disponible.
+- Paquete Arch verificable `bibliaapp-desktop-0.3.3-1-x86_64.pkg.tar.zst`.
+
 ## 2026-07-19 — v0.3.2: paridad completa del editor de notas
 
 ### Color y formato

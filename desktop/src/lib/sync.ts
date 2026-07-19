@@ -27,31 +27,33 @@ import {
   setFavoriteServerId,
   setVerseNoteServerId,
   upsertFavoritesFromServer,
+  upsertHighlightsFromServer,
 } from "@/lib/offline/readerStore";
 
-let syncing = false;
+let activeSync: Promise<void> | null = null;
 let resyncPending = false;
 
 /** Sube cambios offline y refresca caché SQLite desde el servidor. */
 export async function syncAll() {
   if (!getIsOnline()) return;
   if (!api.getApiToken()) return;
-  if (syncing) {
+  if (activeSync) {
     resyncPending = true;
-    return;
+    return activeSync;
   }
-  syncing = true;
-  try {
+  activeSync = (async () => {
     await repairNotebookData();
     do {
       resyncPending = false;
       await pushDirty();
-      await pushNotebooksAndNotes();
       await pullFromServer();
       await setMeta("last_sync", new Date().toISOString());
     } while (resyncPending);
+  })();
+  try {
+    await activeSync;
   } finally {
-    syncing = false;
+    activeSync = null;
   }
 }
 
@@ -59,11 +61,6 @@ export async function syncAll() {
 export async function pullFromServer() {
   if (!getIsOnline() || !api.getApiToken()) return;
   await pullRemote();
-}
-
-async function pushNotebooksAndNotes() {
-  await pushDirtyNotebooks();
-  await pushDirtyNotesOnly();
 }
 
 async function pushDirty() {
@@ -203,6 +200,42 @@ async function pullRemote() {
     }
   }
 
-  const { favorites } = await api.listFavorites();
+  const favorites = await api
+    .listFavorites()
+    .then((result) => result.favorites)
+    .catch(() => []);
   await upsertFavoritesFromServer(favorites);
+
+  const highlights = await api
+    .getAllHighlights()
+    .then((result) => result.highlights)
+    .catch(() => []);
+  const groups = new Map<
+    string,
+    {
+      bibleId: number;
+      bookId: number;
+      chapter: number;
+      items: Array<{ verse: number; color: string }>;
+    }
+  >();
+  for (const highlight of highlights) {
+    const key = `${highlight.bible_id}:${highlight.book_id}:${highlight.chapter}`;
+    const group = groups.get(key) ?? {
+      bibleId: highlight.bible_id,
+      bookId: highlight.book_id,
+      chapter: highlight.chapter,
+      items: [],
+    };
+    group.items.push({ verse: highlight.verse, color: highlight.color });
+    groups.set(key, group);
+  }
+  for (const group of groups.values()) {
+    await upsertHighlightsFromServer(
+      group.bookId,
+      group.chapter,
+      group.bibleId,
+      group.items,
+    );
+  }
 }

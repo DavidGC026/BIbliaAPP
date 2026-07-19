@@ -135,11 +135,12 @@ export async function repoListBibles(): Promise<{
           await initOffline();
           const local = await listLocalBibles();
           if (local.length > 0) {
+            const downloaded = local.find((item) => item.downloaded);
             return {
               bibles: local.map(
                 ({ downloaded: _d, downloadedAt: _a, ...b }) => b,
               ),
-              defaultBibleId: local[0]?.bibleId ?? null,
+              defaultBibleId: downloaded?.bibleId ?? local[0]?.bibleId ?? null,
             };
           }
         } catch {
@@ -155,9 +156,10 @@ export async function repoListBibles(): Promise<{
     const local = await listLocalBibles();
     if (local.length === 0)
       throw new Error("Sin conexión y no hay versiones descargadas");
+    const downloaded = local.find((item) => item.downloaded);
     return {
       bibles: local.map(({ downloaded: _d, downloadedAt: _a, ...b }) => b),
-      defaultBibleId: local[0]?.bibleId ?? null,
+      defaultBibleId: downloaded?.bibleId ?? local[0]?.bibleId ?? null,
     };
   } catch (err) {
     throw err instanceof Error ? err : new Error("Sin conexión");
@@ -305,8 +307,7 @@ async function loadNotebooksView(): Promise<{ notebooks: Notebook[] }> {
       await refreshNotebooksFromServer().catch(() => {});
     }
     try {
-      const local = await listLocalNotebooks();
-      if (local.length > 0) return { notebooks: local };
+      return { notebooks: await listLocalNotebooks() };
     } catch {
       // ponytail: SQLite roto → API directa
     }
@@ -342,9 +343,7 @@ async function loadNotebookNotesView(
       }
     }
     try {
-      if (await resolveNotebookLocalId(notebookId)) {
-        return { notes: await listLocalNotes(notebookId) };
-      }
+      return { notes: await listLocalNotes(notebookId) };
     } catch {
       // ponytail: SQLite roto → API directa
     }
@@ -811,6 +810,15 @@ export async function repoListRecentHighlights(limit = 3) {
     [limit],
   ).catch(() => []);
   return { highlights: rows };
+}
+
+export async function prepareOfflineForUser(
+  userId: number,
+  preserveUnscopedData = false,
+) {
+  if (!isSqliteAvailable()) return;
+  const { prepareOfflineUserScope } = await import("@/lib/offline/db");
+  await prepareOfflineUserScope(userId, preserveUnscopedData);
 }
 
 export async function repoDeleteVerseNote(noteId: number) {

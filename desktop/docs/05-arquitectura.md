@@ -118,7 +118,7 @@ desktop/
 
 Permisos en `src-tauri/capabilities/default.json`: `core`, `opener`, `store`, `sql`, `deep-link`, `core:event`.
 
-## Estado y preferencias v0.3.2
+## Estado y preferencias v0.3.3
 
 - `ThemeContext` aplica `data-theme` y conserva el modo elegido.
 - `lib/preferences.ts` centraliza lector, último pasaje, Inicio, historial y plantilla de imagen.
