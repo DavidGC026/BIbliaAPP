@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -157,7 +158,10 @@ export function ThemeToggle() {
         <span className="sr-only">Cambiar apariencia</span>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-64">
-        <DropdownMenuLabel>Apariencia</DropdownMenuLabel>
+        {/* GroupLabel de Base UI debe vivir dentro de un Menu.Group */}
+        <DropdownMenuGroup>
+          <DropdownMenuLabel>Apariencia</DropdownMenuLabel>
+        </DropdownMenuGroup>
         <DropdownMenuSeparator />
         {visibleOptions.map(option => {
           const selected = activeValue === option.value
