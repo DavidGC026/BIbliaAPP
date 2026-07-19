@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import {
   getUserByEmail,
   createUser,
+  markUserLegalAccepted,
   setUserEmailVerificationToken,
 } from "@/lib/bible"
 import { hashPassword, generateSecureToken } from "@/lib/auth"
@@ -9,11 +10,18 @@ import { sendVerificationEmail } from "@/lib/email"
 
 export async function POST(req: NextRequest) {
   try {
-    const { name, email, password } = await req.json()
+    const { name, email, password, acceptTerms } = await req.json()
 
     if (!name || !email || !password) {
       return NextResponse.json(
         { error: "Todos los campos (nombre, correo, contraseña) son obligatorios." },
+        { status: 400 },
+      )
+    }
+
+    if (acceptTerms !== true) {
+      return NextResponse.json(
+        { error: "Debes aceptar los términos y condiciones y el aviso de privacidad." },
         { status: 400 },
       )
     }
@@ -36,6 +44,9 @@ export async function POST(req: NextRequest) {
 
     const passwordHash = hashPassword(password)
     const userId = await createUser(name.trim(), normalizedEmail, passwordHash, "user")
+
+    // El registro exige acceptTerms; dejar constancia de la aceptación
+    await markUserLegalAccepted(userId)
 
     const verificationToken = generateSecureToken()
     await setUserEmailVerificationToken(userId, verificationToken)

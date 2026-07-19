@@ -197,6 +197,11 @@ async function _ensureDbTables(): Promise<void> {
     await pool.query(`ALTER TABLE users ADD UNIQUE KEY uniq_google_id (google_id)`)
   } catch (_) {}
 
+  // Aceptación de términos, privacidad y normas de la comunidad
+  try {
+    await pool.query(`ALTER TABLE users ADD COLUMN legal_accepted_at DATETIME DEFAULT NULL`)
+  } catch (_) {}
+
   // Create reading plans tables
   await pool.query(`
     CREATE TABLE IF NOT EXISTS bible_reading_plans (
@@ -775,7 +780,8 @@ export async function getUserByEmail(email: string): Promise<any | null> {
   const [rows] = await getPool().query<RowDataPacket[]>(
     `SELECT id, name, email, password, role, google_id AS googleId,
             email_verified AS emailVerified, allowed_sections AS allowedSections,
-            streak_count AS streakCount, last_active_date AS lastActiveDate
+            streak_count AS streakCount, last_active_date AS lastActiveDate,
+            created_at AS createdAt, legal_accepted_at AS legalAcceptedAt
      FROM users WHERE email = ?`,
     [email]
   )
@@ -887,7 +893,7 @@ export async function updateUserPassword(userId: number, passwordHash: string): 
 export async function getUserById(id: number): Promise<any | null> {
   await ensureDbTables()
   const [rows] = await getPool().query<RowDataPacket[]>(
-    `SELECT id, name, email, username, role, allowed_sections AS allowedSections, streak_count AS streakCount, last_active_date AS lastActiveDate, avatar_media_id AS avatarMediaId, avatar_visibility AS avatarVisibility FROM users WHERE id = ?`,
+    `SELECT id, name, email, username, role, allowed_sections AS allowedSections, streak_count AS streakCount, last_active_date AS lastActiveDate, avatar_media_id AS avatarMediaId, avatar_visibility AS avatarVisibility, created_at AS createdAt, legal_accepted_at AS legalAcceptedAt FROM users WHERE id = ?`,
     [id]
   )
   if (rows.length === 0) return null
@@ -908,6 +914,14 @@ export async function createUser(
     [name, email, passwordHash, role, allowedVal]
   )
   return result.insertId
+}
+
+export async function markUserLegalAccepted(userId: number): Promise<void> {
+  await ensureDbTables()
+  await getPool().query(
+    `UPDATE users SET legal_accepted_at = NOW() WHERE id = ?`,
+    [userId]
+  )
 }
 
 export async function listUsers(): Promise<any[]> {

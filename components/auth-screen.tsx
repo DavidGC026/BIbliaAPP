@@ -4,6 +4,7 @@ import * as React from "react"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { LegalFooter } from "@/components/legal/legal-footer"
 import { User, Mail, Lock, Loader2, ArrowRight, CheckCircle2 } from "lucide-react"
 
 interface AuthUser {
@@ -28,6 +29,7 @@ export function AuthForm({ onLoginSuccess, compact = false }: AuthFormProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [info, setInfo] = useState<string | null>(null)
+  const [acceptedTerms, setAcceptedTerms] = useState(false)
   const [pendingVerificationEmail, setPendingVerificationEmail] = useState<string | null>(null)
 
   async function handleResendVerification(targetEmail?: string) {
@@ -71,11 +73,15 @@ export function AuthForm({ onLoginSuccess, compact = false }: AuthFormProps) {
         return
       }
 
+      if (view === "register" && !acceptedTerms) {
+        throw new Error("Debes aceptar los términos y condiciones y el aviso de privacidad.")
+      }
+
       const url = view === "login" ? "/api/auth/login" : "/api/auth/register"
       const body =
         view === "login"
           ? { email: email.trim().toLowerCase(), password }
-          : { name: name.trim(), email: email.trim().toLowerCase(), password }
+          : { name: name.trim(), email: email.trim().toLowerCase(), password, acceptTerms: acceptedTerms }
 
       const res = await fetch(url, {
         method: "POST",
@@ -275,9 +281,41 @@ export function AuthForm({ onLoginSuccess, compact = false }: AuthFormProps) {
           )}
         </div>
 
+        {view === "register" && (
+          <label className="flex items-start gap-2.5 rounded-lg border border-border/60 bg-muted/30 p-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={acceptedTerms}
+              onChange={(e) => setAcceptedTerms(e.target.checked)}
+              className="mt-0.5 size-4 shrink-0 accent-primary cursor-pointer"
+            />
+            <span className="text-xs text-muted-foreground leading-relaxed">
+              He leído y acepto los{" "}
+              <a
+                href="/terminos"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-semibold text-primary hover:underline"
+              >
+                términos y condiciones
+              </a>{" "}
+              y el{" "}
+              <a
+                href="/privacidad"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-semibold text-primary hover:underline"
+              >
+                aviso de privacidad
+              </a>
+              .
+            </span>
+          </label>
+        )}
+
         <Button
           type="submit"
-          disabled={loading}
+          disabled={loading || (view === "register" && !acceptedTerms)}
           className="w-full h-10 mt-2 gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-md transition-all active:scale-[0.98]"
         >
           {loading ? (
@@ -339,6 +377,17 @@ export function AuthForm({ onLoginSuccess, compact = false }: AuthFormProps) {
             <p className="text-[11px] text-center text-muted-foreground leading-relaxed px-1">
               Si ya tenías cuenta con el mismo correo, se vincula sola y conservas libretas, subrayados y demás datos.
             </p>
+            <p className="text-[11px] text-center text-muted-foreground leading-relaxed px-1">
+              Al continuar con Google aceptas los{" "}
+              <a href="/terminos" target="_blank" rel="noopener noreferrer" className="font-semibold text-primary hover:underline">
+                términos y condiciones
+              </a>{" "}
+              y el{" "}
+              <a href="/privacidad" target="_blank" rel="noopener noreferrer" className="font-semibold text-primary hover:underline">
+                aviso de privacidad
+              </a>
+              .
+            </p>
           </>
         )}
       </form>
@@ -382,8 +431,9 @@ interface AuthScreenProps {
 
 export function AuthScreen({ onLoginSuccess }: AuthScreenProps) {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-background via-muted/50 to-background px-4 py-12 sm:px-6 lg:px-8">
+    <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-gradient-to-br from-background via-muted/50 to-background px-4 py-12 sm:px-6 lg:px-8">
       <AuthForm onLoginSuccess={onLoginSuccess} />
+      <LegalFooter />
     </div>
   )
 }

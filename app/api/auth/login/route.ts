@@ -53,7 +53,14 @@ export async function POST(req: NextRequest) {
 
     const response = NextResponse.json({
       success: true,
-      user: { id: user.id, name: user.name, email: user.email, role: user.role },
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        createdAt: user.createdAt ?? null,
+        legalAcceptedAt: user.legalAcceptedAt ?? null,
+      },
       token,
     })
 
