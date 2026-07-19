@@ -204,6 +204,15 @@ body {
   min-height: 100vh;
 }
 
+/* Contenedor común para aprovechar ventanas de escritorio amplias sin perder
+   centrado ni provocar scroll horizontal en tamaños pequeños. */
+.desktop-page {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 96rem;
+  margin-inline: auto;
+}
+
 .reader-theme-auto {
   background: var(--card);
   color: var(--foreground);

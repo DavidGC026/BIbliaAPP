@@ -58,7 +58,7 @@ export function StrongDictionary() {
   }, [debounced, lang, page, browse, shouldFetch, hasValidQuery]);
 
   return (
-    <div className="mx-auto max-w-5xl space-y-4 p-6">
+    <div className="desktop-page space-y-4 p-6">
       <header>
         <h2 className="text-xl font-bold text-foreground">Diccionario Strong</h2>
         <p className="text-sm text-muted-foreground">

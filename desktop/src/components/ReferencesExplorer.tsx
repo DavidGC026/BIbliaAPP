@@ -78,7 +78,7 @@ export function ReferencesExplorer({ onOpenReference }: Props) {
 
   if (view === "map") {
     return (
-      <div className="mx-auto max-w-5xl space-y-4 p-6">
+      <div className="desktop-page space-y-4 p-6">
         <button
           type="button"
           onClick={() => setView("list")}
@@ -101,7 +101,7 @@ export function ReferencesExplorer({ onOpenReference }: Props) {
   }
 
   return (
-    <div className="mx-auto max-w-5xl space-y-4 p-6">
+    <div className="desktop-page space-y-4 p-6">
       <header>
         <h2 className="text-xl font-bold text-foreground">
           Referencias cruzadas

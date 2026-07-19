@@ -120,6 +120,7 @@ Permisos en `src-tauri/capabilities/default.json`: `core`, `opener`, `store`, `s
 
 ## Estado y preferencias v0.3.3
 
+- `.desktop-page` unifica las vistas principales con ancho fluido, centrado y límite de `96rem`; Perfil, formularios administrativos y Legal conservan límites de lectura más estrechos.
 - `ThemeContext` aplica `data-theme` y conserva el modo elegido.
 - `lib/preferences.ts` centraliza lector, último pasaje, Inicio, historial y plantilla de imagen.
 - `lib/nav.ts` interpreta `allowedSections` para navegación y subpestañas.

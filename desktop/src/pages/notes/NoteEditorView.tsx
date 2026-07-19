@@ -694,7 +694,7 @@ export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
         : "center";
 
   return (
-    <div className="mx-auto max-w-5xl space-y-4">
+    <div className="desktop-page space-y-4">
       <Button variant="ghost" onClick={() => void back()}>
         ← Volver
       </Button>

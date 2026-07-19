@@ -46,7 +46,7 @@ export function InsightsPage({
       </div>
     );
   return (
-    <div className="mx-auto max-w-5xl space-y-5 p-6">
+    <div className="desktop-page space-y-5 p-6">
       <h1 className="text-2xl font-bold text-foreground">
         {mode === "statistics"
           ? "Estadísticas"

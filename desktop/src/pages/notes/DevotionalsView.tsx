@@ -260,7 +260,7 @@ export function DevotionalEditorView({
   if (loading) return <p className="text-muted-foreground">Cargando…</p>;
 
   return (
-    <div className="mx-auto max-w-5xl space-y-4">
+    <div className="desktop-page space-y-4">
       <Button variant="ghost" onClick={onBack}>
         ← Diario
       </Button>

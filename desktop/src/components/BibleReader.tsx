@@ -417,7 +417,7 @@ export function BibleReader({ target }: Props) {
   }
 
   return (
-    <div className="relative mx-auto max-w-5xl space-y-6 p-6 pb-28">
+    <div className="desktop-page relative space-y-6 p-6 pb-28">
       <OfflineBanner bibleId={bibleId} autoHideMs={10000} />
       <header>
         <div className="flex items-start justify-between gap-3">

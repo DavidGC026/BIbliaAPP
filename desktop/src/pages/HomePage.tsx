@@ -145,7 +145,7 @@ export function HomePage({ onOpenBible, onNavigate, onOpenNote }: Props) {
   }
 
   return (
-    <div className="mx-auto max-w-6xl space-y-8 p-6">
+    <div className="desktop-page space-y-8 p-6">
       <section>
         <h1 className="text-3xl font-bold text-foreground">
           ¡Hola, {firstName}!

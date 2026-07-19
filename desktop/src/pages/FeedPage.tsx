@@ -51,7 +51,7 @@ export function FeedPage() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 p-6">
+    <div className="desktop-page space-y-6 p-6">
       <header className="flex items-center justify-between gap-4">
         <h1 className="text-2xl font-bold text-foreground">Comunidad</h1>
         <div className="flex rounded-lg border border-border p-1">

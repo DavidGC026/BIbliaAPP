@@ -127,7 +127,7 @@ export function GroupDetailPage({ groupId, initialTab = "prayers", onBack }: Pro
   ];
 
   return (
-    <div className="mx-auto max-w-5xl">
+    <div className="desktop-page">
       <div className="sticky top-0 z-10 border-b border-border bg-background/95 px-4 py-3 backdrop-blur">
         <Button variant="ghost" onClick={onBack}>
           ← Grupos

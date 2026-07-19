@@ -99,7 +99,7 @@ export function NotesPage({
 
   if (view.kind === "notebook") {
     return (
-      <div className="mx-auto max-w-5xl p-6">
+      <div className="desktop-page p-6">
         <NotebookDetailView
           notebookId={view.id}
           onBack={goHub}
@@ -116,14 +116,14 @@ export function NotesPage({
 
   if (view.kind === "book") {
     return (
-      <div className="mx-auto max-w-5xl p-6">
+      <div className="desktop-page p-6">
         <StudyBookDetailView bookId={view.id} onBack={goHub} />
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 p-6">
+    <div className="desktop-page space-y-6 p-6">
       <OfflineBanner />
       <header>
         <h1 className="text-2xl font-bold text-foreground">Notas</h1>

@@ -72,7 +72,7 @@ export function AdminUsersPage() {
       />
     );
   return (
-    <div className="mx-auto max-w-5xl space-y-5 p-6">
+    <div className="desktop-page space-y-5 p-6">
       <header>
         <h1 className="text-2xl font-bold text-foreground">
           Gestión de usuarios

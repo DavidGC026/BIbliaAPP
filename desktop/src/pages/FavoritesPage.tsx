@@ -43,7 +43,7 @@ export function FavoritesPage({ onOpenBible, onBack }: Props) {
   }
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 p-6">
+    <div className="desktop-page space-y-6 p-6">
       <header className="flex items-center gap-3">
         {onBack ? (
           <Button variant="ghost" onClick={onBack}>
