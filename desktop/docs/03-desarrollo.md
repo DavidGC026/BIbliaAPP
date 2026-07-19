@@ -99,6 +99,19 @@ Flujo **localhost** (no deep link):
 
 ---
 
+## Persistencia local (WebView)
+
+| Dato | Almacenamiento | Módulo |
+| ---- | -------------- | ------ |
+| Token y usuario | `tauri-plugin-store` | `sessionStore.ts` |
+| Tema, lector, Inicio, historial | `localStorage` | `ThemeContext`, `preferences.ts` |
+| Recordatorios | `localStorage` | `ReminderSettings.tsx` |
+| Biblia y sync de notas | SQLite | `lib/offline/*`, `lib/sync.ts` |
+
+`npm run dev` (solo Vite) no tiene SQLite ni store Tauri; usar `npm run tauri dev`.
+
+---
+
 ## Biblia offline (SQLite)
 
 - Solo en app Tauri (`npm run tauri dev` / build instalado)
@@ -135,6 +148,9 @@ packaging/arch/
 | Búsqueda offline vacía          | Descargar versión en Biblia → Descargas                                       |
 | Icono genérico en Hyprland      | `npm run icons` + reinstalar paquete pacman                                   |
 | CORS en navegador puro          | Usar `tauri dev`                                                              |
+| Recordatorios no aparecen       | Conceder permiso de notificaciones del SO; solo funcionan con la app abierta  |
+| Tema DVG/UBG no visible         | Paletas reservadas para `role === "admin"`                                    |
+| Versión bíblica inesperada      | Revisar `defaultBibleId` de `/api/bibles`; 149 es solo fallback offline       |
 
 ---
 

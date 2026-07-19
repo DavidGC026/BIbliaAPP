@@ -5,8 +5,10 @@
 ```typescript
 // src/lib/config.ts
 VITE_API_URL  → default https://biblia2.dvguzman.com
-DEFAULT_BIBLE_ID = 149  // RVR1960
+DEFAULT_BIBLE_ID = 149  // fallback local si la API no responde
 ```
+
+`GET /api/bibles` devuelve `defaultBibleId` por iglesia. El lector, búsqueda, referencias y versículo del día usan ese valor y solo recurren a `DEFAULT_BIBLE_ID` si la API falla o no envía preferencia.
 
 Todas las peticiones autenticadas llevan:
 
@@ -32,7 +34,7 @@ Authorization: Bearer <token>
 | Método   | Ruta                                             | Uso                          |
 | -------- | ------------------------------------------------ | ---------------------------- |
 | GET      | `/api/verse-of-the-day`                          | Inicio                       |
-| GET      | `/api/bibles`                                    | Versiones                    |
+| GET      | `/api/bibles`                                    | Versiones + `defaultBibleId` |
 | GET      | `/api/books?bible=`                              | Libros                       |
 | GET      | `/api/verses?bible=&book=&chapter=`              | Capítulo                     |
 | GET      | `/api/verses/bulk?bible=&book=`                  | Descarga offline (por libro) |
