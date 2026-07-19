@@ -25,7 +25,13 @@ public/uploads
 #scripts
 scripts
 .continue
-docs
+# docs/ queda fuera del repo porque contiene material privado
+# (infra-privada.md, comandos de servidor). Se publican solo los
+# documentos tecnicos revisados uno por uno.
+docs/*
+!docs/temas-visuales-web.md
+!docs/mejoras-uso-diario-web.md
+!docs/estilos-moviles-web.md
 !desktop/docs/
 !desktop/docs/**
 
