@@ -137,9 +137,22 @@ El caché respeta `canDownload`: no almacena capítulos de versiones solo online
 
 Los datos privados se vinculan mediante `meta.offline_user_id`. Si inicia sesión una cuenta distinta, se eliminan las tablas privadas de la cuenta anterior antes de sincronizar; las Biblias descargadas se conservan y el catálogo de licencias vuelve a validarse online.
 
+En el arranque con sesión cacheada, `AuthContext` llama `prepareOfflineForUser(id, preserveUnscopedData=true)` para que la primera migración a v0.3.3 no borre datos privados ya existentes sin propietario.
+
+### Caché de Inicio (`appCache.ts`)
+
+Contenido no sensible en `localStorage` (no requiere SQLite):
+
+| Clave | Contenido |
+| ----- | --------- |
+| `bibliaapp_offline_church_name` | Último nombre de iglesia recibido de `/api/church-settings` |
+| `bibliaapp_offline_verse_of_day_{bibleId}` | JSON del último versículo del día por versión |
+
+Se actualiza online en `HomePage`, `App.tsx` y `VerseOfDayCard`; offline se lee como respaldo.
+
 Comunidad, grupos, administración, RSVP, búsquedas Strong/referencias y cargas al servidor requieren red por naturaleza. La app sigue abriendo y el lector/notas permanecen operativos, pero esas acciones no se presentan como sincronización offline. Diario y libros de estudio todavía son online, tal como registra [02-progreso-plan.md](./02-progreso-plan.md).
 
-Referencia: `mobile/lib/offline/*`, `mobile/lib/sync.ts`.
+Referencia: `mobile/lib/offline/*`, `mobile/lib/sync.ts`. Auditoría v0.3.3: [14-offline-y-release-arch-0.3.3.md](./14-offline-y-release-arch-0.3.3.md).
 
 ---
 
