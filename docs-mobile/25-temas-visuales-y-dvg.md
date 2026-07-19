@@ -67,3 +67,21 @@ Pruebas manuales recomendadas:
 3. Cambiar el tema del dispositivo con **Sistema** activo.
 4. Verificar que DVG aparece para `role === "admin"` y no aparece para otros roles.
 5. Cerrar una sesión administradora con DVG activo y confirmar el regreso automático a **Sistema**.
+
+---
+
+## Paridad web
+
+La web expone el mismo catálogo de paletas (más **UBG**, exclusiva de web) mediante [`components/theme-toggle.tsx`](../components/theme-toggle.tsx) y clases CSS en [`app/globals.css`](../app/globals.css). Documentación completa: [`docs/temas-visuales-web.md`](../docs/temas-visuales-web.md).
+
+| Aspecto | Móvil | Web |
+|---------|-------|-----|
+| Selector | `ThemeSwitch.tsx` (Perfil → Apariencia) | `ThemeToggle` (header / menú móvil) |
+| Persistencia | SecureStore `bibliaapp_theme_mode` | `next-themes` → `localStorage` |
+| Guard admin | `AdminThemeGuard` en `_layout.tsx` | `useEffect` + `/api/auth/me` en `ThemeToggle` |
+| Temas oscuros | `isDarkTheme` en `ThemeContext.tsx` | `isDarkThemeName()` en `lib/theme.ts` |
+| Paleta extra | — | **UBG** (`adminOnly`, no portada a mobile) |
+
+### Pitfall compartido (web)
+
+El menú web usa Base UI (`DropdownMenuLabel` = `Menu.GroupLabel`). La etiqueta **Apariencia** debe ir dentro de `DropdownMenuGroup`; si no, Base UI lanza error `#31` y el selector no abre. Detalle y checklist en [`docs/temas-visuales-web.md`](../docs/temas-visuales-web.md) § Solución de problemas.

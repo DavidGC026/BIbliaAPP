@@ -93,3 +93,13 @@ Además de la paridad visual del shell, se inició la consolidación funcional d
 - Todos los tabs internos se filtran mediante `allowedSections` y las lecturas elegidas desde Planes abren el lector principal.
 
 Archivos principales: `components/notes-section.tsx`, `lib/app-section-registry/sections.client.tsx` y `lib/app-section-registry/nav.client.tsx`.
+
+### Temas visuales globales
+
+Las paletas de lectura móviles (sepia, medianoche, bosque, lavanda, DVG, …) están portadas a la web con paridad de tokens y selector visual. La web añade **UBG** como paleta solo-admin exclusiva de escritorio.
+
+| Área | Referencia |
+|------|------------|
+| Web | [`docs/temas-visuales-web.md`](../docs/temas-visuales-web.md) — `ThemeToggle`, `globals.css`, guard admin |
+| Móvil | [`25-temas-visuales-y-dvg.md`](./25-temas-visuales-y-dvg.md) — `ThemeSwitch`, SecureStore, AdminThemeGuard |
+| Notas (color Auto) | [`docs/notas-web-paridad-movil.md`](../docs/notas-web-paridad-movil.md) § Color automático |
