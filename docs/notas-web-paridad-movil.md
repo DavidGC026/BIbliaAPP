@@ -111,6 +111,8 @@ No se usa `color: inherit`: si la selección estaba dentro de un `span` rojo, he
 
 Implementación: `lib/note-editor-html.ts`. Paridad móvil: `mobile/lib/editorHtml.ts`.
 
+Los tokens `colors.text` / `colors.background` del iframe se leen del tema web activo vía `lib/note-editor-theme.ts` y las variables CSS de cada paleta. Ver [`docs/temas-visuales-web.md`](./temas-visuales-web.md) para el catálogo de temas, `DARK_THEMES` y la checklist al añadir paletas.
+
 ---
 
 ## Pestañas de la sección Notas
