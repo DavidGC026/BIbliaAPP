@@ -13,14 +13,22 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select"
-import { 
-  Search, 
-  BookOpen, 
-  Loader2, 
+import {
+  Search,
+  BookOpen,
+  Loader2,
   AlertCircle,
   HelpCircle,
-  ExternalLink
+  ExternalLink,
+  History,
+  X
 } from "lucide-react"
+import {
+  addSearchHistory,
+  clearSearchHistory,
+  loadSearchHistory,
+  removeSearchHistory,
+} from "@/lib/search-history"
 
 interface BibleVersion {
   bibleId: number
@@ -53,6 +61,11 @@ export function SearchAdvanced({ onSelectVerse }: SearchAdvancedProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [hasSearched, setHasSearched] = useState(false)
+  const [history, setHistory] = useState<string[]>([])
+
+  React.useEffect(() => {
+    setHistory(loadSearchHistory())
+  }, [])
 
   // Set default bible when loaded
   React.useEffect(() => {
@@ -63,9 +76,9 @@ export function SearchAdvanced({ onSelectVerse }: SearchAdvancedProps) {
     }
   }, [bibles, bibleId])
 
-  async function handleSearch(e: React.FormEvent) {
-    e.preventDefault()
-    if (!query.trim() || query.trim().length < 2) {
+  async function runSearch(rawTerm: string) {
+    const term = rawTerm.trim()
+    if (!term || term.length < 2) {
       setError("Por favor escribe al menos 2 caracteres.")
       return
     }
@@ -75,21 +88,27 @@ export function SearchAdvanced({ onSelectVerse }: SearchAdvancedProps) {
     setHasSearched(true)
 
     try {
-      const res = await fetch(`/api/search?bible=${bibleId}&q=${encodeURIComponent(query.trim())}`)
+      const res = await fetch(`/api/search?bible=${bibleId}&q=${encodeURIComponent(term)}`)
       const data = await res.json()
-      
+
       if (!res.ok) {
         throw new Error(data.error || "Error al realizar la búsqueda")
       }
 
       setResults(data.verses || [])
       setIsReference(data.isReference || false)
+      setHistory(addSearchHistory(term))
     } catch (err) {
       setError(err instanceof Error ? err.message : "Algo salió mal")
       setResults([])
     } finally {
       setLoading(false)
     }
+  }
+
+  function handleSearch(e: React.FormEvent) {
+    e.preventDefault()
+    void runSearch(query)
   }
 
   // Highlight search term in text
@@ -194,6 +213,52 @@ export function SearchAdvanced({ onSelectVerse }: SearchAdvancedProps) {
           </div>
         </div>
       </form>
+
+      {/* Historial de búsquedas recientes (paridad con la búsqueda universal mobile) */}
+      {history.length > 0 && !loading && (
+        <div className="max-w-4xl space-y-2">
+          <div className="flex items-center justify-between px-1">
+            <span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+              <History className="size-3.5" />
+              Búsquedas recientes
+            </span>
+            <button
+              type="button"
+              onClick={() => setHistory(clearSearchHistory())}
+              className="text-xs font-semibold text-muted-foreground hover:text-destructive"
+            >
+              Borrar todo
+            </button>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {history.map((term) => (
+              <span
+                key={term}
+                className="inline-flex items-center gap-1 rounded-full border border-border bg-card/60 pl-3 pr-1.5 py-1 text-xs text-foreground transition-colors hover:border-primary/30"
+              >
+                <button
+                  type="button"
+                  onClick={() => {
+                    setQuery(term)
+                    void runSearch(term)
+                  }}
+                  className="font-medium hover:text-primary"
+                >
+                  {term}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setHistory(removeSearchHistory(term))}
+                  title={`Quitar "${term}" del historial`}
+                  className="rounded-full p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+                >
+                  <X className="size-3" />
+                </button>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Resultados */}
       <div className="space-y-4 max-w-4xl pt-4 border-t border-border">

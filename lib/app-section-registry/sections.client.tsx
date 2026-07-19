@@ -260,6 +260,7 @@ registerAppSectionComplete({
       isGuest={ctx.isGuest}
       setActiveTab={ctx.setActiveTab}
       onLoginRequest={ctx.openLogin}
+      onSelectVerse={ctx.handleSelectVerse}
     />
   ),
 })

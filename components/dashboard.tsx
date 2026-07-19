@@ -8,6 +8,7 @@ import {
   BookOpen,
   BookText,
   Heart,
+  Highlighter,
   PlusCircle,
   Search,
   Sparkles,
@@ -16,8 +17,10 @@ import {
   LogIn,
   TrendingUp,
   FileText,
+  Star,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { loadLastReading, type LastReading } from "@/lib/reader-state"
 
 interface DashboardProps {
   userName?: string
@@ -25,9 +28,31 @@ interface DashboardProps {
   isGuest?: boolean
   setActiveTab: (tab: string) => void
   onLoginRequest?: () => void
+  onSelectVerse?: (bookId: number, chapter: number, verse?: number, bibleId?: number) => void
 }
 
-export function Dashboard({ userName, isGuest = false, userRole, setActiveTab, onLoginRequest }: DashboardProps) {
+interface RecentFavorite {
+  id: number
+  bible_id: number
+  book_id: number
+  book_name: string
+  chapter: number
+  verse: number
+  verse_text?: string
+}
+
+interface RecentHighlight {
+  id: number
+  bible_id: number
+  book_id: number
+  book_name: string
+  chapter: number
+  verse: number
+  color: string
+  text?: string
+}
+
+export function Dashboard({ userName, isGuest = false, userRole, setActiveTab, onLoginRequest, onSelectVerse }: DashboardProps) {
   const { data: devData, error: devError } = useSWR(isGuest ? null : "/api/devotionals", fetcher, {
     shouldRetryOnError: false,
   })
@@ -36,8 +61,35 @@ export function Dashboard({ userName, isGuest = false, userRole, setActiveTab, o
   })
   const { data: announcementsData } = useSWR("/api/feed/announcements", fetcher)
   const { data: eventsData } = useSWR("/api/events", fetcher)
+  const { data: favoritesData } = useSWR<{ favorites: RecentFavorite[] }>(
+    isGuest ? null : "/api/favorites",
+    fetcher,
+    { shouldRetryOnError: false },
+  )
+  const { data: highlightsData } = useSWR<{ highlights: RecentHighlight[] }>(
+    isGuest ? null : "/api/highlights/all",
+    fetcher,
+    { shouldRetryOnError: false },
+  )
   const devotionals = devData?.devotionals ?? []
   const notebooks = notebooksData?.notebooks ?? []
+  const recentFavorites = (favoritesData?.favorites ?? []).slice(0, 3)
+  const recentHighlights = (highlightsData?.highlights ?? []).slice(0, 3)
+
+  // Continuidad de lectura (paridad con "Continuar lectura" del Inicio mobile);
+  // se lee en efecto porque localStorage no existe en SSR
+  const [lastReading, setLastReading] = React.useState<LastReading | null>(null)
+  React.useEffect(() => {
+    setLastReading(loadLastReading())
+  }, [])
+
+  const openVerse = (bookId: number, chapter: number, verse?: number, bibleId?: number) => {
+    if (onSelectVerse) {
+      onSelectVerse(bookId, chapter, verse, bibleId)
+    } else {
+      setActiveTab("reading")
+    }
+  }
   const announcements = announcementsData?.announcements ?? []
   const upcomingEvents = (eventsData?.events ?? []).slice(0, 3)
 
@@ -98,6 +150,27 @@ export function Dashboard({ userName, isGuest = false, userRole, setActiveTab, o
       )}
 
       <VerseOfTheDay />
+
+      {lastReading && (
+        <button
+          type="button"
+          onClick={() => openVerse(lastReading.bookId, lastReading.chapter, undefined, lastReading.bibleId)}
+          className="flex w-full items-center justify-between gap-4 rounded-xl border border-primary/20 bg-primary/5 p-4 text-left transition-all hover:bg-primary/10 active:scale-[0.99] group"
+        >
+          <div className="flex items-center gap-3 min-w-0">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <BookOpen className="size-5" />
+            </span>
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-wider text-primary">Continuar lectura</p>
+              <p className="truncate text-sm font-bold text-foreground">
+                {lastReading.bookName ? `${lastReading.bookName} ${lastReading.chapter}` : `Capítulo ${lastReading.chapter}`}
+              </p>
+            </div>
+          </div>
+          <ArrowRight className="size-4 shrink-0 text-primary transition-transform group-hover:translate-x-1" />
+        </button>
+      )}
 
       {announcements.length > 0 && (
         <div className="space-y-3">
@@ -216,6 +289,80 @@ export function Dashboard({ userName, isGuest = false, userRole, setActiveTab, o
         </div>
 
         <div className="lg:col-span-7 space-y-4">
+          {(recentFavorites.length > 0 || recentHighlights.length > 0) && (
+            <div className="space-y-4">
+              {recentFavorites.length > 0 && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-lg font-bold text-foreground">Favoritos recientes</h2>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("favorites")}
+                      className="text-xs font-semibold text-primary hover:underline"
+                    >
+                      Ver todos →
+                    </button>
+                  </div>
+                  <div className="space-y-2">
+                    {recentFavorites.map((f) => (
+                      <button
+                        key={f.id}
+                        type="button"
+                        onClick={() => openVerse(f.book_id, f.chapter, f.verse, f.bible_id)}
+                        className="flex w-full items-start gap-3 rounded-xl border border-border bg-card/30 p-3 text-left transition-colors hover:border-primary/30 hover:bg-accent/30"
+                      >
+                        <Star className="mt-0.5 size-4 shrink-0 fill-amber-400 text-amber-400" />
+                        <div className="min-w-0">
+                          <p className="text-sm font-bold text-foreground">
+                            {f.book_name} {f.chapter}:{f.verse}
+                          </p>
+                          {f.verse_text && (
+                            <p className="mt-0.5 line-clamp-2 text-xs italic text-muted-foreground">{f.verse_text}</p>
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {recentHighlights.length > 0 && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-lg font-bold text-foreground">Subrayados recientes</h2>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("highlights")}
+                      className="text-xs font-semibold text-primary hover:underline"
+                    >
+                      Ver todos →
+                    </button>
+                  </div>
+                  <div className="space-y-2">
+                    {recentHighlights.map((h) => (
+                      <button
+                        key={h.id}
+                        type="button"
+                        onClick={() => openVerse(h.book_id, h.chapter, h.verse, h.bible_id)}
+                        className="flex w-full items-start gap-3 rounded-xl border border-border bg-card/30 p-3 text-left transition-colors hover:border-primary/30 hover:bg-accent/30"
+                      >
+                        <Highlighter className="mt-0.5 size-4 shrink-0 text-primary" />
+                        <div className="min-w-0">
+                          <p className="text-sm font-bold text-foreground">
+                            {h.book_name} {h.chapter}:{h.verse}
+                          </p>
+                          {h.text && (
+                            <p className="mt-0.5 line-clamp-2 text-xs italic text-muted-foreground">{h.text}</p>
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           <h2 className="text-lg font-bold text-foreground">Devocionales Recientes</h2>
           {isGuest ? (
             <div className="rounded-xl border border-dashed border-border p-8 text-center text-muted-foreground">

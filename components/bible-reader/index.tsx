@@ -6,6 +6,7 @@ import useSWR from "swr"
 import { Button } from "@/components/ui/button"
 import { fetcher } from "@/lib/fetcher"
 import { buildBiblePassageUrl, BOOK_ID_TO_ABBR } from "@/lib/bible-url"
+import { loadLastReading, saveLastReading } from "@/lib/reader-state"
 import type { Book, Verse, NoteLink, BibleVersion } from "@/lib/types"
 import { NotePanel } from "../note-panel"
 import { NotebookSidebar } from "../notebook-sidebar"
@@ -76,12 +77,18 @@ export function BibleReader({
   const isFirstRender = useRef(true)
 
   // ---------------------------------------------------------------- Datos
-  const { data: biblesData, isLoading: biblesLoading } = useSWR<{ bibles: BibleVersion[] }>(
+  const { data: biblesData, isLoading: biblesLoading } = useSWR<{ bibles: BibleVersion[]; defaultBibleId: number | null }>(
     "/api/bibles",
     fetcher,
   )
   const bibles = biblesData?.bibles ?? []
-  const [bibleId, setBibleId] = useState<number>(149)
+  const [bibleId, setBibleId] = useState<number>(0)
+
+  useEffect(() => {
+    if (bibles.length > 0 && !bibles.some((bible) => Number(bible.bibleId) === bibleId)) {
+      setBibleId(biblesData?.defaultBibleId ?? Number(bibles[0].bibleId))
+    }
+  }, [bibleId, bibles, biblesData?.defaultBibleId])
 
   const { data: booksData } = useSWR<{ books: Book[] }>(
     bibleId ? `/api/books?bible=${bibleId}` : null,
@@ -226,6 +233,28 @@ export function BibleReader({
       }
     }
   }, [searchParams])
+
+  // Continuidad de lectura: sin navegación explícita (props o query params),
+  // restaurar la última posición guardada (paridad con mobile readerState)
+  const lastReadingRestoredRef = useRef(false)
+  useEffect(() => {
+    if (lastReadingRestoredRef.current) return
+    lastReadingRestoredRef.current = true
+    if (initialBookId && initialChapter) return
+    if (["bible", "book", "chapter", "verse"].some((k) => searchParams.get(k))) return
+    const last = loadLastReading()
+    if (!last) return
+    setBibleId(last.bibleId)
+    setBookId(last.bookId)
+    setChapter(last.chapter)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Guardar la posición actual cuando el capítulo queda resuelto
+  useEffect(() => {
+    if (!bibleId || !bookId || !chapter || !currentBook) return
+    saveLastReading({ bibleId, bookId, chapter, bookName: currentBook.bookName })
+  }, [bibleId, bookId, chapter, currentBook])
 
   // Modo "solo notas de versículo" fuerza pestaña y layout
   useEffect(() => {
@@ -476,7 +505,7 @@ export function BibleReader({
     const origin = typeof window !== "undefined" ? window.location.origin : "https://biblia2.dvguzman.com"
     const customUrl = buildBiblePassageUrl({
       origin,
-      bibleId: bibleId || 149,
+      bibleId: bibleId || biblesData?.defaultBibleId || Number(bibles[0]?.bibleId) || 0,
       bookId: Number(currentBook?.bookId) || 1,
       chapter,
       verseRange: verseRangeStr,
@@ -489,9 +518,13 @@ export function BibleReader({
       title: `${currentBook?.bookName} ${chapter}:${verseRangeStr}`,
       url: customUrl,
     }
-  }, [selectedVerses, verses, currentBook, chapter, currentBible, bibleId])
+  }, [selectedVerses, verses, currentBook, chapter, currentBible, bibleId, bibles, biblesData?.defaultBibleId])
 
   const handleCopySelection = useCallback(async () => {
+    if (currentBible?.canCopy === false) {
+      alert("La licencia de esta versión no permite copiar el texto.")
+      return
+    }
     const share = buildSelectionShareText()
     if (!share) return
     try {
@@ -501,9 +534,10 @@ export function BibleReader({
       console.error("Error al copiar al portapapeles:", err)
       alert("No se pudo copiar al portapapeles.")
     }
-  }, [buildSelectionShareText])
+  }, [buildSelectionShareText, currentBible?.canCopy])
 
   const handleShareSelection = useCallback(async () => {
+    if (currentBible?.canShare === false) return
     const share = buildSelectionShareText()
     if (!share) return
     try {
@@ -514,7 +548,7 @@ export function BibleReader({
         alert("No se pudo compartir el contenido.")
       }
     }
-  }, [buildSelectionShareText])
+  }, [buildSelectionShareText, currentBible?.canShare])
 
   const handleHighlightSelection = useCallback(async (color: HighlightColor | null) => {
     if (selectedVerses.length === 0) return
@@ -958,8 +992,8 @@ export function BibleReader({
           selectionLabel={selectionLabel}
           mobileLabel={mobileSelectionLabel}
           isGuest={isGuest}
-          canShare={canShare}
-          canCreateImage={!!imageCreatorData}
+          canShare={canShare && currentBible?.canShare !== false}
+          canCreateImage={!!imageCreatorData && currentBible?.canCreateImages !== false}
           onHighlight={handleHighlightSelection}
           onCopy={handleCopySelection}
           onShare={handleShareSelection}
