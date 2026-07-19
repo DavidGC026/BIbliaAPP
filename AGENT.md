@@ -11,14 +11,16 @@ Antes de escribir o modificar código, **lee la documentación del área corresp
 
 | Ámbito | Carpeta de docs | Código |
 |--------|-----------------|--------|
-| Web (Next.js) | [`docs/`](./docs/) | raíz: `app/`, `components/`, `lib/`, etc. |
+| Web (Next.js) | [`docs/`](./docs/) — versionados: [`temas-visuales-web.md`](./docs/temas-visuales-web.md), [`mejoras-uso-diario-web.md`](./docs/mejoras-uso-diario-web.md), [`estilos-moviles-web.md`](./docs/estilos-moviles-web.md) | raíz: `app/`, `components/`, `lib/`, etc. |
+| Desktop (Tauri + React) | [`desktop/docs/`](./desktop/docs/) | [`desktop/`](./desktop/) |
 | Móvil (Expo / React Native) | [`docs-mobile/`](./docs-mobile/) | [`mobile/`](./mobile/) |
 
 ### Cómo hacerlo
 
-1. Identifica si el cambio es **web**, **mobile** o **ambos**.
+1. Identifica si el cambio es **web**, **desktop**, **mobile** o varios.
 2. Abre el índice:
-   - Web: archivos en `docs/` (p. ej. despliegue, colores, notas, iglesias…).
+   - Web (versionados en Git): [`docs/temas-visuales-web.md`](./docs/temas-visuales-web.md), [`docs/mejoras-uso-diario-web.md`](./docs/mejoras-uso-diario-web.md), [`docs/estilos-moviles-web.md`](./docs/estilos-moviles-web.md); más docs locales en `docs/` según `.gitignore`.
+   - Desktop: [`desktop/docs/README.md`](./desktop/docs/README.md) y el doc numerado de la feature.
    - Mobile: [`docs-mobile/README.md`](./docs-mobile/README.md) y el doc numerado de la feature.
 3. Lee al menos el documento de la feature afectada (arquitectura, pantallas, API, build, etc.) **antes** de implementar.
 4. Si el cambio toca API o paridad web↔móvil, revisa también docs del otro lado (`docs/` ↔ `docs-mobile/`).
