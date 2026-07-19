@@ -75,6 +75,21 @@ Archivo: `components/ui/segment-tabs.tsx`
 - Los tabs segmentados usan margen mobile más consistente (`mx-4`) y radio `rounded-2xl`.
 - Cada opción usa `flex-1`, `rounded-xl` y tipografía más cercana al patrón mobile.
 
+### Viewport, safe-area y modo inmersivo de notas (julio 2026, commit f881d18)
+
+Archivos: `app/layout.tsx`, `app/globals.css`, `app/page.tsx`, `components/notebook-sidebar.tsx`, `components/notes-section.tsx`
+
+| Cambio | Detalle |
+|--------|---------|
+| Meta viewport | `interactiveWidget: 'resizes-content'` — el layout reflowa al abrir el teclado virtual en Chrome/Android |
+| Safe-area | `viewportFit: 'cover'` + header `calc(64px + env(safe-area-inset-top))` para no quedar bajo el notch |
+| Modo inmersivo | Al editar una nota en **Notas**, `body.note-immersive` oculta header y tabbar (~150 px extra); salida con **Volver** del editor |
+| Altura iOS | `--app-visual-height` ligada a `window.visualViewport` porque en Safari `100dvh` no encoge con el teclado |
+| Opt-in | Solo `NotesSection` pasa `immersiveOnMobile`; el editor del lector conserva el chrome |
+| Modales | Hojas y modales de notas, planes e imágenes usan `dvh` en lugar de `vh` |
+
+Documentación del editor: [`docs/notas-web-paridad-movil.md`](../docs/notas-web-paridad-movil.md) § *Área de escritura en móvil web*. Teclado nativo vs web: [16-editor-webview-teclado-seleccion.md](./16-editor-webview-teclado-seleccion.md) §3.
+
 ## Validación
 
 ```bash

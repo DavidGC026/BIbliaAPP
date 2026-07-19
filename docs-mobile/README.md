@@ -27,7 +27,7 @@ Documentación del cliente móvil de **BibliaAPP** (React Native + Expo). La app
 | [13-build-apk-release.md](./13-build-apk-release.md) | Compilar e instalar APK release |
 | [14-notas-autoguardado-y-preview.md](./14-notas-autoguardado-y-preview.md) | Auto-guardado al salir del editor y preview de texto en libretas |
 | [15-widget-versiculo-del-dia.md](./15-widget-versiculo-del-dia.md) | Arquitectura, funcionamiento y mejoras recientes del widget de Android |
-| [16-editor-webview-teclado-seleccion.md](./16-editor-webview-teclado-seleccion.md) | Corrección de «Seleccionar todo» y foco del teclado en el editor de notas |
+| [16-editor-webview-teclado-seleccion.md](./16-editor-webview-teclado-seleccion.md) | Corrección de «Seleccionar todo» y foco del teclado en el editor de notas; paridad web móvil (viewport/teclado) |
 | [17-notas-productividad-general.md](./17-notas-productividad-general.md) | Mejoras de notas como herramienta general: búsqueda, métricas, orden y estado de guardado |
 | [18-lector-biblia-e-imagenes.md](./18-lector-biblia-e-imagenes.md) | Mejoras de lectura bíblica y generador de imágenes de versículos |
 | [19-descargas-offline.md](./19-descargas-offline.md) | Descargas offline visibles, cola en segundo plano de app y reanudación |
