@@ -13,15 +13,17 @@ Antes de escribir o modificar código, **lee la documentación del área corresp
 |--------|-----------------|--------|
 | Web (Next.js) | [`docs/`](./docs/) | raíz: `app/`, `components/`, `lib/`, etc. |
 | Móvil (Expo / React Native) | [`docs-mobile/`](./docs-mobile/) | [`mobile/`](./mobile/) |
+| Desktop (Tauri v2) | [`desktop/docs/`](./desktop/docs/) | [`desktop/`](./desktop/) |
 
 ### Cómo hacerlo
 
-1. Identifica si el cambio es **web**, **mobile** o **ambos**.
+1. Identifica si el cambio es **web**, **mobile**, **desktop** o varios.
 2. Abre el índice:
    - Web: archivos en `docs/` (p. ej. despliegue, colores, notas, iglesias…).
    - Mobile: [`docs-mobile/README.md`](./docs-mobile/README.md) y el doc numerado de la feature.
+   - Desktop: [`desktop/docs/README.md`](./desktop/docs/README.md) (p. ej. [13-editor-notas.md](./desktop/docs/13-editor-notas.md), [07-api-y-offline.md](./desktop/docs/07-api-y-offline.md)).
 3. Lee al menos el documento de la feature afectada (arquitectura, pantallas, API, build, etc.) **antes** de implementar.
-4. Si el cambio toca API o paridad web↔móvil, revisa también docs del otro lado (`docs/` ↔ `docs-mobile/`).
+4. Si el cambio toca API o paridad entre clientes, revisa también docs del otro lado (`docs/` ↔ `docs-mobile/` ↔ `desktop/docs/`).
 
 **No inventes flujos ni estructuras nuevas sin contrastarlas con la documentación existente.**
 
@@ -42,6 +44,7 @@ Así se evita el **código espagueti**, se mantiene la estructura del proyecto y
 
 - Web: `lib/`, `components/`, `app/api/`
 - Mobile: `mobile/lib/`, `mobile/components/`, `mobile/hooks/`
+- Desktop: `desktop/src/lib/`, `desktop/src/pages/`, `desktop/src-tauri/`
 - Formatos / imágenes de versículos, auth, sync offline, temas: suelen tener módulos ya compartidos.
 
 ---
@@ -112,7 +115,7 @@ Los módulos de alto nivel no deben acoplarse a detalles de bajo nivel; ambos de
 
 Todo cambio de comportamiento, arquitectura o flujo debe quedar reflejado en docs:
 
-1. **Trabajo nuevo** (feature, pantalla, flujo, endpoint) → crear un documento en la carpeta correcta (`docs/` o `docs-mobile/`) o una sección clara en un doc existente.
+1. **Trabajo nuevo** (feature, pantalla, flujo, endpoint) → crear un documento en la carpeta correcta (`docs/`, `docs-mobile/` o `desktop/docs/`) o una sección clara en un doc existente.
 2. **Cambio sobre algo ya documentado** → **actualizar** el archivo anterior (no dejar docs obsoletas).
 3. En `docs-mobile/`, si añades un doc nuevo numerado, actualiza también el índice en [`docs-mobile/README.md`](./docs-mobile/README.md).
 4. La documentación debe explicar: qué se hizo, dónde vive el código, y cómo usarlo / probarlo de forma breve.

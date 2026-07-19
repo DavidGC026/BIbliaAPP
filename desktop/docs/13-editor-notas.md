@@ -12,7 +12,14 @@ El editor permite:
 - listas, sangría, tamaños 14/16/20/28 y selección total;
 - tipografía persistente por nota;
 - tablas, versículos, entradas del diccionario Strong e imágenes;
-- colores favoritos, selector libre del sistema y **Color automático**.
+- colores favoritos, selector libre del sistema y **Color automático**;
+- **Vista previa** de solo lectura (toggle 👁️ / ✏️).
+
+### Tipografía y colores favoritos
+
+- La fuente se elige en el `<select>` de la barra; se guarda en almacenamiento local por id de nota (`bibliaapp_note_font_{id}` vía `notePreferences.ts`).
+- Los colores personalizados del botón **+** se añaden a la paleta (máx. 16) y persisten en `bibliaapp_note_favorite_colors`.
+- Cambiar fuente en una nota nueva no dispara autoguardado hasta que haya contenido o título con id creado.
 
 ### Color automático
 
@@ -23,6 +30,29 @@ El botón redondo **A** no guarda negro, blanco ni el color que esté activo en 
 ```
 
 La clase se resuelve con `var(--foreground)`, por lo que el texto se adapta al cambiar entre Sistema, Claro, Oscuro, Sepia y los demás temas. Al aplicarlo a texto que ya tenía color se eliminan colores inline anidados y atributos antiguos `font[color]`. También funciona con el cursor colapsado para que lo escrito a continuación quede en modo automático.
+
+## Bloques de contenido (versículo, diccionario, tabla)
+
+Los insertables no editables usan el mismo envoltorio que móvil y web:
+
+```html
+<div class="biblia-content-block biblia-verse-block|biblia-dict-block|biblia-table-block">
+  <div class="biblia-block-handle" contenteditable="false">…</div>
+  <!-- blockquote, aside.biblia-dict-entry o table.biblia-note-table -->
+</div>
+```
+
+Al abrir una nota antigua, `wrapAllContentBlocks()` envuelve versículos (`blockquote`), entradas Strong (`aside.biblia-dict-entry`) y tablas sueltas sin duplicar bloques ya envueltos.
+
+Al seleccionar el cuerpo del bloque aparece la barra con **↑ ↓ Copiar Cortar Eliminar**. En tablas, un segundo clic sobre la celda deselecciona el bloque para editar celdas. Los bloques de imagen usan su propio panel (no la barra genérica).
+
+Inserción:
+
+| Botón | Origen | HTML |
+| ----- | ------ | ---- |
+| 📖 Versículo | `InsertVerseModal` | `buildVerseBlockHtml()` |
+| 📚 Diccionario | `InsertDictionaryModal` + `formatDictionaryHtml()` | `buildDictBlockHtml()` |
+| ⊞ Tabla | toolbar | `buildTableBlockHtml()` (3×3 por defecto) |
 
 ## Imágenes normales y de fondo
 
@@ -69,6 +99,27 @@ Se programa un guardado silencioso cuatro segundos después del último cambio e
 También se fuerza un guardado al pulsar **Volver**, al perder el foco de la ventana, al ocultarse la aplicación y al desmontarse la vista por navegación lateral. Los guardados concurrentes se encolan: si el contenido cambia mientras hay una escritura en curso, el cambio nuevo no se marca como guardado ni se descarta. Un autoguardado fallido se mantiene pendiente y se reintenta después de cuatro segundos.
 
 Una nota nueva completamente vacía no se crea por accidente. Si ya tiene texto o imagen, el autoguardado puede crearla con el título provisional **Sin título**; el botón Guardar exige un título visible, igual que móvil. Tras el primer guardado se conserva el id creado para actualizar la misma nota y evitar duplicados.
+
+## Vista previa, compartir y PDF
+
+- **Vista previa:** el editor `contentEditable` permanece montado (oculto) para no perder estado; el HTML serializado se muestra en un contenedor de solo lectura con las mismas clases `.note-rich`.
+- **Compartir:** texto plano del título + cuerpo vía Web Share API o portapapeles.
+- **Exportar PDF:** iframe oculto con HTML saneado (sin scripts ni handlers) y diálogo de impresión nativo del SO — el usuario elige **Guardar como PDF**.
+
+## Interoperabilidad web ↔ móvil ↔ desktop
+
+Los tres clientes persisten el mismo HTML en `bible_notebook_notes.content` vía `/api/notebooks/...`. Convenciones compartidas:
+
+| Elemento | Clase / formato | Clientes |
+| -------- | ----------------- | -------- |
+| Color adaptable al tema | `.note-color-auto` | web, móvil, desktop |
+| Imagen | `.note-image-block` + estilos inline | los tres |
+| Versículo / diccionario / tabla | `.biblia-content-block` + subclase | los tres |
+| Imagen de fondo | `.is-background` + `position:absolute` + `left/top` | los tres |
+
+Desktop migra bloques `biblia-image-block` (≤ 0.3.1) al abrir; móvil y web ya usan `note-image-block`. Las imágenes subidas online usan URL absoluta de `/api/upload`; offline desktop conserva `data:` hasta la siguiente sync.
+
+Documentación relacionada en otros clientes: editor web (`docs/notas-web-paridad-movil.md`, servidor local), móvil (`docs-mobile/` en repo BibliaAppMobile).
 
 ## Archivos principales
 
