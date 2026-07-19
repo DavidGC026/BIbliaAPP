@@ -695,7 +695,7 @@ export function VerseImageCreator({
         </div>
 
         {/* Panel inferior */}
-        <div className="w-full bg-zinc-900/95 backdrop-blur-xl border-t border-white/[0.06] shrink-0 flex flex-col max-h-[42vh] rounded-t-2xl">
+        <div className="w-full bg-zinc-900/95 backdrop-blur-xl border-t border-white/[0.06] shrink-0 flex flex-col max-h-[42dvh] rounded-t-2xl">
           <div className="flex justify-center pt-2 pb-1">
             <div className="h-1 w-10 rounded-full bg-white/15" />
           </div>

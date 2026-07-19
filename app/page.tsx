@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { NotificationBell } from "@/components/notification-bell"
+import { LegalFooter } from "@/components/legal/legal-footer"
 import { 
   LogOut,
   LogIn,
@@ -620,7 +621,7 @@ export default function Page() {
       </div>
 
       {/* Page Content Area */}
-      <div className={cn("flex-1 flex flex-col min-h-[100dvh] overflow-hidden pb-[calc(96px+env(safe-area-inset-bottom))] md:min-h-screen md:pb-0 transition-all duration-300 ease-in-out", sidebarCollapsed ? "md:pl-[60px]" : "md:pl-64")}>
+      <div className={cn("mobile-content-frame flex-1 flex flex-col min-h-[100dvh] overflow-hidden pb-[calc(96px+env(safe-area-inset-bottom))] md:min-h-screen md:pb-0 transition-all duration-300 ease-in-out", sidebarCollapsed ? "md:pl-[60px]" : "md:pl-64")}>
         <div className="mobile-web-content flex-grow overflow-y-auto p-0 md:p-6">
           <AppSectionOutlet
             activeTab={activeTab}
@@ -640,6 +641,7 @@ export default function Page() {
             navGroupId={navGroupId}
             handleClearNavGroupId={handleClearNavGroupId}
           />
+          <LegalFooter />
         </div>
       </div>
 
@@ -650,7 +652,7 @@ export default function Page() {
           onClick={() => setShowMobileMore(false)}
         >
           <div 
-            className="w-full max-h-[84vh] overflow-y-auto rounded-t-[28px] border-t border-border bg-card p-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] shadow-2xl backdrop-blur-xl animate-slide-up"
+            className="w-full max-h-[84dvh] overflow-y-auto rounded-t-[28px] border-t border-border bg-card p-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] shadow-2xl backdrop-blur-xl animate-slide-up"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-muted-foreground/25" />

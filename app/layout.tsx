@@ -1,5 +1,5 @@
 import { Analytics } from '@vercel/analytics/next'
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Geist, Geist_Mono, Source_Serif_4 } from 'next/font/google'
 import { ThemeProvider } from '@/components/theme-provider'
 import './globals.css'
@@ -27,6 +27,18 @@ export const metadata: Metadata = {
     ],
     apple: '/logo.png',
   },
+}
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  // Sin esto el teclado virtual solo encoge el viewport visual: el layout
+  // (y por tanto 100dvh) no reflowa y el área de escritura queda debajo del
+  // teclado. Con resizes-content el contenido se reajusta al abrirlo.
+  interactiveWidget: 'resizes-content',
+  // Requisito para que env(safe-area-inset-*) devuelva valores reales; el CSS
+  // ya los usa en header, tabbar y hojas inferiores.
+  viewportFit: 'cover',
 }
 
 export default function RootLayout({

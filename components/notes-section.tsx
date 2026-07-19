@@ -54,6 +54,7 @@ export function NotesSection({
         editingNote={editingNote}
         setEditingNote={setEditingNote}
         onSessionExpired={onSessionExpired}
+        immersiveOnMobile
       />
     )
   }

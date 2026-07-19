@@ -149,9 +149,13 @@ interface NotebookSidebarProps {
   >
   onSessionExpired: () => void
   embedded?: boolean
+  /** En móvil, el editor toma toda la pantalla ocultando header y tabbar.
+   *  Solo lo usa la sección Notas; el editor embebido del lector conserva
+   *  el chrome porque vive dentro de un panel dividido. */
+  immersiveOnMobile?: boolean
 }
 
-export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired, embedded = false }: NotebookSidebarProps) {
+export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired, embedded = false, immersiveOnMobile = false }: NotebookSidebarProps) {
   const [session, setSession] = useState<string | null>(null)
 
   useEffect(() => {
@@ -180,7 +184,7 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
 
   // Modal de inserción interactiva de versículos
   const [showInsertVerseModal, setShowInsertVerseModal] = useState(false)
-  const [insertBibleId, setInsertBibleId] = useState<number>(149)
+  const [insertBibleId, setInsertBibleId] = useState<number>(0)
   const [insertBookId, setInsertBookId] = useState<number | null>(null)
   const [insertChapter, setInsertChapter] = useState<number>(1)
   const [selectedVerses, setSelectedVerses] = useState<{ verse: number; text: string }[]>([])
@@ -207,11 +211,17 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
   const notes = notesData?.notes ?? []
 
   // SWR queries for inserting verses
-  const { data: insertBiblesData } = useSWR<{ bibles: BibleVersion[] }>(
+  const { data: insertBiblesData } = useSWR<{ bibles: BibleVersion[]; defaultBibleId: number | null }>(
     showInsertVerseModal ? "/api/bibles" : null,
     fetcher
   )
   const insertBibles = insertBiblesData?.bibles ?? []
+
+  useEffect(() => {
+    if (insertBibles.length > 0 && !insertBibles.some((bible) => bible.bibleId === insertBibleId)) {
+      setInsertBibleId(insertBiblesData?.defaultBibleId ?? insertBibles[0].bibleId)
+    }
+  }, [insertBibleId, insertBibles, insertBiblesData?.defaultBibleId])
 
   const { data: insertBooksData } = useSWR<{ books: { bookId: number; bookName: string; chapters: number }[] }>(
     showInsertVerseModal && insertBibleId ? `/api/books?bible=${insertBibleId}` : null,
@@ -326,6 +336,34 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
     setEditorEpoch(0)
     setImageEditMode(false)
   }, [editingNote?.id])
+
+  // Modo inmersivo de escritura (solo móvil, ver app/globals.css): mientras se
+  // edita una nota se ocultan header y tabbar para que el editor use toda la
+  // pantalla, y --app-visual-height sigue al viewport visible para que el
+  // teclado no tape el área de escritura ni la barra de formato.
+  const isEditingNote = !!editingNote
+  useEffect(() => {
+    if (!isEditingNote || !immersiveOnMobile) return
+
+    const root = document.documentElement
+    const viewport = window.visualViewport
+    const syncHeight = () => {
+      const height = Math.round(viewport?.height ?? window.innerHeight)
+      root.style.setProperty("--app-visual-height", `${height}px`)
+    }
+
+    document.body.classList.add("note-immersive")
+    syncHeight()
+    viewport?.addEventListener("resize", syncHeight)
+    window.addEventListener("orientationchange", syncHeight)
+
+    return () => {
+      document.body.classList.remove("note-immersive")
+      root.style.removeProperty("--app-visual-height")
+      viewport?.removeEventListener("resize", syncHeight)
+      window.removeEventListener("orientationchange", syncHeight)
+    }
+  }, [isEditingNote, immersiveOnMobile])
 
   // Autoguardado: tras 4s sin teclear se persiste en silencio, como en la app
   // móvil, así la nota sobrevive aunque se cierre la pestaña sin pulsar Guardar.
@@ -651,7 +689,7 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
   if (editingNote) {
     return (
       <div className="flex h-full flex-col bg-background">
-        <header className="sticky top-0 z-10 flex shrink-0 items-center justify-between gap-2 border-b border-border/60 bg-background/95 px-4 py-3 backdrop-blur">
+        <header className="sticky top-0 z-10 flex shrink-0 items-center justify-between gap-2 border-b border-border/60 bg-background/95 px-3 py-2 backdrop-blur md:px-4 md:py-3" style={{ paddingTop: "max(0.5rem, env(safe-area-inset-top))" }}>
           <Button
             variant="ghost"
             size="sm"
@@ -706,8 +744,8 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
           </div>
         </header>
 
-        <div className="shrink-0 px-4 py-3">
-          <div className="rounded-2xl border border-border bg-card px-3.5 py-3 shadow-sm">
+        <div className="shrink-0 px-3 py-2 md:px-4 md:py-3">
+          <div className="rounded-2xl border border-border bg-card px-3 py-2.5 shadow-sm md:px-3.5 md:py-3">
             <Input
               value={editingNote.title}
               onChange={(e) => {
@@ -716,16 +754,17 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
               }}
               placeholder="Título"
               disabled={imageEditMode}
-              className="h-auto border-0 bg-transparent px-0 py-0 text-2xl font-extrabold focus-visible:ring-0 placeholder:text-muted-foreground/40"
+              className="h-auto border-0 bg-transparent px-0 py-0 text-xl font-extrabold focus-visible:ring-0 placeholder:text-muted-foreground/40 md:text-2xl"
             />
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+            <div className="mt-2 flex flex-wrap items-center justify-between gap-2 md:mt-3">
             <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-muted-foreground">
               <span className={cn("size-2 rounded-full", contentDirty ? "bg-amber-500" : "bg-primary")} />
               <span>{savingNote ? "Guardando..." : contentDirty ? "Sin guardar" : savedAt ? `Guardado ${savedAt}` : "Aún sin guardar"}</span>
-              <span>·</span>
-              <span>{countNoteWords(editingNote.content)} palabras</span>
-              <span>·</span>
-              <span>{estimateNoteReadMinutes(editingNote.content)} min</span>
+              {/* Métricas secundarias: en pantallas chicas roban una línea entera */}
+              <span className="hidden sm:inline">·</span>
+              <span className="hidden sm:inline">{countNoteWords(editingNote.content)} palabras</span>
+              <span className="hidden sm:inline">·</span>
+              <span className="hidden sm:inline">{estimateNoteReadMinutes(editingNote.content)} min</span>
             </div>
             <button
               type="button"
@@ -789,7 +828,7 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
         {/* Insert Verse Modal */}
         {showInsertVerseModal && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-card border border-border rounded-2xl w-full max-w-2xl h-[80vh] flex flex-col shadow-2xl overflow-hidden animate-scale-in">
+            <div className="bg-card border border-border rounded-2xl w-full max-w-2xl h-[80dvh] flex flex-col shadow-2xl overflow-hidden animate-scale-in">
               <div className="flex items-center justify-between p-4 border-b border-border/60 bg-muted/20">
                 <h3 className="font-extrabold text-base text-foreground flex items-center gap-2">
                   <BookOpen className="size-5 text-primary" />
@@ -969,7 +1008,7 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
 
         {showInsertDictionaryModal && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-card border border-border rounded-2xl w-full max-w-3xl h-[82vh] flex flex-col shadow-2xl overflow-hidden animate-scale-in">
+            <div className="bg-card border border-border rounded-2xl w-full max-w-3xl h-[82dvh] flex flex-col shadow-2xl overflow-hidden animate-scale-in">
               <div className="flex items-center justify-between p-4 border-b border-border/60 bg-muted/20">
                 <h3 className="font-extrabold text-base text-foreground flex items-center gap-2">
                   <Languages className="size-5 text-primary" />

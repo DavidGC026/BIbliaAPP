@@ -394,6 +394,14 @@
       padding-right: max(1rem, env(safe-area-inset-right));
     }
 
+    /* Con viewport-fit=cover el contenido llega hasta el borde físico, así que
+       el header debe crecer para no quedar bajo el notch o la barra de estado.
+       `body` eleva la especificidad sobre la utilidad h-[64px] de Tailwind. */
+    body .mobile-app-header {
+      height: calc(64px + env(safe-area-inset-top));
+      padding-top: env(safe-area-inset-top);
+    }
+
     .mobile-web-content {
       -webkit-overflow-scrolling: touch;
       /* Sin overscroll-behavior: contain — este contenedor casi nunca desborda
@@ -424,6 +432,33 @@
     .mobile-web-content textarea,
     .mobile-web-content select {
       font-size: 16px;
+    }
+
+    /* ── Modo inmersivo de escritura ────────────────────────────────
+       Mientras se edita una nota, el editor ocupa toda la pantalla:
+       se ocultan el header y la tabbar de la app (la salida es el botón
+       "Volver" del propio editor) para recuperar ~150px de alto útil.
+       La altura sigue a --app-visual-height, que components/notebook-sidebar
+       mantiene sincronizada con window.visualViewport. Eso cubre iOS, donde
+       interactive-widget=resizes-content no aplica y 100dvh no encoge al
+       abrirse el teclado. */
+    body.note-immersive .mobile-app-header,
+    body.note-immersive .mobile-tabbar {
+      display: none;
+    }
+
+    body.note-immersive .mobile-content-frame {
+      padding-bottom: 0;
+      min-height: var(--app-visual-height, 100dvh);
+    }
+
+    body.note-immersive .mobile-section-shell {
+      padding: 0;
+    }
+
+    body.note-immersive .mobile-section-shell > div {
+      height: var(--app-visual-height, 100dvh);
+      max-height: var(--app-visual-height, 100dvh);
     }
   }
 }

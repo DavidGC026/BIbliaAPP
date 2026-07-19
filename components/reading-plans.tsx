@@ -685,7 +685,7 @@ export function ReadingPlans({ onSelectReading, streakCount }: ReadingPlansProps
       {/* Devotional Modal (Write / Edit) */}
       {activeDevotionalDay && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-background border border-border w-full max-w-2xl rounded-2xl shadow-xl overflow-hidden animate-in fade-in zoom-in duration-200 flex flex-col max-h-[90vh]">
+          <div className="bg-background border border-border w-full max-w-2xl rounded-2xl shadow-xl overflow-hidden animate-in fade-in zoom-in duration-200 flex flex-col max-h-[90dvh]">
             <header className="px-6 py-4 border-b border-border flex items-center justify-between">
               <h3 className="text-lg font-bold text-foreground">
                 {editingDevotionalId ? "Editar Devocional del Plan" : "Escribir Devocional del Plan"}
@@ -809,7 +809,7 @@ export function ReadingPlans({ onSelectReading, streakCount }: ReadingPlansProps
       {/* Viewing Devotional Modal */}
       {viewingDevotional && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-background border border-border w-full max-w-2xl rounded-2xl shadow-xl overflow-hidden animate-in fade-in zoom-in duration-200 flex flex-col max-h-[90vh]">
+          <div className="bg-background border border-border w-full max-w-2xl rounded-2xl shadow-xl overflow-hidden animate-in fade-in zoom-in duration-200 flex flex-col max-h-[90dvh]">
             <header className="px-6 py-4 border-b border-border flex items-center justify-between">
               <h3 className="text-lg font-bold text-foreground">
                 Devocional Guardado
