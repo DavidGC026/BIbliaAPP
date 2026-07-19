@@ -42,6 +42,17 @@ export default function RootLayout({
           defaultTheme="system"
           enableSystem
           disableTransitionOnChange
+          themes={[
+            'light',
+            'dark',
+            'sepia',
+            'sepia-dark',
+            'midnight',
+            'forest',
+            'lavender',
+            'dvg',
+            'ubg',
+          ]}
         >
           {children}
         </ThemeProvider>

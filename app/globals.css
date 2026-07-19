@@ -2,7 +2,9 @@
 @import 'tw-animate-css';
 @import 'shadcn/tailwind.css';
 
-@custom-variant dark (&:is(.dark *));
+/* Los temas sepia-dark, midnight, forest, dvg y ubg son paletas oscuras:
+   deben activar las variantes `dark:` igual que la clase .dark */
+@custom-variant dark (&:is(.dark *, .sepia-dark *, .midnight *, .forest *, .dvg *, .ubg *));
 
 @theme inline {
   --font-heading: var(--font-sans);
@@ -118,6 +120,240 @@
   --sidebar-ring: oklch(0.7 0.1 70);
 }
 
+/* ============================================================
+   Temas adicionales portados de mobile/constants/Colors.ts
+   (docs/temas-visuales-web.md). Mapeo de tokens móviles → web:
+   text→foreground, textMuted→muted-foreground, card→card/popover,
+   cardMuted→sidebar, muted→secondary/muted, accent→accent,
+   danger→destructive, primary/tint→primary/ring.
+   ============================================================ */
+
+.sepia {
+  --background: #f4ecd8;
+  --foreground: #433422;
+  --card: #fbf4e1;
+  --card-foreground: #433422;
+  --popover: #fbf4e1;
+  --popover-foreground: #433422;
+  --primary: #8a5a2b;
+  --primary-foreground: #fbf4e1;
+  --secondary: #ece0c5;
+  --secondary-foreground: #433422;
+  --muted: #ece0c5;
+  --muted-foreground: #7a6a52;
+  --accent: #e6d8bc;
+  --accent-foreground: #433422;
+  --destructive: #b91c1c;
+  --border: #e2d4b6;
+  --input: #e2d4b6;
+  --ring: #8a5a2b;
+  --chart-1: #8a5a2b;
+  --sidebar: #f7efdc;
+  --sidebar-foreground: #433422;
+  --sidebar-primary: #8a5a2b;
+  --sidebar-primary-foreground: #fbf4e1;
+  --sidebar-accent: #e6d8bc;
+  --sidebar-accent-foreground: #433422;
+  --sidebar-border: #e2d4b6;
+  --sidebar-ring: #8a5a2b;
+}
+
+.sepia-dark {
+  --background: #1b1510;
+  --foreground: #f3e7d3;
+  --card: #2a2119;
+  --card-foreground: #f3e7d3;
+  --popover: #2a2119;
+  --popover-foreground: #f3e7d3;
+  --primary: #d6a15d;
+  --primary-foreground: #1b1510;
+  --secondary: #3a2d22;
+  --secondary-foreground: #f3e7d3;
+  --muted: #3a2d22;
+  --muted-foreground: #c4ad8b;
+  --accent: #463421;
+  --accent-foreground: #f3e7d3;
+  --destructive: #fb7185;
+  --border: rgba(218, 190, 150, 0.2);
+  --input: rgba(218, 190, 150, 0.16);
+  --ring: #d6a15d;
+  --chart-1: #d6a15d;
+  --sidebar: #241c16;
+  --sidebar-foreground: #f3e7d3;
+  --sidebar-primary: #d6a15d;
+  --sidebar-primary-foreground: #1b1510;
+  --sidebar-accent: #463421;
+  --sidebar-accent-foreground: #f3e7d3;
+  --sidebar-border: rgba(218, 190, 150, 0.2);
+  --sidebar-ring: #d6a15d;
+}
+
+.midnight {
+  --background: #0b1020;
+  --foreground: #eaf0ff;
+  --card: #141c32;
+  --card-foreground: #eaf0ff;
+  --popover: #141c32;
+  --popover-foreground: #eaf0ff;
+  --primary: #8aa4ff;
+  --primary-foreground: #08101f;
+  --secondary: #202b48;
+  --secondary-foreground: #eaf0ff;
+  --muted: #202b48;
+  --muted-foreground: #a6b2d0;
+  --accent: #26365d;
+  --accent-foreground: #eaf0ff;
+  --destructive: #fb7185;
+  --border: rgba(166, 178, 208, 0.2);
+  --input: rgba(166, 178, 208, 0.16);
+  --ring: #8aa4ff;
+  --chart-1: #8aa4ff;
+  --sidebar: #10182b;
+  --sidebar-foreground: #eaf0ff;
+  --sidebar-primary: #8aa4ff;
+  --sidebar-primary-foreground: #08101f;
+  --sidebar-accent: #26365d;
+  --sidebar-accent-foreground: #eaf0ff;
+  --sidebar-border: rgba(166, 178, 208, 0.2);
+  --sidebar-ring: #8aa4ff;
+}
+
+.forest {
+  --background: #081713;
+  --foreground: #ecfdf5;
+  --card: #10251f;
+  --card-foreground: #ecfdf5;
+  --popover: #10251f;
+  --popover-foreground: #ecfdf5;
+  --primary: #4adea7;
+  --primary-foreground: #052e23;
+  --secondary: #1b382f;
+  --secondary-foreground: #ecfdf5;
+  --muted: #1b382f;
+  --muted-foreground: #a7c7b5;
+  --accent: #21483a;
+  --accent-foreground: #ecfdf5;
+  --destructive: #fb7185;
+  --border: rgba(167, 199, 181, 0.2);
+  --input: rgba(167, 199, 181, 0.16);
+  --ring: #4adea7;
+  --chart-1: #4adea7;
+  --sidebar: #0d201b;
+  --sidebar-foreground: #ecfdf5;
+  --sidebar-primary: #4adea7;
+  --sidebar-primary-foreground: #052e23;
+  --sidebar-accent: #21483a;
+  --sidebar-accent-foreground: #ecfdf5;
+  --sidebar-border: rgba(167, 199, 181, 0.2);
+  --sidebar-ring: #4adea7;
+}
+
+.lavender {
+  --background: #f7f4ff;
+  --foreground: #302b45;
+  --card: #fffcff;
+  --card-foreground: #302b45;
+  --popover: #fffcff;
+  --popover-foreground: #302b45;
+  --primary: #6748ad;
+  --primary-foreground: #ffffff;
+  --secondary: #eee9fa;
+  --secondary-foreground: #302b45;
+  --muted: #eee9fa;
+  --muted-foreground: #756d91;
+  --accent: #e6defa;
+  --accent-foreground: #302b45;
+  --destructive: #c0264d;
+  --border: #ded7f0;
+  --input: #ded7f0;
+  --ring: #6748ad;
+  --chart-1: #6748ad;
+  --sidebar: #faf7ff;
+  --sidebar-foreground: #302b45;
+  --sidebar-primary: #6748ad;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #e6defa;
+  --sidebar-accent-foreground: #302b45;
+  --sidebar-border: #ded7f0;
+  --sidebar-ring: #6748ad;
+}
+
+/* Ediciones solo administradores (paridad con mobile) */
+.dvg {
+  --background: #15090a;
+  --foreground: #fff7f7;
+  --card: #251012;
+  --card-foreground: #fff7f7;
+  --popover: #251012;
+  --popover-foreground: #fff7f7;
+  --primary: #dc2626;
+  --primary-foreground: #ffffff;
+  --secondary: #3a171b;
+  --secondary-foreground: #fff7f7;
+  --muted: #3a171b;
+  --muted-foreground: #d8a7ab;
+  --accent: #4a171d;
+  --accent-foreground: #fff7f7;
+  --destructive: #fda4af;
+  --border: rgba(248, 113, 113, 0.22);
+  --input: rgba(248, 113, 113, 0.18);
+  --ring: #f87171;
+  --chart-1: #f87171;
+  --sidebar: #1e0d0f;
+  --sidebar-foreground: #fff7f7;
+  --sidebar-primary: #dc2626;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #4a171d;
+  --sidebar-accent-foreground: #fff7f7;
+  --sidebar-border: rgba(248, 113, 113, 0.22);
+  --sidebar-ring: #f87171;
+}
+
+.ubg {
+  --background: #061417;
+  --foreground: #f0fdfa;
+  --card: #0c2428;
+  --card-foreground: #f0fdfa;
+  --popover: #0c2428;
+  --popover-foreground: #f0fdfa;
+  --primary: #10b981;
+  --primary-foreground: #03231f;
+  --secondary: #12363b;
+  --secondary-foreground: #f0fdfa;
+  --muted: #12363b;
+  --muted-foreground: #9cc8c8;
+  --accent: #123e4d;
+  --accent-foreground: #f0fdfa;
+  --destructive: #fb7185;
+  --border: rgba(45, 212, 191, 0.24);
+  --input: rgba(56, 189, 248, 0.18);
+  --ring: #2dd4bf;
+  --chart-1: #10b981;
+  --sidebar: #091d21;
+  --sidebar-foreground: #f0fdfa;
+  --sidebar-primary: #10b981;
+  --sidebar-primary-foreground: #03231f;
+  --sidebar-accent: #123e4d;
+  --sidebar-accent-foreground: #f0fdfa;
+  --sidebar-border: rgba(45, 212, 191, 0.24);
+  --sidebar-ring: #2dd4bf;
+}
+
+/* next-themes solo ajusta color-scheme para light/dark; los temas
+   personalizados lo declaran aquí (scrollbars y controles nativos) */
+.sepia,
+.lavender {
+  color-scheme: light;
+}
+
+.sepia-dark,
+.midnight,
+.forest,
+.dvg,
+.ubg {
+  color-scheme: dark;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -160,7 +396,10 @@
 
     .mobile-web-content {
       -webkit-overflow-scrolling: touch;
-      overscroll-behavior: contain;
+      /* Sin overscroll-behavior: contain — este contenedor casi nunca desborda
+         (crece con el contenido y el scroll real es del viewport); con contain,
+         el gesto táctil que empieza aquí no encadena al body y la página
+         queda sin scroll táctil aunque los taps funcionen. */
       background: var(--background);
     }
 

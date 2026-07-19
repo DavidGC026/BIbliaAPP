@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useTheme } from "next-themes"
+import { isDarkThemeName } from "@/lib/theme"
 import useSWR from "swr"
 import { AlertCircle, Loader2 } from "lucide-react"
 import { fetcher } from "@/lib/fetcher"
@@ -10,6 +11,11 @@ import { getRainbowHtml, type RainbowTheme } from "@/lib/rainbow-html"
 interface BibleBook {
   bookId: number
   bookName: string
+}
+
+interface BibleCatalogResponse {
+  bibles: { bibleId: number }[]
+  defaultBibleId: number | null
 }
 
 function readRainbowTheme(dark: boolean): RainbowTheme {
@@ -59,12 +65,17 @@ export function ReferencesRainbowMap() {
     "/api/references?arcs",
     fetcher,
   )
-  const { data: booksData } = useSWR<{ books: BibleBook[] }>("/api/books?bible=149", fetcher)
+  const { data: catalog } = useSWR<BibleCatalogResponse>("/api/bibles", fetcher)
+  const bibleId = catalog?.defaultBibleId ?? catalog?.bibles[0]?.bibleId
+  const { data: booksData } = useSWR<{ books: BibleBook[] }>(
+    bibleId ? `/api/books?bible=${bibleId}` : null,
+    fetcher,
+  )
   const [html, setHtml] = useState<string | null>(null)
 
   useEffect(() => {
     if (!data?.keys.length || !resolvedTheme) return
-    const dark = resolvedTheme === "dark"
+    const dark = isDarkThemeName(resolvedTheme)
     const payload = buildPayload(data.keys, data.arcs, booksData?.books ?? [])
     setHtml(getRainbowHtml(readRainbowTheme(dark), payload))
   }, [data, booksData, resolvedTheme])
