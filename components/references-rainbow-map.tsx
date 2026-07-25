@@ -65,7 +65,8 @@ function buildPayload(
   return { labels, bookIdx, bookNames: bookNameList, chap, arcs }
 }
 
-const ARCS_KEY = "/api/references?arcs"
+/** La comparte el explorador para precargar los arcos antes de abrir el mapa. */
+export const ARCS_KEY = "/api/references?arcs"
 
 function mb(bytes: number | null | undefined): string {
   if (!bytes) return "0 MB"

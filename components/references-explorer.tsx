@@ -2,11 +2,11 @@
 
 import * as React from "react"
 import { useState, useEffect } from "react"
-import useSWR from "swr"
+import useSWR, { preload } from "swr"
 import { fetcher } from "@/lib/fetcher"
 import { Loader2, Link as LinkIcon, BookOpen, AlertCircle, ArrowLeft } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { ReferencesRainbowMap } from "@/components/references-rainbow-map"
+import { ReferencesRainbowMap, ARCS_KEY } from "@/components/references-rainbow-map"
 
 interface BibleBook {
   bookId: number
@@ -96,6 +96,11 @@ export function ReferencesExplorer() {
     )
   }
 
+  // preload dedupe solo: se puede llamar tantas veces como haga falta.
+  const prefetchMap = React.useCallback(() => {
+    preload(ARCS_KEY, fetcher)
+  }, [])
+
   return (
     <div className="space-y-6 max-w-5xl mx-auto animate-fade-in">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
@@ -113,6 +118,12 @@ export function ReferencesExplorer() {
       <button
         type="button"
         onClick={() => setView("map")}
+        // Los ~2 MB de arcos se empiezan a bajar al acercarse a la tarjeta, no
+        // al cargar la sección: quien nunca abre el mapa no los descarga. Con
+        // suerte, al entrar ya están y no se ve ni la pantalla de carga.
+        onMouseEnter={prefetchMap}
+        onFocus={prefetchMap}
+        onTouchStart={prefetchMap}
         className="w-full flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3 text-left shadow-sm hover:bg-accent/40 transition-colors"
       >
         <span className="text-xl" aria-hidden>🌈</span>
