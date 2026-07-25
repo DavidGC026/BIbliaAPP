@@ -43,6 +43,7 @@ Documentación del cliente móvil de **BibliaAPP** (React Native + Expo). La app
 | [27-oauth-google-android-esquema.md](./27-oauth-google-android-esquema.md) | Diagnóstico y corrección del OAuth de Google congelado en Android por desfase de esquema nativo/JS |
 | [28-admin-usuarios-y-aceptacion-legal.md](./28-admin-usuarios-y-aceptacion-legal.md) | Panel de administración de usuarios, documentos legales nativos y aceptación obligatoria de términos en el primer login móvil |
 | [29-notas-bloques-de-contenido.md](./29-notas-bloques-de-contenido.md) | Bloques de versículo, diccionario y tabla en el editor: reparación de bloques rotos al borrar, borrado en dos pasos y separación del módulo |
+| [31-mapa-de-referencias-navegable.md](./31-mapa-de-referencias-navegable.md) | El mapa arcoíris pasa a ser navegable: encuadre completo, selección determinista, atajos a los capítulos más citados y apertura en el lector de los capítulos conectados |
 
 ---
 
