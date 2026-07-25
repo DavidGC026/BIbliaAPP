@@ -1,11 +1,17 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useTheme } from "next-themes"
 import { isDarkThemeName } from "@/lib/theme"
 import useSWR, { useSWRConfig } from "swr"
-import { AlertCircle, Loader2 } from "lucide-react"
+import { AlertCircle } from "lucide-react"
 import { fetcher } from "@/lib/fetcher"
+import { RainbowMapLoading } from "@/components/rainbow-map-loading"
+import {
+  createProgressFetcher,
+  progressRatio,
+  type DownloadProgress,
+} from "@/lib/fetch-with-progress"
 import { getRainbowHtml, type RainbowTheme } from "@/lib/rainbow-html"
 
 interface BibleBook {
@@ -61,12 +67,24 @@ function buildPayload(
 
 const ARCS_KEY = "/api/references?arcs"
 
+function mb(bytes: number | null | undefined): string {
+  if (!bytes) return "0 MB"
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`
+}
+
 export function ReferencesRainbowMap() {
   const { resolvedTheme } = useTheme()
   const { cache } = useSWRConfig()
+  const [download, setDownload] = useState<DownloadProgress | null>(null)
+  // El lector con progreso se crea una sola vez: si cambiara en cada
+  // renderizado, SWR lo tomaría por otro fetcher.
+  const arcsFetcher = useMemo(
+    () => createProgressFetcher<{ keys: number[]; arcs: number[] }>(setDownload),
+    [],
+  )
   const { data, error, isLoading } = useSWR<{ keys: number[]; arcs: number[] }>(
     ARCS_KEY,
-    fetcher,
+    arcsFetcher,
   )
   const { data: catalog } = useSWR<BibleCatalogResponse>("/api/bibles", fetcher)
   const bibleId = catalog?.defaultBibleId ?? catalog?.bibles[0]?.bibleId
@@ -90,11 +108,16 @@ export function ReferencesRainbowMap() {
   useEffect(() => () => void cache.delete(ARCS_KEY), [cache])
 
   if (isLoading) {
+    const ratio = progressRatio(download)
     return (
-      <div className="flex flex-col items-center justify-center gap-3 h-full text-muted-foreground">
-        <Loader2 className="size-8 animate-spin" />
-        <p>Preparando visualización…</p>
-      </div>
+      <RainbowMapLoading
+        ratio={ratio}
+        phase={
+          ratio === null
+            ? "Pidiendo las referencias cruzadas"
+            : `Descargando referencias · ${mb(download?.loaded)} de ${mb(download?.total)}`
+        }
+      />
     )
   }
 
@@ -110,12 +133,9 @@ export function ReferencesRainbowMap() {
   }
 
   if (!html) {
-    return (
-      <div className="flex flex-col items-center justify-center gap-3 h-full text-muted-foreground">
-        <Loader2 className="size-8 animate-spin" />
-        <p>Generando mapa…</p>
-      </div>
-    )
+    // Los datos ya están: lo que queda es construir el documento del mapa.
+    // Dentro del iframe hay otra barra para el dibujado de los arcos.
+    return <RainbowMapLoading ratio={1} phase="Generando el mapa" />
   }
 
   return (

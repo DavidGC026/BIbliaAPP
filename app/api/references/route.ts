@@ -3,6 +3,7 @@ import { getPool } from "@/lib/mysql"
 import type { RowDataPacket } from "mysql2/promise"
 import { assertBibleAccess, bibleAccessStatus } from "@/lib/bible-access"
 import { getCrossReferenceArcsJson } from "@/lib/cross-reference-arcs"
+import { UNCOMPRESSED_BYTES_HEADER } from "@/lib/fetch-with-progress"
 
 interface CountRow extends RowDataPacket {
   total: number
@@ -34,10 +35,15 @@ export async function GET(req: NextRequest) {
       // Agregado estático y sin datos por usuario: se sirve desde la caché del
       // proceso, ya serializado, para no repetir decenas de MB de pico en cada
       // petición. Ver lib/cross-reference-arcs.ts.
-      return new NextResponse(await getCrossReferenceArcsJson(), {
+      const json = await getCrossReferenceArcsJson()
+      return new NextResponse(json, {
         headers: {
           "Content-Type": "application/json",
           "Cache-Control": "public, max-age=86400",
+          // Tamaño sin comprimir, para que el cliente pueda pintar una barra de
+          // progreso de verdad: Content-Length trae los bytes comprimidos y el
+          // lector entrega los descomprimidos.
+          [UNCOMPRESSED_BYTES_HEADER]: String(Buffer.byteLength(json)),
         },
       })
     }
