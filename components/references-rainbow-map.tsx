@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { useTheme } from "next-themes"
 import { isDarkThemeName } from "@/lib/theme"
-import useSWR from "swr"
+import useSWR, { useSWRConfig } from "swr"
 import { AlertCircle, Loader2 } from "lucide-react"
 import { fetcher } from "@/lib/fetcher"
 import { getRainbowHtml, type RainbowTheme } from "@/lib/rainbow-html"
@@ -59,10 +59,13 @@ function buildPayload(
   return { labels, bookIdx, bookNames: bookNameList, chap, arcs }
 }
 
+const ARCS_KEY = "/api/references?arcs"
+
 export function ReferencesRainbowMap() {
   const { resolvedTheme } = useTheme()
+  const { cache } = useSWRConfig()
   const { data, error, isLoading } = useSWR<{ keys: number[]; arcs: number[] }>(
-    "/api/references?arcs",
+    ARCS_KEY,
     fetcher,
   )
   const { data: catalog } = useSWR<BibleCatalogResponse>("/api/bibles", fetcher)
@@ -79,6 +82,12 @@ export function ReferencesRainbowMap() {
     const payload = buildPayload(data.keys, data.arcs, booksData?.books ?? [])
     setHtml(getRainbowHtml(readRainbowTheme(dark), payload))
   }, [data, booksData, resolvedTheme])
+
+  // Al salir del mapa se suelta el agregado de arcos: son varios MB que la
+  // caché de SWR retendría el resto de la sesión, y al volver lo sirve el
+  // navegador desde su propia caché (la ruta manda max-age=86400). Solo al
+  // desmontar: vaciarlo estando montado dejaría la pantalla sin datos.
+  useEffect(() => () => void cache.delete(ARCS_KEY), [cache])
 
   if (isLoading) {
     return (
