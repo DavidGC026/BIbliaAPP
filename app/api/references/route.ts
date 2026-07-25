@@ -2,12 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { getPool } from "@/lib/mysql"
 import type { RowDataPacket } from "mysql2/promise"
 import { assertBibleAccess, bibleAccessStatus } from "@/lib/bible-access"
-
-interface ReferenceArcRow extends RowDataPacket {
-  a: number
-  b: number
-  n: number
-}
+import { getCrossReferenceArcsJson } from "@/lib/cross-reference-arcs"
 
 interface CountRow extends RowDataPacket {
   total: number
@@ -36,28 +31,15 @@ export async function GET(req: NextRequest) {
     // [vid_origen, vid_destino, votos] paginadas (para mostrar progreso)
     // Agregación capítulo-a-capítulo para el diagrama de arcos (mapa de referencias)
     if (searchParams.get("arcs") !== null) {
-      const [rows] = await getPool().query<ReferenceArcRow[]>(
-        `SELECT FLOOR(vid_origen / 1000) AS a, FLOOR(vid_destino / 1000) AS b, COUNT(*) AS n
-         FROM bible_cross_references
-         GROUP BY FLOOR(vid_origen / 1000), FLOOR(vid_destino / 1000)`,
-      )
-      const keySet = new Set<number>()
-      for (const r of rows) {
-        keySet.add(Number(r.a))
-        keySet.add(Number(r.b))
-      }
-      const keys = [...keySet].sort((x, y) => x - y)
-      const idx = new Map(keys.map((k, i) => [k, i]))
-      const arcs: number[] = []
-      for (const r of rows) {
-        const a = Number(r.a)
-        const b = Number(r.b)
-        arcs.push(idx.get(a)!, idx.get(b)!, Number(r.n))
-      }
-      return NextResponse.json(
-        { keys, arcs },
-        { headers: { "Cache-Control": "public, max-age=86400" } },
-      )
+      // Agregado estático y sin datos por usuario: se sirve desde la caché del
+      // proceso, ya serializado, para no repetir decenas de MB de pico en cada
+      // petición. Ver lib/cross-reference-arcs.ts.
+      return new NextResponse(await getCrossReferenceArcsJson(), {
+        headers: {
+          "Content-Type": "application/json",
+          "Cache-Control": "public, max-age=86400",
+        },
+      })
     }
 
     if (searchParams.get("export") !== null) {
