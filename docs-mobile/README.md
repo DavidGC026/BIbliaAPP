@@ -42,6 +42,7 @@ Documentación del cliente móvil de **BibliaAPP** (React Native + Expo). La app
 | [26-variantes-y-licencias-biblicas.md](./26-variantes-y-licencias-biblicas.md) | Variantes pública/interna, capacidades bíblicas, pantalla legal y descargas autorizadas |
 | [27-oauth-google-android-esquema.md](./27-oauth-google-android-esquema.md) | Diagnóstico y corrección del OAuth de Google congelado en Android por desfase de esquema nativo/JS |
 | [28-admin-usuarios-y-aceptacion-legal.md](./28-admin-usuarios-y-aceptacion-legal.md) | Panel de administración de usuarios, documentos legales nativos y aceptación obligatoria de términos en el primer login móvil |
+| [29-notas-bloques-de-contenido.md](./29-notas-bloques-de-contenido.md) | Bloques de versículo, diccionario y tabla en el editor: reparación de bloques rotos al borrar, borrado en dos pasos y separación del módulo |
 
 ---
 
