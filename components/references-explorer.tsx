@@ -69,6 +69,14 @@ export function ReferencesExplorer() {
   const sourceVerseText = chapterData?.verses?.find(v => Number(v.verse) === selectedVerse)?.text
   const selectedBookName = books.find(b => b.bookId === selectedBook)?.bookName
 
+  // Tiene que quedar ANTES del return temprano de la vista de mapa: un hook
+  // detrás de un return condicional cambia el número de hooks entre
+  // renderizados y React aborta con el error #300.
+  // preload deduplica solo: se puede llamar tantas veces como haga falta.
+  const prefetchMap = React.useCallback(() => {
+    preload(ARCS_KEY, fetcher)
+  }, [])
+
   if (view === "map") {
     return (
       <div className="fixed inset-0 z-50 flex flex-col bg-background animate-fade-in">
@@ -95,11 +103,6 @@ export function ReferencesExplorer() {
       </div>
     )
   }
-
-  // preload dedupe solo: se puede llamar tantas veces como haga falta.
-  const prefetchMap = React.useCallback(() => {
-    preload(ARCS_KEY, fetcher)
-  }, [])
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto animate-fade-in">
