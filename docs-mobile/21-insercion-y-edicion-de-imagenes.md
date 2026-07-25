@@ -295,3 +295,56 @@ En `mobile/app/note/[noteId].tsx` el encabezado conserva una altura reducida, pe
 - El botón de vista previa aumenta a 36 × 36 px para equilibrar visualmente el encabezado y conservar un área táctil cómoda.
 
 Este cambio es exclusivamente de presentación; no modifica el guardado, la vista previa ni el flujo de inserción y edición de imágenes.
+
+---
+
+## 16. Las imágenes base64 dejan de guardarse en el contenido de la nota (julio 2026)
+
+### Problema
+
+El fallback offline de §2.3 es correcto para poder trabajar sin red, pero ese Data URI **es el contenido de la nota**: se guardaba tal cual en SQLite y se subía tal cual a MySQL. Una nota con tres fotos son varios MB en `bible_notebook_notes.content`, en cada sincronización y en cada lectura de la nota. Es el origen de los problemas ya documentados en §7 (límite de la columna `TEXT`) y §8 (el push al servidor fallaba por tamaño de body o timeout y la nota quedaba `dirty`).
+
+### Solución
+
+Las imágenes incrustadas se suben y su `data:` URI se sustituye por la URL pública antes de persistir el contenido.
+
+| Módulo | Responsabilidad |
+|--------|-----------------|
+| `mobile/lib/noteImageHtml.ts` (nuevo) | Parte **pura**: detectar, recolectar y sustituir los `src` de las `<img>`, leer un `data:` URI y calcular su hash. Sin dependencias, probable en Node |
+| `mobile/lib/noteImageSync.ts` (nuevo) | `uploadEmbeddedNoteImages(html)`: sube cada imagen con `api.uploadImage` y devuelve el HTML con las URLs. Reutiliza `api.getPublicUploadUrl()` (§9) |
+| `note_image_uploads` (tabla nueva en `lib/db.ts`) | Caché `hash → url` de lo ya subido |
+
+Se engancha en los dos únicos sitios por los que el contenido de una nota llega a persistirse:
+
+| Punto | Cuándo actúa |
+|-------|--------------|
+| `repoCreateNotebookNote` / `repoUpdateNotebookNote` (`lib/repo.ts`) | Al guardar con conexión: la nota se guarda ya con URLs, en local y en el servidor |
+| `pushDirtyNotesOnly` (`lib/sync.ts`) | Al recuperar la conexión: sube las imágenes de las notas guardadas offline, reescribe el contenido local con `setLocalNoteContent()` (sin tocar `dirty` ni `updated_at`) y envía las URLs |
+
+Sin conexión o sin sesión **no se toca nada**: la nota conserva su base64 y se reintenta en la siguiente sincronización, así que la app sigue siendo 100 % funcional offline.
+
+### Por qué hay caché por hash
+
+Mientras la nota está abierta, el DOM del editor sigue teniendo el base64 (no se reescribe para no perder el caret ni el historial), así que **cada autoguardado vuelve a pasar el mismo contenido** por esta función. La caché por hash de los bytes hace la operación idempotente: la segunda vez no hay subida, solo una consulta y la sustitución. También cubre la misma foto insertada en varias notas.
+
+El hash es FNV-1a sobre el `data:` URI más su longitud: no es criptográfico porque solo es la clave de una caché local.
+
+### Límite del historial por peso
+
+Relacionado: el historial de deshacer (§4) guardaba hasta 50 instantáneas del HTML completo, y con base64 eso podía tumbar el WebView. Ahora `editorHtml.ts` descarta además los pasos más antiguos al pasar de **4 MB** acumulados (`HISTORY_BYTES_LIMIT`, función `trimHistory()`).
+
+### Alcance
+
+Solo móvil. La web nunca genera base64: si la subida falla avisa al usuario y no inserta nada (`components/note-rich-editor.tsx`).
+
+### Cómo probar
+
+```bash
+cd mobile
+node scripts/test_note_images.cjs   # 31 comprobaciones de la parte pura
+npm run android
+```
+
+1. **Offline:** desactiva la red, inserta una foto (se ve por base64) y guarda. Reactiva la red y espera la sincronización o entra y sal de la nota: al reabrirla la imagen debe seguir viéndose, ya como `/uploads/...`.
+2. **Sin subida doble:** con la nota abierta y conexión, inserta una foto y deja pasar varios autoguardados; en el servidor debe haber **un solo** archivo nuevo.
+3. **Tamaño:** comprueba que el `content` guardado de esa nota ya no contiene `data:image` (p. ej. exportando a PDF o revisando la nota en la web).

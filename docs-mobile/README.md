@@ -34,7 +34,7 @@ Documentación del cliente móvil de **BibliaAPP** (React Native + Expo). La app
 | [18-lector-biblia-e-imagenes.md](./18-lector-biblia-e-imagenes.md) | Mejoras de lectura bíblica y generador de imágenes de versículos |
 | [19-descargas-offline.md](./19-descargas-offline.md) | Descargas offline visibles, cola en segundo plano de app y reanudación |
 | [20-plan-maestro-mejoras-generales.md](./20-plan-maestro-mejoras-generales.md) | Plan vivo de mejoras generales, estados, fases y avance actual |
-| [21-insercion-y-edicion-de-imagenes.md](./21-insercion-y-edicion-de-imagenes.md) | Inserción, redimensionado, posición y alineación de imágenes en notas |
+| [21-insercion-y-edicion-de-imagenes.md](./21-insercion-y-edicion-de-imagenes.md) | Inserción, redimensionado, posición y alineación de imágenes en notas; las imágenes base64 ya no se guardan en el contenido |
 | [22-notas-diseno-profesional.md](./22-notas-diseno-profesional.md) | Rediseño visual profesional de notas, libretas, tarjetas y editor |
 | [23-paridad-web-mobile-global.md](./23-paridad-web-mobile-global.md) | Seguimiento global de paridad entre la aplicación web y móvil |
 | [24-reduccion-secciones-web.md](./24-reduccion-secciones-web.md) | Simplificación de secciones web durante el trabajo de paridad |
