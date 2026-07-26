@@ -4,6 +4,15 @@ Registro cronológico de cambios en `desktop/`. Lo más reciente arriba.
 
 ---
 
+## 2026-07-26 — tablas configurables y autoguardado visible
+
+- Selector de tablas de 1–10 columnas y 1–20 filas, encabezado opcional y vista previa.
+- Controles para añadir o quitar filas/columnas después de insertar la tabla.
+- Edición de celdas mediante segundo clic después de seleccionar el bloque.
+- Autoguardado reducido de 4 segundos a 1.5 segundos con estados explícitos.
+
+Detalle: [13-editor-notas.md](./13-editor-notas.md).
+
 ## 2026-07-19 — v0.3.3: robustez offline y paquete Arch
 
 - Las vistas principales usan un contenedor fluido, centrado y de hasta 1536 px para aprovechar mejor ventanas amplias.
