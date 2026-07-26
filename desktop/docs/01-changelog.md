@@ -4,6 +4,45 @@ Registro cronológico de cambios en `desktop/`. Lo más reciente arriba.
 
 ---
 
+## 2026-07-26 — editor a pantalla completa con cinta estilo Word
+
+- El cuerpo de la nota ocupa todo el alto y el ancho de la ventana; el scroll
+  ocurre dentro del documento y ya no en la página. Se recuperan unos 490 px
+  verticales que consumían el relleno, la cabecera y la fila inferior.
+- Cabecera compacta de una sola fila: volver, título editable, estado de
+  guardado y contador de palabras.
+- Desaparece la fila inferior de botones. **Guardar** pasa a la cabecera con
+  cuatro estados, y Compartir, Exportar PDF y Eliminar al menú de tres puntos;
+  Eliminar pide confirmación.
+- Cinta de herramientas contraíble con pestañas **Inicio** e **Insertar**.
+- Panel de herramientas especiales con pestañas **Fondos**, **Versículos**,
+  **Diccionario** e **Imagen**, con carrusel de dos tarjetas y flechas.
+- Barra lateral contraíble a solo iconos. Los tres estados (cinta, pestaña y
+  barra lateral) se recuerdan entre sesiones.
+- Los colores escritos a mano pasan a tokens derivados con `color-mix`, de modo
+  que la pantalla respeta los ocho temas y no solo el oscuro.
+- Atajo **Ctrl/Cmd + S** para guardar.
+
+Detalle: [17-editor-pantalla-completa.md](./17-editor-pantalla-completa.md).
+
+## 2026-07-26 — prueba del editor con Tiptap y cinta contextual
+
+- Esquema de documento sobre Tiptap/ProseMirror que sustituiría a `execCommand`,
+  manteniendo HTML como formato guardado: la base de datos, la API y las notas
+  existentes no cambian.
+- La barra de botones de los bloques deja de guardarse dentro de la nota, porque
+  `wrapAllContentBlocks` ya la reconstruye a partir de elementos desnudos.
+- Cinta contextual con pestañas **Tabla** e **Imagen** que aparecen solas según
+  dónde esté el cursor, más combinar y dividir celdas y redimensionado de
+  columnas, que el editor actual no tiene.
+- Convive con el editor actual detrás del interruptor «Editor nuevo»; el editor
+  por defecto no cambia.
+- Banco de pruebas `npm run check:editor` con 11 casos de ida y vuelta del HTML
+  e interoperabilidad con web y móvil.
+
+Detalle: [15-editor-tiptap-prueba.md](./15-editor-tiptap-prueba.md) y
+[16-editor-cinta-contextual.md](./16-editor-cinta-contextual.md).
+
 ## 2026-07-26 — tablas configurables y autoguardado visible
 
 - Selector de tablas de 1–10 columnas y 1–20 filas, encabezado opcional y vista previa.

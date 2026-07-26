@@ -2,6 +2,16 @@
 
 Estado en desktop **v0.3.3**. Esta implementación replica el comportamiento del editor móvil y conserva un HTML compatible entre ambos clientes.
 
+> **Aviso sobre la interfaz.** Desde el rediseño de julio de 2026, los controles
+> que aquí se describen ya no viven en una barra de tres filas ni en la fila
+> inferior de botones: están repartidos entre la cinta superior y el panel de
+> herramientas especiales. Las **funciones** siguen siendo exactamente las que
+> documenta este archivo; solo cambió dónde se pulsan. Ver
+> [17-editor-pantalla-completa.md](./17-editor-pantalla-completa.md) para la
+> distribución actual, y [15](./15-editor-tiptap-prueba.md) y
+> [16](./16-editor-cinta-contextual.md) para el motor nuevo, que todavía no es
+> el predeterminado.
+
 ## Barra de formato
 
 El editor permite:

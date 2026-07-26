@@ -51,7 +51,7 @@ desktop/
 │   ├── App.tsx              # Auth + routing por pestaña
 │   ├── context/AuthContext.tsx
 │   ├── components/
-│   │   ├── AppLayout.tsx    # Sidebar
+│   │   ├── AppLayout.tsx    # Sidebar contraíble a iconos
 │   │   ├── BibleReader.tsx
 │   │   ├── BibleSearch.tsx
 │   │   ├── VerseOfDayCard.tsx
