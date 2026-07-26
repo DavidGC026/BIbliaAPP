@@ -16,8 +16,16 @@ import { cn } from "@/lib/utils"
 import { insertHtmlIntoNoteContent } from "@/lib/note-content"
 import { VerseText, type HighlightColor } from "./verse-text"
 import { ReaderToolbar } from "./reader-toolbar"
+import { ReaderSettings } from "./reader-settings"
 import { VersionSelector, BookSelector, ChapterSelector } from "./version-selector"
 import { ReaderSearch } from "./reader-search"
+import {
+  DEFAULT_READER_PREFERENCES,
+  getReaderPalette,
+  loadReaderPreferences,
+  saveReaderPreferences,
+  type ReaderPreferences,
+} from "@/lib/reader-preferences"
 
 const bookAbbrMap = BOOK_ID_TO_ABBR
 
@@ -118,9 +126,11 @@ export function BibleReader({
 
   // -------------------------------------------------------- UI / Ajustes
   const [mobileMenuTab, setMobileMenuTab] = useState<"selectors" | "search" | "settings" | null>(null)
-  const [fontSize, setFontSize] = useState<number>(18)
+  const [readerPreferences, setReaderPreferences] = useState<ReaderPreferences>(DEFAULT_READER_PREFERENCES)
   const [canShare, setCanShare] = useState(false)
   const [imageCreatorOpen, setImageCreatorOpen] = useState(false)
+  const readerPalette = getReaderPalette(readerPreferences.theme)
+  const readerLineHeight = readerPreferences.density === "compact" ? 1.45 : 1.8
 
   // ------------------------------------------------------ Notas / Sidebar
   const [activeNoteId, setActiveNoteId] = useState<string | null>(null)
@@ -154,23 +164,15 @@ export function BibleReader({
   // Ajustes persistidos
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const savedSize = localStorage.getItem("bible_font_size")
-      if (savedSize) {
-        const parsed = parseInt(savedSize, 10)
-        if (!isNaN(parsed) && parsed >= 14 && parsed <= 28) {
-          setFontSize(parsed)
-        }
-      }
+      setReaderPreferences(loadReaderPreferences())
       if (typeof navigator.share === "function") {
         setCanShare(true)
       }
     }
   }, [])
 
-  const changeFontSize = (newSize: number) => {
-    const size = Math.min(28, Math.max(14, newSize))
-    setFontSize(size)
-    localStorage.setItem("bible_font_size", String(size))
+  const updateReaderPreferences = (patch: Partial<ReaderPreferences>) => {
+    setReaderPreferences((current) => saveReaderPreferences({ ...current, ...patch }))
   }
 
   // Deep link por query params (?bible=&book=&chapter=&verse=1-3)
@@ -756,7 +758,7 @@ export function BibleReader({
               </div>
             </div>
 
-            {/* Selectores de versión / libro / capítulo / tamaño */}
+            {/* Selectores de versión / libro / capítulo */}
             <div className={cn(
               "flex-wrap items-end gap-3",
               mobileMenuTab === "selectors" ? "flex" : "hidden md:flex"
@@ -784,34 +786,6 @@ export function BibleReader({
                 />
               )}
 
-              <div className="flex flex-col gap-1">
-                <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Tamaño</p>
-                <div className="flex items-center rounded-lg border border-border bg-muted/20 p-0.5 h-10">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-xs font-semibold cursor-pointer"
-                    onClick={() => changeFontSize(fontSize - 1)}
-                    disabled={fontSize <= 14}
-                    title="Reducir letra"
-                  >
-                    A-
-                  </Button>
-                  <span className="px-2 text-xs font-bold text-muted-foreground min-w-[32px] text-center">
-                    {fontSize}px
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-xs font-semibold cursor-pointer"
-                    onClick={() => changeFontSize(fontSize + 1)}
-                    disabled={fontSize >= 28}
-                    title="Aumentar letra"
-                  >
-                    A+
-                  </Button>
-                </div>
-              </div>
             </div>
 
             {/* Búsqueda + switcher de vista */}
@@ -819,6 +793,12 @@ export function BibleReader({
               "flex-wrap items-end justify-between gap-3",
               (mobileMenuTab === "search" || mobileMenuTab === "settings") ? "flex" : "hidden md:flex"
             )}>
+              <ReaderSettings
+                preferences={readerPreferences}
+                onChange={updateReaderPreferences}
+                className={mobileMenuTab === "settings" ? "grid" : "hidden md:grid"}
+              />
+
               <ReaderSearch
                 bibleId={bibleId}
                 className={mobileMenuTab === "search" ? "block" : "hidden md:block"}
@@ -858,12 +838,24 @@ export function BibleReader({
           </div>
         )}
 
-        <ol className="space-y-1">
+        <ol
+          className={cn(
+            "rounded-xl transition-colors",
+            readerPreferences.density === "compact" ? "space-y-0" : "space-y-1",
+            readerPalette && "border p-2 sm:p-4",
+          )}
+          style={readerPalette ? { backgroundColor: readerPalette.background, borderColor: readerPalette.border } : undefined}
+        >
           {verses.map((v) => (
             <VerseText
               key={v.id}
               verse={v}
-              fontSize={fontSize}
+              fontSize={readerPreferences.fontSize}
+              lineHeight={readerLineHeight}
+              textAlign={readerPreferences.align}
+              textColor={readerPalette?.text}
+              mutedColor={readerPalette?.muted}
+              accentColor={readerPalette?.accent}
               hasNote={linksByVerse.has(Number(v.verse))}
               highlightColor={highlightsByVerse.get(Number(v.verse))}
               isSelected={selectedVerses.includes(Number(v.verse))}

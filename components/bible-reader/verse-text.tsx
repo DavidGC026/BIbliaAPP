@@ -18,6 +18,11 @@ const HIGHLIGHT_CLASSES: Record<HighlightColor, string> = {
 export interface VerseTextProps {
   verse: Verse
   fontSize: number
+  lineHeight: number
+  textAlign: "left" | "justify"
+  textColor?: string
+  mutedColor?: string
+  accentColor?: string
   hasNote: boolean
   highlightColor: string | undefined
   isSelected: boolean
@@ -44,6 +49,11 @@ export interface VerseTextProps {
 export const VerseText = memo(function VerseText({
   verse: v,
   fontSize,
+  lineHeight,
+  textAlign,
+  textColor,
+  mutedColor,
+  accentColor,
   hasNote,
   highlightColor,
   isSelected,
@@ -82,7 +92,7 @@ export const VerseText = memo(function VerseText({
           e.stopPropagation()
           onToggleSelect(verseNum, e.shiftKey)
         }}
-        style={{ fontSize: `${Math.max(12, fontSize - 6)}px` }}
+        style={{ fontSize: `${Math.max(12, fontSize - 6)}px`, color: accentColor }}
       >
         {v.verse}
       </span>
@@ -93,7 +103,7 @@ export const VerseText = memo(function VerseText({
           onSetCurrent(verseNum)
         }}
         className="flex-1 font-serif leading-relaxed text-foreground cursor-pointer select-none"
-        style={{ fontSize: `${fontSize}px` }}
+        style={{ fontSize: `${fontSize}px`, lineHeight, textAlign, color: textColor }}
       >
         {v.text}
       </p>
@@ -130,6 +140,7 @@ export const VerseText = memo(function VerseText({
                 ? "text-primary hover:bg-primary/10"
                 : "text-muted-foreground/80 hover:text-foreground hover:bg-accent",
           )}
+          style={mutedColor && !hasNote ? { color: mutedColor } : undefined}
         >
           {isGuest ? <FileText className="size-4" /> : hasNote ? <FileText className="size-4" /> : <Plus className="size-4" />}
         </button>
