@@ -4,6 +4,10 @@ import { Icon } from "@/components/ui/Icon";
 import { InsertDictionaryModal } from "@/components/InsertDictionaryModal";
 import { InsertVerseModal } from "@/components/InsertVerseModal";
 import { TablePickerDialog } from "@/components/notes/TablePickerDialog";
+import {
+  TiptapNoteEditor,
+  type TiptapEditorInstance,
+} from "@/components/notes/tiptap/TiptapNoteEditor";
 import * as api from "@/lib/api";
 import { formatDictionaryHtml } from "@/lib/dictionary";
 import {
@@ -118,6 +122,10 @@ export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
   const [selectedImage, setSelectedImage] = useState<HTMLElement | null>(null);
   const [, setImageRevision] = useState(0);
   const [backgroundSelection, setBackgroundSelection] = useState(false);
+  // Interruptor del editor nuevo. Mientras no alcance al actual en funciones,
+  // se entra a mano y se puede volver al de siempre en cualquier momento.
+  const [useTiptap, setUseTiptap] = useState(false);
+  const tiptapRef = useRef<TiptapEditorInstance | null>(null);
 
   useEffect(() => {
     if (isNew || !noteId) return;
@@ -250,6 +258,15 @@ export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
   }
 
   function insertHtml(html: string) {
+    // El editor nuevo inserta por comando; el esquema se encarga de parsear el
+    // HTML al nodo que corresponda.
+    if (useTiptap) {
+      const instance = tiptapRef.current;
+      if (!instance) return;
+      instance.chain().focus().insertContent(html).run();
+      applyChange(instance.getHTML());
+      return;
+    }
     editorRef.current?.focus();
     restoreSelection();
     document.execCommand("insertHTML", false, html);
@@ -336,14 +353,29 @@ export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
     setPreview((p) => !p);
   }
 
-  function markChanged() {
-    const html = currentHtml();
+  // useCallback: si cambiara en cada render, el efecto que la llama en
+  // TiptapNoteEditor se reejecutaria sin parar.
+  const handleTiptapReady = useCallback(
+    (instance: TiptapEditorInstance | null) => {
+      tiptapRef.current = instance;
+    },
+    [],
+  );
+
+  /** Registra HTML nuevo venga del editor que venga. */
+  function applyChange(html: string) {
     latestHtmlRef.current = html;
     const node = document.createElement("div");
     node.innerHTML = html;
     setWordCount(countWords(node.textContent ?? ""));
     setSaveStatus("pending");
     scheduleAutosave();
+  }
+
+  // Se usa como onInput del contentEditable, asi que no puede recibir
+  // argumentos: recibiria el evento.
+  function markChanged() {
+    applyChange(currentHtml());
   }
 
   function scheduleAutosave(delay = AUTOSAVE_DELAY_MS) {
@@ -619,6 +651,9 @@ export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
 
   function currentHtml() {
     if (preview) return previewHtml;
+    // Con Tiptap el HTML vive en el editor, no en un div del DOM: lo mantiene
+    // al dia `applyChange` desde su onChange.
+    if (useTiptap) return latestHtmlRef.current;
     return editorRef.current
       ? serializeNoteHtml(editorRef.current)
       : latestHtmlRef.current;
@@ -725,7 +760,7 @@ export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
         </p>
       </div>
 
-      {!preview ? (
+      {!preview && !useTiptap ? (
         <div className="space-y-2 rounded-lg border border-border bg-card p-2">
           <div className="flex flex-wrap items-center gap-1">
             <button
@@ -1055,7 +1090,20 @@ export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
         </div>
       ) : null}
 
-      <div className="flex justify-end">
+      <div className="flex items-center justify-between gap-3">
+        <button
+          type="button"
+          onClick={() => setUseTiptap((value) => !value)}
+          title={
+            useTiptap
+              ? "Volver al editor actual"
+              : "Probar el editor nuevo, con cinta de opciones contextual"
+          }
+          className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1 text-xs font-semibold text-muted-foreground hover:text-foreground"
+        >
+          <Icon name="sparkles" size={14} />
+          {useTiptap ? "Editor nuevo (beta)" : "Probar editor nuevo"}
+        </button>
         <button
           type="button"
           onClick={togglePreview}
@@ -1066,7 +1114,20 @@ export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
         </button>
       </div>
 
-      <div hidden={preview}>
+      {useTiptap && !preview ? (
+        <TiptapNoteEditor
+          // Remontar al cargar la nota o al entrar, para partir del HTML bueno.
+          key={`tiptap-${noteId ?? "new"}-${loading ? "carga" : "listo"}`}
+          initialHtml={latestHtmlRef.current}
+          onChange={applyChange}
+          onPickImage={() => fileInputRef.current?.click()}
+          onPickTable={() => setTablePickerOpen(true)}
+          fontFamily={getNoteFontFamily(activeFont)}
+          onReady={handleTiptapReady}
+        />
+      ) : null}
+
+      <div hidden={preview || useTiptap}>
         <div
           ref={attachEditor}
           contentEditable

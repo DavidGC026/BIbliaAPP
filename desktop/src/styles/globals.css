@@ -382,6 +382,69 @@ select option {
   cursor: pointer;
   margin: 0;
 }
+/* --- Editor nuevo (Tiptap / ProseMirror) -------------------------------- */
+/* Solo aplica dentro de .ProseMirror, asi que no afecta al editor actual.   */
+
+.note-rich.ProseMirror {
+  min-height: 55vh;
+}
+.note-rich.ProseMirror:focus {
+  outline: none;
+}
+/* Marcador de posicion cuando la nota esta vacia. */
+.note-rich.ProseMirror p.is-editor-empty:first-child::before {
+  content: "Escribe tu nota…";
+  float: left;
+  height: 0;
+  pointer-events: none;
+  color: var(--muted-foreground);
+}
+/* Tablas: la columna se redimensiona arrastrando el borde. */
+.note-rich.ProseMirror table {
+  border-collapse: collapse;
+  table-layout: fixed;
+  width: 100%;
+  overflow: hidden;
+}
+.note-rich.ProseMirror table td,
+.note-rich.ProseMirror table th {
+  position: relative;
+  min-width: 2em;
+  border: 1px solid var(--border);
+  padding: 6px 8px;
+  vertical-align: top;
+}
+.note-rich.ProseMirror table th {
+  background: color-mix(in oklab, var(--muted) 70%, transparent);
+  font-weight: 700;
+  text-align: left;
+}
+.note-rich.ProseMirror .selectedCell::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: color-mix(in oklab, var(--primary) 18%, transparent);
+  pointer-events: none;
+}
+.note-rich.ProseMirror .column-resize-handle {
+  position: absolute;
+  right: -2px;
+  top: 0;
+  bottom: -2px;
+  width: 4px;
+  background: var(--primary);
+  pointer-events: none;
+}
+.note-rich.ProseMirror.resize-cursor {
+  cursor: col-resize;
+}
+/* Nodo atomico seleccionado: versiculo, diccionario o imagen. */
+.note-rich.ProseMirror .ProseMirror-selectednode {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
 .note-rich-readonly .biblia-block-handle {
   display: none !important;
 }

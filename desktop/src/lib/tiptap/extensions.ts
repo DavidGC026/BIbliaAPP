@@ -12,9 +12,10 @@
 import type { Extensions } from "@tiptap/core";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
-import { TextStyle } from "@tiptap/extension-text-style";
+import { TextStyle, FontSize, FontFamily, Color } from "@tiptap/extension-text-style";
 import TextAlign from "@tiptap/extension-text-align";
 import { Table, TableRow, TableCell, TableHeader } from "@tiptap/extension-table";
+import { Placeholder, TrailingNode } from "@tiptap/extensions";
 
 import { VerseBlock } from "./nodes/verseBlock";
 import { DictBlock } from "./nodes/dictBlock";
@@ -34,7 +35,12 @@ export function buildNoteExtensions(): Extensions {
   return [
     StarterKit.configure({ underline: false }),
     Underline,
+    // TextStyle es el soporte de <span style>; FontSize, FontFamily y Color se
+    // apoyan en el y aportan sus comandos.
     TextStyle,
+    FontSize,
+    FontFamily,
+    Color,
     TextAlign.configure({ types: ["heading", "paragraph"] }),
     Table.configure({
       resizable: true,
@@ -43,6 +49,10 @@ export function buildNoteExtensions(): Extensions {
     TableRow,
     TableCell,
     TableHeader,
+    Placeholder.configure({ placeholder: "Escribe tu nota…" }),
+    // Garantiza un parrafo al final: sin el, una nota que termina en tabla o
+    // imagen deja al usuario sin sitio donde escribir.
+    TrailingNode,
     ...bibliaNodes,
   ];
 }
