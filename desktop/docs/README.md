@@ -27,6 +27,7 @@ Cliente de escritorio (Tauri v2 + React) para congregaciones. Consume la API RES
 | 12  | [12-paridad-mobile-2026-07.md](./12-paridad-mobile-2026-07.md) | Port de novedades móviles de julio |
 | 13  | [13-editor-notas.md](./13-editor-notas.md)                     | Editor, imágenes y autoguardado     |
 | 14  | [14-offline-y-release-arch-0.3.3.md](./14-offline-y-release-arch-0.3.3.md) | Auditoría offline y paquete Arch |
+| 15  | [15-editor-tiptap-prueba.md](./15-editor-tiptap-prueba.md) | Prueba de concepto del editor con Tiptap |
 
 Regla Cursor para agentes: [`.cursor/rules/desktop.mdc`](../../.cursor/rules/desktop.mdc)
 
