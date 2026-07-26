@@ -42,7 +42,7 @@ export const HOME_ACTION_CATALOG: Array<{
     key: "read",
     title: "Ir a lectura",
     description: "Continúa leyendo capítulo a capítulo",
-    icon: "book",
+    icon: "bible",
   },
   {
     key: "search",

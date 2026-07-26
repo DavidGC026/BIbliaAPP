@@ -4,9 +4,10 @@ import * as React from "react"
 import { useState, useEffect } from "react"
 import useSWR, { preload } from "swr"
 import { fetcher } from "@/lib/fetcher"
-import { Loader2, Link as LinkIcon, BookOpen, AlertCircle, ArrowLeft } from "lucide-react"
+import { Loader2, BookOpen, AlertCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { ReferencesRainbowMap, ARCS_KEY } from "@/components/references-rainbow-map"
+import { AppIcon } from "@/components/ui/app-icon"
 
 interface BibleBook {
   bookId: number
@@ -86,11 +87,11 @@ export function ReferencesExplorer() {
             onClick={() => setView("list")}
             className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
-            <ArrowLeft className="size-4" />
+            <AppIcon name="arrow-left" className="size-4" />
             Volver
           </button>
           <h1 className="text-sm font-bold tracking-tight text-foreground flex items-center gap-2">
-            <span aria-hidden>🌈</span>
+            <AppIcon name="link" className="size-4 text-primary" />
             Mapa de referencias
           </h1>
           <p className="hidden text-xs text-muted-foreground md:block">
@@ -109,7 +110,7 @@ export function ReferencesExplorer() {
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            <LinkIcon className="size-6 text-primary" />
+            <AppIcon name="link" className="size-6 text-primary" />
             Referencias Cruzadas
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
@@ -129,7 +130,11 @@ export function ReferencesExplorer() {
         onTouchStart={prefetchMap}
         className="w-full flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3 text-left shadow-sm hover:bg-accent/40 transition-colors"
       >
-        <span className="text-xl" aria-hidden>🌈</span>
+        <img
+          src="/api/assets/images/references-map-hero"
+          alt=""
+          className="size-14 shrink-0 rounded-xl object-cover"
+        />
         <span className="flex-1">
           <span className="block font-semibold text-foreground">Mapa de referencias</span>
           <span className="block text-xs text-muted-foreground">Toda la Biblia en un vistazo</span>

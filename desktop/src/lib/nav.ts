@@ -23,13 +23,13 @@ export const NAV_ITEMS: {
   section: string;
 }[] = [
   { id: "home", label: "Inicio", icon: "home", section: "dashboard" },
-  { id: "bible", label: "Biblia", icon: "book", section: "reading" },
+  { id: "bible", label: "Biblia", icon: "bible", section: "reading" },
   { id: "search", label: "Búsqueda", icon: "search", section: "search" },
   { id: "notes", label: "Notas", icon: "notes", section: "notebook" },
   { id: "feed", label: "Comunidad", icon: "community", section: "feed" },
-  { id: "groups", label: "Grupos", icon: "users", section: "groups" },
+  { id: "groups", label: "Grupos", icon: "groups", section: "groups" },
   { id: "events", label: "Calendario", icon: "calendar", section: "calendar" },
-  { id: "profile", label: "Perfil", icon: "user", section: "profile" },
+  { id: "profile", label: "Perfil", icon: "profile", section: "profile" },
 ];
 
 export const TAB_SECTIONS: Partial<Record<AppTab, string>> = {

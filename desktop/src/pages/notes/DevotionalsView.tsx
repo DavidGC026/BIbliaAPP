@@ -107,7 +107,7 @@ export function DevotionalsView({ onEdit, onNew, onOpenBible }: Props) {
               onClick={() => void openVerse(selected.verseRef!)}
             >
               <span className="flex items-center gap-2">
-                <Icon name="book" size={18} />
+                <Icon name="bible" size={18} />
                 {selected.verseRef}
               </span>
               <span>Ir al pasaje →</span>
