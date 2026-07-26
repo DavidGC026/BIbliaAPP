@@ -2,26 +2,8 @@
 
 import { useState } from "react"
 import dynamic from "next/dynamic"
-import {
-  Activity as ActivityIcon,
-  BarChart2,
-  BookMarked,
-  BookOpen,
-  BookText,
-  Calendar,
-  Heart,
-  HeartHandshake,
-  Highlighter,
-  LayoutDashboard,
-  Library,
-  Link as LinkIcon,
-  Search,
-  Star,
-  User,
-  UserPlus,
-  Users,
-} from "lucide-react"
 import { SegmentTabs } from "@/components/ui/segment-tabs"
+import { AppIcons } from "@/components/ui/app-icon"
 import { APP_SECTION_CATALOG, type AppSectionId } from "./catalog"
 import { registerAppSectionComplete } from "./store"
 import type { SectionRenderContext } from "./types"
@@ -252,7 +234,7 @@ function ProfileHub(ctx: SectionRenderContext) {
 
 registerAppSectionComplete({
   ...meta("dashboard"),
-  icon: LayoutDashboard,
+  icon: AppIcons.home,
   render: (ctx) => (
     <Dashboard
       userName={ctx.user?.name}
@@ -267,14 +249,14 @@ registerAppSectionComplete({
 
 registerAppSectionComplete({
   ...meta("reading"),
-  icon: BookOpen,
+  icon: AppIcons.bible,
   suspenseFallback: "Cargando Biblia...",
   render: (ctx) => <StudyHub {...ctx} />,
 })
 
 registerAppSectionComplete({
   ...meta("feed"),
-  icon: Users,
+  icon: AppIcons.community,
   requiresUser: true,
   layout: "card",
   suspenseFallback: "Cargando Feed...",
@@ -283,31 +265,31 @@ registerAppSectionComplete({
 
 registerAppSectionComplete({
   ...meta("search"),
-  icon: Search,
+  icon: AppIcons.search,
   render: (ctx) => <SearchAdvanced onSelectVerse={ctx.handleSelectVerse} />,
 })
 
 registerAppSectionComplete({
   ...meta("references"),
-  icon: LinkIcon,
+  icon: AppIcons.link,
   render: () => <ReferencesExplorer />,
 })
 
 registerAppSectionComplete({
   ...meta("dictionary"),
-  icon: BookMarked,
+  icon: AppIcons.dictionary,
   render: () => <StrongDictionary />,
 })
 
 registerAppSectionComplete({
   ...meta("library"),
-  icon: Library,
+  icon: AppIcons.library,
   render: () => <PersonalLibrary />,
 })
 
 registerAppSectionComplete({
   ...meta("notebook"),
-  icon: BookText,
+  icon: AppIcons.notes,
   layout: "notebook",
   suspenseFallback: "Cargando libreta...",
   render: (ctx) => <NotesHub {...ctx} />,
@@ -315,7 +297,7 @@ registerAppSectionComplete({
 
 registerAppSectionComplete({
   ...meta("profile"),
-  icon: User,
+  icon: AppIcons.profile,
   requiresUser: true,
   layout: "fullscreen",
   suspenseFallback: "Cargando Perfil...",
@@ -324,19 +306,19 @@ registerAppSectionComplete({
 
 registerAppSectionComplete({
   ...meta("favorites"),
-  icon: Star,
+  icon: AppIcons.heart,
   render: () => <Favorites />,
 })
 
 registerAppSectionComplete({
   ...meta("highlights"),
-  icon: Highlighter,
+  icon: AppIcons.highlighter,
   render: () => <HighlightsManager />,
 })
 
 registerAppSectionComplete({
   ...meta("plans"),
-  icon: Calendar,
+  icon: AppIcons.readingPlan,
   requiresUser: true,
   render: (ctx) => (
     <ReadingPlans
@@ -348,19 +330,19 @@ registerAppSectionComplete({
 
 registerAppSectionComplete({
   ...meta("prayers"),
-  icon: HeartHandshake,
+  icon: AppIcons.heart,
   render: () => <PrayerRequests />,
 })
 
 registerAppSectionComplete({
   ...meta("devotionals"),
-  icon: Heart,
+  icon: AppIcons.heart,
   render: () => <Devotionals />,
 })
 
 registerAppSectionComplete({
   ...meta("groups"),
-  icon: Users,
+  icon: AppIcons.groups,
   requiresUser: true,
   render: (ctx) => (
     <Groups
@@ -373,33 +355,33 @@ registerAppSectionComplete({
 
 registerAppSectionComplete({
   ...meta("calendar"),
-  icon: Calendar,
+  icon: AppIcons.calendar,
   requiresUser: true,
   render: (ctx) => <ChurchCalendar isAdmin={ctx.user!.role === "admin"} />,
 })
 
 registerAppSectionComplete({
   ...meta("discipleship"),
-  icon: UserPlus,
+  icon: AppIcons.groups,
   requiresUser: true,
   render: (ctx) => <Discipleship currentUserId={ctx.user!.id} />,
 })
 
 registerAppSectionComplete({
   ...meta("activity"),
-  icon: ActivityIcon,
+  icon: AppIcons.sync,
   render: () => <Activity />,
 })
 
 registerAppSectionComplete({
   ...meta("statistics"),
-  icon: BarChart2,
+  icon: AppIcons.chart,
   render: () => <Statistics />,
 })
 
 registerAppSectionComplete({
   ...meta("users"),
-  icon: Users,
+  icon: AppIcons.groups,
   requiresUser: true,
   render: (ctx) => <UserManagement currentUserId={ctx.user!.id} />,
 })
