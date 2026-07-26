@@ -739,6 +739,18 @@ select option {
 .ribbon-tab:hover { color: var(--foreground); }
 .ribbon-tab:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--ring); }
 .ribbon-tab-active { color: var(--primary); border-bottom-color: var(--primary); }
+/* Pestaña contextual: efímera y visualmente distinta, como en Word. */
+.ribbon-tab-contextual {
+  color: var(--note-tone-sky);
+  background: color-mix(in oklab, var(--note-tone-sky) 10%, transparent);
+  border-radius: 0.3rem 0.3rem 0 0;
+}
+.ribbon-tab-contextual:hover { color: var(--note-tone-sky); }
+.ribbon-tab-contextual.ribbon-tab-active {
+  color: var(--note-tone-sky);
+  border-bottom-color: var(--note-tone-sky);
+  background: color-mix(in oklab, var(--note-tone-sky) 16%, transparent);
+}
 .ribbon-collapse {
   margin-left: auto;
   display: flex; height: 1.75rem; width: 1.75rem;
