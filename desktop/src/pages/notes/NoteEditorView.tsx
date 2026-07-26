@@ -11,9 +11,9 @@ import {
 } from "@/components/notes/ribbon/RibbonControls";
 import {
   SpecialTabsPanel,
-  type SpecialOption,
   type SpecialTab,
 } from "@/components/notes/ribbon/SpecialTabsPanel";
+import { buildContextualTab } from "@/components/notes/ribbon/contextualTabs";
 import { InsertDictionaryModal } from "@/components/InsertDictionaryModal";
 import { InsertVerseModal } from "@/components/InsertVerseModal";
 import { TablePickerDialog } from "@/components/notes/TablePickerDialog";
@@ -31,6 +31,8 @@ import {
   serializeNoteHtml,
   setImageBackgroundSelection,
   wrapAllContentBlocks,
+  type NoteBlockController,
+  type NoteBlockSelection,
 } from "@/lib/noteEditorBlocks";
 import {
   deleteNoteFont,
@@ -141,6 +143,12 @@ export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
   const tiptapRef = useRef<TiptapEditorInstance | null>(null);
   // Pestaña abierta del panel de herramientas especiales; null = panel cerrado.
   const [activeSpecialTab, setActiveSpecialTab] = useState<string | null>(null);
+  // Bloque estructurado seleccionado (versículo, definición o tabla). Manda la
+  // pestaña contextual de la cinta; el documento no muestra ningún control.
+  const [blockSelection, setBlockSelection] = useState<NoteBlockSelection>(null);
+  const blockControllerRef = useRef<NoteBlockController | null>(null);
+  // La próxima imagen subida debe insertarse ya como fondo.
+  const pendingBackgroundRef = useRef(false);
 
   useEffect(() => {
     if (isNew || !noteId) return;
@@ -211,20 +219,25 @@ export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
     if (!editor || preview || loading) return;
     wrapAllContentBlocks(editor);
     latestHtmlRef.current = serializeNoteHtml(editor);
-    return initNoteEditorBlocks(editor, (block) => {
-      if (mountedRef.current) setSelectedImage(block);
-    });
+    const controller = initNoteEditorBlocks(
+      editor,
+      (block) => {
+        if (mountedRef.current) setSelectedImage(block);
+      },
+      (selection) => {
+        if (mountedRef.current) setBlockSelection(selection);
+      },
+    );
+    blockControllerRef.current = controller;
+    return () => {
+      blockControllerRef.current = null;
+      controller.destroy();
+    };
   }, [loading, preview]);
 
   useEffect(() => {
     setImageBackgroundSelection(editorRef.current, backgroundSelection);
   }, [backgroundSelection, loading, preview]);
-
-  // Al seleccionar una imagen se abre su pestaña, que es donde viven ahora los
-  // controles que antes estaban en el panel inferior.
-  useEffect(() => {
-    if (selectedImage) setActiveSpecialTab("imagen");
-  }, [selectedImage]);
 
   // Ctrl/Cmd+S guarda, como en cualquier editor de documentos.
   useEffect(() => {
@@ -581,6 +594,21 @@ export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
       }
       if (!src) src = await fileToDataUrl(file);
       insertHtml(buildImageBlockHtml(src, file.name || "Imagen de la nota"));
+      // Si se pidió desde «Imagen de fondo», enviarla detrás del texto en cuanto
+      // el bloque exista en el DOM.
+      if (pendingBackgroundRef.current) {
+        pendingBackgroundRef.current = false;
+        window.setTimeout(() => {
+          const blocks = editorRef.current?.querySelectorAll<HTMLElement>(
+            ".note-image-block",
+          );
+          const inserted = blocks?.[blocks.length - 1];
+          if (inserted) {
+            setSelectedImage(inserted);
+            inserted.classList.add("is-selected");
+          }
+        }, 0);
+      }
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "No se pudo insertar la imagen",
@@ -764,6 +792,9 @@ export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
         ? "full"
         : "center";
 
+  // Panel de inserción: cada pestaña ofrece las formas de traer contenido nuevo
+  // a la nota. Las acciones *sobre* un elemento ya insertado no viven aquí,
+  // sino en la pestaña contextual de la cinta.
   const specialTabs: SpecialTab[] = [
     {
       id: "fondos",
@@ -773,26 +804,24 @@ export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
       options: [
         {
           id: "modo-fondos",
-          title: backgroundSelection ? "Desactivar modo fondos" : "Activar modo fondos",
+          title: backgroundSelection ? "Salir del modo fondos" : "Modo fondos",
           description: "Eleva los fondos para poder moverlos",
           icon: "image",
           active: backgroundSelection,
           onSelect: () => setBackgroundSelection((active) => !active),
         },
-        ...(selectedImage
-          ? [
-              {
-                id: "a-fondo",
-                title: imageIsBackground ? "Volver a normal" : "Convertir en fondo",
-                description: imageIsBackground
-                  ? "La imagen vuelve al flujo del texto"
-                  : "La imagen pasa detrás del texto",
-                icon: "image" as const,
-                onSelect: () =>
-                  setImageMode(imageIsBackground ? "normal" : "background"),
-              },
-            ]
-          : []),
+        {
+          id: "subir-fondo",
+          title: "Imagen de fondo",
+          description: "Súbela y envíala detrás del texto",
+          icon: "upload",
+          disabled: uploadingImage,
+          onSelect: () => {
+            saveSelection();
+            pendingBackgroundRef.current = true;
+            fileInputRef.current?.click();
+          },
+        },
       ],
     },
     {
@@ -811,6 +840,13 @@ export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
             setVerseOpen(true);
           },
         },
+        {
+          id: "insertar-cita",
+          title: "Cita destacada",
+          description: "Convierte la selección en una cita",
+          icon: "quote",
+          onSelect: () => exec("formatBlock", "blockquote"),
+        },
       ],
     },
     {
@@ -821,7 +857,7 @@ export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
       options: [
         {
           id: "insertar-strong",
-          title: "Insertar entrada Strong",
+          title: "Entrada Strong",
           description: "Añade la definición de una palabra original",
           icon: "dictionary",
           onSelect: () => {
@@ -848,82 +884,38 @@ export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
             fileInputRef.current?.click();
           },
         },
-        // Solo cuando hay una imagen seleccionada: son acciones sobre ella.
-        ...(selectedImage
-          ? ([
-              {
-                id: "ancho-50",
-                title: "Ancho 50 %",
-                description: "Media columna",
-                icon: "sidebar-collapse" as const,
-                active: selectedImageWidth === 50,
-                onSelect: () => setImageWidth(50),
-              },
-              {
-                id: "ancho-100",
-                title: "Ancho completo",
-                description: "Ocupa todo el ancho",
-                icon: "sidebar-expand" as const,
-                active: selectedImageWidth === 100,
-                onSelect: () => setImageWidth(100),
-              },
-              {
-                id: "alinear-izq",
-                title: "Alinear izquierda",
-                description: "El texto fluye a la derecha",
-                icon: "arrow-left" as const,
-                active: selectedImageAlign === "left",
-                onSelect: () => setImageAlign("left"),
-              },
-              {
-                id: "alinear-centro",
-                title: "Centrar",
-                description: "Imagen centrada en la nota",
-                icon: "image" as const,
-                active: selectedImageAlign === "center",
-                onSelect: () => setImageAlign("center"),
-              },
-              {
-                id: "alinear-der",
-                title: "Alinear derecha",
-                description: "El texto fluye a la izquierda",
-                icon: "arrow-right" as const,
-                active: selectedImageAlign === "right",
-                onSelect: () => setImageAlign("right"),
-              },
-              {
-                id: "subir-bloque",
-                title: "Mover arriba",
-                description: "Adelanta la imagen un bloque",
-                icon: "chevron-up" as const,
-                onSelect: () => moveImage("up"),
-              },
-              {
-                id: "bajar-bloque",
-                title: "Mover abajo",
-                description: "Retrasa la imagen un bloque",
-                icon: "chevron-down" as const,
-                onSelect: () => moveImage("down"),
-              },
-              {
-                id: "borrar-imagen",
-                title: "Eliminar imagen",
-                description: "Quita la imagen de la nota",
-                icon: "delete" as const,
-                onSelect: () => deleteImage(),
-              },
-              {
-                id: "cerrar-seleccion",
-                title: "Quitar selección",
-                description: "Deja de editar esta imagen",
-                icon: "close" as const,
-                onSelect: () => closeImageEditor(),
-              },
-            ] as SpecialOption[])
-          : []),
+        {
+          id: "insertar-tabla",
+          title: "Insertar tabla",
+          description: "Elige filas, columnas y encabezado",
+          icon: "table",
+          onSelect: () => {
+            saveSelection();
+            setTablePickerOpen(true);
+          },
+        },
       ],
     },
   ];
+  // Pestaña contextual: aparece sola al seleccionar un elemento y desaparece al
+  // deseleccionar. Sustituye a las barras que antes iban dentro del documento.
+  const contextualTab = buildContextualTab(
+    blockSelection,
+    blockControllerRef.current,
+    selectedImage
+      ? {
+          isBackground: imageIsBackground,
+          width: selectedImageWidth,
+          align: selectedImageAlign,
+          setMode: setImageMode,
+          setWidth: setImageWidth,
+          setAlign: setImageAlign,
+          move: moveImage,
+          remove: deleteImage,
+          deselect: closeImageEditor,
+        }
+      : null,
+  );
 
   const ribbonTabs: RibbonTabDef[] = [
     {
@@ -1164,7 +1156,7 @@ export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
       ribbon={
         !preview ? (
           <WordRibbon
-            tabs={ribbonTabs}
+            tabs={contextualTab ? [...ribbonTabs, contextualTab] : ribbonTabs}
             belowRibbon={
               <SpecialTabsPanel
                 tabs={specialTabs}

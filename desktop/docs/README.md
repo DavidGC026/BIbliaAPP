@@ -30,6 +30,7 @@ Cliente de escritorio (Tauri v2 + React) para congregaciones. Consume la API RES
 | 15  | [15-editor-tiptap-prueba.md](./15-editor-tiptap-prueba.md) | Prueba de concepto del editor con Tiptap |
 | 16  | [16-editor-cinta-contextual.md](./16-editor-cinta-contextual.md) | Cinta de opciones contextual tipo Word |
 | 17  | [17-editor-pantalla-completa.md](./17-editor-pantalla-completa.md) | Editor a pantalla completa y cinta contraíble |
+| 18  | [18-bloques-sin-controles-incrustados.md](./18-bloques-sin-controles-incrustados.md) | Bloques sin barras internas y pestañas contextuales |
 
 Regla Cursor para agentes: [`.cursor/rules/desktop.mdc`](../../.cursor/rules/desktop.mdc)
 

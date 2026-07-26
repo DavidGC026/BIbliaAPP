@@ -302,7 +302,10 @@ select option {
   color: var(--foreground) !important;
 }
 
-/* Bloques interactivos (versículo, diccionario, tabla) — igual que móvil */
+/* Bloques estructurados (versículo, diccionario, tabla).
+   El documento solo muestra contenido: ninguna barra, ningún botón. Al
+   seleccionar, un contorno fino sobre un borde ya reservado, de modo que la
+   selección no desplace ni aumente la altura del contenido. */
 .note-rich .biblia-content-block {
   margin: 12px 0;
   border: 2px solid transparent;
@@ -314,66 +317,15 @@ select option {
 }
 .note-rich .biblia-content-block.is-selected {
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px color-mix(in oklch, var(--primary) 20%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--primary) 18%, transparent);
 }
-.note-rich .biblia-block-handle {
-  display: none;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 8px;
-  margin: -2px -2px 0;
-  background: var(--background);
-  border-bottom: 1px solid var(--border);
-  border-radius: 10px 10px 0 0;
-  user-select: none;
-}
-.note-rich .biblia-content-block.is-selected .biblia-block-handle {
-  display: flex;
-}
-.note-rich .biblia-block-label {
-  font-size: 11px;
-  font-weight: 800;
-  color: var(--muted-foreground);
-  flex: 1;
-  min-width: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.note-rich .biblia-block-kind {
-  flex: none;
-  border-radius: 999px;
-  background: color-mix(in oklch, var(--primary) 14%, transparent);
-  color: var(--primary);
-  padding: 3px 7px;
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-.note-rich .biblia-block-actions {
-  display: flex;
-  gap: 4px;
-  flex-shrink: 0;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-}
-.note-rich .biblia-block-btn {
-  border: none;
-  background: var(--accent);
-  color: var(--foreground);
-  font-size: 10px;
-  font-weight: 700;
-  padding: 5px 7px;
-  border-radius: 6px;
-  white-space: nowrap;
-  cursor: pointer;
-}
-.note-rich .biblia-block-btn:hover {
-  opacity: 0.85;
-}
-.note-rich .biblia-block-btn[data-block-action="delete"] {
-  color: #dc2626;
+/* Cinturón de seguridad: si una nota antigua trae la barra guardada dentro del
+   contenido, no se muestra aunque stripBlockHandles no haya pasado todavía. */
+.note-rich .biblia-block-handle,
+.note-rich [data-block-action],
+.note-rich-readonly .biblia-block-handle,
+.note-rich-readonly [data-block-action] {
+  display: none !important;
 }
 .note-rich .biblia-verse-block blockquote.biblia-verse-quote,
 .note-rich .biblia-dict-block aside.biblia-dict-entry,

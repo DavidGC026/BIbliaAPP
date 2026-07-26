@@ -178,40 +178,63 @@ console.log(`\n  ${passed} correctos, ${failed} fallidos\n`);
 
 const { wrapAllContentBlocks } = await import("../noteEditorBlocks");
 
-console.log("  Reconstruccion en los clientes actuales (sin tocar su codigo)\n");
+console.log("  Envoltorio sin interfaz dentro del documento\n");
 
-const interop: { name: string; html: string; expect: string[] }[] = [
+const HANDLE_SELECTORS = [
+  ".biblia-block-handle",
+  "[data-block-action]",
+  ".biblia-block-btn",
+  ".biblia-block-actions",
+  ".biblia-block-kind",
+];
+
+const interop: {
+  name: string;
+  html: string;
+  /** Estructura que si debe reconstruirse. */
+  expect: string[];
+}[] = [
   {
-    name: "Versiculo limpio recupera envoltorio y barra",
+    name: "Versiculo limpio recupera envoltorio, sin barra de botones",
     html:
       '<blockquote class="biblia-verse-quote"><strong>Juan 3:16</strong><br>Porque de tal manera…</blockquote>',
     expect: [
       ".biblia-content-block.biblia-verse-block",
-      ".biblia-block-handle",
-      '[data-block-action="delete"]',
+      "blockquote.biblia-verse-quote",
     ],
   },
   {
-    name: "Tabla limpia recupera barra con acciones de fila y columna",
+    name: "Tabla limpia recupera envoltorio, sin barra de botones",
     html:
       '<table class="biblia-note-table"><tbody><tr><td>a</td><td>b</td></tr></tbody></table>',
-    expect: [
-      ".biblia-content-block.biblia-table-block",
-      '[data-block-action="table-row-add"]',
-      '[data-block-action="table-col-del"]',
-    ],
+    expect: [".biblia-content-block.biblia-table-block", "table"],
   },
   {
-    name: "Diccionario limpio recupera envoltorio",
+    name: "Diccionario limpio recupera envoltorio, sin barra de botones",
     html:
       '<aside class="biblia-dict-entry" data-strong="H0430"><p>Dios</p></aside>',
-    expect: [".biblia-content-block.biblia-dict-block", ".biblia-block-handle"],
+    expect: [
+      ".biblia-content-block.biblia-dict-block",
+      "aside.biblia-dict-entry",
+    ],
   },
   {
     name: "Imagen limpia conserva su bloque",
     html:
       '<div class="note-image-block" style="width: 60%;"><img src="/uploads/a.webp" alt="a" /></div>',
     expect: ["div.note-image-block", "img[src]"],
+  },
+  {
+    name: "Nota antigua con barra guardada: la barra se descarta al abrir",
+    html:
+      '<div class="biblia-content-block biblia-verse-block">' +
+      HANDLE +
+      '<blockquote class="biblia-verse-quote">Texto del versículo</blockquote>' +
+      "</div>",
+    expect: [
+      ".biblia-content-block.biblia-verse-block",
+      "blockquote.biblia-verse-quote",
+    ],
   },
 ];
 
@@ -223,13 +246,16 @@ for (const testCase of interop) {
   host.innerHTML = roundTrip(testCase.html);
   wrapAllContentBlocks(host);
   const missing = testCase.expect.filter((sel) => !host.querySelector(sel));
-  if (missing.length === 0) {
+  const leaked = HANDLE_SELECTORS.filter((sel) => host.querySelector(sel));
+  if (missing.length === 0 && leaked.length === 0) {
     interopPassed++;
     console.log(`  OK    ${testCase.name}`);
   } else {
     interopFailed++;
     console.log(`  FALLA ${testCase.name}`);
-    console.log(`        falta: ${missing.join(", ")}`);
+    if (missing.length) console.log(`        falta: ${missing.join(", ")}`);
+    if (leaked.length)
+      console.log(`        interfaz dentro del contenido: ${leaked.join(", ")}`);
     console.log(`        salida: ${host.innerHTML.slice(0, 200)}`);
   }
 }

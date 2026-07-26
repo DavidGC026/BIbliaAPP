@@ -1,76 +1,30 @@
-/** Bloques de versículo/diccionario/tabla con barra ↑↓ Copiar/Cortar/Eliminar (igual que móvil). */
+/**
+ * Bloques de versículo, diccionario y tabla.
+ *
+ * Regla de oro: **el documento solo contiene el contenido final de la nota**.
+ * Ningún bloque lleva barra de botones, encabezado ni controles incrustados;
+ * las acciones viven en la cinta superior, en su pestaña contextual. Lo único
+ * que se ve al seleccionar es un contorno fino que no altera la maquetación.
+ */
 
-function verseLabelFromBlockquote(bq: Element | null): string {
-  if (!bq) return "Versículo";
-  const strong = bq.querySelector("strong");
-  if (strong?.textContent) return strong.textContent.trim().slice(0, 72);
-  const t = (bq.textContent ?? "").trim().replace(/\s+/g, " ");
-  return t.slice(0, 60) || "Versículo";
-}
+/** Tipo de bloque estructurado, para que la cinta sepa qué pestaña mostrar. */
+export type NoteBlockKind = "verse" | "dict" | "table" | "image";
 
-function dictLabelFromAside(aside: Element | null): string {
-  if (!aside) return "Diccionario";
-  const code = aside.getAttribute("data-strong") ?? "";
-  const lemma =
-    aside.querySelector(".biblia-dict-lemma")?.textContent?.trim() ?? "";
-  return code ? `${code}${lemma ? ` · ${lemma}` : ""}` : "Diccionario Strong";
-}
+export type NoteBlockSelection = {
+  element: HTMLElement;
+  kind: NoteBlockKind;
+} | null;
 
-function tableBlockLabel(table: HTMLTableElement): string {
-  const rows = table.rows.length;
-  const cols = rows > 0 ? table.rows[0].cells.length : 0;
-  return `Tabla ${cols}×${rows}`;
-}
-
-type BlockAction = { action: string; label: string };
-
-const TABLE_ACTIONS: readonly BlockAction[] = [
-  { action: "table-row-add", label: "+ Fila" },
-  { action: "table-row-del", label: "− Fila" },
-  { action: "table-col-add", label: "+ Col" },
-  { action: "table-col-del", label: "− Col" },
-];
-
-function buildBlockHandleHtml(
-  kind: string,
-  label: string,
-  extraActions: readonly BlockAction[] = [],
-): string {
-  const extraButtons = extraActions
-    .map(
-      ({ action, label: actionLabel }) =>
-        `<button type="button" class="biblia-block-btn" data-block-action="${action}" contenteditable="false">${actionLabel}</button>`,
-    )
-    .join("");
-  return (
-    `<div class="biblia-block-handle" contenteditable="false">` +
-    `<span class="biblia-block-kind">${kind}</span>` +
-    `<span class="biblia-block-label">${label}</span>` +
-    `<div class="biblia-block-actions">` +
-    extraButtons +
-    `<button type="button" class="biblia-block-btn" data-block-action="up" contenteditable="false">↑</button>` +
-    `<button type="button" class="biblia-block-btn" data-block-action="down" contenteditable="false">↓</button>` +
-    `<button type="button" class="biblia-block-btn" data-block-action="copy" contenteditable="false">Copiar</button>` +
-    `<button type="button" class="biblia-block-btn" data-block-action="cut" contenteditable="false">Cortar</button>` +
-    `<button type="button" class="biblia-block-btn" data-block-action="delete" contenteditable="false">Eliminar</button>` +
-    `</div></div>`
-  );
-}
-
-function plainHtmlLabel(html: string, fallback: string): string {
-  const text = html
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&nbsp;/gi, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-  return (text || fallback).slice(0, 72).replace(/[<>&"]/g, "");
-}
+export type TableAction =
+  | "table-row-add"
+  | "table-row-del"
+  | "table-col-add"
+  | "table-col-del";
 
 export function buildVerseBlockHtml(innerHtml: string): string {
   const blockquote = `<blockquote class="biblia-verse-quote" contenteditable="false">${innerHtml}</blockquote>`;
   return (
     `<div class="biblia-content-block biblia-verse-block">` +
-    buildBlockHandleHtml("Versículo", plainHtmlLabel(innerHtml, "Versículo")) +
     blockquote +
     `</div><p><br></p>`
   );
@@ -78,7 +32,7 @@ export function buildVerseBlockHtml(innerHtml: string): string {
 
 export function buildDictBlockHtml(asideHtml: string): string {
   if (typeof document === "undefined") {
-    return `<div class="biblia-content-block biblia-dict-block">${buildBlockHandleHtml("Strong", plainHtmlLabel(asideHtml, "Diccionario Strong"))}${asideHtml}</div><p><br></p>`;
+    return `<div class="biblia-content-block biblia-dict-block">${asideHtml}</div><p><br></p>`;
   }
   const tmp = document.createElement("div");
   tmp.innerHTML = asideHtml;
@@ -90,7 +44,6 @@ export function buildDictBlockHtml(asideHtml: string): string {
   }
   return (
     `<div class="biblia-content-block biblia-dict-block">` +
-    buildBlockHandleHtml("Strong", dictLabelFromAside(aside)) +
     (aside?.outerHTML ?? asideHtml) +
     `</div><p><br></p>`
   );
@@ -122,10 +75,8 @@ export function buildTableBlockHtml(
     tableHtml += "</tbody>";
   }
   tableHtml += "</table>";
-  const label = `Tabla ${cols}×${rows}`;
   return (
     `<div class="biblia-content-block biblia-table-block">` +
-    buildBlockHandleHtml("Tabla", label, TABLE_ACTIONS) +
     tableHtml +
     `</div><p><br></p>`
   );
@@ -167,10 +118,6 @@ function wrapVerseElement(blockquote: Element) {
   blockquote.setAttribute("contenteditable", "false");
   const block = document.createElement("div");
   block.className = "biblia-content-block biblia-verse-block";
-  block.innerHTML = buildBlockHandleHtml(
-    "Versículo",
-    verseLabelFromBlockquote(blockquote),
-  );
   blockquote.parentNode?.insertBefore(block, blockquote);
   block.appendChild(blockquote);
 }
@@ -181,7 +128,6 @@ function wrapDictElement(aside: Element) {
   aside.setAttribute("contenteditable", "false");
   const block = document.createElement("div");
   block.className = "biblia-content-block biblia-dict-block";
-  block.innerHTML = buildBlockHandleHtml("Strong", dictLabelFromAside(aside));
   aside.parentNode?.insertBefore(block, aside);
   block.appendChild(aside);
 }
@@ -190,33 +136,32 @@ function wrapTableElement(table: HTMLTableElement) {
   const existingBlock = table.closest(".biblia-content-block");
   if (existingBlock) {
     existingBlock.classList.add("biblia-table-block");
-    const handle = existingBlock.querySelector<HTMLElement>(
-      ":scope > .biblia-block-handle",
-    );
-    const currentLabel = tableBlockLabel(table);
-    if (!handle?.querySelector('[data-block-action="table-row-add"]')) {
-      handle?.remove();
-      existingBlock.insertAdjacentHTML(
-        "afterbegin",
-        buildBlockHandleHtml("Tabla", currentLabel, TABLE_ACTIONS),
-      );
-    } else {
-      const label = handle.querySelector<HTMLElement>(".biblia-block-label");
-      if (label) label.textContent = currentLabel;
-    }
     return;
   }
   if (!table.classList.contains("biblia-note-table"))
     table.classList.add("biblia-note-table");
   const block = document.createElement("div");
   block.className = "biblia-content-block biblia-table-block";
-  block.innerHTML = buildBlockHandleHtml(
-    "Tabla",
-    tableBlockLabel(table),
-    TABLE_ACTIONS,
-  );
   table.parentNode?.insertBefore(block, table);
   block.appendChild(table);
+}
+
+/**
+ * Quita las barras de botones que quedaron guardadas dentro del contenido por
+ * versiones anteriores (y las que añaden web y móvil al abrir la nota).
+ *
+ * Se ejecuta al cargar y antes de serializar, de modo que el documento nunca
+ * contenga interfaz. Si el envoltorio queda vacío tras quitarla, se descarta.
+ */
+export function stripBlockHandles(root: HTMLElement) {
+  root
+    .querySelectorAll(".biblia-block-handle, [data-block-action]")
+    .forEach((node) => node.remove());
+  root.querySelectorAll(".biblia-content-block").forEach((block) => {
+    if (!block.firstElementChild && !(block.textContent ?? "").trim()) {
+      block.remove();
+    }
+  });
 }
 
 function applyImageDefaults(block: HTMLElement, image: HTMLImageElement) {
@@ -271,6 +216,8 @@ function wrapImageElement(image: HTMLImageElement) {
 }
 
 export function wrapAllContentBlocks(editor: HTMLElement) {
+  // Lo primero: fuera cualquier barra incrustada que traiga el HTML guardado.
+  stripBlockHandles(editor);
   editor
     .querySelectorAll<HTMLElement>(".biblia-content-block.biblia-image-block")
     .forEach(migrateDesktopImageBlock);
@@ -303,6 +250,8 @@ export type NoteImageSelectionHandler = (block: HTMLElement | null) => void;
 
 export function serializeNoteHtml(editor: HTMLElement): string {
   const clone = editor.cloneNode(true) as HTMLElement;
+  // La nota guardada nunca lleva interfaz dentro.
+  stripBlockHandles(clone);
   clone
     .querySelectorAll<HTMLElement>(".is-selected, .is-dragging")
     .forEach((node) => {
@@ -322,10 +271,26 @@ export function setImageBackgroundSelection(
   else editor.removeAttribute("data-background-selection");
 }
 
+/**
+ * Acciones sobre el bloque seleccionado. Las invoca la cinta desde su pestaña
+ * contextual; el documento no expone ningún control.
+ */
+export type NoteBlockController = {
+  move(direction: "up" | "down"): void;
+  copy(): void;
+  cut(): void;
+  remove(): void;
+  changeTable(action: TableAction): void;
+  /** Quita la selección y cierra la pestaña contextual. */
+  clear(): void;
+  destroy(): void;
+};
+
 export function initNoteEditorBlocks(
   editor: HTMLElement,
   onImageSelection?: NoteImageSelectionHandler,
-): () => void {
+  onBlockSelection?: (selection: NoteBlockSelection) => void,
+): NoteBlockController {
   wrapAllContentBlocks(editor);
 
   let selectedBlock: Element | null = null;
@@ -341,9 +306,16 @@ export function initNoteEditorBlocks(
       }
     | null = null;
 
+  function blockKind(block: Element): NoteBlockKind {
+    if (block.classList.contains("biblia-verse-block")) return "verse";
+    if (block.classList.contains("biblia-dict-block")) return "dict";
+    return "table";
+  }
+
   function clearSelection() {
     selectedBlock?.classList.remove("is-selected");
     selectedBlock = null;
+    onBlockSelection?.(null);
   }
 
   function clearImageSelection() {
@@ -368,11 +340,6 @@ export function initNoteEditorBlocks(
     const cell = document.createElement(isHeader ? "th" : "td");
     cell.innerHTML = isHeader ? `Col ${index + 1}` : "&nbsp;";
     return cell;
-  }
-
-  function updateTableLabel(block: Element, table: HTMLTableElement) {
-    const label = block.querySelector<HTMLElement>(".biblia-block-label");
-    if (label) label.textContent = tableBlockLabel(table);
   }
 
   function changeTable(block: Element, action: string): boolean {
@@ -404,7 +371,6 @@ export function initNoteEditorBlocks(
     }
 
     if (changed) {
-      updateTableLabel(block, table);
       selectBlock(block);
       notifyChange();
     }
@@ -413,9 +379,12 @@ export function initNoteEditorBlocks(
 
   function selectBlock(block: Element) {
     clearImageSelection();
-    clearSelection();
+    selectedBlock?.classList.remove("is-selected");
     selectedBlock = block;
     block.classList.add("is-selected");
+    if (block instanceof HTMLElement) {
+      onBlockSelection?.({ element: block, kind: blockKind(block) });
+    }
   }
 
   function selectImage(block: HTMLElement) {
@@ -478,15 +447,6 @@ export function initNoteEditorBlocks(
     removeBlock(block);
   }
 
-  function handleAction(block: Element, action: string) {
-    if (action.startsWith("table-")) changeTable(block, action);
-    else if (action === "up") moveBlock(block, "up");
-    else if (action === "down") moveBlock(block, "down");
-    else if (action === "copy") copyBlock(block);
-    else if (action === "cut") cutBlock(block);
-    else if (action === "delete") removeBlock(block);
-  }
-
   function trySelectFromTarget(target: EventTarget | null): boolean {
     if (!(target instanceof Element)) return false;
     const block = target.closest(".biblia-content-block");
@@ -522,15 +482,6 @@ export function initNoteEditorBlocks(
       e.preventDefault();
       e.stopPropagation();
       selectImage(imageBlock);
-      return;
-    }
-    const actionBtn = (e.target as Element).closest("[data-block-action]");
-    if (actionBtn) {
-      e.preventDefault();
-      e.stopPropagation();
-      const block = actionBtn.closest(".biblia-content-block");
-      if (block)
-        handleAction(block, actionBtn.getAttribute("data-block-action") ?? "");
       return;
     }
     if (trySelectFromTarget(e.target)) {
@@ -616,14 +567,35 @@ export function initNoteEditorBlocks(
   editor.addEventListener("pointerup", finishPointerDrag);
   editor.addEventListener("pointercancel", finishPointerDrag);
 
-  return () => {
-    editor.removeEventListener("click", onClick);
-    editor.removeEventListener("keydown", onKeyDown);
-    editor.removeEventListener("pointerdown", onPointerDown);
-    editor.removeEventListener("pointermove", onPointerMove);
-    editor.removeEventListener("pointerup", finishPointerDrag);
-    editor.removeEventListener("pointercancel", finishPointerDrag);
-    clearSelection();
-    clearImageSelection();
+  return {
+    move: (direction) => {
+      if (selectedBlock) moveBlock(selectedBlock, direction);
+    },
+    copy: () => {
+      if (selectedBlock) copyBlock(selectedBlock);
+    },
+    cut: () => {
+      if (selectedBlock) cutBlock(selectedBlock);
+    },
+    remove: () => {
+      if (selectedBlock) removeBlock(selectedBlock);
+    },
+    changeTable: (action) => {
+      if (selectedBlock) changeTable(selectedBlock, action);
+    },
+    clear: () => {
+      clearSelection();
+      clearImageSelection();
+    },
+    destroy: () => {
+      editor.removeEventListener("click", onClick);
+      editor.removeEventListener("keydown", onKeyDown);
+      editor.removeEventListener("pointerdown", onPointerDown);
+      editor.removeEventListener("pointermove", onPointerMove);
+      editor.removeEventListener("pointerup", finishPointerDrag);
+      editor.removeEventListener("pointercancel", finishPointerDrag);
+      clearSelection();
+      clearImageSelection();
+    },
   };
 }

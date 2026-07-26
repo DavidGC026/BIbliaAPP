@@ -11,6 +11,11 @@ export type RibbonTabDef = {
   id: string;
   label: string;
   render: () => ReactNode;
+  /**
+   * Pestaña contextual: solo existe mientras hay algo seleccionado, se activa
+   * sola al aparecer y desaparece al deseleccionar. Igual que en Word.
+   */
+  contextual?: boolean;
 };
 
 type Props = {
@@ -31,13 +36,18 @@ type Props = {
  */
 export function WordRibbon({ tabs, belowRibbon }: Props) {
   const [collapsed, setCollapsed] = useState(getRibbonCollapsed);
-  const [activeId, setActiveId] = useState(() => getRibbonTab(tabs[0]?.id ?? ""));
+  const [manualId, setManualId] = useState(() => getRibbonTab(tabs[0]?.id ?? ""));
 
-  const activeTab = tabs.find((tab) => tab.id === activeId) ?? tabs[0];
+  const contextualTab = tabs.find((tab) => tab.contextual);
+  // La contextual manda mientras exista; al desaparecer se vuelve a la que el
+  // usuario tenia elegida a mano.
+  const activeTab =
+    contextualTab ?? tabs.find((tab) => tab.id === manualId) ?? tabs[0];
 
   function selectTab(id: string) {
-    setActiveId(id);
-    saveRibbonTab(id);
+    setManualId(id);
+    // Solo se recuerda una pestaña fija: las contextuales son efimeras.
+    if (!tabs.find((tab) => tab.id === id)?.contextual) saveRibbonTab(id);
     // Pulsar una pestaña con la cinta contraida la despliega.
     if (collapsed) {
       setCollapsed(false);
@@ -64,8 +74,8 @@ export function WordRibbon({ tabs, belowRibbon }: Props) {
             onMouseDown={(event) => event.preventDefault()}
             onClick={() => selectTab(tab.id)}
             className={`ribbon-tab ${
-              !collapsed && tab.id === activeTab?.id ? "ribbon-tab-active" : ""
-            }`}
+              tab.contextual ? "ribbon-tab-contextual" : ""
+            } ${!collapsed && tab.id === activeTab?.id ? "ribbon-tab-active" : ""}`}
           >
             {tab.label}
           </button>

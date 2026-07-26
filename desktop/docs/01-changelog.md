@@ -4,6 +4,23 @@ Registro cronológico de cambios en `desktop/`. Lo más reciente arriba.
 
 ---
 
+## 2026-07-26 — bloques sin controles dentro del documento
+
+- Los versículos, definiciones y tablas dejan de mostrar la barra interna con
+  `↑ ↓ Copiar Cortar Eliminar`. El documento solo contiene el contenido final de
+  la nota, como en el PDF exportado.
+- Al seleccionar un elemento solo se ve un contorno dorado fino, que no desplaza
+  ni aumenta la altura del contenido.
+- Las acciones pasan a pestañas contextuales de la cinta: **Formato de
+  versículo**, **Formato de definición**, **Diseño de tabla** y **Formato de
+  imagen**. Aparecen y se activan solas, y desaparecen al deseleccionar.
+- Las notas ya guardadas con la barra dentro la descartan al abrirse, y se
+  guardan limpias. Se conserva todo el contenido.
+- El panel de herramientas especiales queda reservado a insertar contenido
+  nuevo; las acciones sobre un elemento existente viven en su pestaña.
+
+Detalle: [18-bloques-sin-controles-incrustados.md](./18-bloques-sin-controles-incrustados.md).
+
 ## 2026-07-26 — editor a pantalla completa con cinta estilo Word
 
 - El cuerpo de la nota ocupa todo el alto y el ancho de la ventana; el scroll
