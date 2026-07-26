@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { InsertDictionaryModal } from "@/components/InsertDictionaryModal";
 import { InsertVerseModal } from "@/components/InsertVerseModal";
+import { TablePickerDialog } from "@/components/notes/TablePickerDialog";
 import * as api from "@/lib/api";
 import { formatDictionaryHtml } from "@/lib/dictionary";
 import {
@@ -76,6 +77,8 @@ const FONT_SIZES = [
   { px: "28px", label: "28" },
 ];
 
+const AUTOSAVE_DELAY_MS = 1500;
+
 export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
   const isNew = noteId === null;
   const editorRef = useRef<HTMLDivElement | null>(null);
@@ -102,6 +105,7 @@ export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [dictOpen, setDictOpen] = useState(false);
   const [verseOpen, setVerseOpen] = useState(false);
+  const [tablePickerOpen, setTablePickerOpen] = useState(false);
   const [preview, setPreview] = useState(false);
   const [previewHtml, setPreviewHtml] = useState("");
   const [activeFont, setActiveFont] = useState(() => getNoteFont(noteId));
@@ -342,7 +346,7 @@ export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
     scheduleAutosave();
   }
 
-  function scheduleAutosave(delay = 4000) {
+  function scheduleAutosave(delay = AUTOSAVE_DELAY_MS) {
     if (autosaveTimerRef.current) window.clearTimeout(autosaveTimerRef.current);
     autosaveTimerRef.current = window.setTimeout(() => {
       autosaveTimerRef.current = null;
@@ -713,10 +717,10 @@ export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
         />
         <p className="mt-1 text-xs text-muted-foreground">
           {saveStatus === "saving"
-            ? "Guardando…"
+            ? "Autoguardando…"
             : saveStatus === "pending"
-              ? "Cambios pendientes"
-              : "Guardado"}
+              ? "Cambios pendientes · autoguardado en breve"
+              : "Guardado automáticamente"}
           {` · ${wordCount} ${wordCount === 1 ? "palabra" : "palabras"}`}
         </p>
       </div>
@@ -818,7 +822,8 @@ export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
               title="Insertar tabla"
               onMouseDown={(e) => {
                 e.preventDefault();
-                insertHtml(buildTableBlockHtml());
+                saveSelection();
+                setTablePickerOpen(true);
               }}
               className={toolBtn}
             >
@@ -899,7 +904,7 @@ export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
               }}
               className="flex h-9 items-center gap-1 rounded-md border border-primary/40 bg-primary/10 px-3 text-sm font-semibold text-primary hover:opacity-90"
             >
-              <Icon name="book" size={16} />
+              <Icon name="bible" size={16} />
               Versículo
             </button>
             <button
@@ -1056,7 +1061,7 @@ export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
           onClick={togglePreview}
           className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline"
         >
-          <Icon name={preview ? "edit" : "eye"} size={16} />
+          <Icon name={preview ? "edit" : "visibility"} size={16} />
           {preview ? "Modo edición" : "Vista previa"}
         </button>
       </div>
@@ -1112,6 +1117,14 @@ export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
         open={dictOpen}
         onClose={() => setDictOpen(false)}
         onInsert={insertDictionary}
+      />
+      <TablePickerDialog
+        open={tablePickerOpen}
+        onClose={() => setTablePickerOpen(false)}
+        onInsert={({ columns, rows, withHeader }) => {
+          setTablePickerOpen(false);
+          insertHtml(buildTableBlockHtml(columns, rows, withHeader));
+        }}
       />
     </div>
   );

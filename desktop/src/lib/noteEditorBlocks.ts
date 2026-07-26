@@ -22,12 +22,32 @@ function tableBlockLabel(table: HTMLTableElement): string {
   return `Tabla ${cols}×${rows}`;
 }
 
-function buildBlockHandleHtml(kind: string, label: string): string {
+type BlockAction = { action: string; label: string };
+
+const TABLE_ACTIONS: readonly BlockAction[] = [
+  { action: "table-row-add", label: "+ Fila" },
+  { action: "table-row-del", label: "− Fila" },
+  { action: "table-col-add", label: "+ Col" },
+  { action: "table-col-del", label: "− Col" },
+];
+
+function buildBlockHandleHtml(
+  kind: string,
+  label: string,
+  extraActions: readonly BlockAction[] = [],
+): string {
+  const extraButtons = extraActions
+    .map(
+      ({ action, label: actionLabel }) =>
+        `<button type="button" class="biblia-block-btn" data-block-action="${action}" contenteditable="false">${actionLabel}</button>`,
+    )
+    .join("");
   return (
     `<div class="biblia-block-handle" contenteditable="false">` +
     `<span class="biblia-block-kind">${kind}</span>` +
     `<span class="biblia-block-label">${label}</span>` +
     `<div class="biblia-block-actions">` +
+    extraButtons +
     `<button type="button" class="biblia-block-btn" data-block-action="up" contenteditable="false">↑</button>` +
     `<button type="button" class="biblia-block-btn" data-block-action="down" contenteditable="false">↓</button>` +
     `<button type="button" class="biblia-block-btn" data-block-action="copy" contenteditable="false">Copiar</button>` +
@@ -105,7 +125,7 @@ export function buildTableBlockHtml(
   const label = `Tabla ${cols}×${rows}`;
   return (
     `<div class="biblia-content-block biblia-table-block">` +
-    buildBlockHandleHtml("Tabla", label) +
+    buildBlockHandleHtml("Tabla", label, TABLE_ACTIONS) +
     tableHtml +
     `</div><p><br></p>`
   );
@@ -167,12 +187,34 @@ function wrapDictElement(aside: Element) {
 }
 
 function wrapTableElement(table: HTMLTableElement) {
-  if (table.closest(".biblia-content-block")) return;
+  const existingBlock = table.closest(".biblia-content-block");
+  if (existingBlock) {
+    existingBlock.classList.add("biblia-table-block");
+    const handle = existingBlock.querySelector<HTMLElement>(
+      ":scope > .biblia-block-handle",
+    );
+    const currentLabel = tableBlockLabel(table);
+    if (!handle?.querySelector('[data-block-action="table-row-add"]')) {
+      handle?.remove();
+      existingBlock.insertAdjacentHTML(
+        "afterbegin",
+        buildBlockHandleHtml("Tabla", currentLabel, TABLE_ACTIONS),
+      );
+    } else {
+      const label = handle.querySelector<HTMLElement>(".biblia-block-label");
+      if (label) label.textContent = currentLabel;
+    }
+    return;
+  }
   if (!table.classList.contains("biblia-note-table"))
     table.classList.add("biblia-note-table");
   const block = document.createElement("div");
   block.className = "biblia-content-block biblia-table-block";
-  block.innerHTML = buildBlockHandleHtml("Tabla", tableBlockLabel(table));
+  block.innerHTML = buildBlockHandleHtml(
+    "Tabla",
+    tableBlockLabel(table),
+    TABLE_ACTIONS,
+  );
   table.parentNode?.insertBefore(block, table);
   block.appendChild(table);
 }
@@ -314,6 +356,61 @@ export function initNoteEditorBlocks(
     editor.dispatchEvent(new Event("input", { bubbles: true }));
   }
 
+  function tableColumnCount(table: HTMLTableElement) {
+    return Array.from(table.rows).reduce(
+      (count, row) => Math.max(count, row.cells.length),
+      0,
+    );
+  }
+
+  function createTableCell(row: HTMLTableRowElement, index: number) {
+    const isHeader = row.parentElement?.tagName === "THEAD";
+    const cell = document.createElement(isHeader ? "th" : "td");
+    cell.innerHTML = isHeader ? `Col ${index + 1}` : "&nbsp;";
+    return cell;
+  }
+
+  function updateTableLabel(block: Element, table: HTMLTableElement) {
+    const label = block.querySelector<HTMLElement>(".biblia-block-label");
+    if (label) label.textContent = tableBlockLabel(table);
+  }
+
+  function changeTable(block: Element, action: string): boolean {
+    const table = block.querySelector("table");
+    if (!(table instanceof HTMLTableElement)) return false;
+    const columns = tableColumnCount(table);
+    let changed = false;
+
+    if (action === "table-row-add" && table.rows.length < 20) {
+      const body = table.tBodies[0] ?? table.createTBody();
+      const row = body.insertRow();
+      for (let index = 0; index < Math.max(1, columns); index += 1) {
+        row.appendChild(createTableCell(row, index));
+      }
+      changed = true;
+    } else if (action === "table-row-del" && table.rows.length > 1) {
+      table.deleteRow(table.rows.length - 1);
+      changed = true;
+    } else if (action === "table-col-add" && columns < 10) {
+      Array.from(table.rows).forEach((row) => {
+        row.appendChild(createTableCell(row, columns));
+      });
+      changed = true;
+    } else if (action === "table-col-del" && columns > 1) {
+      Array.from(table.rows).forEach((row) => {
+        if (row.cells.length > 0) row.deleteCell(row.cells.length - 1);
+      });
+      changed = true;
+    }
+
+    if (changed) {
+      updateTableLabel(block, table);
+      selectBlock(block);
+      notifyChange();
+    }
+    return changed;
+  }
+
   function selectBlock(block: Element) {
     clearImageSelection();
     clearSelection();
@@ -382,7 +479,8 @@ export function initNoteEditorBlocks(
   }
 
   function handleAction(block: Element, action: string) {
-    if (action === "up") moveBlock(block, "up");
+    if (action.startsWith("table-")) changeTable(block, action);
+    else if (action === "up") moveBlock(block, "up");
     else if (action === "down") moveBlock(block, "down");
     else if (action === "copy") copyBlock(block);
     else if (action === "cut") cutBlock(block);
@@ -400,7 +498,7 @@ export function initNoteEditorBlocks(
       if (target.tagName === "TD" || target.tagName === "TH") {
         if (block.classList.contains("is-selected")) {
           clearSelection();
-          return true;
+          return false;
         }
       }
       selectBlock(block);

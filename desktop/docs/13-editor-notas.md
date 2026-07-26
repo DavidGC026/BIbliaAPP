@@ -24,6 +24,20 @@ El botón redondo **A** no guarda negro, blanco ni el color que esté activo en 
 
 La clase se resuelve con `var(--foreground)`, por lo que el texto se adapta al cambiar entre Sistema, Claro, Oscuro, Sepia y los demás temas. Al aplicarlo a texto que ya tenía color se eliminan colores inline anidados y atributos antiguos `font[color]`. También funciona con el cursor colapsado para que lo escrito a continuación quede en modo automático.
 
+## Tablas configurables
+
+El botón de tabla abre un selector equivalente al de mobile:
+
+- entre 1 y 10 columnas;
+- entre 1 y 20 filas;
+- primera fila como encabezado opcional;
+- vista previa inmediata antes de insertar.
+
+Después de insertar, el primer clic selecciona el bloque y muestra **+ Fila**,
+**− Fila**, **+ Col** y **− Col**, además de las acciones comunes. Un segundo
+clic en una celda entra en edición de texto. Los límites impiden dejar la tabla
+sin filas o columnas, y cada cambio dispara el mismo autoguardado del contenido.
+
 ## Imágenes normales y de fondo
 
 Las imágenes usan el mismo bloque canónico de móvil:
@@ -57,22 +71,24 @@ Una imagen de fondo usa `is-background`, posición absoluta y coordenadas `left/
 
 ## Autoguardado
 
-El estado bajo el título muestra **Cambios pendientes**, **Guardando…** o **Guardado**, además del conteo de palabras.
+El estado bajo el título muestra **Cambios pendientes · autoguardado en breve**,
+**Autoguardando…** o **Guardado automáticamente**, además del conteo de palabras.
 
-Se programa un guardado silencioso cuatro segundos después del último cambio en:
+Se programa un guardado silencioso 1.5 segundos después del último cambio en:
 
 - título o cuerpo;
 - formato, color automático o color explícito;
 - tablas, versículos y diccionario;
 - inserción, tamaño, modo, alineación, orden, posición o borrado de imágenes.
 
-También se fuerza un guardado al pulsar **Volver**, al perder el foco de la ventana, al ocultarse la aplicación y al desmontarse la vista por navegación lateral. Los guardados concurrentes se encolan: si el contenido cambia mientras hay una escritura en curso, el cambio nuevo no se marca como guardado ni se descarta. Un autoguardado fallido se mantiene pendiente y se reintenta después de cuatro segundos.
+También se fuerza un guardado al pulsar **Volver**, al perder el foco de la ventana, al ocultarse la aplicación y al desmontarse la vista por navegación lateral. Los guardados concurrentes se encolan: si el contenido cambia mientras hay una escritura en curso, el cambio nuevo no se marca como guardado ni se descarta. Un autoguardado fallido se mantiene pendiente y se reintenta después de 1.5 segundos.
 
 Una nota nueva completamente vacía no se crea por accidente. Si ya tiene texto o imagen, el autoguardado puede crearla con el título provisional **Sin título**; el botón Guardar exige un título visible, igual que móvil. Tras el primer guardado se conserva el id creado para actualizar la misma nota y evitar duplicados.
 
 ## Archivos principales
 
 - `src/pages/notes/NoteEditorView.tsx`: toolbar, panel de imagen y ciclo de guardado.
+- `src/components/notes/TablePickerDialog.tsx`: dimensiones, encabezado y vista previa de tabla.
 - `src/lib/noteEditorBlocks.ts`: HTML compatible, migración, selección y arrastre.
 - `src/styles/globals.css`: color semántico e imágenes normales/de fondo.
 - `src/lib/notePreferences.ts`: fuentes y colores favoritos locales.
@@ -86,4 +102,7 @@ npm run build
 cargo check --manifest-path src-tauri/Cargo.toml
 ```
 
-Prueba funcional recomendada: crear una nota, aplicar un color fijo y luego Auto, insertar dos imágenes, convertir una a fondo, arrastrarla, cerrar desde la navegación lateral antes de cuatro segundos y volver a abrir la nota en desktop y móvil.
+Prueba funcional recomendada: crear una nota, insertar una tabla 4×5 con encabezado,
+editar una celda, añadir/quitar una fila y columna, esperar el estado **Guardado
+automáticamente**, cerrar y volver a abrir. Completar también la prueba de color
+Auto e imágenes normales/de fondo y confirmar la interoperabilidad con móvil.
