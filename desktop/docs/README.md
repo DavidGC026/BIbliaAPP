@@ -29,6 +29,7 @@ Cliente de escritorio (Tauri v2 + React) para congregaciones. Consume la API RES
 | 14  | [14-offline-y-release-arch-0.3.3.md](./14-offline-y-release-arch-0.3.3.md) | Auditoría offline y paquete Arch |
 | 15  | [15-editor-tiptap-prueba.md](./15-editor-tiptap-prueba.md) | Prueba de concepto del editor con Tiptap |
 | 16  | [16-editor-cinta-contextual.md](./16-editor-cinta-contextual.md) | Cinta de opciones contextual tipo Word |
+| 17  | [17-editor-pantalla-completa.md](./17-editor-pantalla-completa.md) | Editor a pantalla completa y cinta contraíble |
 
 Regla Cursor para agentes: [`.cursor/rules/desktop.mdc`](../../.cursor/rules/desktop.mdc)
 

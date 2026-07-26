@@ -24,9 +24,11 @@ type Props = {
   onNavigateToFeed?: () => void;
   onNavigateToGroups?: () => void;
   onNavigateToGroup?: (groupId: number, tab?: "prayers" | "events") => void;
+  /** La barra lateral esta contraida: centrar el icono. */
+  collapsed?: boolean;
 };
 
-export function NotificationBell({ onNavigateToFeed, onNavigateToGroups, onNavigateToGroup }: Props) {
+export function NotificationBell({ onNavigateToFeed, onNavigateToGroups, onNavigateToGroup, collapsed = false }: Props) {
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -97,7 +99,10 @@ export function NotificationBell({ onNavigateToFeed, onNavigateToGroups, onNavig
   }
 
   return (
-    <div ref={containerRef} className="relative px-3">
+    <div
+      ref={containerRef}
+      className={`relative ${collapsed ? "flex justify-center px-0" : "px-3"}`}
+    >
       <button
         type="button"
         onClick={() => setOpen(!open)}

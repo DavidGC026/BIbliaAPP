@@ -1,6 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
+import { NoteEditorShell } from "@/components/notes/editor-shell/NoteEditorShell";
+import { NoteHeaderBar } from "@/components/notes/editor-shell/NoteHeaderBar";
+import { WordRibbon, type RibbonTabDef } from "@/components/notes/ribbon/WordRibbon";
+import { RibbonGroup } from "@/components/notes/ribbon/RibbonGroup";
+import {
+  RibbonButton,
+  RibbonSelect,
+  RibbonSwatch,
+} from "@/components/notes/ribbon/RibbonControls";
+import {
+  SpecialTabsPanel,
+  type SpecialOption,
+  type SpecialTab,
+} from "@/components/notes/ribbon/SpecialTabsPanel";
 import { InsertDictionaryModal } from "@/components/InsertDictionaryModal";
 import { InsertVerseModal } from "@/components/InsertVerseModal";
 import { TablePickerDialog } from "@/components/notes/TablePickerDialog";
@@ -126,6 +139,8 @@ export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
   // se entra a mano y se puede volver al de siempre en cualquier momento.
   const [useTiptap, setUseTiptap] = useState(false);
   const tiptapRef = useRef<TiptapEditorInstance | null>(null);
+  // Pestaña abierta del panel de herramientas especiales; null = panel cerrado.
+  const [activeSpecialTab, setActiveSpecialTab] = useState<string | null>(null);
 
   useEffect(() => {
     if (isNew || !noteId) return;
@@ -204,6 +219,24 @@ export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
   useEffect(() => {
     setImageBackgroundSelection(editorRef.current, backgroundSelection);
   }, [backgroundSelection, loading, preview]);
+
+  // Al seleccionar una imagen se abre su pestaña, que es donde viven ahora los
+  // controles que antes estaban en el panel inferior.
+  useEffect(() => {
+    if (selectedImage) setActiveSpecialTab("imagen");
+  }, [selectedImage]);
+
+  // Ctrl/Cmd+S guarda, como en cualquier editor de documentos.
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
+        event.preventDefault();
+        void persistRef.current(false, false);
+      }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
 
   function saveSelection() {
     const sel = window.getSelection();
@@ -718,8 +751,6 @@ export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
     return <p className="text-muted-foreground">Cargando nota…</p>;
   }
 
-  const toolBtn =
-    "flex h-9 min-w-9 items-center justify-center rounded-md px-2 text-sm text-foreground hover:bg-accent";
   const imageIsBackground = selectedImage?.classList.contains("is-background") ?? false;
   const selectedImageWidth = Math.max(
     20,
@@ -733,417 +764,457 @@ export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
         ? "full"
         : "center";
 
-  return (
-    <div className="desktop-page space-y-4">
-      <Button variant="ghost" onClick={() => void back()}>
-        ← Volver
-      </Button>
-      <div>
-        <input
-          value={title}
-          onChange={(e) => {
-            setTitle(e.target.value);
-            titleRef.current = e.target.value;
-            setSaveStatus("pending");
-            scheduleAutosave();
-          }}
-          placeholder="Título"
-          className="w-full border-0 bg-transparent text-2xl font-bold text-foreground outline-none"
-        />
-        <p className="mt-1 text-xs text-muted-foreground">
-          {saveStatus === "saving"
-            ? "Autoguardando…"
-            : saveStatus === "pending"
-              ? "Cambios pendientes · autoguardado en breve"
-              : "Guardado automáticamente"}
-          {` · ${wordCount} ${wordCount === 1 ? "palabra" : "palabras"}`}
-        </p>
-      </div>
+  const specialTabs: SpecialTab[] = [
+    {
+      id: "fondos",
+      label: "Fondos",
+      icon: "image",
+      tone: "sky",
+      options: [
+        {
+          id: "modo-fondos",
+          title: backgroundSelection ? "Desactivar modo fondos" : "Activar modo fondos",
+          description: "Eleva los fondos para poder moverlos",
+          icon: "image",
+          active: backgroundSelection,
+          onSelect: () => setBackgroundSelection((active) => !active),
+        },
+        ...(selectedImage
+          ? [
+              {
+                id: "a-fondo",
+                title: imageIsBackground ? "Volver a normal" : "Convertir en fondo",
+                description: imageIsBackground
+                  ? "La imagen vuelve al flujo del texto"
+                  : "La imagen pasa detrás del texto",
+                icon: "image" as const,
+                onSelect: () =>
+                  setImageMode(imageIsBackground ? "normal" : "background"),
+              },
+            ]
+          : []),
+      ],
+    },
+    {
+      id: "versiculo",
+      label: "Versículos",
+      icon: "bible",
+      tone: "primary",
+      options: [
+        {
+          id: "insertar-versiculo",
+          title: "Insertar versículo",
+          description: "Busca y cita un pasaje bíblico",
+          icon: "bible",
+          onSelect: () => {
+            saveSelection();
+            setVerseOpen(true);
+          },
+        },
+      ],
+    },
+    {
+      id: "diccionario",
+      label: "Diccionario",
+      icon: "dictionary",
+      tone: "violet",
+      options: [
+        {
+          id: "insertar-strong",
+          title: "Insertar entrada Strong",
+          description: "Añade la definición de una palabra original",
+          icon: "dictionary",
+          onSelect: () => {
+            saveSelection();
+            setDictOpen(true);
+          },
+        },
+      ],
+    },
+    {
+      id: "imagen",
+      label: "Imagen",
+      icon: "image",
+      tone: "sky",
+      options: [
+        {
+          id: "subir-imagen",
+          title: uploadingImage ? "Insertando…" : "Subir imagen",
+          description: "Desde tu equipo, máximo 10 MB",
+          icon: "upload",
+          disabled: uploadingImage,
+          onSelect: () => {
+            saveSelection();
+            fileInputRef.current?.click();
+          },
+        },
+        // Solo cuando hay una imagen seleccionada: son acciones sobre ella.
+        ...(selectedImage
+          ? ([
+              {
+                id: "ancho-50",
+                title: "Ancho 50 %",
+                description: "Media columna",
+                icon: "sidebar-collapse" as const,
+                active: selectedImageWidth === 50,
+                onSelect: () => setImageWidth(50),
+              },
+              {
+                id: "ancho-100",
+                title: "Ancho completo",
+                description: "Ocupa todo el ancho",
+                icon: "sidebar-expand" as const,
+                active: selectedImageWidth === 100,
+                onSelect: () => setImageWidth(100),
+              },
+              {
+                id: "alinear-izq",
+                title: "Alinear izquierda",
+                description: "El texto fluye a la derecha",
+                icon: "arrow-left" as const,
+                active: selectedImageAlign === "left",
+                onSelect: () => setImageAlign("left"),
+              },
+              {
+                id: "alinear-centro",
+                title: "Centrar",
+                description: "Imagen centrada en la nota",
+                icon: "image" as const,
+                active: selectedImageAlign === "center",
+                onSelect: () => setImageAlign("center"),
+              },
+              {
+                id: "alinear-der",
+                title: "Alinear derecha",
+                description: "El texto fluye a la izquierda",
+                icon: "arrow-right" as const,
+                active: selectedImageAlign === "right",
+                onSelect: () => setImageAlign("right"),
+              },
+              {
+                id: "subir-bloque",
+                title: "Mover arriba",
+                description: "Adelanta la imagen un bloque",
+                icon: "chevron-up" as const,
+                onSelect: () => moveImage("up"),
+              },
+              {
+                id: "bajar-bloque",
+                title: "Mover abajo",
+                description: "Retrasa la imagen un bloque",
+                icon: "chevron-down" as const,
+                onSelect: () => moveImage("down"),
+              },
+              {
+                id: "borrar-imagen",
+                title: "Eliminar imagen",
+                description: "Quita la imagen de la nota",
+                icon: "delete" as const,
+                onSelect: () => deleteImage(),
+              },
+              {
+                id: "cerrar-seleccion",
+                title: "Quitar selección",
+                description: "Deja de editar esta imagen",
+                icon: "close" as const,
+                onSelect: () => closeImageEditor(),
+              },
+            ] as SpecialOption[])
+          : []),
+      ],
+    },
+  ];
 
-      {!preview && !useTiptap ? (
-        <div className="space-y-2 rounded-lg border border-border bg-card p-2">
-          <div className="flex flex-wrap items-center gap-1">
-            <button
-              type="button"
-              title="Deshacer"
-              onMouseDown={(e) => {
-                e.preventDefault();
-                exec("undo");
-              }}
-              className={toolBtn}
-            >
+  const ribbonTabs: RibbonTabDef[] = [
+    {
+      id: "inicio",
+      label: "Inicio",
+      render: () => (
+        <>
+          <RibbonGroup label="Deshacer">
+            <RibbonButton label="Deshacer" onAction={() => exec("undo")}>
               ↶
-            </button>
-            <button
-              type="button"
-              title="Rehacer"
-              onMouseDown={(e) => {
-                e.preventDefault();
-                exec("redo");
-              }}
-              className={toolBtn}
-            >
+            </RibbonButton>
+            <RibbonButton label="Rehacer" onAction={() => exec("redo")}>
               ↷
-            </button>
-            <div className="mx-1 h-6 w-px bg-border" />
-            <button
-              type="button"
-              title="Encabezado 1"
-              onMouseDown={(e) => {
-                e.preventDefault();
-                toggleHeading("h1");
-              }}
-              className={`${toolBtn} font-extrabold`}
-            >
-              H1
-            </button>
-            <button
-              type="button"
-              title="Encabezado 2"
-              onMouseDown={(e) => {
-                e.preventDefault();
-                toggleHeading("h2");
-              }}
-              className={`${toolBtn} font-bold`}
-            >
-              H2
-            </button>
-            {FORMAT_BUTTONS.map((b) => (
-              <button
-                key={b.cmd}
-                type="button"
-                title={b.title}
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  exec(b.cmd);
-                }}
-                className={toolBtn}
-                style={b.style}
-              >
-                {b.label}
-              </button>
-            ))}
-            <div className="mx-1 h-6 w-px bg-border" />
-            {FONT_SIZES.map((s) => (
-              <button
-                key={s.px}
-                type="button"
-                title={`Tamaño ${s.label}`}
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  wrapStyle("fontSize", s.px);
-                }}
-                className={toolBtn}
-              >
-                {s.label}
-              </button>
-            ))}
-            <div className="mx-1 h-6 w-px bg-border" />
-            <select
-              aria-label="Tipografía de la nota"
-              value={activeFont}
-              onChange={(e) => changeFont(e.target.value)}
-              className="h-9 max-w-44 rounded-md border border-border bg-background px-2 text-xs"
-            >
-              {NOTE_FONTS.map((font) => (
-                <option key={font.id} value={font.id}>
-                  {font.label}
-                </option>
-              ))}
-            </select>
-            <div className="mx-1 h-6 w-px bg-border" />
-            <button
-              type="button"
-              title="Insertar tabla"
-              onMouseDown={(e) => {
-                e.preventDefault();
-                saveSelection();
-                setTablePickerOpen(true);
-              }}
-              className={toolBtn}
-            >
-              <Icon name="table" size={16} />
-            </button>
-            <button
-              type="button"
-              title="Seleccionar toda la nota"
-              onMouseDown={(e) => {
-                e.preventDefault();
-                selectAllContent();
-              }}
-              className={toolBtn}
-            >
-              Todo
-            </button>
-          </div>
+            </RibbonButton>
+          </RibbonGroup>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              title="Color automático: sigue el tema claro, oscuro o sepia"
-              aria-label="Color automático"
-              onMouseDown={(e) => {
-                e.preventDefault();
-                applyAutoColor();
-              }}
-              className="flex h-7 w-7 items-center justify-center rounded-full border border-border bg-muted text-xs font-extrabold text-foreground"
+          <RibbonGroup label="Estilos">
+            <RibbonButton label="Título 1" wide onAction={() => toggleHeading("h1")}>
+              H1
+            </RibbonButton>
+            <RibbonButton label="Título 2" wide onAction={() => toggleHeading("h2")}>
+              H2
+            </RibbonButton>
+            <RibbonButton
+              label="Texto normal"
+              wide
+              onAction={() => exec("formatBlock", "p")}
+            >
+              Normal
+            </RibbonButton>
+          </RibbonGroup>
+
+          <RibbonGroup label="Fuente">
+            <RibbonSelect
+              label="Tipografía de la nota"
+              value={activeFont}
+              onChange={changeFont}
+              options={NOTE_FONTS.map((font) => ({
+                value: font.id,
+                label: font.label,
+              }))}
+              className="w-32"
+            />
+            <RibbonSelect
+              label="Tamaño de letra"
+              value=""
+              onChange={(size) => size && wrapStyle("fontSize", size)}
+              options={[
+                { value: "", label: "Tamaño" },
+                ...FONT_SIZES.map((size) => ({
+                  value: size.px,
+                  label: size.label,
+                })),
+              ]}
+              className="w-20"
+            />
+          </RibbonGroup>
+
+          <RibbonGroup label="Formato">
+            {FORMAT_BUTTONS.slice(0, 4).map((button) => (
+              <RibbonButton
+                key={button.cmd}
+                label={button.title}
+                onAction={() => exec(button.cmd)}
+              >
+                <span style={button.style}>{button.label}</span>
+              </RibbonButton>
+            ))}
+          </RibbonGroup>
+
+          <RibbonGroup label="Párrafo">
+            {FORMAT_BUTTONS.slice(4).map((button) => (
+              <RibbonButton
+                key={button.cmd}
+                label={button.title}
+                onAction={() => exec(button.cmd)}
+              >
+                <span style={button.style}>{button.label}</span>
+              </RibbonButton>
+            ))}
+            <RibbonButton
+              label="Alinear a la izquierda"
+              onAction={() => exec("justifyLeft")}
+            >
+              ⇤
+            </RibbonButton>
+            <RibbonButton label="Centrar" onAction={() => exec("justifyCenter")}>
+              ≡
+            </RibbonButton>
+            <RibbonButton
+              label="Alinear a la derecha"
+              onAction={() => exec("justifyRight")}
+            >
+              ⇥
+            </RibbonButton>
+          </RibbonGroup>
+
+          <RibbonGroup label="Color">
+            <RibbonButton
+              label="Color automático, se adapta al tema"
+              onAction={applyAutoColor}
             >
               A
-            </button>
-            {favoriteColors.map((c) => (
-              <button
-                key={c}
-                type="button"
-                title="Color de texto"
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  wrapStyle("color", c);
-                }}
-                className="h-6 w-6 rounded-full border border-border"
-                style={{ backgroundColor: c }}
+            </RibbonButton>
+            {favoriteColors.map((color) => (
+              <RibbonSwatch
+                key={color}
+                color={color}
+                label={`Aplicar color ${color}`}
+                onAction={() => wrapStyle("color", color)}
               />
             ))}
             <label
               title="Añadir color personalizado"
-              className="relative flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border border-dashed border-border text-xs text-muted-foreground"
+              className="relative flex h-[1.15rem] w-[1.15rem] cursor-pointer items-center justify-center rounded-full border border-dashed border-border text-[0.6rem] text-muted-foreground"
             >
               +
               <input
                 type="color"
+                aria-label="Añadir color personalizado"
                 className="absolute inset-0 cursor-pointer opacity-0"
-                onChange={(e) => addFavoriteColor(e.target.value)}
+                onChange={(event) => addFavoriteColor(event.target.value)}
               />
             </label>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2 pt-1">
-            <button
-              type="button"
-              aria-pressed={backgroundSelection}
-              onClick={() => setBackgroundSelection((active) => !active)}
-              className={`flex h-9 items-center gap-1 rounded-md border px-3 text-sm font-semibold ${
-                backgroundSelection
-                  ? "border-sky-600 bg-sky-600 text-white"
-                  : "border-sky-500/40 bg-sky-500/10 text-sky-600 dark:text-sky-300"
-              }`}
+          </RibbonGroup>
+        </>
+      ),
+    },
+    {
+      id: "insertar",
+      label: "Insertar",
+      render: () => (
+        <>
+          <RibbonGroup label="Tabla">
+            <RibbonButton
+              label="Insertar tabla"
+              wide
+              onAction={() => {
+                saveSelection();
+                setTablePickerOpen(true);
+              }}
             >
-              <Icon name="image" size={16} />
-              Fondos
-            </button>
-            <button
-              type="button"
-              onMouseDown={(e) => {
-                e.preventDefault();
+              <Icon name="table" size={16} />
+              Tabla
+            </RibbonButton>
+          </RibbonGroup>
+
+          <RibbonGroup label="Contenido">
+            <RibbonButton
+              label="Insertar versículo"
+              wide
+              onAction={() => {
                 saveSelection();
                 setVerseOpen(true);
               }}
-              className="flex h-9 items-center gap-1 rounded-md border border-primary/40 bg-primary/10 px-3 text-sm font-semibold text-primary hover:opacity-90"
             >
               <Icon name="bible" size={16} />
               Versículo
-            </button>
-            <button
-              type="button"
-              onMouseDown={(e) => {
-                e.preventDefault();
+            </RibbonButton>
+            <RibbonButton
+              label="Insertar entrada de diccionario Strong"
+              wide
+              onAction={() => {
                 saveSelection();
                 setDictOpen(true);
               }}
-              className="flex h-9 items-center gap-1 rounded-md border border-[#7c3aed]/40 bg-[#7c3aed]/10 px-3 text-sm font-semibold text-[#7c3aed] hover:opacity-90"
             >
               <Icon name="dictionary" size={16} />
               Diccionario
-            </button>
-            <button
-              type="button"
+            </RibbonButton>
+            <RibbonButton
+              label="Insertar imagen"
+              wide
               disabled={uploadingImage}
-              onMouseDown={(e) => {
-                e.preventDefault();
+              onAction={() => {
                 saveSelection();
                 fileInputRef.current?.click();
               }}
-              className="flex h-9 items-center gap-1 rounded-md border border-sky-500/40 bg-sky-500/10 px-3 text-sm font-semibold text-sky-600 hover:opacity-90 disabled:opacity-50 dark:text-sky-300"
             >
               <Icon name="image" size={16} />
               {uploadingImage ? "Insertando…" : "Imagen"}
-            </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              hidden
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) void insertImage(file);
-              }}
-            />
-          </div>
+            </RibbonButton>
+          </RibbonGroup>
 
-          {selectedImage ? (
-            <div className="space-y-3 rounded-lg border border-primary/30 bg-background p-3">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-xs font-extrabold uppercase tracking-wide text-muted-foreground">
-                    Imagen seleccionada
-                  </p>
-                  <p className="text-sm font-bold text-foreground">
-                    {imageIsBackground
-                      ? "Fondo libre"
-                      : "Imagen dentro de la nota"}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={closeImageEditor}
-                  className={toolBtn}
-                  aria-label="Cerrar edición de imagen"
-                >
-                  ×
-                </button>
-              </div>
+          <RibbonGroup label="Selección" secondary>
+            <RibbonButton label="Seleccionar todo" wide onAction={selectAllContent}>
+              Todo
+            </RibbonButton>
+          </RibbonGroup>
 
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-xs font-bold text-muted-foreground">Modo</span>
-                <Button
-                  variant={imageIsBackground ? "outline" : "primary"}
-                  className="px-3 py-1.5 text-xs"
-                  onClick={() => setImageMode("normal")}
-                >
-                  Normal
-                </Button>
-                <Button
-                  variant={imageIsBackground ? "primary" : "outline"}
-                  className="px-3 py-1.5 text-xs"
-                  onClick={() => setImageMode("background")}
-                >
-                  Fondo
-                </Button>
-              </div>
+          <RibbonGroup label="Vista" secondary>
+            <RibbonButton
+              label={preview ? "Volver al modo edición" : "Ver vista previa"}
+              wide
+              active={preview}
+              onAction={togglePreview}
+            >
+              <Icon name={preview ? "edit" : "visibility"} size={16} />
+              {preview ? "Editar" : "Vista previa"}
+            </RibbonButton>
+            <RibbonButton
+              label="Probar el editor nuevo, con cinta contextual"
+              wide
+              active={useTiptap}
+              onAction={() => setUseTiptap((value) => !value)}
+            >
+              <Icon name="sparkles" size={16} />
+              Editor nuevo
+            </RibbonButton>
+          </RibbonGroup>
+        </>
+      ),
+    },
+  ];
 
-              <label className="flex items-center gap-3 text-xs font-bold text-muted-foreground">
-                Tamaño
-                <input
-                  type="range"
-                  min="20"
-                  max="100"
-                  step="5"
-                  value={selectedImageWidth}
-                  onChange={(event) => setImageWidth(Number(event.target.value))}
-                  className="min-w-40 flex-1 accent-primary"
-                />
-                <span className="min-w-10 text-right text-primary">
-                  {selectedImageWidth}%
-                </span>
-              </label>
+  return (
+    <NoteEditorShell
+      header={
+        <NoteHeaderBar
+          title={title}
+          onTitleChange={(value) => {
+            setTitle(value);
+            titleRef.current = value;
+            setSaveStatus("pending");
+            scheduleAutosave();
+          }}
+          saveState={error ? "error" : saveStatus}
+          wordCount={wordCount}
+          onBack={() => void back()}
+          onSave={save}
+          onShare={shareNote}
+          onExportPdf={exportPdf}
+          onDelete={remove}
+          canDelete={!isNew || createdIdRef.current !== null}
+          busy={saving}
+        />
+      }
+      ribbon={
+        !preview ? (
+          <WordRibbon
+            tabs={ribbonTabs}
+            belowRibbon={
+              <SpecialTabsPanel
+                tabs={specialTabs}
+                activeTabId={activeSpecialTab}
+                onActiveTabChange={setActiveSpecialTab}
+              />
+            }
+          />
+        ) : null
+      }
+    >
+      {error ? (
+        <p className="border-b border-destructive/30 bg-destructive/10 px-4 py-2 text-sm text-destructive">
+          {error}
+        </p>
+      ) : null}
 
-              {imageIsBackground ? (
-                <p className="text-xs text-muted-foreground">
-                  Arrastra la imagen sobre la nota para colocar el fondo. Activa
-                  “Fondos” para volver a seleccionar fondos ocultos bajo el texto.
-                </p>
-              ) : (
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-xs font-bold text-muted-foreground">
-                    Alineación
-                  </span>
-                  {(
-                    [
-                      ["left", "Izq."],
-                      ["center", "Centro"],
-                      ["right", "Der."],
-                      ["full", "100%"],
-                    ] as const
-                  ).map(([align, label]) => (
-                    <Button
-                      key={align}
-                      variant={selectedImageAlign === align ? "primary" : "outline"}
-                      className="px-3 py-1.5 text-xs"
-                      onClick={() => setImageAlign(align)}
-                    >
-                      {label}
-                    </Button>
-                  ))}
-                </div>
-              )}
-
-              <div className="flex flex-wrap gap-2">
-                {!imageIsBackground ? (
-                  <>
-                    <Button className="px-3 py-1.5 text-xs" variant="outline" onClick={() => moveImage("up")}>
-                      Subir
-                    </Button>
-                    <Button className="px-3 py-1.5 text-xs" variant="outline" onClick={() => moveImage("down")}>
-                      Bajar
-                    </Button>
-                  </>
-                ) : null}
-                <Button
-                  variant="outline"
-                  className="border-red-500/50 px-3 py-1.5 text-xs text-red-600 dark:text-red-300"
-                  onClick={deleteImage}
-                >
-                  Borrar
-                </Button>
-              </div>
-            </div>
-          ) : null}
+      {useTiptap && !preview ? (
+        <div className="px-4 py-3">
+          <TiptapNoteEditor
+            // Remontar al cargar la nota o al entrar, para partir del HTML bueno.
+            key={`tiptap-${noteId ?? "new"}-${loading ? "carga" : "listo"}`}
+            initialHtml={latestHtmlRef.current}
+            onChange={applyChange}
+            onPickImage={() => fileInputRef.current?.click()}
+            onPickTable={() => setTablePickerOpen(true)}
+            fontFamily={getNoteFontFamily(activeFont)}
+            onReady={handleTiptapReady}
+          />
         </div>
       ) : null}
 
-      <div className="flex items-center justify-between gap-3">
-        <button
-          type="button"
-          onClick={() => setUseTiptap((value) => !value)}
-          title={
-            useTiptap
-              ? "Volver al editor actual"
-              : "Probar el editor nuevo, con cinta de opciones contextual"
-          }
-          className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1 text-xs font-semibold text-muted-foreground hover:text-foreground"
-        >
-          <Icon name="sparkles" size={14} />
-          {useTiptap ? "Editor nuevo (beta)" : "Probar editor nuevo"}
-        </button>
-        <button
-          type="button"
-          onClick={togglePreview}
-          className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline"
-        >
-          <Icon name={preview ? "edit" : "visibility"} size={16} />
-          {preview ? "Modo edición" : "Vista previa"}
-        </button>
-      </div>
-
-      {useTiptap && !preview ? (
-        <TiptapNoteEditor
-          // Remontar al cargar la nota o al entrar, para partir del HTML bueno.
-          key={`tiptap-${noteId ?? "new"}-${loading ? "carga" : "listo"}`}
-          initialHtml={latestHtmlRef.current}
-          onChange={applyChange}
-          onPickImage={() => fileInputRef.current?.click()}
-          onPickTable={() => setTablePickerOpen(true)}
-          fontFamily={getNoteFontFamily(activeFont)}
-          onReady={handleTiptapReady}
-        />
-      ) : null}
-
-      <div hidden={preview || useTiptap}>
+      <div hidden={preview || useTiptap} className="h-full">
         <div
           ref={attachEditor}
           contentEditable
           suppressContentEditableWarning
           data-placeholder="Escribe tu nota…"
+          aria-label="Cuerpo de la nota"
           onKeyUp={saveSelection}
           onMouseUp={saveSelection}
           onInput={markChanged}
-          className="note-rich min-h-[55vh] w-full rounded-xl border border-border bg-card px-4 py-3 text-base text-foreground outline-none focus:ring-2 focus:ring-ring"
+          className="note-rich note-editor-surface text-base"
           style={{ fontFamily: getNoteFontFamily(activeFont) }}
         />
       </div>
 
       {preview ? (
         <div
-          className="note-rich note-rich-readonly min-h-[55vh] w-full rounded-xl border border-border bg-card px-4 py-3 text-base text-foreground"
+          className="note-rich note-rich-readonly note-editor-surface text-base"
           style={{ fontFamily: getNoteFontFamily(activeFont) }}
           dangerouslySetInnerHTML={{
             __html: previewHtml || "<p>Sin contenido</p>",
@@ -1151,23 +1222,17 @@ export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
         />
       ) : null}
 
-      {error ? <p className="text-sm text-destructive">{error}</p> : null}
-      <div className="flex flex-wrap gap-2">
-        <Button onClick={save} loading={saving}>
-          Guardar
-        </Button>
-        {!isNew || createdIdRef.current ? (
-          <Button variant="ghost" onClick={remove} loading={saving}>
-            Eliminar
-          </Button>
-        ) : null}
-        <Button variant="outline" onClick={shareNote}>
-          Compartir
-        </Button>
-        <Button variant="outline" onClick={exportPdf}>
-          Exportar PDF
-        </Button>
-      </div>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        hidden
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          event.target.value = "";
+          if (file) void insertImage(file);
+        }}
+      />
 
       <InsertVerseModal
         open={verseOpen}
@@ -1187,7 +1252,7 @@ export function NoteEditorView({ notebookId, noteId, onBack, onSaved }: Props) {
           insertHtml(buildTableBlockHtml(columns, rows, withHeader));
         }}
       />
-    </div>
+    </NoteEditorShell>
   );
 }
 
