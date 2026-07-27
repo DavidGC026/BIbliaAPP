@@ -45,6 +45,7 @@ Documentación del cliente móvil de **BibliaAPP** (React Native + Expo). La app
 | [29-notas-bloques-de-contenido.md](./29-notas-bloques-de-contenido.md) | Bloques de versículo, diccionario y tabla en el editor: reparación de bloques rotos al borrar, borrado en dos pasos y separación del módulo |
 | [30-iconos-compartidos-y-mapa-referencias.md](./30-iconos-compartidos-y-mapa-referencias.md) | Set SVG compartido entre plataformas, integración nativa en Expo y nueva ilustración del mapa de referencias |
 | [31-mapa-de-referencias-navegable.md](./31-mapa-de-referencias-navegable.md) | El mapa arcoíris pasa a ser navegable: encuadre completo, selección determinista, atajos a los capítulos más citados y apertura en el lector de los capítulos conectados |
+| [32-notas-pestana-contextual.md](./32-notas-pestana-contextual.md) | Los bloques dejan de llevar botones dentro del documento: al seleccionarlos solo se ve el contorno y sus acciones pasan a una pestaña contextual en la barra de herramientas |
 
 ---
 
