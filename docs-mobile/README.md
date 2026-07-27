@@ -46,6 +46,7 @@ Documentación del cliente móvil de **BibliaAPP** (React Native + Expo). La app
 | [30-iconos-compartidos-y-mapa-referencias.md](./30-iconos-compartidos-y-mapa-referencias.md) | Set SVG compartido entre plataformas, integración nativa en Expo y nueva ilustración del mapa de referencias |
 | [31-mapa-de-referencias-navegable.md](./31-mapa-de-referencias-navegable.md) | El mapa arcoíris pasa a ser navegable: encuadre completo, selección determinista, atajos a los capítulos más citados y apertura en el lector de los capítulos conectados |
 | [32-notas-pestana-contextual.md](./32-notas-pestana-contextual.md) | Los bloques dejan de llevar botones dentro del documento: al seleccionarlos solo se ve el contorno y sus acciones pasan a una pestaña contextual en la barra de herramientas |
+| [33-editor-tiptap-y-cinta.md](./33-editor-tiptap-y-cinta.md) | El editor pasa de execCommand a Tiptap, con cinta de opciones estilo Word, pestañas contextuales y pantalla completa |
 
 ---
 
