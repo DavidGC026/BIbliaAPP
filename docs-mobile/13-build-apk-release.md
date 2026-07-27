@@ -4,23 +4,24 @@
 
 | Campo | Valor |
 |-------|-------|
-| Archivo | `mobile/releases/BibliaAPP-4.0.5-release.apk` |
+| Archivo | `mobile/releases/BibliaAPP-4.0.6-release.apk` |
 | Package | `com.bibliaapp.mobile` |
-| Versión | 4.0.5 (versionCode 44) |
-| Tamaño | 121 684 715 bytes (116 MiB), multi-ABI |
-| SHA-256 | `e59ab729105474a4019e4011305dea0484f71c88645405be51eb696f90e5675b` |
+| Versión | 4.0.6 (versionCode 45) |
+| Tamaño | 121 688 819 bytes (116 MiB), multi-ABI |
+| SHA-256 | `d8f973cf0ebed3594463a1551b8c030d7f3a0c0ed153802e30d9b0e3ef76c51d` |
 | API | `https://biblia2.dvguzman.com` (embebida en build) |
 | Firma | Debug keystore (`CN=Android Debug`), verificada con `apksigner` |
 
-La 4.0.5 amplía el arrastre táctil de imágenes del **editor de notas sobre
-Tiptap** ([33](./33-editor-tiptap-y-cinta.md)): las imágenes normales pueden
-reordenarse dentro del flujo de la nota y desplazan automáticamente la vista al
-acercarse a sus bordes, igual que las imágenes de fondo. También evita que al
-seleccionar una imagen situada al principio la vista salte al final de la nota.
-El modo de fondos sigue elevando las imágenes durante la edición y **Finalizar
-fondo** las devuelve detrás del texto. Se genera como APK universal para
-`armeabi-v7a`, `arm64-v8a`, `x86` y `x86_64` y se copia también a
-`/home/david/Biblia-release/BibliaAPP-4.0.5-release.apk`.
+La 4.0.6 corrige el destino del arrastre táctil de imágenes normales en el
+**editor de notas sobre Tiptap** ([33](./33-editor-tiptap-y-cinta.md)). Durante
+el gesto muestra una línea dorada en el hueco real y explica si la imagen se
+colocará arriba o debajo de texto, versículo, definición, tabla u otro bloque.
+Al soltar la reordena exactamente allí, sin depender del caret que el WebView
+de Android conserva sobre la imagen capturada. El indicador sigue al
+auto-scroll de bordes; las imágenes de fondo mantienen su movimiento libre. Se
+genera como APK universal para `armeabi-v7a`, `arm64-v8a`, `x86` y `x86_64` y
+se copia también a
+`/home/david/Biblia-release/BibliaAPP-4.0.6-release.apk`.
 
 > Para Play Store genera un keystore de producción y configura `signingConfigs.release` en `android/app/build.gradle`. Ojo: al cambiar de firma, el APK **no se instala encima** del que ya esté en el teléfono; hay que desinstalar primero.
 
