@@ -4,21 +4,23 @@
 
 | Campo | Valor |
 |-------|-------|
-| Archivo | `mobile/releases/BibliaAPP-4.0.4-release.apk` |
+| Archivo | `mobile/releases/BibliaAPP-4.0.5-release.apk` |
 | Package | `com.bibliaapp.mobile` |
-| Versión | 4.0.4 (versionCode 43) |
-| Tamaño | 121 681 943 bytes (116 MiB), multi-ABI |
-| SHA-256 | `86eca449859b1a810677e0dbe1ccd85c40511f7062c977a0e081fa4b57ab887f` |
+| Versión | 4.0.5 (versionCode 44) |
+| Tamaño | 121 684 715 bytes (116 MiB), multi-ABI |
+| SHA-256 | `e59ab729105474a4019e4011305dea0484f71c88645405be51eb696f90e5675b` |
 | API | `https://biblia2.dvguzman.com` (embebida en build) |
 | Firma | Debug keystore (`CN=Android Debug`), verificada con `apksigner` |
 
-La 4.0.4 incorpora el refinamiento visual de la cinta y la colocación directa
-de imágenes detrás del texto en el **editor de notas sobre Tiptap**
-([33](./33-editor-tiptap-y-cinta.md)): el modo de fondos las eleva mientras se
-editan, **Finalizar fondo** las devuelve a su capa y el arrastre desplaza la
-nota automáticamente al acercarse a sus bordes. Se genera como APK universal
-para `armeabi-v7a`, `arm64-v8a`, `x86` y `x86_64` y se copia también a
-`/home/david/Biblia-release/BibliaAPP-4.0.4-release.apk`.
+La 4.0.5 amplía el arrastre táctil de imágenes del **editor de notas sobre
+Tiptap** ([33](./33-editor-tiptap-y-cinta.md)): las imágenes normales pueden
+reordenarse dentro del flujo de la nota y desplazan automáticamente la vista al
+acercarse a sus bordes, igual que las imágenes de fondo. También evita que al
+seleccionar una imagen situada al principio la vista salte al final de la nota.
+El modo de fondos sigue elevando las imágenes durante la edición y **Finalizar
+fondo** las devuelve detrás del texto. Se genera como APK universal para
+`armeabi-v7a`, `arm64-v8a`, `x86` y `x86_64` y se copia también a
+`/home/david/Biblia-release/BibliaAPP-4.0.5-release.apk`.
 
 > Para Play Store genera un keystore de producción y configura `signingConfigs.release` en `android/app/build.gradle`. Ojo: al cambiar de firma, el APK **no se instala encima** del que ya esté en el teléfono; hay que desinstalar primero.
 
