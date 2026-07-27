@@ -126,6 +126,30 @@ El render continúa siendo declarativo: añadir un icono a una acción no cambia
 `Ribbon`, solo el descriptor de la pestaña. `renderItem` centraliza el DOM,
 accesibilidad y combinación icono/etiqueta.
 
+### Colocación directa de imágenes de fondo
+
+Las imágenes detrás del texto usan ahora un modo temporal de colocación con un
+principio explícito: **mientras se editan están delante; al finalizar vuelven
+detrás**.
+
+- Al pulsar **Detrás del texto**, la cinta activa automáticamente el modo de
+  fondos. La imagen no desaparece: queda elevada, con contorno discontinuo y
+  sombra, lista para arrastrarla.
+- La pestaña contextual muestra **Finalizar fondo**. Al pulsarlo se apaga el
+  modo temporal, se cierra la selección y la imagen vuelve inmediatamente a la
+  capa inferior, sin tener que alternar entre Editar y Vista previa.
+- El documento define capas locales: texto y bloques normales en la capa 1,
+  fondos en la 0 y fondos en edición en la 10. Así el `z-index: -1` conservado
+  en el HTML por compatibilidad nunca cae detrás del fondo opaco del WebView.
+- Durante el arrastre, acercar el dedo a los 64 px superiores o inferiores
+  desplaza `#editor` progresivamente. La posición incorpora la diferencia de
+  scroll, de modo que la imagen sigue bajo el dedo aunque este se quede quieto
+  junto al borde.
+
+El auto-scroll usa el contenedor real que desplaza la nota (`#editor`), no
+`.ProseMirror`: esta última representa el documento, pero su `scrollTop`
+permanece en cero.
+
 **Modo fondos** sigue siendo necesario: una imagen detrás del texto lleva
 `pointer-events: none` para poder escribir encima, así que hay que elevarla un
 momento para seleccionarla o arrastrarla. Es interfaz pasajera —una clase en el
