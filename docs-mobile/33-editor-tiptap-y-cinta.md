@@ -152,10 +152,18 @@ permanece en cero.
 
 El mismo gesto cubre ahora también las imágenes **normales**. En vez de
 depender del drag HTML5 de ProseMirror —que no responde de forma fiable al
-dedo en Android—, el bloque se levanta visualmente, acompaña el puntero y al
-soltar se inserta antes o después del bloque bajo el dedo. Conserva el
-auto-scroll de bordes; solo cambia la semántica: una imagen normal se reordena
-en el flujo y una de fondo mantiene coordenadas libres.
+dedo en Android—, el bloque se levanta visualmente y acompaña el puntero. Una
+línea dorada marca el hueco real del documento y una etiqueta explica el
+resultado, por ejemplo **Colocar arriba de versículo** o **Colocar debajo de
+texto**. Al soltar, la imagen se inserta exactamente en ese punto.
+
+El destino se calcula continuamente con la geometría de los nodos superiores,
+no con el caret devuelto por `posAtCoords`: en el WebView de Android ese caret
+puede seguir apuntando a la imagen que conserva la captura del puntero. El
+marcador distingue texto, título, lista, cita, versículo, definición, tabla e
+imagen, y sigue actualizándose durante el auto-scroll de bordes. Solo cambia la
+semántica: una imagen normal se reordena en el flujo y una de fondo mantiene
+coordenadas libres.
 
 La selección ocurre en captura, antes de que el WebView enfoque un caret, y
 las transacciones de imagen ya no llaman `focus()`. Además,
