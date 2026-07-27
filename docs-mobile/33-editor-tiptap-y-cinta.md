@@ -150,6 +150,20 @@ El auto-scroll usa el contenedor real que desplaza la nota (`#editor`), no
 `.ProseMirror`: esta última representa el documento, pero su `scrollTop`
 permanece en cero.
 
+El mismo gesto cubre ahora también las imágenes **normales**. En vez de
+depender del drag HTML5 de ProseMirror —que no responde de forma fiable al
+dedo en Android—, el bloque se levanta visualmente, acompaña el puntero y al
+soltar se inserta antes o después del bloque bajo el dedo. Conserva el
+auto-scroll de bordes; solo cambia la semántica: una imagen normal se reordena
+en el flujo y una de fondo mantiene coordenadas libres.
+
+La selección ocurre en captura, antes de que el WebView enfoque un caret, y
+las transacciones de imagen ya no llaman `focus()`. Además,
+`keepCaretVisible()` ignora `NodeSelection`: seleccionar una imagen que está al
+principio de una nota no puede restaurar el cursor de texto anterior ni mandar
+la vista al final. Un umbral de 6 px separa el toque del arrastre para evitar
+movimientos por temblor del dedo.
+
 **Modo fondos** sigue siendo necesario: una imagen detrás del texto lleva
 `pointer-events: none` para poder escribir encima, así que hay que elevarla un
 momento para seleccionarla o arrastrarla. Es interfaz pasajera —una clase en el
