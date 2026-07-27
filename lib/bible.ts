@@ -517,6 +517,46 @@ export async function getLinksForChapter(bookId: number, chapter: number, userId
   }
 }
 
+/**
+ * Todas las notas de versículo de un usuario, para la lista de «Versículos con
+ * notas». Sin vacías, la más reciente primero.
+ *
+ * `bible_note_links` no guarda versión: una nota es del versículo, no de una
+ * traducción. Por eso el texto del versículo solo se adjunta si quien pregunta
+ * dice con qué Biblia quiere leerlo, y va por LEFT JOIN: que a una versión le
+ * falte ese versículo no puede hacer desaparecer la nota de la lista.
+ */
+export async function getAllLinks(userId: number, bibleId?: number): Promise<any[]> {
+  await ensureDbTables()
+  const pool = getPool()
+  if (bibleId) {
+    const [rows] = await pool.query<RowDataPacket[]>(
+      `SELECT l.id, l.book_id AS bookId, b.name AS bookName, l.chapter, l.verse,
+              l.note_content AS noteContent, v.text AS verseText,
+              l.created_at AS createdAt, l.updated_at AS updatedAt
+       FROM bible_note_links l
+       JOIN bible_books b ON b.idBook = l.book_id
+       LEFT JOIN bible_verses v
+         ON v.idBible = ? AND v.idBook = l.book_id AND v.chapter = l.chapter AND v.verse = l.verse
+       WHERE l.user_id = ? AND l.note_content IS NOT NULL AND l.note_content <> ''
+       ORDER BY l.updated_at DESC, l.id DESC`,
+      [bibleId, userId],
+    )
+    return rows
+  }
+  const [rows] = await pool.query<RowDataPacket[]>(
+    `SELECT l.id, l.book_id AS bookId, b.name AS bookName, l.chapter, l.verse,
+            l.note_content AS noteContent, NULL AS verseText,
+            l.created_at AS createdAt, l.updated_at AS updatedAt
+     FROM bible_note_links l
+     JOIN bible_books b ON b.idBook = l.book_id
+     WHERE l.user_id = ? AND l.note_content IS NOT NULL AND l.note_content <> ''
+     ORDER BY l.updated_at DESC, l.id DESC`,
+    [userId],
+  )
+  return rows
+}
+
 export async function createLink(
   bookId: number,
   chapter: number,

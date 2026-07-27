@@ -49,6 +49,8 @@ Documentación del cliente móvil de **BibliaAPP** (React Native + Expo). La app
 | [33-editor-tiptap-y-cinta.md](./33-editor-tiptap-y-cinta.md) | El editor pasa de execCommand a Tiptap, con cinta de opciones estilo Word, pestañas contextuales y pantalla completa |
 | [34-notas-cinta-bajo-el-teclado.md](./34-notas-cinta-bajo-el-teclado.md) | La cinta se quedaba a medias bajo el teclado: en vez de afinar el alto que anuncia el teclado, se mide lo que tapa de verdad y la página lo descuenta |
 | [35-notas-tutorial-primera-vez.md](./35-notas-tutorial-primera-vez.md) | Tutorial de seis pasos la primera vez que se abre una nota: versículos, diccionario, imágenes, tablas y guardado |
+| [36-notas-de-versiculo-seccion.md](./36-notas-de-versiculo-seccion.md) | Sección «Versículos con notas»: endpoint nuevo para listarlas todas, pestaña con buscador y salto al versículo en el lector |
+| [37-cinta-inset-ime.md](./37-cinta-inset-ime.md) | La cinta seguía tapada: el alto del teclado pasa a salir del inset IME del sistema y la página mide su propio alto visible |
 
 ---
 
