@@ -47,6 +47,8 @@ Documentación del cliente móvil de **BibliaAPP** (React Native + Expo). La app
 | [31-mapa-de-referencias-navegable.md](./31-mapa-de-referencias-navegable.md) | El mapa arcoíris pasa a ser navegable: encuadre completo, selección determinista, atajos a los capítulos más citados y apertura en el lector de los capítulos conectados |
 | [32-notas-pestana-contextual.md](./32-notas-pestana-contextual.md) | Los bloques dejan de llevar botones dentro del documento: al seleccionarlos solo se ve el contorno y sus acciones pasan a una pestaña contextual en la barra de herramientas |
 | [33-editor-tiptap-y-cinta.md](./33-editor-tiptap-y-cinta.md) | El editor pasa de execCommand a Tiptap, con cinta de opciones estilo Word, pestañas contextuales y pantalla completa |
+| [34-notas-cinta-bajo-el-teclado.md](./34-notas-cinta-bajo-el-teclado.md) | La cinta se quedaba a medias bajo el teclado: en vez de afinar el alto que anuncia el teclado, se mide lo que tapa de verdad y la página lo descuenta |
+| [35-notas-tutorial-primera-vez.md](./35-notas-tutorial-primera-vez.md) | Tutorial de seis pasos la primera vez que se abre una nota: versículos, diccionario, imágenes, tablas y guardado |
 
 ---
 
