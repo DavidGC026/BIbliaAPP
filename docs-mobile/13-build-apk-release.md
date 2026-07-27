@@ -4,20 +4,21 @@
 
 | Campo | Valor |
 |-------|-------|
-| Archivo | `mobile/releases/BibliaAPP-4.0.3-release.apk` |
+| Archivo | `mobile/releases/BibliaAPP-4.0.4-release.apk` |
 | Package | `com.bibliaapp.mobile` |
-| Versión | 4.0.3 (versionCode 42) |
-| Tamaño | 121 677 375 bytes (116 MiB), multi-ABI |
-| SHA-256 | `7a02980e26c7e9f73e30ff3c5738d6164d6ba3040691287f3cd1ab282d91851d` |
+| Versión | 4.0.4 (versionCode 43) |
+| Tamaño | 121 681 943 bytes (116 MiB), multi-ABI |
+| SHA-256 | `86eca449859b1a810677e0dbe1ccd85c40511f7062c977a0e081fa4b57ab887f` |
 | API | `https://biblia2.dvguzman.com` (embebida en build) |
 | Firma | Debug keystore (`CN=Android Debug`), verificada con `apksigner` |
 
-La 4.0.3 incorpora el refinamiento visual de la cinta del **editor de notas
-sobre Tiptap** ([33](./33-editor-tiptap-y-cinta.md)): iconografía SVG, grupos
-en tarjetas, jerarquía H1/H2 e identificación visual de las pestañas
-contextuales. Se genera como APK universal para `armeabi-v7a`, `arm64-v8a`,
-`x86` y `x86_64` y se copia también a
-`/home/david/Biblia-release/BibliaAPP-4.0.3-release.apk`.
+La 4.0.4 incorpora el refinamiento visual de la cinta y la colocación directa
+de imágenes detrás del texto en el **editor de notas sobre Tiptap**
+([33](./33-editor-tiptap-y-cinta.md)): el modo de fondos las eleva mientras se
+editan, **Finalizar fondo** las devuelve a su capa y el arrastre desplaza la
+nota automáticamente al acercarse a sus bordes. Se genera como APK universal
+para `armeabi-v7a`, `arm64-v8a`, `x86` y `x86_64` y se copia también a
+`/home/david/Biblia-release/BibliaAPP-4.0.4-release.apk`.
 
 > Para Play Store genera un keystore de producción y configura `signingConfigs.release` en `android/app/build.gradle`. Ojo: al cambiar de firma, el APK **no se instala encima** del que ya esté en el teléfono; hay que desinstalar primero.
 
