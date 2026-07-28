@@ -4,19 +4,19 @@
 
 | Campo | Valor |
 |-------|-------|
-| Archivo | `mobile/releases/BibliaAPP-4.0.7-release.apk` |
+| Archivo | `mobile/releases/BibliaAPP-4.0.8-release.apk` |
 | Package | `com.bibliaapp.mobile` |
-| Versión | 4.0.7 (versionCode 46) |
-| Tamaño | 121 688 903 bytes (116 MiB), multi-ABI |
-| SHA-256 | `ae5d274736dc6177f38bcc02070b8833b947e2213cf99a07413d145a936ca640` |
+| Versión | 4.0.8 (versionCode 47) |
+| Tamaño | 121 688 851 bytes (116 MiB), multi-ABI |
+| SHA-256 | `2c3fbfac7ad2a72cb46a6dea623c6d95b91fd1d6216429b57a25171bb79681a6` |
 | API | `https://biblia2.dvguzman.com` (embebida en build) |
 | Firma | Debug keystore (`CN=Android Debug`), verificada con `apksigner` |
 
-La 4.0.7 incorpora al tema administrativo **DVG** una paleta borgoña con
-acentos dorados en acciones, navegación, bordes y estados de énfasis, sin
-alterar los tokens semánticos consumidos por las pantallas. Se genera como APK
-universal para `armeabi-v7a`, `arm64-v8a`, `x86` y `x86_64` y se copia también
-a `/home/david/Biblia-release/BibliaAPP-4.0.7-release.apk`.
+La 4.0.8 ajusta el tema administrativo **DVG** a una base borgoña, acciones
+rojas y bordes dorados; los tokens semánticos que consumen las pantallas se
+mantienen sin cambios. Se genera como APK universal para `armeabi-v7a`,
+`arm64-v8a`, `x86` y `x86_64` y se copia también a
+`/home/david/Biblia-release/BibliaAPP-4.0.8-release.apk`.
 
 > Para Play Store genera un keystore de producción y configura `signingConfigs.release` en `android/app/build.gradle`. Ojo: al cambiar de firma, el APK **no se instala encima** del que ya esté en el teléfono; hay que desinstalar primero.
 
