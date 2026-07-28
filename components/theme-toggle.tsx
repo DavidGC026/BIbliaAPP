@@ -79,9 +79,9 @@ export const THEME_OPTIONS: ThemeOption[] = [
   {
     value: 'dvg',
     label: 'DVG',
-    description: 'Base borgoña, rojo principal y alto contraste',
+    description: 'Base borgoña, rojo y bordes dorados',
     adminOnly: true,
-    preview: { bg: '#15090A', card: '#251012', text: '#FFF7F7', primary: '#DC2626' },
+    preview: { bg: '#18090A', card: '#2A1012', text: '#FFF7E6', primary: '#DC2626' },
   },
   {
     value: 'ubg',

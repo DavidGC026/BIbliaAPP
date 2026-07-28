@@ -19,7 +19,7 @@ con vista previa de cada paleta, descripción y marca del tema activo.
 | Medianoche | `midnight` | Oscuro | Azul profundo con acentos azul lavanda |
 | Bosque | `forest` | Oscuro | Verde sereno con acentos esmeralda |
 | Lavanda | `lavender` | Claro | Fondo suave, elegante y de bajo contraste |
-| DVG | `dvg` | Oscuro, solo administradores | Base borgoña, rojo principal y alto contraste |
+| DVG | `dvg` | Oscuro, solo administradores | Base borgoña, acciones rojas, bordes dorados y alto contraste |
 | UBG | `ubg` | Oscuro, solo administradores | Base verde petróleo, verde principal y acentos azules |
 
 ## Arquitectura
@@ -48,6 +48,11 @@ con este mapeo de tokens móviles → web:
 
 Como las pantallas solo consumen variables semánticas, ningún componente
 necesita conocer los temas nuevos.
+
+En DVG, las acciones y el foco se mantienen rojos; los bordes, inputs y
+contornos de énfasis usan dorado cálido. `lib/note-editor-theme.ts` refleja el
+mismo `primarySoft` borgoña y `primaryBorder` dorado del móvil para el editor
+de notas.
 
 Dos detalles adicionales en `globals.css`:
 

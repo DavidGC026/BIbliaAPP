@@ -4,6 +4,22 @@ Registro cronológico de cambios en `desktop/`. Lo más reciente arriba.
 
 ---
 
+## 2026-07-28 — paridad del tema DVG y vista previa real por tema
+
+- El tema **DVG** adopta la misma paleta que móvil y web: base borgoña
+  (`#18090A`/`#2A1012`), acciones e indicador de foco en rojo (`#DC2626`/
+  `#F87171`) y bordes/campos en dorado cálido
+  (`rgb(232 184 74 / 34%)`/`rgb(232 184 74 / 24%)`) en vez del rojo que usaba
+  antes. Texto y superficies secundarias pasan a crema/dorado
+  (`#FFF7E6`, `#D9B984`, `#57320F`) para alto contraste. Cambio en
+  `src/styles/globals.css`.
+- Arreglada la miniatura de vista previa en el selector de temas
+  (`ThemeSwitch.tsx`): usaba clases `theme-preview-<tema>` que no existían en
+  el CSS, así que las nueve miniaturas mostraban siempre los colores del tema
+  *activo* en vez de los propios. Ahora cada miniatura recibe sus colores de
+  fondo, tarjeta y color primario como estilo en línea (paridad con
+  `mobile/constants/Colors.ts` y `components/theme-toggle.tsx` del sitio web).
+
 ## 2026-07-26 — bloques sin controles dentro del documento
 
 - Los versículos, definiciones y tablas dejan de mostrar la barra interna con
