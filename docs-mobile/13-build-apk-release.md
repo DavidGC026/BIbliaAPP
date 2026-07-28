@@ -4,24 +4,19 @@
 
 | Campo | Valor |
 |-------|-------|
-| Archivo | `mobile/releases/BibliaAPP-4.0.6-release.apk` |
+| Archivo | `mobile/releases/BibliaAPP-4.0.7-release.apk` |
 | Package | `com.bibliaapp.mobile` |
-| Versión | 4.0.6 (versionCode 45) |
-| Tamaño | 121 688 819 bytes (116 MiB), multi-ABI |
-| SHA-256 | `d8f973cf0ebed3594463a1551b8c030d7f3a0c0ed153802e30d9b0e3ef76c51d` |
+| Versión | 4.0.7 (versionCode 46) |
+| Tamaño | 121 688 903 bytes (116 MiB), multi-ABI |
+| SHA-256 | `ae5d274736dc6177f38bcc02070b8833b947e2213cf99a07413d145a936ca640` |
 | API | `https://biblia2.dvguzman.com` (embebida en build) |
 | Firma | Debug keystore (`CN=Android Debug`), verificada con `apksigner` |
 
-La 4.0.6 corrige el destino del arrastre táctil de imágenes normales en el
-**editor de notas sobre Tiptap** ([33](./33-editor-tiptap-y-cinta.md)). Durante
-el gesto muestra una línea dorada en el hueco real y explica si la imagen se
-colocará arriba o debajo de texto, versículo, definición, tabla u otro bloque.
-Al soltar la reordena exactamente allí, sin depender del caret que el WebView
-de Android conserva sobre la imagen capturada. El indicador sigue al
-auto-scroll de bordes; las imágenes de fondo mantienen su movimiento libre. Se
-genera como APK universal para `armeabi-v7a`, `arm64-v8a`, `x86` y `x86_64` y
-se copia también a
-`/home/david/Biblia-release/BibliaAPP-4.0.6-release.apk`.
+La 4.0.7 incorpora al tema administrativo **DVG** una paleta borgoña con
+acentos dorados en acciones, navegación, bordes y estados de énfasis, sin
+alterar los tokens semánticos consumidos por las pantallas. Se genera como APK
+universal para `armeabi-v7a`, `arm64-v8a`, `x86` y `x86_64` y se copia también
+a `/home/david/Biblia-release/BibliaAPP-4.0.7-release.apk`.
 
 > Para Play Store genera un keystore de producción y configura `signingConfigs.release` en `android/app/build.gradle`. Ojo: al cambiar de firma, el APK **no se instala encima** del que ya esté en el teléfono; hay que desinstalar primero.
 
