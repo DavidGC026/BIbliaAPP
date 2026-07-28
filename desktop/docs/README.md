@@ -2,7 +2,7 @@
 
 Cliente de escritorio (Tauri v2 + React) para congregaciones. Consume la API REST de BibliaAPP; no accede directamente a MariaDB.
 
-**Versión actual:** `0.3.3`
+**Versión actual:** `0.3.4`
 **Backend por defecto:** `https://biblia2.dvguzman.com`
 
 ---
@@ -31,6 +31,7 @@ Cliente de escritorio (Tauri v2 + React) para congregaciones. Consume la API RES
 | 16  | [16-editor-cinta-contextual.md](./16-editor-cinta-contextual.md) | Cinta de opciones contextual tipo Word |
 | 17  | [17-editor-pantalla-completa.md](./17-editor-pantalla-completa.md) | Editor a pantalla completa y cinta contraíble |
 | 18  | [18-bloques-sin-controles-incrustados.md](./18-bloques-sin-controles-incrustados.md) | Bloques sin barras internas y pestañas contextuales |
+| 19  | [19-release-arch-0.3.4.md](./19-release-arch-0.3.4.md) | Paridad de tema DVG, fix de versión mostrada y paquete Arch 0.3.4 |
 
 Regla Cursor para agentes: [`.cursor/rules/desktop.mdc`](../../.cursor/rules/desktop.mdc)
 
@@ -56,7 +57,7 @@ Regla Cursor para agentes: [`.cursor/rules/desktop.mdc`](../../.cursor/rules/des
 ## Instalación rápida (Arch)
 
 ```bash
-sudo pacman -U packaging/arch/bibliaapp-desktop-0.3.3-1-x86_64.pkg.tar.zst
+sudo pacman -U packaging/arch/bibliaapp-desktop-0.3.4-1-x86_64.pkg.tar.zst
 ```
 
 Debian: [09-debian-linux.md](./09-debian-linux.md)

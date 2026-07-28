@@ -4,6 +4,19 @@ Registro cronológico de cambios en `desktop/`. Lo más reciente arriba.
 
 ---
 
+## 2026-07-28 — release 0.3.4 (paquete Arch)
+
+- Versión `0.3.3` → `0.3.4` en `package.json`, `src-tauri/tauri.conf.json`,
+  `src-tauri/Cargo.toml`, `packaging/arch/PKGBUILD` y
+  `packaging/arch/build-pacman-pkg.sh`.
+- `vite.config.ts` inyecta `import.meta.env.PACKAGE_VERSION` desde
+  `package.json`. Antes nunca se definía, así que `APP_VERSION` (Perfil →
+  versión) mostraba siempre "0.3.3" fijo, sin importar la build real, desde
+  el 0.1.0.
+- Nuevo paquete `packaging/arch/bibliaapp-desktop-0.3.4-1-x86_64.pkg.tar.zst`
+  con la paridad de tema DVG de abajo. Detalle:
+  [19-release-arch-0.3.4.md](./19-release-arch-0.3.4.md).
+
 ## 2026-07-28 — paridad del tema DVG y vista previa real por tema
 
 - El tema **DVG** adopta la misma paleta que móvil y web: base borgoña
