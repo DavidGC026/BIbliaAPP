@@ -23,6 +23,8 @@ Archivo principal: `mobile/components/BibleReader.tsx`.
 
 Al abrir el lector sin un destino explícito (sin params de libro/capítulo), se restaura el último pasaje leído — versión, libro y capítulo — guardado en `mobile/lib/readerState.ts` (`getLastPassage`/`saveLastPassage`, SecureStore). El guardado ya existía tras cargar cada capítulo; ahora `loadInitial` en `BibleReader.tsx` lo lee al arrancar, validando que la Biblia y el libro existan y acotando el capítulo al total del libro. La navegación externa (versículo del día, referencias, búsqueda) sigue teniendo prioridad.
 
+**Paridad web (julio 2026):** el lector web (`components/bible-reader/index.tsx`) usa `lib/reader-state.ts` (`localStorage`, clave `biblia_last_reading`) con la misma prioridad: props/`handleSelectVerse` y query params primero; restauración solo sin destino explícito. El Dashboard web muestra la tarjeta **Continuar lectura** y navega con `onSelectVerse`. La versión inicial respeta `defaultBibleId` de `/api/bibles` en lugar del id fijo `149`. Detalle: [`docs/uso-diario-web-paridad-movil.md`](../docs/uso-diario-web-paridad-movil.md).
+
 ### Sub-navegación de Biblia y Planes de lectura (julio 2026)
 
 `mobile/app/(tabs)/bible.tsx` agrupa cinco modos en un `SegmentTabs` horizontal: **Lector**, **Buscar**, **Referencias**, **Diccionario** y **Planes**. Al ser una tira desplazable, "Planes" queda al final; el indicador de deslizamiento en las tabs ayuda a descubrirlo.

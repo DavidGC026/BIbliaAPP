@@ -93,3 +93,16 @@ Además de la paridad visual del shell, se inició la consolidación funcional d
 - Todos los tabs internos se filtran mediante `allowedSections` y las lecturas elegidas desde Planes abren el lector principal.
 
 Archivos principales: `components/notes-section.tsx`, `lib/app-section-registry/sections.client.tsx` y `lib/app-section-registry/nav.client.tsx`.
+
+## Uso diario — continuidad y accesos rápidos (julio 2026)
+
+Paridad funcional con la Fase 1 del [plan maestro móvil](./20-plan-maestro-mejoras-generales.md), documentada en [`docs/uso-diario-web-paridad-movil.md`](../docs/uso-diario-web-paridad-movil.md):
+
+| Área | Archivos web | Comportamiento |
+|------|--------------|----------------|
+| Continuar lectura | `lib/reader-state.ts`, `components/bible-reader/index.tsx`, `components/dashboard.tsx` | `localStorage` (`biblia_last_reading`); tarjeta en Inicio; restauración al abrir Leer sin navegación explícita |
+| Recientes inteligentes | `components/dashboard.tsx` | Hasta 3 favoritos (`/api/favorites`) y 3 subrayados (`/api/highlights/all`); requiere sesión |
+| Historial de búsqueda | `lib/search-history.ts`, `components/search-advanced.tsx` | Últimas 10 búsquedas como chips en el buscador avanzado (distinto del historial del lector, clave `recent_searches`) |
+| Biblia por defecto | `components/bible-reader/index.tsx` | `defaultBibleId` de `/api/bibles`, no id fijo |
+
+El Dashboard recibe `onSelectVerse={ctx.handleSelectVerse}` en `sections.client.tsx` para que Continuar lectura y recientes abran el lector en el pasaje correcto.

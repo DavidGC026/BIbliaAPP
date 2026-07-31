@@ -281,7 +281,7 @@ Consulta `lib/app-section-registry/catalog.ts` y `sections.client.tsx` para ver 
 
 | Sección | Invitados | Default lector | Notas |
 |---------|-----------|----------------|-------|
-| `dashboard` | Sí | Sí | Pasa `isGuest` al componente |
+| `dashboard` | Sí | Sí | Pasa `isGuest`, `onSelectVerse` (Continuar lectura y recientes → lector). Ver [`uso-diario-web-paridad-movil.md`](./uso-diario-web-paridad-movil.md) |
 | `reading` | Sí | Sí | Usa `suspenseFallback` y props de navegación |
 | `search` | Sí | Sí | Usa `handleSelectVerse` |
 | `feed` | No | Sí | `requiresUser`, `layout: "card"` |
