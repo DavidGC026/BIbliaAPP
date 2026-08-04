@@ -11,10 +11,11 @@ import type { Book, Verse, NoteLink, BibleVersion } from "@/lib/types"
 import { NotePanel } from "../note-panel"
 import { NotebookSidebar } from "../notebook-sidebar"
 import { VerseImageCreator } from "../verse-image-creator"
-import { FileText, ChevronLeft, ChevronRight, Search } from "lucide-react"
+import { FileText, ChevronLeft, ChevronRight, Search, SlidersHorizontal } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { insertHtmlIntoNoteContent } from "@/lib/note-content"
 import { VerseText, type HighlightColor } from "./verse-text"
+import type { VerseCommentaryEntry as ChapterCommentary } from "./verse-commentary"
 import { ReaderToolbar } from "./reader-toolbar"
 import { ReaderSettings } from "./reader-settings"
 import { VersionSelector, BookSelector, ChapterSelector } from "./version-selector"
@@ -126,6 +127,7 @@ export function BibleReader({
 
   // -------------------------------------------------------- UI / Ajustes
   const [mobileMenuTab, setMobileMenuTab] = useState<"selectors" | "search" | "settings" | null>(null)
+  const [showDesktopSettings, setShowDesktopSettings] = useState(false)
   const [readerPreferences, setReaderPreferences] = useState<ReaderPreferences>(DEFAULT_READER_PREFERENCES)
   const [canShare, setCanShare] = useState(false)
   const [imageCreatorOpen, setImageCreatorOpen] = useState(false)
@@ -355,6 +357,36 @@ export function BibleReader({
     for (const l of linksData?.links ?? []) map.set(Number(l.verse), l)
     return map
   }, [linksData])
+
+  // Comentarios clásicos del capítulo entero en una sola petición: pedirlos por
+  // versículo dispararía 176 llamadas en Salmo 119. Solo se piden con la opción
+  // de estudio activada, y no dependen del usuario, así que se cachean.
+  const commentariesKey =
+    readerPreferences.showCommentaries && bookId
+      ? `/api/commentaries?bible=${bibleId}&book=${bookId}&chapter=${chapter}`
+      : null
+  const { data: commentariesData } = useSWR<{ commentaries: ChapterCommentary[] }>(
+    commentariesKey,
+    fetcher,
+    { revalidateOnFocus: false },
+  )
+
+  /**
+   * Un comentario cubre un rango (`verse_start`..`verse_end`), así que se
+   * reparte entre todos los versículos que abarca: al leer Génesis 1:3 aparece
+   * el bloque «1:1-5» igual que al leer el 1:1.
+   */
+  const commentariesByVerse = useMemo(() => {
+    const map = new Map<number, ChapterCommentary[]>()
+    for (const commentary of commentariesData?.commentaries ?? []) {
+      for (let verse = commentary.verseStart; verse <= commentary.verseEnd; verse++) {
+        const existing = map.get(verse)
+        if (existing) existing.push(commentary)
+        else map.set(verse, [commentary])
+      }
+    }
+    return map
+  }, [commentariesData])
 
   const highlightsKey = !isGuest && bookId && bibleId ? `/api/highlights?book=${bookId}&chapter=${chapter}&bibleId=${bibleId}` : null
   const { data: highlightsData, mutate: mutateHighlights } = useSWR<{ highlights: { verse: number; color: string }[] }>(
@@ -649,7 +681,9 @@ export function BibleReader({
   const renderLayoutSwitcher = () => (
     <div className="flex items-center rounded-lg border border-border bg-muted/30 p-1">
       <button
+        type="button"
         onClick={() => setLayoutMode("split")}
+        aria-pressed={layoutMode === "split"}
         className={cn(
           "px-2.5 py-1 text-xs font-semibold rounded transition-colors",
           layoutMode === "split"
@@ -660,7 +694,9 @@ export function BibleReader({
         Dividido
       </button>
       <button
+        type="button"
         onClick={() => setLayoutMode("bible")}
+        aria-pressed={layoutMode === "bible"}
         className={cn(
           "px-2.5 py-1 text-xs font-semibold rounded transition-colors",
           layoutMode === "bible"
@@ -672,7 +708,9 @@ export function BibleReader({
       </button>
       {!showOnlyVerseNotes && !isGuest && (
         <button
+          type="button"
           onClick={() => setLayoutMode("notebook")}
+          aria-pressed={layoutMode === "notebook"}
           className={cn(
             "px-2.5 py-1 text-xs font-semibold rounded transition-colors",
             layoutMode === "notebook"
@@ -698,7 +736,10 @@ export function BibleReader({
             {/* Header compacto para móvil */}
             <div className="flex md:hidden items-center justify-between w-full border-b border-border/40 pb-2 mb-1">
               <button
+                type="button"
                 onClick={() => toggleMobileTab("selectors")}
+                aria-expanded={mobileMenuTab === "selectors"}
+                aria-controls="reader-mobile-selectors"
                 className="flex items-center gap-1.5 text-xs font-bold text-foreground bg-muted/40 px-3 py-1.5 rounded-lg border border-border hover:bg-muted transition-colors cursor-pointer"
               >
                 <span>{currentBible?.abbr || "RVR1960"}</span>
@@ -722,7 +763,8 @@ export function BibleReader({
                     }
                   }}
                   className="size-8 rounded-lg cursor-pointer"
-                  title="Buscar"
+                  aria-label="Buscar en la Biblia"
+                  aria-expanded={mobileMenuTab === "search"}
                 >
                   <Search className="size-4" />
                 </Button>
@@ -732,7 +774,8 @@ export function BibleReader({
                   size="icon"
                   onClick={() => toggleMobileTab("settings")}
                   className="size-8 rounded-lg cursor-pointer text-xs font-bold"
-                  title="Ajustes de lectura"
+                  aria-label="Ajustes de lectura"
+                  aria-expanded={mobileMenuTab === "settings"}
                 >
                   <span className="font-serif">Aa</span>
                 </Button>
@@ -751,7 +794,7 @@ export function BibleReader({
                     }
                   }}
                   className="size-8 rounded-lg cursor-pointer text-emerald-600 dark:text-emerald-400"
-                  title={isGuest ? "Inicia sesión para ver notas" : "Ver notas"}
+                  aria-label={isGuest ? "Inicia sesión para ver notas" : "Ver notas"}
                 >
                   <FileText className="size-4" />
                 </Button>
@@ -762,7 +805,7 @@ export function BibleReader({
             <div className={cn(
               "flex-wrap items-end gap-3",
               mobileMenuTab === "selectors" ? "flex" : "hidden md:flex"
-            )}>
+            )} id="reader-mobile-selectors">
               <VersionSelector
                 bibles={bibles}
                 currentBible={currentBible}
@@ -788,7 +831,7 @@ export function BibleReader({
 
             </div>
 
-            {/* Búsqueda + switcher de vista */}
+            {/* Búsqueda + controles compactos */}
             <div className={cn(
               "flex-wrap items-end justify-between gap-3",
               (mobileMenuTab === "search" || mobileMenuTab === "settings") ? "flex" : "hidden md:flex"
@@ -796,7 +839,7 @@ export function BibleReader({
               <ReaderSettings
                 preferences={readerPreferences}
                 onChange={updateReaderPreferences}
-                className={mobileMenuTab === "settings" ? "grid" : "hidden md:grid"}
+                className={mobileMenuTab === "settings" ? "grid md:hidden" : "hidden"}
               />
 
               <ReaderSearch
@@ -809,10 +852,32 @@ export function BibleReader({
                 "items-center gap-2 w-full md:w-auto justify-between md:justify-end border-t border-border/40 pt-2 md:pt-0 md:border-0",
                 mobileMenuTab === "settings" ? "flex" : "hidden md:flex"
               )}>
-                <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Vista</span>
+                <Button
+                  type="button"
+                  variant={showDesktopSettings ? "secondary" : "outline"}
+                  size="sm"
+                  onClick={() => setShowDesktopSettings((visible) => !visible)}
+                  aria-expanded={showDesktopSettings}
+                  aria-controls="reader-desktop-settings"
+                  className="hidden gap-2 md:inline-flex"
+                >
+                  <SlidersHorizontal className="size-4" />
+                  Lectura
+                </Button>
+                <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground md:sr-only">Vista</span>
                 {renderLayoutSwitcher()}
               </div>
             </div>
+
+            {showDesktopSettings ? (
+              <div id="reader-desktop-settings">
+                <ReaderSettings
+                  preferences={readerPreferences}
+                  onChange={updateReaderPreferences}
+                  className="hidden md:grid"
+                />
+              </div>
+            ) : null}
           </div>
         </div>
 
@@ -837,6 +902,19 @@ export function BibleReader({
             </p>
           </div>
         )}
+
+        {bookId && !versesLoading && verses.length > 0 ? (
+          <header className="mb-4 flex items-center gap-3">
+            <span aria-hidden="true" className="h-px flex-1 bg-border" />
+            <div className="text-center">
+              <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-muted-foreground">Lectura</p>
+              <h1 className="font-serif text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
+                {currentBook?.bookName} <span className="text-muted-foreground">{chapter}</span>
+              </h1>
+            </div>
+            <span aria-hidden="true" className="h-px flex-1 bg-border" />
+          </header>
+        ) : null}
 
         <ol
           className={cn(
@@ -863,6 +941,8 @@ export function BibleReader({
               isGuest={isGuest}
               isCreatingNote={creating === Number(v.verse)}
               showInsertButton={editingNotebookNote !== null}
+              commentaries={commentariesByVerse.get(Number(v.verse))}
+              borderColor={readerPalette?.border}
               onToggleSelect={toggleVerseSelection}
               onSetCurrent={setCurrentVerseStable}
               onNote={handleVerseNote}

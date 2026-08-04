@@ -4,6 +4,7 @@ import { memo } from "react"
 import { FileText, Plus } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { Verse } from "@/lib/types"
+import { VerseCommentary, type VerseCommentaryEntry } from "./verse-commentary"
 
 export type HighlightColor = "yellow" | "green" | "blue" | "orange" | "pink"
 
@@ -33,6 +34,13 @@ export interface VerseTextProps {
   isCreatingNote: boolean
   /** Hay una nota de cuaderno abierta: mostrar botón de insertar versículo */
   showInsertButton: boolean
+  /**
+   * Comentarios clásicos que cubren este versículo, ya cargados con el capítulo.
+   * Sin comentarios (o con la opción desactivada) no se pinta nada.
+   */
+  commentaries?: VerseCommentaryEntry[]
+  /** Color de borde del tema del lector, para el separador del comentario. */
+  borderColor?: string
   onToggleSelect: (verseNum: number, shiftKey: boolean) => void
   onSetCurrent: (verseNum: number) => void
   onNote: (verse: Verse) => void
@@ -61,6 +69,8 @@ export const VerseText = memo(function VerseText({
   isGuest,
   isCreatingNote,
   showInsertButton,
+  commentaries,
+  borderColor,
   onToggleSelect,
   onSetCurrent,
   onNote,
@@ -71,80 +81,95 @@ export const VerseText = memo(function VerseText({
   return (
     <li
       id={`verse-${v.verse}`}
-      onClick={() => onSetCurrent(verseNum)}
-      draggable={true}
-      onDragStart={(e) => {
-        const verseText = `${v.bookName} ${v.chapter}:${v.verse} — ${v.text}`
-        e.dataTransfer.setData("text/plain", verseText)
-        e.dataTransfer.effectAllowed = "copy"
-      }}
       className={cn(
-        "group flex gap-3 rounded-md px-3 py-2 transition-all duration-300 hover:bg-accent/40 cursor-grab active:cursor-grabbing",
+        "group rounded-md px-2 py-1 transition-all duration-300 hover:bg-accent/40",
         hasNote && "bg-accent/30",
         highlightColor && HIGHLIGHT_CLASSES[highlightColor as HighlightColor],
         isSelected && "ring-2 ring-primary bg-primary/5 dark:bg-primary/10",
         isFlashed && "bg-yellow-500/15 dark:bg-yellow-500/10 ring-2 ring-yellow-500/80 scale-[1.01] shadow-sm",
       )}
     >
-      <span
-        className="mt-1.5 select-none font-medium text-primary tabular-nums cursor-pointer hover:underline"
-        onClick={(e) => {
-          e.stopPropagation()
-          onToggleSelect(verseNum, e.shiftKey)
-        }}
-        style={{ fontSize: `${Math.max(12, fontSize - 6)}px`, color: accentColor }}
-      >
-        {v.verse}
-      </span>
-      <p
-        onClick={(e) => {
-          e.stopPropagation()
-          onToggleSelect(verseNum, e.shiftKey)
-          onSetCurrent(verseNum)
-        }}
-        className="flex-1 font-serif leading-relaxed text-foreground cursor-pointer select-none"
-        style={{ fontSize: `${fontSize}px`, lineHeight, textAlign, color: textColor }}
-      >
-        {v.text}
-      </p>
-      <div className="mt-1 flex items-center gap-1.5">
-        {showInsertButton && (
+      {/* El versículo y sus acciones van en fila; el comentario, debajo. */}
+      <div className="flex gap-2">
+        <button
+          type="button"
+          draggable
+          onClick={(e) => {
+            onToggleSelect(verseNum, e.shiftKey)
+            onSetCurrent(verseNum)
+          }}
+          onDragStart={(e) => {
+            const verseText = `${v.bookName} ${v.chapter}:${v.verse} — ${v.text}`
+            e.dataTransfer.setData("text/plain", verseText)
+            e.dataTransfer.effectAllowed = "copy"
+          }}
+          aria-pressed={isSelected}
+          aria-label={`Versículo ${v.bookName} ${v.chapter}:${v.verse}. ${v.text}`}
+          className="flex min-w-0 flex-1 cursor-grab gap-3 rounded-md px-1 py-1 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:cursor-grabbing"
+        >
+          <span
+            aria-hidden="true"
+            className="mt-1.5 select-none font-medium text-primary tabular-nums"
+            style={{ fontSize: `${Math.max(12, fontSize - 6)}px`, color: accentColor }}
+          >
+            {v.verse}
+          </span>
+          <span
+            className="flex-1 select-none font-serif leading-relaxed text-foreground"
+            style={{ fontSize: `${fontSize}px`, lineHeight, textAlign, color: textColor }}
+          >
+            {v.text}
+          </span>
+        </button>
+        <div className="mt-1 flex items-center gap-1.5">
+          {showInsertButton && (
+            <button
+              onMouseDown={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation()
+                onInsert(v)
+              }}
+              draggable={false}
+              title="Insertar versículo en la nota de cuaderno activa"
+              aria-label="Insertar versículo"
+              className="inline-flex size-7 shrink-0 items-center justify-center rounded-md text-emerald-600 bg-emerald-500/10 hover:bg-emerald-500/20 dark:text-emerald-400 dark:bg-emerald-950/20 dark:hover:bg-emerald-950/40 transition-colors"
+            >
+              <Plus className="size-4 font-bold" />
+            </button>
+          )}
           <button
             onMouseDown={(e) => e.stopPropagation()}
             onClick={(e) => {
               e.stopPropagation()
-              onInsert(v)
+              onNote(v)
             }}
             draggable={false}
-            title="Insertar versículo en la nota de cuaderno activa"
-            aria-label="Insertar versículo"
-            className="inline-flex size-7 shrink-0 items-center justify-center rounded-md text-emerald-600 bg-emerald-500/10 hover:bg-emerald-500/20 dark:text-emerald-400 dark:bg-emerald-950/20 dark:hover:bg-emerald-950/40 transition-colors"
+            disabled={isCreatingNote}
+            aria-label={isGuest ? "Inicia sesión para añadir nota" : hasNote ? "Ver nota" : "Añadir nota"}
+            className={cn(
+              "inline-flex size-7 shrink-0 items-center justify-center rounded-md transition-colors",
+              isGuest
+                ? "text-muted-foreground/60 hover:text-primary hover:bg-primary/10"
+                : hasNote
+                  ? "text-primary hover:bg-primary/10"
+                  : "text-muted-foreground/80 hover:text-foreground hover:bg-accent",
+            )}
+            style={mutedColor && !hasNote ? { color: mutedColor } : undefined}
           >
-            <Plus className="size-4 font-bold" />
+            {isGuest ? <FileText className="size-4" /> : hasNote ? <FileText className="size-4" /> : <Plus className="size-4" />}
           </button>
-        )}
-        <button
-          onMouseDown={(e) => e.stopPropagation()}
-          onClick={(e) => {
-            e.stopPropagation()
-            onNote(v)
-          }}
-          draggable={false}
-          disabled={isCreatingNote}
-          aria-label={isGuest ? "Inicia sesión para añadir nota" : hasNote ? "Ver nota" : "Añadir nota"}
-          className={cn(
-            "inline-flex size-7 shrink-0 items-center justify-center rounded-md transition-colors",
-            isGuest
-              ? "text-muted-foreground/60 hover:text-primary hover:bg-primary/10"
-              : hasNote
-                ? "text-primary hover:bg-primary/10"
-                : "text-muted-foreground/80 hover:text-foreground hover:bg-accent",
-          )}
-          style={mutedColor && !hasNote ? { color: mutedColor } : undefined}
-        >
-          {isGuest ? <FileText className="size-4" /> : hasNote ? <FileText className="size-4" /> : <Plus className="size-4" />}
-        </button>
+        </div>
       </div>
+
+      {commentaries && commentaries.length > 0 && (
+        <VerseCommentary
+          commentaries={commentaries}
+          fontSize={fontSize}
+          mutedColor={mutedColor}
+          accentColor={accentColor}
+          borderColor={borderColor}
+        />
+      )}
     </li>
   )
 })

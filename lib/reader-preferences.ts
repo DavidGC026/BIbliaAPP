@@ -10,6 +10,12 @@ export type ReaderPreferences = {
   density: ReaderDensity
   align: ReaderAlign
   theme: ReaderTheme
+  /**
+   * Mostrar los comentarios clásicos bajo los versículos que los tengan.
+   * Desactivado por defecto: el lector es para leer la Biblia, y quien quiera
+   * estudio lo enciende. Apagado, el capítulo ni siquiera los pide al servidor.
+   */
+  showCommentaries: boolean
 }
 
 export type ReaderPalette = {
@@ -41,6 +47,7 @@ export const DEFAULT_READER_PREFERENCES: ReaderPreferences = {
   density: "relaxed",
   align: "left",
   theme: "auto",
+  showCommentaries: false,
 }
 
 function clampFontSize(value: unknown): number {
@@ -57,6 +64,7 @@ export function sanitizeReaderPreferences(value: unknown): ReaderPreferences {
     theme: source.theme === "light" || source.theme === "sepia" || source.theme === "night" || source.theme === "contrast"
       ? source.theme
       : "auto",
+    showCommentaries: source.showCommentaries === true,
   }
 }
 

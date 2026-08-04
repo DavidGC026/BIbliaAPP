@@ -17,7 +17,7 @@ type ReaderSettingsProps = {
 
 export function ReaderSettings({ preferences, onChange, className }: ReaderSettingsProps) {
   return (
-    <div className={cn("grid w-full gap-3 rounded-xl border border-border/70 bg-muted/10 p-3 md:grid-cols-[auto_1fr_1fr]", className)}>
+    <div className={cn("grid w-full gap-3 rounded-xl border border-border/70 bg-muted/10 p-3 md:grid-cols-[auto_1fr_1fr_auto]", className)}>
       <fieldset>
         <legend className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Tamaño</legend>
         <div className="flex h-9 items-center rounded-lg border border-border bg-background p-0.5">
@@ -31,12 +31,12 @@ export function ReaderSettings({ preferences, onChange, className }: ReaderSetti
         <legend className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Lectura</legend>
         <div className="grid grid-cols-2 gap-1">
           {(["relaxed", "compact"] as const).map((density) => (
-            <button key={density} type="button" onClick={() => onChange({ density })} className={cn("h-9 rounded-lg border px-2 text-xs font-semibold", preferences.density === density ? "border-primary bg-primary/10 text-primary" : "border-border bg-background text-muted-foreground")}>
+            <button key={density} type="button" aria-pressed={preferences.density === density} onClick={() => onChange({ density })} className={cn("h-9 rounded-lg border px-2 text-xs font-semibold", preferences.density === density ? "border-primary bg-primary text-primary-foreground shadow-sm" : "border-border bg-background text-muted-foreground")}>
               {density === "relaxed" ? "Amplia" : "Compacta"}
             </button>
           ))}
           {(["left", "justify"] as const).map((align) => (
-            <button key={align} type="button" onClick={() => onChange({ align })} className={cn("h-9 rounded-lg border px-2 text-xs font-semibold", preferences.align === align ? "border-primary bg-primary/10 text-primary" : "border-border bg-background text-muted-foreground")}>
+            <button key={align} type="button" aria-pressed={preferences.align === align} onClick={() => onChange({ align })} className={cn("h-9 rounded-lg border px-2 text-xs font-semibold", preferences.align === align ? "border-primary bg-primary text-primary-foreground shadow-sm" : "border-border bg-background text-muted-foreground")}>
               {align === "left" ? "Izquierda" : "Justificada"}
             </button>
           ))}
@@ -50,6 +50,20 @@ export function ReaderSettings({ preferences, onChange, className }: ReaderSetti
             <ThemeOption key={option.key} theme={option.key} label={option.label} selected={preferences.theme === option.key} onSelect={() => onChange({ theme: option.key })} />
           ))}
         </div>
+      </fieldset>
+
+      <fieldset>
+        <legend className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Estudio</legend>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={preferences.showCommentaries}
+          onClick={() => onChange({ showCommentaries: !preferences.showCommentaries })}
+          title="Muestra los comentarios de Matthew Henry, Spurgeon y otros autores clásicos bajo los versículos que los tengan"
+          className={cn("h-9 w-full rounded-lg border px-3 text-xs font-semibold whitespace-nowrap", preferences.showCommentaries ? "border-primary bg-primary text-primary-foreground shadow-sm" : "border-border bg-background text-muted-foreground")}
+        >
+          Comentarios
+        </button>
       </fieldset>
     </div>
   )
