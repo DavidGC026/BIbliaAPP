@@ -12,6 +12,8 @@ const geistMono = Geist_Mono({
 const sourceSerif = Source_Serif_4({
   variable: '--font-source-serif',
   subsets: ['latin'],
+  // Eje óptico: la serif ajusta sola su dibujo al tamaño (texto vs. display)
+  axes: ['opsz'],
 })
 
 export const metadata: Metadata = {

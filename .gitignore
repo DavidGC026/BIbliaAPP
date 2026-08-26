@@ -35,6 +35,7 @@ docs/*
 !docs/auditoria-paridad-mobile-web-julio-2026.md
 !docs/editor-tiptap-web.md
 !docs/comentarios-biblicos.md
+!docs/diseno-lector-biblico.md
 !desktop/docs/
 !desktop/docs/**
 

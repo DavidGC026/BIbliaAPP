@@ -4,12 +4,15 @@ const LEGACY_FONT_SIZE_KEY = "bible_font_size"
 export type ReaderDensity = "relaxed" | "compact"
 export type ReaderAlign = "left" | "justify"
 export type ReaderTheme = "auto" | "light" | "sepia" | "night" | "contrast"
+/** "verses": un bloque por versículo; "paragraphs": texto corrido con números en superíndice */
+export type ReaderLayout = "verses" | "paragraphs"
 
 export type ReaderPreferences = {
   fontSize: number
   density: ReaderDensity
   align: ReaderAlign
   theme: ReaderTheme
+  layout: ReaderLayout
   /**
    * Mostrar los comentarios clásicos bajo los versículos que los tengan.
    * Desactivado por defecto: el lector es para leer la Biblia, y quien quiera
@@ -47,6 +50,7 @@ export const DEFAULT_READER_PREFERENCES: ReaderPreferences = {
   density: "relaxed",
   align: "left",
   theme: "auto",
+  layout: "verses",
   showCommentaries: false,
 }
 
@@ -64,6 +68,7 @@ export function sanitizeReaderPreferences(value: unknown): ReaderPreferences {
     theme: source.theme === "light" || source.theme === "sepia" || source.theme === "night" || source.theme === "contrast"
       ? source.theme
       : "auto",
+    layout: source.layout === "paragraphs" ? "paragraphs" : "verses",
     showCommentaries: source.showCommentaries === true,
   }
 }

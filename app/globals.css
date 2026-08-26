@@ -1080,7 +1080,25 @@
   }
   html {
     @apply font-sans;
+    font-optical-sizing: auto;
   }
+}
+
+/* ============================================================
+   Lector bíblico
+   ============================================================ */
+
+/* Capitular: primera letra del capítulo, tres líneas de alto. El tamaño es
+   en `em` para acompañar el ajuste de fuente del lector. */
+.verse-dropcap {
+  float: left;
+  margin-top: 0.05em;
+  margin-right: 0.12em;
+  color: var(--primary);
+  font-family: var(--font-serif);
+  font-size: 3.15em;
+  font-weight: 600;
+  line-height: 0.82;
 }
 
 @layer utilities {

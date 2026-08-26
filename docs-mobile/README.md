@@ -51,15 +51,16 @@ Documentación del cliente móvil de **BibliaAPP** (React Native + Expo). La app
 | [35-notas-tutorial-primera-vez.md](./35-notas-tutorial-primera-vez.md) | Tutorial de seis pasos la primera vez que se abre una nota: versículos, diccionario, imágenes, tablas y guardado |
 | [36-notas-de-versiculo-seccion.md](./36-notas-de-versiculo-seccion.md) | Sección «Versículos con notas»: endpoint nuevo para listarlas todas, pestaña con buscador y salto al versículo en el lector |
 | [37-cinta-inset-ime.md](./37-cinta-inset-ime.md) | La cinta seguía tapada: el alto del teclado pasa a salir del inset IME del sistema y la página mide su propio alto visible |
+| [38-lector-parrafos-y-referencia-viva.md](./38-lector-parrafos-y-referencia-viva.md) | Paridad con el lector web: modo párrafos (texto corrido), referencia viva `CAP:VERS` y progreso por versículo |
 
 ---
 
 ## Versión documentada
 
-- **App móvil:** `3.3`
+- **App móvil:** `4.0.9`
 - **Expo SDK:** ~56
 - **React Native:** 0.85.3
-- **Fecha de referencia:** julio 2026
+- **Fecha de referencia:** agosto 2026
 
 ---
 

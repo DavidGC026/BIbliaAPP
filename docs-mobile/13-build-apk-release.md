@@ -4,19 +4,20 @@
 
 | Campo | Valor |
 |-------|-------|
-| Archivo | `mobile/releases/BibliaAPP-4.0.8-release.apk` |
+| Archivo | `mobile/releases/BibliaAPP-4.0.9-release.apk` |
 | Package | `com.bibliaapp.mobile` |
-| Versión | 4.0.8 (versionCode 47) |
-| Tamaño | 121 688 851 bytes (116 MiB), multi-ABI |
-| SHA-256 | `2c3fbfac7ad2a72cb46a6dea623c6d95b91fd1d6216429b57a25171bb79681a6` |
+| Versión | 4.0.9 (versionCode 48) |
+| Tamaño | 121 700 827 bytes (116 MiB), multi-ABI |
+| SHA-256 | `007b084aa5ff3b217c27034c7dd18d58db7ad045f1ab3b94fa544d5a29b6dc85` |
 | API | `https://biblia2.dvguzman.com` (embebida en build) |
 | Firma | Debug keystore (`CN=Android Debug`), verificada con `apksigner` |
 
-La 4.0.8 ajusta el tema administrativo **DVG** a una base borgoña, acciones
-rojas y bordes dorados; los tokens semánticos que consumen las pantallas se
-mantienen sin cambios. Se genera como APK universal para `armeabi-v7a`,
-`arm64-v8a`, `x86` y `x86_64` y se copia también a
-`/home/david/Biblia-release/BibliaAPP-4.0.8-release.apk`.
+La 4.0.9 porta al lector móvil el **modo párrafos** (texto corrido) y la
+**referencia viva con progreso por versículo**, en paridad con el lector web.
+Detalle en [38-lector-parrafos-y-referencia-viva.md](./38-lector-parrafos-y-referencia-viva.md).
+Se genera como APK universal para `armeabi-v7a`, `arm64-v8a`, `x86` y
+`x86_64` y se copia también a
+`/home/david/Biblia-release/BibliaAPP-4.0.9-release.apk`.
 
 > Para Play Store genera un keystore de producción y configura `signingConfigs.release` en `android/app/build.gradle`. Ojo: al cambiar de firma, el APK **no se instala encima** del que ya esté en el teléfono; hay que desinstalar primero.
 

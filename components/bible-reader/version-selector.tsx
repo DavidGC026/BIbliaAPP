@@ -29,13 +29,13 @@ export const VersionSelector = memo(function VersionSelector({
 }: VersionSelectorProps) {
   return (
     <div className="min-w-[230px] flex-1 md:flex-none">
-      <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Versión</p>
+      <p id="reader-version-label" className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Versión</p>
       <Select value={String(bibleId)} onValueChange={onChange}>
-        <SelectTrigger className="w-full md:w-72">
+        <SelectTrigger aria-labelledby="reader-version-label" className="w-full md:w-72">
           {isLoading ? (
             <span className="flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="size-3.5 animate-spin" />
-              Cargando versiones...
+              Cargando versiones…
             </span>
           ) : (
             <span className="truncate text-sm">
@@ -71,9 +71,9 @@ export const BookSelector = memo(function BookSelector({
 }: BookSelectorProps) {
   return (
     <div className="min-w-[190px] flex-1 md:flex-none">
-      <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Libro</p>
+      <p id="reader-book-label" className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Libro</p>
       <Select value={bookId ? String(bookId) : ""} onValueChange={onChange}>
-        <SelectTrigger className="w-full md:w-56">
+        <SelectTrigger aria-labelledby="reader-book-label" className="w-full md:w-56">
           <span className="truncate text-sm">
             {currentBook ? currentBook.bookName : "Elige un libro"}
           </span>
@@ -103,16 +103,16 @@ export const ChapterSelector = memo(function ChapterSelector({
   onChange,
 }: ChapterSelectorProps) {
   return (
-    <div className="flex items-end gap-1.5">
+    <div className="flex items-end gap-2">
       <div>
-        <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Capítulo</p>
+        <p id="reader-chapter-label" className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Capítulo</p>
         <Select
           value={String(chapter)}
           onValueChange={(v) => {
             if (v) onChange(Number(v))
           }}
         >
-          <SelectTrigger className="w-36">
+          <SelectTrigger aria-labelledby="reader-chapter-label" className="w-36">
             <span className="truncate text-sm">Capítulo {chapter}</span>
           </SelectTrigger>
           <SelectContent>
@@ -125,7 +125,7 @@ export const ChapterSelector = memo(function ChapterSelector({
         </Select>
       </div>
 
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1.5">
         <Button
           variant="outline"
           size="icon"
