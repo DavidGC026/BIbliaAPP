@@ -52,15 +52,17 @@ Documentación del cliente móvil de **BibliaAPP** (React Native + Expo). La app
 | [36-notas-de-versiculo-seccion.md](./36-notas-de-versiculo-seccion.md) | Sección «Versículos con notas»: endpoint nuevo para listarlas todas, pestaña con buscador y salto al versículo en el lector |
 | [37-cinta-inset-ime.md](./37-cinta-inset-ime.md) | La cinta seguía tapada: el alto del teclado pasa a salir del inset IME del sistema y la página mide su propio alto visible |
 | [38-lector-parrafos-y-referencia-viva.md](./38-lector-parrafos-y-referencia-viva.md) | Paridad con el lector web: modo párrafos (texto corrido), referencia viva `CAP:VERS` y progreso por versículo |
+| [39-teclado-que-se-baja.md](./39-teclado-que-se-baja.md) | Al bajar el teclado la nota se quedaba a media pantalla: el inset IME se quedaba clavado y la página no remedía su alto visible. El lector pasa a la misma fuente y la regla queda cubierta por una prueba |
+| [40-firma-de-release.md](./40-firma-de-release.md) | Los APK dejan de firmarse con la keystore de debug: llave propia fuera del repo, plugin de Expo que la cablea tras cada prebuild y guardián que lo comprueba |
 
 ---
 
 ## Versión documentada
 
-- **App móvil:** `4.0.9`
+- **App móvil:** `4.1.0`
 - **Expo SDK:** ~56
 - **React Native:** 0.85.3
-- **Fecha de referencia:** agosto 2026
+- **Fecha de referencia:** septiembre 2026
 
 ---
 

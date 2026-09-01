@@ -4,22 +4,30 @@
 
 | Campo | Valor |
 |-------|-------|
-| Archivo | `mobile/releases/BibliaAPP-4.0.9-release.apk` |
+| Archivo | `/home/david/Biblia-release/BibliaAPP-4.1.0-dvg-release.apk` |
 | Package | `com.bibliaapp.mobile` |
-| Versión | 4.0.9 (versionCode 48) |
-| Tamaño | 121 700 827 bytes (116 MiB), multi-ABI |
-| SHA-256 | `007b084aa5ff3b217c27034c7dd18d58db7ad045f1ab3b94fa544d5a29b6dc85` |
+| Versión | 4.1.0 (versionCode 49) |
+| Tamaño | 121 705 187 bytes (116 MiB), multi-ABI |
+| SHA-256 | `e0e30137977fb8b47190450728ef4da3ad99637e79cccd40180de59d29a2c128` |
 | API | `https://biblia2.dvguzman.com` (embebida en build) |
-| Firma | Debug keystore (`CN=Android Debug`), verificada con `apksigner` |
+| Firma | `dvguzman` (RSA 4096), verificada con `apksigner` — ver [40](./40-firma-de-release.md) |
 
-La 4.0.9 porta al lector móvil el **modo párrafos** (texto corrido) y la
-**referencia viva con progreso por versículo**, en paridad con el lector web.
-Detalle en [38-lector-parrafos-y-referencia-viva.md](./38-lector-parrafos-y-referencia-viva.md).
-Se genera como APK universal para `armeabi-v7a`, `arm64-v8a`, `x86` y
-`x86_64` y se copia también a
-`/home/david/Biblia-release/BibliaAPP-4.0.9-release.apk`.
+La 4.1.0 estrena número porque estrena firma ([40](./40-firma-de-release.md)),
+y con ella va todo el trabajo del teclado: la nota ya no se queda a media
+pantalla al bajarlo y el lector pasa a la misma fuente de medida
+([39](./39-teclado-que-se-baja.md)). Arrastra también el **modo párrafos** y la
+**referencia viva** de la 4.0.9 ([38](./38-lector-parrafos-y-referencia-viva.md)).
+Se genera como APK universal para `armeabi-v7a`, `arm64-v8a`, `x86` y `x86_64`.
 
-> Para Play Store genera un keystore de producción y configura `signingConfigs.release` en `android/app/build.gradle`. Ojo: al cambiar de firma, el APK **no se instala encima** del que ya esté en el teléfono; hay que desinstalar primero.
+En la misma carpeta quedan dos 4.0.9 que ya no sirven para nada: la del 25 de
+agosto (firmada con debug) y la `-dvg` del 1 de septiembre (misma firma que esta,
+pero sin los cambios del lector).
+
+> **Cambió la firma en la 4.0.9.** Hasta el APK del 25 de agosto todo se firmaba
+> con la keystore de debug; ahora se usa la llave real, que vive fuera del repo.
+> Un APK con la firma nueva **no se instala encima** de uno de los viejos: hay que
+> desinstalar la app primero, una única vez. El detalle, en
+> [40-firma-de-release.md](./40-firma-de-release.md).
 
 ---
 
@@ -65,6 +73,19 @@ cp android/app/build/outputs/apk/release/app-release.apk \
    releases/BibliaAPP-1.0.0-release.apk
 ```
 
+O de una vez, con el script, que además pasa el guardián y elige nombre y
+destino:
+
+```bash
+cd mobile
+RELEASE_SUFFIX=dvg RELEASE_DIR=/home/david/Biblia-release npm run build:android:release
+```
+
+| Variable | Por omisión | Para qué |
+|---|---|---|
+| `RELEASE_DIR` | `mobile/releases` | dónde dejar el APK ya copiado |
+| `RELEASE_SUFFIX` | (ninguno) | marca en el nombre con qué llave salió: `BibliaAPP-4.0.9-dvg-release.apk` |
+
 ---
 
 ## Instalar en dispositivo
@@ -99,6 +120,7 @@ cuadran:
 | `expo.android.versionCode` ↔ `versionCode` | error | Play rechaza un versionCode que no crece |
 | paquete de la variante ↔ `applicationId` | aviso | cuál es el correcto depende de con qué variante quieras compilar |
 | esquema de la variante ↔ `AndroidManifest` | aviso | sin él, los redirects de OAuth no tienen quién los recoja |
+| firma del `release` ↔ keystore real | error | con la de debug el APK no se instala encima de lo publicado, y cualquiera puede firmar una «actualización» ([40](./40-firma-de-release.md)) |
 
 El paquete y el esquema se resuelven evaluando `app.config.ts` con las mismas
 variables de entorno del build (`APP_VARIANT` / `EXPO_PUBLIC_APP_VARIANT`), así
