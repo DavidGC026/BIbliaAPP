@@ -39,6 +39,18 @@ docs/*
 !desktop/docs/
 !desktop/docs/**
 
+proximas-integraciones/
+proximas-integraciones/**   
+
+desktop/capturas/
+desktop/capturas/**
+
+desktop/Capturas Ejemplos/
+desktop/Capturas Ejemplos/**
+
+ejemplos/
+ejemplos/**
+
 docs-mobile
 # App móvil: tiene su propio repositorio
 mobile/
