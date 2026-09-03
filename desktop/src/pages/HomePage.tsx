@@ -89,16 +89,16 @@ export function HomePage({ onOpenBible, onNavigate, onOpenNote }: Props) {
           setChurchName(name);
           cacheChurchName(name);
         }),
-      repo.repoListRecentNotebookNotes(4).then((r) => setNotes(r.notes)),
+      repo.repoListRecentNotebookNotes(6).then((r) => setNotes(r.notes)),
       repo.repoListFavorites().then((r) => {
         const sorted = [...r.favorites].sort(
           (a, b) =>
             new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
         );
-        setFavorites(sorted.slice(0, 4));
+        setFavorites(sorted.slice(0, 6));
         setCounts((c) => ({ ...c, favorites: sorted.length }));
       }),
-      repo.repoListRecentHighlights(4).then((r) => {
+      repo.repoListRecentHighlights(6).then((r) => {
         setHighlights(r.highlights);
       }),
       repo
@@ -124,12 +124,12 @@ export function HomePage({ onOpenBible, onNavigate, onOpenNote }: Props) {
               .filter(
                 (event) => new Date(event.start_time).getTime() >= Date.now(),
               )
-              .slice(0, 4),
+              .slice(0, 6),
           ),
         ),
       api
         .getFeedAnnouncements()
-        .then((r) => setAnnouncements(r.announcements.slice(0, 4))),
+        .then((r) => setAnnouncements(r.announcements.slice(0, 6))),
     ]);
   }, []);
 
@@ -160,7 +160,8 @@ export function HomePage({ onOpenBible, onNavigate, onOpenNote }: Props) {
   }
 
   return (
-    <div className="desktop-page space-y-8 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
+    <div className="desktop-page space-y-8 p-4 sm:p-6 lg:p-8 w-full">
+
       {/* 1. TOP HERO GRID: Greeting, Continue Reading, Stats & Verse of the Day */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Left Column: Greeting, Continue, Stats */}
@@ -334,7 +335,7 @@ export function HomePage({ onOpenBible, onNavigate, onOpenNote }: Props) {
         action="Personalizar →"
         onAction={() => setCustomizing(true)}
       >
-        <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
+        <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8">
           {actions.map((key) => {
             const item = availableActions.find((entry) => entry.key === key);
             return item ? (
@@ -365,7 +366,7 @@ export function HomePage({ onOpenBible, onNavigate, onOpenNote }: Props) {
           action="Ver todas las libretas →"
           onAction={() => onNavigate("notes")}
         >
-          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
             {notes.map((note) => (
               <Card
                 key={note.id}
@@ -398,7 +399,7 @@ export function HomePage({ onOpenBible, onNavigate, onOpenNote }: Props) {
           action="Ver todos →"
           onAction={() => onNavigate("profile")}
         >
-          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
             {favorites.map((item) => (
               <Card
                 key={item.id}
@@ -434,7 +435,7 @@ export function HomePage({ onOpenBible, onNavigate, onOpenNote }: Props) {
           action="Ver todos →"
           onAction={() => onNavigate("highlights")}
         >
-          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
             {highlights.map((item) => (
               <Card
                 key={item.id}
@@ -467,7 +468,8 @@ export function HomePage({ onOpenBible, onNavigate, onOpenNote }: Props) {
       ) : null}
 
       {/* 6. ANNOUNCEMENTS & EVENTS */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+
         {announcements.length ? (
           <HomeSection title="Anuncios oficiales">
             <div className="space-y-3">

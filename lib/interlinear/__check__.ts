@@ -374,6 +374,36 @@ async function checkNtLoad() {
   assert("Jn 1:1 empieza por Ἐν / En / G1722", Boolean(first && first.strong_code === "G1722"))
 }
 
+async function checkApiQueries() {
+  console.log("\n4.1  Consultas de la API\n")
+  if (!process.env.MYSQL_HOST || !process.env.MYSQL_DATABASE) {
+    console.log("  SALTA  faltan MYSQL_*")
+    return
+  }
+
+  const { findInterlinearCoverage, findInterlinearWords } = await import("./query")
+  const john = await findInterlinearWords({ bookId: 43, chapter: 1, verse: 1 })
+  assert("Jn 1:1 devuelve 17 palabras", john.length === 17, String(john.length))
+  assert("Jn 1:1 #5 es Palabra / G3056", john[4]?.glossEs === "Palabra" && john[4]?.strongCode === "G3056")
+  assert("Jn 1:1 trae definition", Boolean(john[4]?.definition && john[4].definition.length > 10))
+
+  const matthew = await findInterlinearWords({ bookId: 40, chapter: 1 })
+  const matthewBytes = Buffer.byteLength(JSON.stringify({ words: matthew }), "utf8")
+  console.log(`  dato  Mt 1: ${matthew.length} palabras, ${(matthewBytes / 1024).toFixed(1)} KB JSON`)
+  assert("Mt 1 cabe en una respuesta (< 400 KB)", matthewBytes < 400 * 1024, `${matthewBytes} bytes`)
+
+  const coverage = await findInterlinearCoverage()
+  const books = "books" in coverage ? coverage.books : []
+  assert("coverage lista el NT (27 libros)", books.length === 27, String(books.length))
+
+  const johnChapter = await findInterlinearCoverage({ bookId: 43, chapter: 1 })
+  const verses = "verses" in johnChapter ? johnChapter.verses : []
+  assert("coverage Jn 1 incluye el verso 1", verses.includes(1))
+
+  const empty = await findInterlinearWords({ bookId: 19, chapter: 119 })
+  console.log(`  dato  Sal 119 (aún sin AT): ${empty.length} palabras`)
+}
+
 async function main() {
   console.log("\nChequeos del interlineal\n")
   checkBookMap()
@@ -384,6 +414,7 @@ async function main() {
   await checkStrongAgainstDataAndDb()
   await checkSchema()
   await checkNtLoad()
+  await checkApiQueries()
 
   if (process.env.MYSQL_HOST && process.env.MYSQL_DATABASE) {
     const { getPool } = await import("../mysql")

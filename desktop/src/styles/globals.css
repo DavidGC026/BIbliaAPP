@@ -216,9 +216,9 @@ body {
 .desktop-page {
   box-sizing: border-box;
   width: 100%;
-  max-width: 96rem;
-  margin-inline: auto;
+  max-width: 100%;
 }
+
 
 .reader-theme-auto {
   background: var(--card);

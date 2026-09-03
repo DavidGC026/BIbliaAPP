@@ -14,6 +14,8 @@ export {
 export type { StrongLanguageHint } from "./strong-code"
 
 export { ensureInterlinearTables } from "./tables"
+export { findInterlinearWords, findInterlinearCoverage } from "./query"
+export type { InterlinearWordView, InterlinearCoverageBook, InterlinearCoverageChapter } from "./query"
 export type { InterlinearWord } from "./tables"
 
 export { parseTagntHead, parseGreekCell, tagntRowToWord, isTagntDataRow } from "./tagnt"

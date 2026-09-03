@@ -6,7 +6,7 @@ interlineal en el lector, con criterios de aceptación medibles en cada paso.
 
 **Fecha de redacción:** 2026-09-01
 **Rama de referencia:** `fix/notas-bloques-contenido`
-**Estado global:** `EN CURSO` (Fase 3 cerrada)
+**Estado global:** `EN CURSO` (Fase 4 cerrada)
 
 ---
 
@@ -321,17 +321,16 @@ Columnas verificadas sobre `Mat.1.1#04`:
 
 ## 7. Fase 4 — API
 
-- [ ] **4.1** Crear `app/api/interlinear/route.ts`, siguiendo el patrón de
-      `app/api/dictionary/route.ts`.
-      - Parámetros: `book`, `chapter`, y `verse` opcional.
-      - Devuelve las palabras del capítulo o del versículo, con la definición
-        española del Strong resuelta por `JOIN`.
-      - Cabeceras de caché igual que el diccionario: los datos no cambian nunca.
-        `public, max-age=3600, stale-while-revalidate=86400` o más agresivo.
-- [ ] **4.2** Endpoint o parámetro para saber **qué pasajes tienen interlineal**,
-      de modo que la interfaz no ofrezca el botón donde no hay datos.
-- [ ] **4.3** Medir el tamaño de la respuesta de un capítulo largo
-      (Salmo 119: 176 versículos; Mt 1) y paginar o comprimir si hace falta.
+- [x] **4.1** `app/api/interlinear/route.ts` + `lib/interlinear/query.ts`.
+      `book` + `chapter`, `verse` opcional (incluye `0` para títulos).
+      `JOIN` a Strong y a `bible_strong_particles`. Caché idéntica al
+      diccionario: `public, max-age=3600, stale-while-revalidate=86400`.
+- [x] **4.2** `?coverage=1` (libros), `&book=` (capítulos), `&book=&chapter=`
+      (versículos). La UI usará esto para no mostrar el panel donde no hay datos.
+- [x] **4.3** Medido 2026-09-03: **Mt 1 = 444 palabras / 194 KB JSON**.
+      Sal 119 aún sin AT; TAHOT tiene 1.064 palabras ≈ **~465 KB** al mismo
+      ratio. No se pagina: Next comprime y el lector pide un capítulo, como
+      los comentarios. Revisar si al cargar el AT algún capítulo supera 1 MB.
 
 ---
 
@@ -461,7 +460,7 @@ Columnas verificadas sobre `Gen.1.1#01` — **ojo, no son las mismas que TAGNT**
 | 1 | Cimientos (libros, códigos, versificación) | `cerrada` | 2026-09-03 |
 | 2 | Esquema de base de datos | `cerrada` | 2026-09-03 |
 | 3 | Importador NT (TAGNT) | `cerrada` | 2026-09-03 |
-| 4 | API | `pendiente` | — |
+| 4 | API | `cerrada` | 2026-09-03 |
 | 5 | Interfaz del lector | `pendiente` | — |
 | 6 | Importador AT (TAHOT) | `pendiente` | — |
 | 7 | Cierres (offline, licencias) | `pendiente` | — |
@@ -478,6 +477,7 @@ Una entrada por sesión de trabajo. Añadir al final, sin borrar lo anterior.
 | 2026-09-03 | Brothers / agente | Fase 1 | `lib/interlinear/*`: mapa de libros, normalizador Strong, TVTMS, `parseTahotHeadRef`, `npm run check:interlinear`. Excepciones de `.gitignore` para este plan y el README. | TAHOT ya viene en numeración NRSV (hebreo entre paréntesis). 21.178 era un recuento incompleto. Strong: 13.974 / 13.845 / 129. RV60 AT: 23.146. TVTMS vs TAHOT: 58 desacuerdos únicos. |
 | 2026-09-03 | Brothers / agente | Fase 2 | `scripts/004_interlinear.sql` + `ensureInterlinearTables`. Tablas creadas vacías. `hasInterlinear` desde `fuertes`. | `strong_raw` VARCHAR(80). `fuertes` sigue en 0. |
 | 2026-09-03 | Brothers / agente | Fase 3 | Parser TAGNT + importador. Carga real: 141.746 palabras / 7.949 versos / 99,56 % Strong / 0 glosas vacías. | No se filtran K/O: cada una tiene su `position`. `fuertes` sigue en 0. |
+| 2026-09-03 | Brothers / agente | Fase 4 | `/api/interlinear` + coverage. Mt 1: 194 KB. Sin paginar. | Sal 119 sin datos hasta Fase 6 (~465 KB estimados). |
 
 ---
 
