@@ -12,6 +12,10 @@ interface SendEmailOptions {
 
 export async function sendEmail({ to, subject, html }: SendEmailOptions): Promise<void> {
   if (!RESEND_API_KEY) {
+    if (process.env.NODE_ENV !== "production") {
+      console.log(`[DEV EMAIL MOCK] To: ${to} | Subject: ${subject}`)
+      return
+    }
     throw new Error("RESEND_API_KEY no está configurada.")
   }
 

@@ -117,14 +117,7 @@ export function generateSecureToken(): string {
   return crypto.randomBytes(32).toString("hex")
 }
 
-export function getAppUrl(fallbackOrigin?: string): string {
-  return (
-    process.env.APP_URL ||
-    process.env.NEXT_PUBLIC_APP_URL ||
-    fallbackOrigin ||
-    "https://biblia2.dvguzman.com"
-  ).replace(/\/$/, "")
-}
+export { getAppUrl } from "./app-url"
 
 export function getSession(req: Request): UserSession | null {
   const authHeader = req.headers.get("authorization")

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
-import { getAppUrl } from "@/lib/auth"
+import { getAppUrl } from "@/lib/app-url"
 
 function allowedOrigins(): string[] {
   const origins = new Set<string>()

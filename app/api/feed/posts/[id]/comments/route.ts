@@ -26,7 +26,7 @@ export async function GET(
       return NextResponse.json({ error: "ID de publicación inválido" }, { status: 400 })
     }
 
-    const comments = await getComments(postId)
+    const comments = await getComments(postId, session.userId)
     return NextResponse.json({ comments })
   } catch (err) {
     return NextResponse.json(

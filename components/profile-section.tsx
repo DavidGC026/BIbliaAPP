@@ -21,12 +21,19 @@ import {
   UserMinus,
   MessageSquare,
   Heart,
-  Share2
+  Share2,
+  Flag,
+  UserX,
+  ShieldBan,
+  AlertTriangle,
+  Trash2
 } from "lucide-react"
 import { UserAvatar } from "@/components/user-avatar"
 import { FriendRequestButton } from "@/components/friend-request-button"
 import { PrivacySettings } from "@/components/privacy-settings"
 import { AccountTransferPanel } from "@/components/account-transfer-panel"
+import { ReportModal } from "@/components/report-modal"
+import { BlockedUsersDialog } from "@/components/blocked-users-dialog"
 
 interface ProfileSectionProps {
   currentUserId: number
@@ -41,6 +48,13 @@ export function ProfileSection({ currentUserId, initialUsername }: ProfileSectio
   const [newUsername, setNewUsername] = useState("")
   const [isSubmittingUsername, setIsSubmittingUsername] = useState(false)
   const [usernameError, setUsernameError] = useState("")
+  const [reportTarget, setReportTarget] = useState<{
+    type: "user" | "post" | "comment"
+    id: number
+    label?: string
+  } | null>(null)
+  const [showBlockedDialog, setShowBlockedDialog] = useState(false)
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false)
 
   // Search users
   const { data: searchData, isLoading: searchLoading } = useSWR<{ users: any[] }>(
@@ -128,7 +142,7 @@ export function ProfileSection({ currentUserId, initialUsername }: ProfileSectio
                   />
                   
                   <div className="pb-2">
-                    <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">{profile.name}</h2>
+                    <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">{profile.name}</h1>
                     <div className="flex items-center gap-2 mt-1">
                       {isEditingUsername ? (
                         <div className="flex items-center gap-2">
@@ -175,10 +189,10 @@ export function ProfileSection({ currentUserId, initialUsername }: ProfileSectio
                           </Button>
                         </div>
                       ) : (
-                        <span className="text-sm font-semibold text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-md flex items-center gap-1.5 cursor-pointer hover:text-foreground transition-colors" onClick={handleCopyUsername} title="Copiar apodo">
+                        <button type="button" className="flex items-center gap-1.5 rounded-md bg-muted/50 px-2 py-0.5 text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" onClick={handleCopyUsername} aria-label={`Copiar apodo @${profile.username}`}>
                           @{profile.username}
                           {copied ? <Check className="size-3 text-green-500" /> : <Copy className="size-3" />}
-                        </span>
+                        </button>
                       )}
                       
                       {profile.id === currentUserId && !isEditingUsername && (
@@ -198,7 +212,7 @@ export function ProfileSection({ currentUserId, initialUsername }: ProfileSectio
                 </div>
 
                 <div className="flex items-center gap-3 pb-2 flex-wrap">
-                  {profile.id !== currentUserId && (
+                  {profile.id !== currentUserId ? (
                     <>
                       <FriendRequestButton
                         targetUserId={profile.id}
@@ -218,8 +232,40 @@ export function ProfileSection({ currentUserId, initialUsername }: ProfileSectio
                           <><UserPlus className="size-4 mr-2" /> Seguir</>
                         )}
                       </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setReportTarget({ type: "user", id: profile.id, label: `@${profile.username} (${profile.name})` })}
+                        className="rounded-full text-xs text-rose-600 dark:text-rose-400 border-rose-500/30 hover:bg-rose-500/10 gap-1.5"
+                      >
+                        <Flag className="size-3.5" />
+                        Denunciar
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={async () => {
+                          if (!confirm(`¿Bloquear a @${profile.username}? Ya no verás sus publicaciones ni podrá interactuar contigo.`)) return
+                          try {
+                            const res = await fetch("/api/moderation/block", {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ userId: profile.id }),
+                            })
+                            if (!res.ok) throw new Error("Error al bloquear")
+                            alert("Usuario bloqueado")
+                            setActiveUsername(null)
+                          } catch (e) {
+                            alert(e instanceof Error ? e.message : "Error")
+                          }
+                        }}
+                        className="rounded-full text-xs text-muted-foreground hover:text-rose-500 gap-1.5"
+                      >
+                        <UserX className="size-3.5" />
+                        Bloquear
+                      </Button>
                     </>
-                  )}
+                  ) : null}
                 </div>
               </div>
 
@@ -246,9 +292,85 @@ export function ProfileSection({ currentUserId, initialUsername }: ProfileSectio
             {profile.id === currentUserId && (
               <div className="px-6 pb-4 space-y-4">
                 <PrivacySettings />
+                
+                {/* Gestión de usuarios bloqueados */}
+                <div className="rounded-xl border border-border bg-card p-5 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="size-9 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                      <ShieldBan className="size-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-sm text-foreground">Usuarios bloqueados</h3>
+                      <p className="text-xs text-muted-foreground">Administra la lista de personas que has bloqueado.</p>
+                    </div>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowBlockedDialog(true)}
+                  >
+                    Ver lista
+                  </Button>
+                </div>
+
                 <AccountTransferPanel />
+
+                {/* Zona de peligro: Eliminar cuenta */}
+                <div className="rounded-xl border border-rose-500/30 bg-rose-500/5 p-5 space-y-3">
+                  <div className="flex items-center gap-2 text-rose-600 dark:text-rose-400">
+                    <AlertTriangle className="size-5" />
+                    <h3 className="font-bold text-sm">Eliminar cuenta</h3>
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Esta acción es irreversible. Se eliminarán permanentemente todas tus notas, libretas, subrayados, publicaciones y datos personales asociados.
+                  </p>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    disabled={isDeletingAccount}
+                    onClick={async () => {
+                      const c1 = confirm("¿Estás COMPLETAMENTE SEGURO de que deseas eliminar tu cuenta? Esta acción NO se puede deshacer.")
+                      if (!c1) return
+                      const c2 = prompt("Para confirmar la eliminación, escribe la palabra ELIMINAR:")
+                      if (c2 !== "ELIMINAR") {
+                        alert("Confirmación cancelada.")
+                        return
+                      }
+                      setIsDeletingAccount(true)
+                      try {
+                        const res = await fetch("/api/profile", { method: "DELETE" })
+                        if (!res.ok) throw new Error("Error al eliminar la cuenta")
+                        alert("Tu cuenta y tus datos han sido eliminados correctamente.")
+                        window.location.href = "/"
+                      } catch (err) {
+                        alert(err instanceof Error ? err.message : "Error al eliminar la cuenta")
+                        setIsDeletingAccount(false)
+                      }
+                    }}
+                    className="gap-1.5"
+                  >
+                    {isDeletingAccount ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
+                    Eliminar mi cuenta definitivamente
+                  </Button>
+                </div>
               </div>
             )}
+
+            {/* Modales de moderación */}
+            {reportTarget && (
+              <ReportModal
+                isOpen={true}
+                onClose={() => setReportTarget(null)}
+                targetType={reportTarget.type}
+                targetId={reportTarget.id}
+                targetLabel={reportTarget.label}
+              />
+            )}
+
+            <BlockedUsersDialog
+              isOpen={showBlockedDialog}
+              onClose={() => setShowBlockedDialog(false)}
+            />
 
             {/* Posts */}
             <div className="flex-1 p-6">
@@ -316,17 +438,20 @@ export function ProfileSection({ currentUserId, initialUsername }: ProfileSectio
   return (
     <div className="flex flex-col h-full bg-card/20 rounded-xl overflow-hidden">
       <div className="p-6 border-b border-border/40 bg-card/30 backdrop-blur-md">
-        <h2 className="text-xl font-bold text-foreground flex items-center gap-2 mb-4">
+        <h1 className="text-xl font-bold text-foreground flex items-center gap-2 mb-4">
           <Users className="size-5 text-primary" />
           Comunidad
-        </h2>
+        </h1>
         
         <div className="relative max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
           <Input 
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            placeholder="Buscar por nombre o @apodo..."
+            name="community-search"
+            autoComplete="off"
+            aria-label="Buscar personas en la comunidad"
+            placeholder="Buscar por nombre o @apodo…"
             className="pl-9 bg-background border-border/50"
           />
         </div>
@@ -341,10 +466,11 @@ export function ProfileSection({ currentUserId, initialUsername }: ProfileSectio
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {searchData?.users?.map(u => (
-                <div 
+                <button
+                  type="button"
                   key={u.id}
                   onClick={() => setActiveUsername(u.username)}
-                  className="flex items-center gap-3 p-4 rounded-xl bg-card border border-border/50 hover:border-primary/40 hover:shadow-md transition-all cursor-pointer group"
+                  className="group flex items-center gap-3 rounded-xl border border-border/50 bg-card p-4 text-left transition-all hover:border-primary/40 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <div className="size-12 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary shrink-0 group-hover:scale-105 transition-transform">
                     {u.name.charAt(0).toUpperCase()}
@@ -353,7 +479,7 @@ export function ProfileSection({ currentUserId, initialUsername }: ProfileSectio
                     <span className="font-bold text-sm text-foreground truncate">{u.name}</span>
                     <span className="text-xs text-muted-foreground truncate">@{u.username}</span>
                   </div>
-                </div>
+                </button>
               ))}
             </div>
           )

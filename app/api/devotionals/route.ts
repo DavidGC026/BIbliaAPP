@@ -32,6 +32,8 @@ export async function POST(req: NextRequest) {
     }
 
     const id = await createDevotional(session.userId, title.trim(), emotion, verseRef, content)
+    const { updateUserStreak } = await import("@/lib/bible")
+    await updateUserStreak(session.userId)
     return NextResponse.json({ id, title: title.trim(), emotion, verseRef, content })
   } catch (err) {
     return NextResponse.json(

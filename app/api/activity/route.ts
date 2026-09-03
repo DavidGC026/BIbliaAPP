@@ -60,6 +60,9 @@ export async function POST(req: NextRequest) {
       [user.userId, today, bookId, chaptersCount, versesCount]
     )
 
+    const { updateUserStreak } = await import("@/lib/bible")
+    await updateUserStreak(user.userId)
+
     return NextResponse.json({ success: true })
   } catch (err) {
     return NextResponse.json(

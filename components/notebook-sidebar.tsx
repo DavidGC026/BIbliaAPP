@@ -957,7 +957,7 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
                       setDictionaryQuery(e.target.value)
                       if (e.target.value) setDictionaryBrowse(false)
                     }}
-                    placeholder="G25, H430, agapao, shalom..."
+                    placeholder="G25, H430, agapao, shalom…"
                     className="h-11 pl-9"
                   />
                 </div>
@@ -1140,7 +1140,11 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
               <Input
                 value={notebookSearch}
                 onChange={(e) => setNotebookSearch(e.target.value)}
-                placeholder="Buscar libreta..."
+                name="notebook-search"
+                autoComplete="off"
+                spellCheck={false}
+                aria-label="Buscar libretas"
+                placeholder="Buscar libreta…"
                 className="h-7 border-0 bg-transparent px-0 text-sm focus-visible:ring-0"
               />
             </div>
@@ -1181,22 +1185,9 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
             ) : (
               <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-4">
                 {visibleNotebooks.map((n) => (
-                  <div
+                  <article
                     key={n.id}
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => {
-                      setActiveNotebookId(n.id)
-                      setSearchQuery("")
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault()
-                        setActiveNotebookId(n.id)
-                        setSearchQuery("")
-                      }
-                    }}
-                    className="group relative flex min-h-[258px] cursor-pointer flex-col items-center gap-3 rounded-2xl border border-border bg-card p-3 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md"
+                    className="group relative flex min-h-[258px] flex-col rounded-2xl border border-border bg-card p-3 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md"
                   >
                     <div className="absolute right-2 top-2 z-10 flex gap-1 opacity-100 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100">
                       <button
@@ -1212,6 +1203,7 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
                         }}
                         className="flex size-8 items-center justify-center rounded-lg border border-border bg-background/90 text-muted-foreground shadow-sm hover:text-primary"
                         title="Editar libreta"
+                        aria-label={`Editar libreta ${n.name}`}
                       >
                         <Edit2 className="size-3.5" />
                       </button>
@@ -1220,29 +1212,37 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
                         onClick={(e) => handleDeleteNotebook(n.id, n.name, e)}
                         className="flex size-8 items-center justify-center rounded-lg border border-border bg-background/90 text-muted-foreground shadow-sm hover:text-destructive"
                         title="Eliminar libreta"
+                        aria-label={`Eliminar libreta ${n.name}`}
                       >
                         <Trash2 className="size-3.5" />
                       </button>
                     </div>
 
-                    <BookCover
-                      title={n.name}
-                      coverImage={n.coverImage}
-                      className="pointer-events-none mt-1"
-                    />
-
-                    <div className="flex w-full min-w-0 flex-col items-center gap-2">
-                      <div className="min-h-9 max-w-full text-center text-[13px] font-extrabold leading-[17px] text-foreground line-clamp-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveNotebookId(n.id)
+                        setSearchQuery("")
+                      }}
+                      aria-label={`Abrir libreta ${n.name}`}
+                      className="flex min-h-[232px] w-full flex-1 flex-col items-center gap-3 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    >
+                      <BookCover
+                        title={n.name}
+                        coverImage={n.coverImage}
+                        className="pointer-events-none mt-1"
+                      />
+                      <span className="min-h-9 max-w-full text-center text-[13px] font-extrabold leading-[17px] text-foreground line-clamp-2">
                         {n.name}
-                      </div>
-                      <div className="max-w-full rounded-full border border-border bg-muted/50 px-2.5 py-1 text-[11px] font-extrabold text-muted-foreground">
+                      </span>
+                      <span className="max-w-full rounded-full border border-border bg-muted/50 px-2.5 py-1 text-[11px] font-extrabold text-muted-foreground">
                         Libreta de estudio
-                      </div>
-                      <div className="text-center text-[11px] font-bold text-muted-foreground">
-                        Creada {new Date(n.createdAt).toLocaleDateString()}
-                      </div>
-                    </div>
-                  </div>
+                      </span>
+                      <span className="text-center text-[11px] font-bold text-muted-foreground">
+                        Creada {new Date(n.createdAt).toLocaleDateString("es-MX")}
+                      </span>
+                    </button>
+                  </article>
                 ))}
               </div>
             )}
@@ -1272,7 +1272,7 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
                   <Input 
                     value={configName}
                     onChange={(e) => setConfigName(e.target.value)}
-                    placeholder="Ej. Apuntes de Proverbios, Teología..."
+                    placeholder="Ej. Apuntes de Proverbios, Teología…"
                     className="h-10"
                     autoFocus
                   />
@@ -1305,7 +1305,7 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
                   <Input 
                     value={customCoverUrl}
                     onChange={(e) => setCustomCoverUrl(e.target.value)}
-                    placeholder="https://images.unsplash.com/..."
+                    placeholder="https://images.unsplash.com/…"
                     className="h-10 text-xs"
                   />
                 </div>
@@ -1412,7 +1412,7 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
                 <Input
                   value={newNoteTitle}
                   onChange={(e) => setNewNoteTitle(e.target.value)}
-                  placeholder="Título..."
+                  placeholder="Título…"
                   className="h-8 text-xs w-32 md:w-40"
                   autoFocus
                   onKeyDown={(e) => {
@@ -1444,7 +1444,7 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
           <Input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Buscar apuntes o contenido..."
+            placeholder="Buscar apuntes o contenido…"
             className="h-10 rounded-xl border-border bg-card pl-9 pr-4 text-sm"
           />
         </div>
@@ -1477,7 +1477,7 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
         {notesLoading ? (
           <div className="flex h-32 items-center justify-center text-xs text-muted-foreground gap-2">
             <Loader2 className="size-4 animate-spin text-primary" />
-            <span>Cargando notas de la libreta...</span>
+            <span>Cargando notas de la libreta…</span>
           </div>
         ) : filteredNotes.length === 0 ? (
           <div className="rounded-xl border border-dashed border-border p-8 text-center text-muted-foreground space-y-2">
@@ -1646,7 +1646,7 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
                 <Input 
                   value={configName}
                   onChange={(e) => setConfigName(e.target.value)}
-                  placeholder="Ej. Apuntes de Proverbios, Teología..."
+                  placeholder="Ej. Apuntes de Proverbios, Teología…"
                   className="h-10"
                   autoFocus
                 />
@@ -1680,7 +1680,7 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
                   <Input 
                     value={customCoverUrl}
                     onChange={(e) => setCustomCoverUrl(e.target.value)}
-                    placeholder="https://images.unsplash.com/..."
+                    placeholder="https://images.unsplash.com/…"
                     className="h-10 text-xs flex-1"
                   />
                   <input

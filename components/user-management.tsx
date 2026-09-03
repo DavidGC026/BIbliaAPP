@@ -22,8 +22,11 @@ import {
   ArrowLeft,
   Calendar,
   AlertCircle,
-  Search
+  Search,
+  ShieldAlert,
+  Building2
 } from "lucide-react"
+import { AdminModerationPanel } from "@/components/admin-moderation"
 
 interface ManagedUser {
   id: number
@@ -47,6 +50,7 @@ export function UserManagement({ currentUserId }: UserManagementProps) {
 
   const [isCreating, setIsCreating] = useState(false)
   const [editingUser, setEditingUser] = useState<ManagedUser | null>(null)
+  const [adminTab, setAdminTab] = useState<"users" | "moderation" | "church">("users")
 
   // Search filter query
   const [searchQuery, setSearchQuery] = useState("")
@@ -349,30 +353,76 @@ export function UserManagement({ currentUserId }: UserManagementProps) {
   // Users List view
   return (
     <div className="space-y-6 p-1 md:p-4 animate-fade-in">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-extrabold tracking-tight text-foreground flex items-center gap-2">
-            Gestión de Usuarios <Users className="size-7 text-primary" />
+            Panel de Administración <Shield className="size-7 text-primary" />
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Administra las cuentas, cambia contraseñas, busca usuarios y configura permisos.
+            Administra usuarios, modera contenido comunitario y configura la iglesia oficial.
           </p>
         </div>
-        <Button onClick={openCreateForm} className="gap-1.5 font-semibold">
-          <UserPlus className="size-4" />
-          <span>Crear Usuario</span>
-        </Button>
+        {adminTab === "users" && (
+          <Button onClick={openCreateForm} className="gap-1.5 font-semibold shrink-0">
+            <UserPlus className="size-4" />
+            <span>Crear Usuario</span>
+          </Button>
+        )}
       </div>
 
-      <ChurchSettingsPanel />
+      {/* Subtabs de administración */}
+      <div className="flex items-center gap-2 border-b border-border pb-1 text-sm">
+        <button
+          type="button"
+          onClick={() => setAdminTab("users")}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-colors ${
+            adminTab === "users"
+              ? "bg-primary text-primary-foreground shadow-xs"
+              : "text-muted-foreground hover:bg-muted"
+          }`}
+        >
+          <Users className="size-4" />
+          Usuarios y Permisos
+        </button>
+        <button
+          type="button"
+          onClick={() => setAdminTab("moderation")}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-colors ${
+            adminTab === "moderation"
+              ? "bg-primary text-primary-foreground shadow-xs"
+              : "text-muted-foreground hover:bg-muted"
+          }`}
+        >
+          <ShieldAlert className="size-4" />
+          Moderación UGC
+        </button>
+        <button
+          type="button"
+          onClick={() => setAdminTab("church")}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-colors ${
+            adminTab === "church"
+              ? "bg-primary text-primary-foreground shadow-xs"
+              : "text-muted-foreground hover:bg-muted"
+          }`}
+        >
+          <Building2 className="size-4" />
+          Iglesia Oficial
+        </button>
+      </div>
 
-      {isLoading ? (
-        <div className="flex h-64 items-center justify-center text-sm text-muted-foreground">
-          <Loader2 className="mr-2 size-4 animate-spin text-primary" />
-          Cargando listado de usuarios...
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-5xl items-start">
+      {adminTab === "moderation" && <AdminModerationPanel />}
+
+      {adminTab === "church" && <ChurchSettingsPanel />}
+
+      {adminTab === "users" && (
+        <>
+          {isLoading ? (
+            <div className="flex h-64 items-center justify-center text-sm text-muted-foreground">
+              <Loader2 className="mr-2 size-4 animate-spin text-primary" />
+              Cargando listado de usuarios...
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-5xl items-start">
           
           {/* Main User List Section */}
           <div className="lg:col-span-2 space-y-4">
@@ -523,9 +573,10 @@ export function UserManagement({ currentUserId }: UserManagementProps) {
               )}
             </Button>
           </div>
-
         </div>
       )}
-    </div>
+    </>
+  )}
+</div>
   )
 }
