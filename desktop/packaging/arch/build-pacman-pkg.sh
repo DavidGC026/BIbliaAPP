@@ -7,8 +7,9 @@ ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 OUTDIR="$(cd "$(dirname "$0")" && pwd)"
 PKGDIR=$(mktemp -d)
 BUILD_DATE=$(date +%s)
-PKGVER=0.3.5.2
+PKGVER=0.3.5.3
 PKGREL=1
+
 
 
 

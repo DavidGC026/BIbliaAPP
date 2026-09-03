@@ -2,8 +2,9 @@
 # Uso: cd desktop/packaging/arch && makepkg -si
 
 pkgname=bibliaapp-desktop
-pkgver=0.3.5.2
+pkgver=0.3.5.3
 pkgrel=1
+
 
 
 pkgdesc="Lectura bíblica, comunidad y grupos — cliente de escritorio BibliaAPP"
