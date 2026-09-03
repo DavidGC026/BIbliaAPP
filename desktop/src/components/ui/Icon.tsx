@@ -1,32 +1,94 @@
 import type { ReactNode, SVGProps } from "react";
 
+const assetSvgs = import.meta.glob<string>("../../../../assets/icons/*.svg", {
+  eager: true,
+  query: "?raw",
+  import: "default",
+});
+
+const ASSET_CONTENT = Object.fromEntries(
+  Object.entries(assetSvgs).map(([path, svg]) => [
+    path.slice(path.lastIndexOf("/") + 1, -4),
+    svg.replace(/^<svg\b[^>]*>/, "").replace(/<\/svg>\s*$/, ""),
+  ]),
+);
+
 export type IconName =
+  | "add"
   | "activity"
   | "alert"
+  | "arrow-left"
+  | "arrow-right"
   | "bell"
+  | "bible"
   | "book"
+  | "bookmark"
   | "calendar"
   | "chart"
+  | "check"
+  | "chevron-down"
+  | "chevron-left"
+  | "chevron-right"
+  | "chevron-up"
   | "close"
   | "community"
+  | "copy"
+  | "delete"
   | "dictionary"
   | "download"
   | "edit"
+  | "error"
   | "eye"
   | "file"
+  | "flame"
+  | "folder"
+  | "groups"
   | "heart"
   | "highlighter"
   | "home"
   | "image"
+  | "info"
   | "inbox"
+  | "library"
+  | "link"
+  | "lock"
+  | "login"
+  | "logout"
+  | "more"
   | "notes"
+  | "notifications"
+  | "offline"
+  | "pin"
+  | "profile"
+  | "quote"
+  | "reading-plan"
   | "search"
+  | "settings"
+  | "share"
+  | "sidebar-collapse"
+  | "sidebar-expand"
   | "sparkles"
+  | "sun"
+  | "sync"
   | "table"
+  | "text-size"
+  | "trophy"
+  | "upload"
   | "user"
-  | "users";
+  | "users"
+  | "visibility"
+  | "visibility-off";
 
-const CONTENT: Record<IconName, ReactNode> = {
+const ASSET_NAME: Partial<Record<IconName, string>> = {
+  alert: "error",
+  bell: "notifications",
+  book: "bible",
+  eye: "visibility",
+  user: "profile",
+  users: "groups",
+};
+
+const CONTENT: Partial<Record<IconName, ReactNode>> = {
   home: (
     <>
       <path d="m3 10.5 9-7.5 9 7.5" />
@@ -173,6 +235,8 @@ export function Icon({
   className = "",
   ...props
 }: Props) {
+  const assetContent = ASSET_CONTENT[ASSET_NAME[name] ?? name];
+
   return (
     <svg
       viewBox="0 0 24 24"
@@ -188,7 +252,7 @@ export function Icon({
       focusable="false"
       {...props}
     >
-      {CONTENT[name]}
+      {assetContent ? <g dangerouslySetInnerHTML={{ __html: assetContent }} /> : CONTENT[name]}
     </svg>
   );
 }

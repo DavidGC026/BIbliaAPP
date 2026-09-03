@@ -28,7 +28,11 @@ export async function GET(req: NextRequest) {
       [searchTerm, searchTerm]
     )
 
-    return NextResponse.json({ users: rows })
+    const { getBlockedUserIds } = await import("@/lib/moderation")
+    const blockedIds = new Set(await getBlockedUserIds(session.userId))
+    const users = (rows as any[]).filter((u) => !blockedIds.has(u.id))
+
+    return NextResponse.json({ users })
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Error al buscar usuarios" },

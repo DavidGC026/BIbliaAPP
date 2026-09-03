@@ -1,6 +1,6 @@
 # 14 — Auditoría offline y release Arch 0.3.3
 
-Fecha: **2026-07-19**.
+Fecha original: **2026-07-19**. Recompilación validada: **2026-07-26**.
 
 ## Resultado
 
@@ -37,8 +37,8 @@ Las imágenes nuevas de una nota intentan subirse online; si no hay servidor se 
 packaging/arch/bibliaapp-desktop-0.3.3-1-x86_64.pkg.tar.zst
 ```
 
-- Tamaño: `11,204,471` bytes.
-- SHA-256: `4dc686515573973b65080e12a380a80905ff3098391ac40ae9961ffc06c40c91`.
+- Tamaño: `11,795,115` bytes.
+- SHA-256: `7c7837afc7adf875712e0a7b58551ca41ec0eb8a39524d233520d38e2bc95a3a`.
 - Arquitectura: ELF64 x86-64 PIE.
 - Dependencias principales comprobadas: GTK 3, WebKitGTK 4.1, GLib, libsoup 3 y SQLite.
 - Ninguna biblioteca enlazada apareció como `not found` durante la validación.
@@ -56,6 +56,11 @@ sudo pacman -U packaging/arch/bibliaapp-desktop-0.3.3-1-x86_64.pkg.tar.zst
 ```
 
 El artefacto se excluye de Git mediante `desktop/.gitignore`; debe conservarse o publicarse por separado de los fuentes.
+
+La recompilación del 26 de julio incorpora el set SVG compartido entre web,
+mobile y desktop, además del selector configurable de tablas y el autoguardado
+visible a 1.5 segundos. Se generó desde el código actual, no desde el binario
+previo del 19 de julio.
 
 ## Validación ejecutada
 

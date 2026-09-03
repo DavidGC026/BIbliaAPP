@@ -16,10 +16,12 @@ La sección **Perfil → Apariencia** permite adaptar toda la interfaz móvil al
 | Medianoche | Oscuro | Azul profundo con acentos azul lavanda |
 | Bosque | Oscuro | Verde sereno con acentos esmeralda |
 | Lavanda | Claro | Fondo suave, elegante y de bajo contraste visual |
-| DVG | Oscuro, solo administradores | Base borgoña, rojo principal y texto claro de alto contraste |
+| DVG | Oscuro, solo administradores | Base borgoña, acciones rojas, bordes dorados y texto crema de alto contraste |
 | UBG | Oscuro, solo administradores | Base verde petróleo, verde principal y acentos azules |
 
 Las paletas viven en [`mobile/constants/Colors.ts`](../mobile/constants/Colors.ts). Todas exponen los mismos tokens semánticos (`background`, `card`, `text`, `textMuted`, `primary`, `primaryForeground`, `danger`, etc.), por lo que las pantallas no dependen de colores fijos.
+
+La edición DVG combina su base borgoña con rojo en `primary` y `tint`, mientras reserva dorados cálidos para bordes, campos, contornos de énfasis y superficies secundarias. `primaryForeground` conserva un tono crema para que botones y controles rojos mantengan contraste legible.
 
 ## Selector de apariencia
 

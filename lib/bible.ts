@@ -429,7 +429,7 @@ async function _ensureDbTables(): Promise<void> {
 
   try {
     await pool.query(
-      `ALTER TABLE feed_notifications MODIFY COLUMN type ENUM('comment','reply','like','follow','prayer_intercession','friend_request','friend_accepted') NOT NULL`,
+      `ALTER TABLE feed_notifications MODIFY COLUMN type ENUM('comment','reply','like','follow','prayer_intercession','friend_request','friend_accepted','group_event_reminder') NOT NULL`,
     )
   } catch (_) {}
 
@@ -515,6 +515,46 @@ export async function getLinksForChapter(bookId: number, chapter: number, userId
     )
     return rows
   }
+}
+
+/**
+ * Todas las notas de versículo de un usuario, para la lista de «Versículos con
+ * notas». Sin vacías, la más reciente primero.
+ *
+ * `bible_note_links` no guarda versión: una nota es del versículo, no de una
+ * traducción. Por eso el texto del versículo solo se adjunta si quien pregunta
+ * dice con qué Biblia quiere leerlo, y va por LEFT JOIN: que a una versión le
+ * falte ese versículo no puede hacer desaparecer la nota de la lista.
+ */
+export async function getAllLinks(userId: number, bibleId?: number): Promise<any[]> {
+  await ensureDbTables()
+  const pool = getPool()
+  if (bibleId) {
+    const [rows] = await pool.query<RowDataPacket[]>(
+      `SELECT l.id, l.book_id AS bookId, b.name AS bookName, l.chapter, l.verse,
+              l.note_content AS noteContent, v.text AS verseText,
+              l.created_at AS createdAt, l.updated_at AS updatedAt
+       FROM bible_note_links l
+       JOIN bible_books b ON b.idBook = l.book_id
+       LEFT JOIN bible_verses v
+         ON v.idBible = ? AND v.idBook = l.book_id AND v.chapter = l.chapter AND v.verse = l.verse
+       WHERE l.user_id = ? AND l.note_content IS NOT NULL AND l.note_content <> ''
+       ORDER BY l.updated_at DESC, l.id DESC`,
+      [bibleId, userId],
+    )
+    return rows
+  }
+  const [rows] = await pool.query<RowDataPacket[]>(
+    `SELECT l.id, l.book_id AS bookId, b.name AS bookName, l.chapter, l.verse,
+            l.note_content AS noteContent, NULL AS verseText,
+            l.created_at AS createdAt, l.updated_at AS updatedAt
+     FROM bible_note_links l
+     JOIN bible_books b ON b.idBook = l.book_id
+     WHERE l.user_id = ? AND l.note_content IS NOT NULL AND l.note_content <> ''
+     ORDER BY l.updated_at DESC, l.id DESC`,
+    [userId],
+  )
+  return rows
 }
 
 export async function createLink(
@@ -934,7 +974,32 @@ export async function listUsers(): Promise<any[]> {
 
 export async function deleteUser(id: number): Promise<void> {
   await ensureDbTables()
-  await getPool().query(`DELETE FROM users WHERE id = ?`, [id])
+  const pool = getPool()
+  try {
+    await pool.query(`DELETE FROM bible_notebooks WHERE user_id = ?`, [id])
+  } catch (_) {}
+  try {
+    await pool.query(`DELETE FROM bible_note_links WHERE user_id = ?`, [id])
+  } catch (_) {}
+  try {
+    await pool.query(`DELETE FROM bible_verse_highlights WHERE user_id = ?`, [id])
+  } catch (_) {}
+  try {
+    await pool.query(`DELETE FROM user_reading_plans WHERE user_id = ?`, [id])
+  } catch (_) {}
+  try {
+    await pool.query(`DELETE FROM user_push_tokens WHERE user_id = ?`, [id])
+  } catch (_) {}
+  try {
+    await pool.query(`DELETE FROM feed_notifications WHERE user_id = ? OR actor_id = ?`, [id, id])
+  } catch (_) {}
+  try {
+    await pool.query(`DELETE FROM church_event_rsvps WHERE user_id = ?`, [id])
+  } catch (_) {}
+  try {
+    await pool.query(`DELETE FROM church_events WHERE created_by = ?`, [id])
+  } catch (_) {}
+  await pool.query(`DELETE FROM users WHERE id = ?`, [id])
 }
 
 export async function updateUserAdmin(
@@ -1254,8 +1319,12 @@ export async function getFeed(userId: number, type: 'following' | 'explore' = 'f
   )
 
   const { canViewFeedPost } = await import("./media-privacy")
+  const { getBlockedUserIds } = await import("./moderation")
+  const blockedIds = new Set(await getBlockedUserIds(userId))
+
   const filtered = []
   for (const row of rows) {
+    if (blockedIds.has(row.user_id as number)) continue
     const vis = (row.visibility as string) || (row.is_public ? "public" : "private")
     if (await canViewFeedPost(userId, row.user_id as number, vis)) {
       filtered.push(row)
@@ -1396,7 +1465,7 @@ export async function getCommentById(commentId: number): Promise<any | null> {
   return rows[0] ?? null
 }
 
-export async function getComments(postId: number): Promise<any[]> {
+export async function getComments(postId: number, viewerId?: number): Promise<any[]> {
   // Lista plana con parent_id; el cliente arma el árbol.
   // Los borrados conservan su lugar en el hilo pero sin contenido ni autor.
   const [rows] = await getPool().query<RowDataPacket[]>(
@@ -1411,7 +1480,11 @@ export async function getComments(postId: number): Promise<any[]> {
      ORDER BY fc.created_at ASC, fc.id ASC`,
     [postId]
   )
-  return rows
+  if (!viewerId) return rows
+  const { getBlockedUserIds } = await import("./moderation")
+  const blockedIds = new Set(await getBlockedUserIds(viewerId))
+  if (blockedIds.size === 0) return rows
+  return rows.filter((r) => !r.user_id || !blockedIds.has(r.user_id as number))
 }
 
 /** Soft delete: conserva la estructura del hilo (las respuestas hijas sobreviven). */
@@ -1435,7 +1508,15 @@ export async function getPostAuthor(postId: number): Promise<number | null> {
 // Feed Notifications
 // ------------------------------------------------------------------------------------------------
 
-export type NotificationType = "comment" | "reply" | "like" | "follow" | "friend_request" | "friend_accepted"
+export type NotificationType =
+  | "comment"
+  | "reply"
+  | "like"
+  | "follow"
+  | "friend_request"
+  | "friend_accepted"
+  | "prayer_intercession"
+  | "group_event_reminder"
 
 export async function createNotification(
   userId: number,

@@ -34,7 +34,7 @@ export function BookCover({ title, coverImage, className = "", onClick }: Props)
           {title.toUpperCase()}
         </p>
         <p className="mt-2 flex items-center gap-1 text-[10px] font-semibold text-white/80">
-          <Icon name="book" size={11} />
+          <Icon name="bible" size={11} />
           ESTUDIO
         </p>
       </div>

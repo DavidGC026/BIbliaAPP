@@ -19,7 +19,7 @@ con vista previa de cada paleta, descripción y marca del tema activo.
 | Medianoche | `midnight` | Oscuro | Azul profundo con acentos azul lavanda |
 | Bosque | `forest` | Oscuro | Verde sereno con acentos esmeralda |
 | Lavanda | `lavender` | Claro | Fondo suave, elegante y de bajo contraste |
-| DVG | `dvg` | Oscuro, solo administradores | Base borgoña, rojo principal y alto contraste |
+| DVG | `dvg` | Oscuro, solo administradores | Base borgoña, acciones rojas, bordes dorados y alto contraste |
 | UBG | `ubg` | Oscuro, solo administradores | Base verde petróleo, verde principal y acentos azules |
 
 ## Arquitectura
@@ -48,6 +48,11 @@ con este mapeo de tokens móviles → web:
 
 Como las pantallas solo consumen variables semánticas, ningún componente
 necesita conocer los temas nuevos.
+
+En DVG, las acciones y el foco se mantienen rojos; los bordes, inputs y
+contornos de énfasis usan dorado cálido. `lib/note-editor-theme.ts` refleja el
+mismo `primarySoft` borgoña y `primaryBorder` dorado del móvil para el editor
+de notas.
 
 Dos detalles adicionales en `globals.css`:
 
@@ -114,6 +119,49 @@ Nota: como la clase se aplica antes de la hidratación, un no-admin con el tema
 persistido puede ver la paleta DVG/UBG durante un instante hasta que la sesión
 se resuelve y se revierte. Es cosmético; la restricción es de apariencia, no de
 acceso a datos.
+
+## Iconos compartidos
+
+Web y móvil consumen el set canónico de SVG en
+[`assets/icons`](../assets/icons). Cada icono usa un lienzo de 24 px, trazo
+redondeado de 1.8 y `currentColor`; desktop parte de la misma fuente.
+
+[`components/ui/app-icon.tsx`](../components/ui/app-icon.tsx) lo renderiza
+como máscara CSS. Por ello, las clases de color existentes (`text-primary`,
+`text-muted-foreground`, etc.) conservan el comportamiento con todos los
+temas, sin duplicar los activos en `public`.
+
+- La ruta `/api/assets/icons/:name` sirve solo los identificadores permitidos
+  en [`lib/app-icons.ts`](../lib/app-icons.ts); no permite solicitar rutas
+  arbitrarias del servidor.
+- Se migraron navegación lateral e inferior, hoja «Más», acciones globales
+  del encabezado y el registro de secciones (Biblia, comunidad, grupos,
+  notas, planes, calendario y herramientas de estudio).
+- Los paneles internos que aún usan Lucide se mantienen por compatibilidad y
+  deben pasar progresivamente a `<AppIcon name="…" />` usando nombres
+  semánticos como `bible`, `community`, `groups` o `reading-plan`.
+
+En móvil, [`mobile/components/ui/AppIcon.tsx`](../mobile/components/ui/AppIcon.tsx)
+importa los mismos SVG con `react-native-svg`. Las pestañas, Inicio, accesos
+rápidos, estadísticas, onboarding, Perfil y Notas ya usan esa capa. El detalle
+de Metro y del mapa de referencias está documentado en
+[`docs-mobile/30-iconos-compartidos-y-mapa-referencias.md`](../docs-mobile/30-iconos-compartidos-y-mapa-referencias.md).
+
+La ilustración compartida del mapa vive en
+[`assets/images/references-map-hero.png`](../assets/images/references-map-hero.png).
+Web la muestra en la tarjeta y mientras genera el mapa; móvil la usa como
+miniatura y portada de descarga. La ruta web
+`/api/assets/images/references-map-hero` solo expone esa imagen permitida.
+
+La carga web usa además
+[`assets/images/references-map-loading.png`](../assets/images/references-map-loading.png):
+una red nocturna de nodos y arcos bajo un degradado, con el indicador y estado
+legibles encima. Está disponible solo como
+`/api/assets/images/references-map-loading` y se muestra durante la descarga
+de datos y mientras se construye el HTML interactivo.
+
+Para añadir un icono: crear `assets/icons/<nombre>.svg`, añadir el nombre a
+`APP_ICON_NAMES` y consumirlo con `<AppIcon name="<nombre>" />`.
 
 ## Verificación
 

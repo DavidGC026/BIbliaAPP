@@ -11,7 +11,7 @@ export function LegalFooter({ className }: { className?: string }) {
   return (
     <footer
       className={cn(
-        'flex flex-wrap items-center justify-center gap-x-2 gap-y-1 px-4 py-4 text-[11px] text-muted-foreground/80',
+        'flex flex-wrap items-center justify-center gap-x-2 gap-y-1 px-4 py-4 text-xs text-muted-foreground',
         className,
       )}
     >

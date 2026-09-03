@@ -51,6 +51,723 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/* ============================================================
+   Editor de notas Tiptap (web)
+   Cinta superior en escritorio e inferior en pantallas moviles.
+   ============================================================ */
+
+.web-note-shell {
+  --note-chrome: color-mix(in srgb, var(--card) 95%, var(--muted));
+  --note-hairline: color-mix(in srgb, var(--border) 78%, transparent);
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.web-note-header {
+  position: relative;
+  z-index: 40;
+  display: grid;
+  min-height: 50px;
+  flex: 0 0 auto;
+  grid-template-columns: 36px minmax(0, 1fr) auto 36px;
+  align-items: center;
+  gap: 6px;
+  border-bottom: 1px solid var(--note-hairline);
+  background: var(--note-chrome);
+  padding: max(6px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) 6px max(8px, env(safe-area-inset-left));
+}
+
+.web-note-icon-button {
+  display: inline-flex;
+  width: 34px;
+  height: 34px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  color: var(--muted-foreground);
+}
+
+.web-note-icon-button svg,
+.web-note-save-button svg,
+.web-note-status svg {
+  width: 16px;
+  height: 16px;
+}
+
+.web-note-icon-button:hover,
+.web-note-icon-button:focus-visible {
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
+  color: var(--primary);
+}
+
+.web-note-title-input {
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  padding: 4px 3px;
+  color: var(--foreground);
+  font-size: 15px;
+  font-weight: 760;
+  outline: none;
+}
+
+.web-note-title-input::placeholder { color: var(--muted-foreground); }
+.web-note-title-input:focus { box-shadow: 0 1px 0 var(--primary); }
+
+.web-note-status {
+  display: none;
+  min-width: 0;
+  align-items: center;
+  gap: 4px;
+  color: var(--muted-foreground);
+  font-size: 11px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.web-note-status.is-pending { color: color-mix(in srgb, #d97706 80%, var(--foreground)); }
+.web-note-status.is-saving { color: var(--primary); }
+.web-note-status-separator { opacity: 0.55; }
+.web-note-saved-time { opacity: 0.8; }
+
+.web-note-save-button {
+  display: inline-flex;
+  height: 34px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid color-mix(in srgb, var(--primary) 30%, var(--border));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--primary) 10%, var(--card));
+  padding: 0 10px;
+  color: var(--primary);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.web-note-save-button.is-saved {
+  border-color: var(--note-hairline);
+  background: transparent;
+  color: var(--muted-foreground);
+}
+
+.web-note-save-button:disabled { cursor: wait; opacity: 0.75; }
+.web-note-actions { position: relative; }
+
+.web-note-actions-menu {
+  position: absolute;
+  top: calc(100% + 7px);
+  right: 0;
+  z-index: 70;
+  width: 190px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--popover);
+  padding: 5px;
+  color: var(--popover-foreground);
+  box-shadow: 0 16px 36px color-mix(in srgb, #000 18%, transparent);
+}
+
+.web-note-actions-menu button {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 9px;
+  border-radius: 7px;
+  padding: 8px 9px;
+  font-size: 12px;
+  font-weight: 650;
+  text-align: left;
+}
+
+.web-note-actions-menu button:hover,
+.web-note-actions-menu button:focus-visible { background: var(--accent); }
+.web-note-actions-menu button.is-danger { color: var(--destructive); }
+.web-note-actions-menu svg { width: 15px; height: 15px; }
+.web-note-actions-divider { height: 1px; margin: 4px 5px; background: var(--border); }
+
+.web-note-preview { background: var(--card); }
+
+.web-note-preview-document {
+  padding: 18px 16px 40px;
+  color: var(--foreground);
+}
+
+.note-tiptap-shell {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  width: 100%;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--background);
+  color: var(--foreground);
+}
+
+.note-tiptap-document {
+  order: 1;
+  position: relative;
+  z-index: 1;
+  min-height: 0;
+  flex: 1 1 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  background: var(--card);
+}
+
+.note-tiptap-document > div,
+.note-tiptap-document .tiptap {
+  min-height: 100%;
+}
+
+.note-tiptap-prosemirror {
+  position: relative;
+  min-height: 100%;
+  padding: 18px 16px 40px;
+  font-size: 16px;
+  line-height: 1.65;
+  outline: none;
+  overflow-wrap: anywhere;
+}
+
+.note-tiptap-prosemirror > * {
+  position: relative;
+  z-index: 1;
+}
+
+.note-tiptap-prosemirror > * + * {
+  margin-top: 0.65rem;
+}
+
+.note-tiptap-prosemirror h1 {
+  font-size: 1.65em;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.note-tiptap-prosemirror h2 {
+  font-size: 1.35em;
+  font-weight: 750;
+  line-height: 1.25;
+}
+
+.note-tiptap-prosemirror ul,
+.note-tiptap-prosemirror ol {
+  padding-left: 1.5rem;
+}
+
+.note-tiptap-prosemirror ul { list-style: disc; }
+.note-tiptap-prosemirror ol { list-style: decimal; }
+
+.note-tiptap-prosemirror blockquote:not(.biblia-verse-quote) {
+  border-left: 3px solid var(--primary);
+  border-radius: 0 10px 10px 0;
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
+  padding: 10px 16px;
+  font-style: italic;
+}
+
+.note-tiptap-prosemirror p.is-editor-empty:first-child::before {
+  float: left;
+  height: 0;
+  color: var(--muted-foreground);
+  content: attr(data-placeholder);
+  pointer-events: none;
+}
+
+.note-tiptap-prosemirror .biblia-verse-quote,
+.note-tiptap-prosemirror .biblia-dict-entry,
+.note-tiptap-prosemirror .note-image-block,
+.note-tiptap-prosemirror table {
+  border: 2px solid transparent;
+  transition: border-color 140ms ease, box-shadow 140ms ease;
+}
+
+.note-tiptap-prosemirror .ProseMirror-selectednode {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 18%, transparent);
+  outline: none;
+}
+
+.note-tiptap-prosemirror .biblia-verse-quote {
+  border-left: 4px solid var(--primary);
+  border-radius: 0 12px 12px 0;
+  background: color-mix(in srgb, var(--primary) 10%, var(--card));
+  padding: 12px 14px;
+}
+
+.note-tiptap-prosemirror .biblia-dict-entry {
+  border-left: 4px solid #7c3aed;
+  border-radius: 12px;
+  background: color-mix(in srgb, #7c3aed 9%, var(--card));
+  padding: 12px 14px;
+}
+
+.note-tiptap-prosemirror .biblia-dict-label,
+.note-tiptap-prosemirror .biblia-dict-section-label {
+  color: #7c3aed;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.note-tiptap-prosemirror .biblia-dict-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  margin: 6px 0;
+}
+
+.note-tiptap-prosemirror .biblia-dict-code,
+.note-tiptap-prosemirror .biblia-dict-lemma {
+  font-weight: 800;
+}
+
+.note-tiptap-prosemirror .biblia-dict-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.note-tiptap-prosemirror table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  overflow: hidden;
+}
+
+.note-tiptap-prosemirror th,
+.note-tiptap-prosemirror td {
+  position: relative;
+  min-width: 1em;
+  border: 1px solid var(--border);
+  padding: 8px 10px;
+  vertical-align: top;
+}
+
+.note-tiptap-prosemirror th {
+  background: var(--accent);
+  font-weight: 800;
+}
+
+.note-tiptap-prosemirror .selectedCell::after {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: color-mix(in srgb, var(--primary) 15%, transparent);
+  content: "";
+  pointer-events: none;
+}
+
+.note-tiptap-prosemirror .column-resize-handle {
+  position: absolute;
+  top: 0;
+  right: -2px;
+  bottom: -2px;
+  width: 4px;
+  background: var(--primary);
+  pointer-events: none;
+}
+
+.note-tiptap-prosemirror.resize-cursor {
+  cursor: col-resize;
+}
+
+.note-tiptap-prosemirror .note-image-block {
+  clear: both;
+  border-radius: 10px;
+}
+
+.note-tiptap-prosemirror .note-image-block.is-background {
+  z-index: 0;
+  pointer-events: none;
+}
+
+.note-tiptap-shell.is-background-mode .note-image-block.is-background {
+  z-index: 10 !important;
+  opacity: 0.9;
+  cursor: grab;
+  pointer-events: auto;
+  outline: 2px dashed var(--primary);
+  box-shadow: 0 10px 30px color-mix(in srgb, var(--foreground) 25%, transparent);
+}
+
+.note-editor-ribbon {
+  order: 2;
+  position: relative;
+  z-index: 20;
+  flex: 0 0 auto;
+  overflow: hidden;
+  border-top: 1px solid var(--border);
+  background: color-mix(in srgb, var(--card) 94%, transparent);
+  padding-bottom: env(safe-area-inset-bottom);
+  box-shadow: 0 -8px 24px color-mix(in srgb, var(--foreground) 7%, transparent);
+  backdrop-filter: blur(18px);
+}
+
+.note-ribbon-tabs,
+.note-ribbon-groups {
+  display: flex;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+}
+
+.note-ribbon-tabs {
+  align-items: stretch;
+  border-bottom: 1px solid var(--border);
+  padding: 3px 4px 0;
+}
+
+.note-ribbon-tab {
+  display: inline-flex;
+  min-height: 34px;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+  border-bottom: 2px solid transparent;
+  border-radius: 8px 8px 0 0;
+  padding: 6px 10px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.note-ribbon-tab svg,
+.note-ribbon-collapse svg {
+  width: 15px;
+  height: 15px;
+}
+
+.note-ribbon-tab.is-active {
+  border-bottom-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
+  color: var(--primary);
+}
+
+.note-ribbon-tab.is-contextual {
+  background: color-mix(in srgb, var(--primary) 8%, var(--card));
+}
+
+.note-ribbon-collapse {
+  position: sticky;
+  right: 0;
+  display: inline-flex;
+  width: 38px;
+  flex: 0 0 38px;
+  align-items: center;
+  justify-content: center;
+  border-left: 1px solid var(--border);
+  background: var(--card);
+  color: var(--muted-foreground);
+}
+
+.note-ribbon-groups {
+  gap: 6px;
+  padding: 6px;
+  transition: max-height 180ms ease, padding 180ms ease;
+}
+
+.note-editor-ribbon.is-collapsed .note-ribbon-groups {
+  max-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.note-ribbon-group {
+  display: flex;
+  min-width: max-content;
+  flex: 0 0 auto;
+  flex-direction: column;
+  justify-content: space-between;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--muted) 55%, transparent);
+  padding: 4px 5px 2px;
+}
+
+.note-ribbon-group-items {
+  display: flex;
+  min-height: 36px;
+  align-items: center;
+  gap: 2px;
+}
+
+.note-ribbon-group-label {
+  margin-top: 2px;
+  color: var(--muted-foreground);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-align: center;
+}
+
+.note-ribbon-button {
+  display: inline-flex;
+  min-width: 34px;
+  height: 34px;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  border-radius: 7px;
+  padding: 0 8px;
+  color: var(--foreground);
+  font-size: 11px;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.note-ribbon-button svg {
+  width: 16px;
+  height: 16px;
+}
+
+.note-ribbon-button:hover,
+.note-ribbon-button:focus-visible,
+.note-ribbon-button.is-active {
+  background: color-mix(in srgb, var(--primary) 14%, transparent);
+  color: var(--primary);
+}
+
+.note-ribbon-button:focus-visible,
+.note-ribbon-tab:focus-visible,
+.note-ribbon-collapse:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: -2px;
+}
+
+.note-ribbon-button.is-danger { color: var(--destructive); }
+.note-ribbon-button:disabled { cursor: not-allowed; opacity: 0.35; }
+
+.note-ribbon-select {
+  height: 34px;
+  min-width: 58px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--background);
+  padding: 0 7px;
+  color: var(--foreground);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.note-ribbon-colors {
+  display: flex;
+  max-width: 210px;
+  align-items: center;
+  gap: 5px;
+  overflow-x: auto;
+  padding: 2px;
+}
+
+.note-ribbon-color {
+  position: relative;
+  display: inline-flex;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--card);
+  border-radius: 999px;
+  box-shadow: 0 0 0 1px var(--border);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.note-ribbon-color.is-active { box-shadow: 0 0 0 2px var(--primary); }
+.note-ribbon-color.is-auto { background: var(--foreground); color: var(--background); }
+.note-ribbon-color.is-picker { overflow: hidden; background: conic-gradient(red, #ff0, #0f0, #0ff, #00f, #f0f, red); color: white; cursor: pointer; }
+.note-ribbon-color.is-picker svg { width: 13px; height: 13px; filter: drop-shadow(0 1px 1px #000); }
+.note-ribbon-color.is-picker input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+
+/* Desktop ofrece una segunda fila de inserciones, equivalente a la cinta
+   especial del cliente nativo. En móvil se conservan las acciones en pestañas
+   para no restar altura al documento ni duplicar controles. */
+.note-special-tools { display: none; }
+
+@media (min-width: 768px) {
+  body.note-immersive .mobile-web-content {
+    overflow: hidden;
+    padding: 0;
+  }
+
+  body.note-immersive .mobile-section-shell {
+    height: 100vh;
+    min-height: 0;
+    padding: 0;
+  }
+
+  body.note-immersive .mobile-section-shell > div {
+    height: 100vh;
+    min-height: 0;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .web-note-header {
+    min-height: 46px;
+    grid-template-columns: 34px minmax(180px, 1fr) auto auto 34px;
+    gap: 8px;
+    padding: 5px 10px;
+  }
+
+  .web-note-status { display: flex; }
+
+  .note-editor-ribbon {
+    order: 0;
+    border-top: 0;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0;
+    background: var(--note-chrome, var(--card));
+    box-shadow: 0 5px 14px color-mix(in srgb, var(--foreground) 4%, transparent);
+  }
+
+  .note-tiptap-prosemirror {
+    width: 100%;
+    max-width: none;
+    padding: 24px clamp(24px, 4vw, 64px) 64px;
+    font-size: 17px;
+  }
+
+  .web-note-preview-document { padding: 24px clamp(24px, 4vw, 64px) 64px; }
+
+  .note-ribbon-tabs { min-height: 32px; padding: 1px 7px 0; }
+  .note-ribbon-tab { min-height: 31px; padding: 4px 10px; font-size: 12px; }
+  .note-ribbon-groups { gap: 0; padding: 5px 7px 2px; }
+  .note-ribbon-group {
+    border: 0;
+    border-right: 1px solid var(--note-hairline, var(--border));
+    border-radius: 0;
+    background: transparent;
+    padding: 1px 8px 2px;
+  }
+  .note-ribbon-group:last-child { border-right: 0; }
+  .note-ribbon-group-items { min-height: 33px; }
+  .note-ribbon-button { height: 31px; min-width: 31px; padding: 0 7px; }
+  .note-ribbon-select { height: 31px; }
+  .note-ribbon-group-label { margin-top: 1px; font-size: 8px; }
+  .note-ribbon-button.is-wide { min-width: 74px; }
+
+  .note-special-tools {
+    display: block;
+    border-top: 1px solid var(--note-hairline, var(--border));
+    background: color-mix(in srgb, var(--card) 88%, var(--muted));
+  }
+
+  .note-editor-ribbon.is-collapsed .note-special-tools { display: none; }
+
+  .note-special-tabs {
+    display: flex;
+    min-height: 34px;
+    align-items: center;
+    gap: 3px;
+    overflow-x: auto;
+    padding: 3px 10px;
+  }
+
+  .note-special-tab,
+  .note-special-close {
+    display: inline-flex;
+    height: 27px;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    border-radius: 7px;
+    padding: 0 9px;
+    color: var(--muted-foreground);
+    font-size: 11px;
+    font-weight: 750;
+  }
+
+  .note-special-tab svg,
+  .note-special-close svg { width: 14px; height: 14px; }
+  .note-special-tab:hover { background: var(--accent); color: var(--foreground); }
+  .note-special-tab.is-active { background: color-mix(in srgb, var(--primary) 13%, transparent); color: var(--primary); }
+  .note-special-tab.is-active[data-tone="sky"] { background: color-mix(in srgb, #0ea5e9 13%, transparent); color: #0284c7; }
+  .note-special-tab.is-active[data-tone="violet"] { background: color-mix(in srgb, #7c3aed 13%, transparent); color: #7c3aed; }
+  .note-special-close { margin-left: auto; width: 27px; padding: 0; }
+  .note-special-close:hover { background: var(--accent); color: var(--foreground); }
+
+  .note-special-options {
+    display: flex;
+    align-items: stretch;
+    gap: 6px;
+    border-top: 1px solid var(--note-hairline, var(--border));
+    padding: 7px 9px;
+  }
+
+  .note-special-cards {
+    display: flex;
+    min-width: 0;
+    flex: 1;
+    gap: 7px;
+    overflow-x: auto;
+  }
+
+  .note-special-card {
+    display: flex;
+    min-width: 190px;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 10px;
+    border: 1px solid var(--note-hairline, var(--border));
+    border-radius: 9px;
+    background: var(--card);
+    padding: 7px 10px;
+    color: var(--foreground);
+    text-align: left;
+  }
+
+  .note-special-card:hover,
+  .note-special-card.is-active {
+    border-color: color-mix(in srgb, var(--primary) 50%, var(--border));
+    background: color-mix(in srgb, var(--primary) 7%, var(--card));
+  }
+
+  .note-special-card > svg { width: 18px; height: 18px; flex: 0 0 auto; color: var(--primary); }
+  .note-special-card span { display: flex; min-width: 0; flex-direction: column; }
+  .note-special-card strong { font-size: 11px; line-height: 1.25; }
+  .note-special-card small { overflow: hidden; color: var(--muted-foreground); font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+  .note-special-arrow {
+    display: inline-flex;
+    width: 27px;
+    flex: 0 0 27px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 7px;
+    color: var(--muted-foreground);
+  }
+  .note-special-arrow svg { width: 15px; height: 15px; }
+  .note-special-arrow:disabled { opacity: 0.35; }
+}
+
+@media (min-width: 768px) and (max-width: 1100px) {
+  .note-ribbon-group-label { display: none; }
+  .note-ribbon-groups { padding-bottom: 5px; }
+  .web-note-saved-time { display: none; }
+}
+
+@media (max-width: 767px) {
+  .web-note-save-button { width: 34px; padding: 0; }
+  .web-note-save-button span { display: none; }
+  body.keyboard-open .web-note-header { min-height: 42px; padding-top: 4px; padding-bottom: 4px; }
+  body.keyboard-open .note-ribbon-group-label { display: none; }
+  body.keyboard-open .note-ribbon-groups { padding-top: 4px; padding-bottom: 4px; }
+  /* El teclado tapa el indicador de inicio: reservar su franja (34px en un
+     iPhone 15 Pro) solo abriría hueco entre la cinta y el teclado. */
+  body.keyboard-open .note-editor-ribbon { padding-bottom: 0; }
+  .note-ribbon-button.is-wide { min-width: 62px; }
+}
+
 :root {
   --background: oklch(0.98 0.008 85);
   --foreground: oklch(0.25 0.015 60);
@@ -280,32 +997,32 @@
 
 /* Ediciones solo administradores (paridad con mobile) */
 .dvg {
-  --background: #15090a;
-  --foreground: #fff7f7;
-  --card: #251012;
-  --card-foreground: #fff7f7;
-  --popover: #251012;
-  --popover-foreground: #fff7f7;
+  --background: #18090a;
+  --foreground: #fff7e6;
+  --card: #2a1012;
+  --card-foreground: #fff7e6;
+  --popover: #2a1012;
+  --popover-foreground: #fff7e6;
   --primary: #dc2626;
-  --primary-foreground: #ffffff;
-  --secondary: #3a171b;
-  --secondary-foreground: #fff7f7;
-  --muted: #3a171b;
-  --muted-foreground: #d8a7ab;
-  --accent: #4a171d;
-  --accent-foreground: #fff7f7;
+  --primary-foreground: #fff7e6;
+  --secondary: #42161a;
+  --secondary-foreground: #fff7e6;
+  --muted: #42161a;
+  --muted-foreground: #d9b984;
+  --accent: #57320f;
+  --accent-foreground: #fff7e6;
   --destructive: #fda4af;
-  --border: rgba(248, 113, 113, 0.22);
-  --input: rgba(248, 113, 113, 0.18);
+  --border: rgba(232, 184, 74, 0.34);
+  --input: rgba(232, 184, 74, 0.24);
   --ring: #f87171;
   --chart-1: #f87171;
-  --sidebar: #1e0d0f;
-  --sidebar-foreground: #fff7f7;
+  --sidebar: #210c0e;
+  --sidebar-foreground: #fff7e6;
   --sidebar-primary: #dc2626;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #4a171d;
-  --sidebar-accent-foreground: #fff7f7;
-  --sidebar-border: rgba(248, 113, 113, 0.22);
+  --sidebar-primary-foreground: #fff7e6;
+  --sidebar-accent: #57320f;
+  --sidebar-accent-foreground: #fff7e6;
+  --sidebar-border: rgba(232, 184, 74, 0.34);
   --sidebar-ring: #f87171;
 }
 
@@ -363,7 +1080,25 @@
   }
   html {
     @apply font-sans;
+    font-optical-sizing: auto;
   }
+}
+
+/* ============================================================
+   Lector bíblico
+   ============================================================ */
+
+/* Capitular: primera letra del capítulo, tres líneas de alto. El tamaño es
+   en `em` para acompañar el ajuste de fuente del lector. */
+.verse-dropcap {
+  float: left;
+  margin-top: 0.05em;
+  margin-right: 0.12em;
+  color: var(--primary);
+  font-family: var(--font-serif);
+  font-size: 3.15em;
+  font-weight: 600;
+  line-height: 0.82;
 }
 
 @layer utilities {
@@ -438,8 +1173,10 @@
        Mientras se edita una nota, el editor ocupa toda la pantalla:
        se ocultan el header y la tabbar de la app (la salida es el botón
        "Volver" del propio editor) para recuperar ~150px de alto útil.
-       La altura sigue a --app-visual-height, que components/notebook-sidebar
-       mantiene sincronizada con window.visualViewport. Eso cubre iOS, donde
+       La altura sigue a --app-visual-height y el desplazamiento a
+       --app-visual-offset, que components/notes/editor-shell/
+       use-immersive-viewport mantiene sincronizadas con
+       window.visualViewport. Eso cubre iOS, donde
        interactive-widget=resizes-content no aplica y 100dvh no encoge al
        abrirse el teclado. */
     body.note-immersive .mobile-app-header,
@@ -447,18 +1184,49 @@
       display: none;
     }
 
+    /* El armazón deja de medir 100dvh: con el teclado abierto iOS mantiene ese
+       alto, así que sobraba pantalla por debajo del editor y Safari desplazaba
+       .mobile-web-content para enseñar el cursor. La cinta subía con él y
+       quedaba un hueco entre ella y el teclado. */
+    body.note-immersive .mobile-app-shell,
     body.note-immersive .mobile-content-frame {
-      padding-bottom: 0;
-      min-height: var(--app-visual-height, 100dvh);
+      height: var(--app-visual-height, 100dvh);
+      min-height: 0;
+      overflow: hidden;
     }
 
+    body.note-immersive .mobile-content-frame {
+      padding-bottom: 0;
+    }
+
+    body.note-immersive .mobile-web-content {
+      overflow: hidden;
+    }
+
+    /* El pie legal es hermano de la sección y hereda `min-height: 100%`:
+       duplicaba el alto del contenido y le daba a Safari sitio que desplazar. */
+    body.note-immersive .mobile-web-content > :not(.mobile-section-shell) {
+      display: none;
+    }
+
+    /* Anclada al viewport **visible**: en iOS el teclado no encoge el viewport
+       de layout, solo desplaza el visible dentro de él, y `position: fixed` se
+       resuelve contra el de layout. Compensar ese desplazamiento con `top` deja
+       la cinta pegada al teclado. Con `top` y no `transform` para no crear un
+       bloque contenedor que reubicaría los modales `fixed` del editor. */
     body.note-immersive .mobile-section-shell {
+      position: fixed;
+      top: var(--app-visual-offset, 0px);
+      right: 0;
+      left: 0;
+      height: var(--app-visual-height, 100dvh);
+      min-height: 0;
       padding: 0;
     }
 
     body.note-immersive .mobile-section-shell > div {
-      height: var(--app-visual-height, 100dvh);
-      max-height: var(--app-visual-height, 100dvh);
+      height: 100%;
+      max-height: 100%;
     }
 
     /* Con el teclado abierto el alto util es minimo: el bloque de titulo se

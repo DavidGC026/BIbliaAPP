@@ -75,7 +75,7 @@ export function NotesSection({
         </div>
       </div>
 
-      <SegmentTabs tabs={tabs} active={activeSection} onChange={setSection} />
+      <SegmentTabs tabs={tabs} active={activeSection} onChange={setSection} ariaLabel="Herramientas de notas" />
 
       <div className="flex-1 min-h-0 overflow-hidden">
         {activeSection === "libretas" ? (

@@ -1,6 +1,6 @@
 import type { ReactNode } from "react"
-import type { LucideIcon } from "lucide-react"
 import type { AppSectionDefinition } from "@/lib/app-sections"
+import type { AppIconComponent } from "@/components/ui/app-icon"
 
 export interface SectionUser {
   id: number
@@ -38,7 +38,7 @@ export interface SectionRenderContext {
 export type SectionLayout = "plain" | "fullscreen" | "card" | "notebook"
 
 export interface SectionUIConfig {
-  icon: LucideIcon
+  icon: AppIconComponent
   render: (ctx: SectionRenderContext) => ReactNode
   requiresUser?: boolean
   layout?: SectionLayout

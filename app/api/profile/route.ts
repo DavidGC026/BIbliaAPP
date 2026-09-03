@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getSession } from "@/lib/auth"
-import { getUserById } from "@/lib/bible"
+import { getUserById, deleteUser } from "@/lib/bible"
 import { canViewUserAvatar } from "@/lib/media-privacy"
 import {
   AVATAR_VISIBILITY_LABELS,
@@ -91,6 +91,27 @@ export async function PUT(req: NextRequest) {
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Error al actualizar el perfil" },
+      { status: 500 },
+    )
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const session = getSession(req)
+    if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 })
+
+    await deleteUser(session.userId)
+
+    const response = NextResponse.json({ success: true, message: "Cuenta eliminada correctamente." })
+    response.headers.append(
+      "Set-Cookie",
+      "session=; Path=/; HttpOnly; Max-Age=0; SameSite=Lax",
+    )
+    return response
+  } catch (err) {
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "Error al eliminar la cuenta" },
       { status: 500 },
     )
   }

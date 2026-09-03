@@ -34,7 +34,7 @@ Documentación del cliente móvil de **BibliaAPP** (React Native + Expo). La app
 | [18-lector-biblia-e-imagenes.md](./18-lector-biblia-e-imagenes.md) | Mejoras de lectura bíblica y generador de imágenes de versículos |
 | [19-descargas-offline.md](./19-descargas-offline.md) | Descargas offline visibles, cola en segundo plano de app y reanudación |
 | [20-plan-maestro-mejoras-generales.md](./20-plan-maestro-mejoras-generales.md) | Plan vivo de mejoras generales, estados, fases y avance actual |
-| [21-insercion-y-edicion-de-imagenes.md](./21-insercion-y-edicion-de-imagenes.md) | Inserción, redimensionado, posición y alineación de imágenes en notas |
+| [21-insercion-y-edicion-de-imagenes.md](./21-insercion-y-edicion-de-imagenes.md) | Inserción, redimensionado, posición y alineación de imágenes en notas; las imágenes base64 ya no se guardan en el contenido |
 | [22-notas-diseno-profesional.md](./22-notas-diseno-profesional.md) | Rediseño visual profesional de notas, libretas, tarjetas y editor |
 | [23-paridad-web-mobile-global.md](./23-paridad-web-mobile-global.md) | Seguimiento global de paridad entre la aplicación web y móvil |
 | [24-reduccion-secciones-web.md](./24-reduccion-secciones-web.md) | Simplificación de secciones web durante el trabajo de paridad |
@@ -42,15 +42,28 @@ Documentación del cliente móvil de **BibliaAPP** (React Native + Expo). La app
 | [26-variantes-y-licencias-biblicas.md](./26-variantes-y-licencias-biblicas.md) | Variantes pública/interna, capacidades bíblicas, pantalla legal y descargas autorizadas |
 | [27-oauth-google-android-esquema.md](./27-oauth-google-android-esquema.md) | Diagnóstico y corrección del OAuth de Google congelado en Android por desfase de esquema nativo/JS |
 | [28-admin-usuarios-y-aceptacion-legal.md](./28-admin-usuarios-y-aceptacion-legal.md) | Panel de administración de usuarios, documentos legales nativos y aceptación obligatoria de términos en el primer login móvil |
+| [29-notas-bloques-de-contenido.md](./29-notas-bloques-de-contenido.md) | Bloques de versículo, diccionario y tabla en el editor: reparación de bloques rotos al borrar, borrado en dos pasos y separación del módulo |
+| [30-iconos-compartidos-y-mapa-referencias.md](./30-iconos-compartidos-y-mapa-referencias.md) | Set SVG compartido entre plataformas, integración nativa en Expo y nueva ilustración del mapa de referencias |
+| [31-mapa-de-referencias-navegable.md](./31-mapa-de-referencias-navegable.md) | El mapa arcoíris pasa a ser navegable: encuadre completo, selección determinista, atajos a los capítulos más citados y apertura en el lector de los capítulos conectados |
+| [32-notas-pestana-contextual.md](./32-notas-pestana-contextual.md) | Los bloques dejan de llevar botones dentro del documento: al seleccionarlos solo se ve el contorno y sus acciones pasan a una pestaña contextual en la barra de herramientas |
+| [33-editor-tiptap-y-cinta.md](./33-editor-tiptap-y-cinta.md) | El editor pasa de execCommand a Tiptap, con cinta de opciones estilo Word, pestañas contextuales y pantalla completa |
+| [34-notas-cinta-bajo-el-teclado.md](./34-notas-cinta-bajo-el-teclado.md) | La cinta se quedaba a medias bajo el teclado: en vez de afinar el alto que anuncia el teclado, se mide lo que tapa de verdad y la página lo descuenta |
+| [35-notas-tutorial-primera-vez.md](./35-notas-tutorial-primera-vez.md) | Tutorial de seis pasos la primera vez que se abre una nota: versículos, diccionario, imágenes, tablas y guardado |
+| [36-notas-de-versiculo-seccion.md](./36-notas-de-versiculo-seccion.md) | Sección «Versículos con notas»: endpoint nuevo para listarlas todas, pestaña con buscador y salto al versículo en el lector |
+| [37-cinta-inset-ime.md](./37-cinta-inset-ime.md) | La cinta seguía tapada: el alto del teclado pasa a salir del inset IME del sistema y la página mide su propio alto visible |
+| [38-lector-parrafos-y-referencia-viva.md](./38-lector-parrafos-y-referencia-viva.md) | Paridad con el lector web: modo párrafos (texto corrido), referencia viva `CAP:VERS` y progreso por versículo |
+| [39-teclado-que-se-baja.md](./39-teclado-que-se-baja.md) | Al bajar el teclado la nota se quedaba a media pantalla: el inset IME se quedaba clavado y la página no remedía su alto visible. El lector pasa a la misma fuente y la regla queda cubierta por una prueba |
+| [40-firma-de-release.md](./40-firma-de-release.md) | Los APK dejan de firmarse con la keystore de debug: llave propia fuera del repo, plugin de Expo que la cablea tras cada prebuild y guardián que lo comprueba |
+| [41-audio-oracion-amigos-qr-discipulado.md](./41-audio-oracion-amigos-qr-discipulado.md) | Audio TTS en el lector, oración personal, amigos/seguir, QR de grupos y discipulado |
 
 ---
 
 ## Versión documentada
 
-- **App móvil:** `3.3`
+- **App móvil:** `4.1.0`
 - **Expo SDK:** ~56
 - **React Native:** 0.85.3
-- **Fecha de referencia:** julio 2026
+- **Fecha de referencia:** agosto 2026
 
 ---
 

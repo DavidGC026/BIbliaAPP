@@ -43,7 +43,7 @@ async function _ensurePrayerTables(): Promise<void> {
   } catch (_) {}
   try {
     await pool.query(
-      `ALTER TABLE feed_notifications MODIFY COLUMN type ENUM('comment','reply','like','follow','prayer_intercession') NOT NULL`,
+      `ALTER TABLE feed_notifications MODIFY COLUMN type ENUM('comment','reply','like','follow','prayer_intercession','friend_request','friend_accepted','group_event_reminder') NOT NULL`,
     )
   } catch (_) {}
 
@@ -194,6 +194,15 @@ export async function joinPrayerIntercession(
       type: "prayer_intercession",
       actorName,
     })
+    import("./expo-push")
+      .then(({ sendPushToUser }) =>
+        sendPushToUser(authorId, {
+          title: "Intercesión de Oración",
+          body: `${actorName} se ha unido a orar por tu petición: "${prayer[0].title}"`,
+          data: { type: "prayer_intercession", prayerId },
+        }),
+      )
+      .catch(() => {})
   }
 
   return { intercessorCount: Number(count) }

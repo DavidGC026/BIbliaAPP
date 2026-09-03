@@ -92,7 +92,7 @@ export function StudyBooksView({ onOpenBook }: Props) {
                 <AuthedImage uri={b.coverImage} className="mb-2 h-28 w-full rounded-lg object-cover" />
               ) : (
                 <div className="mb-2 flex h-28 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                  <Icon name="book" size={34} />
+                  <Icon name="bible" size={34} />
                 </div>
               )}
               <p className="font-semibold text-foreground line-clamp-2">{b.title}</p>

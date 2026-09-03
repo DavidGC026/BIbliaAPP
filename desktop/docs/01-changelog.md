@@ -4,6 +4,100 @@ Registro cronológico de cambios en `desktop/`. Lo más reciente arriba.
 
 ---
 
+## 2026-07-28 — release 0.3.4 (paquete Arch)
+
+- Versión `0.3.3` → `0.3.4` en `package.json`, `src-tauri/tauri.conf.json`,
+  `src-tauri/Cargo.toml`, `packaging/arch/PKGBUILD` y
+  `packaging/arch/build-pacman-pkg.sh`.
+- `vite.config.ts` inyecta `import.meta.env.PACKAGE_VERSION` desde
+  `package.json`. Antes nunca se definía, así que `APP_VERSION` (Perfil →
+  versión) mostraba siempre "0.3.3" fijo, sin importar la build real, desde
+  el 0.1.0.
+- Nuevo paquete `packaging/arch/bibliaapp-desktop-0.3.4-1-x86_64.pkg.tar.zst`
+  con la paridad de tema DVG de abajo. Detalle:
+  [19-release-arch-0.3.4.md](./19-release-arch-0.3.4.md).
+
+## 2026-07-28 — paridad del tema DVG y vista previa real por tema
+
+- El tema **DVG** adopta la misma paleta que móvil y web: base borgoña
+  (`#18090A`/`#2A1012`), acciones e indicador de foco en rojo (`#DC2626`/
+  `#F87171`) y bordes/campos en dorado cálido
+  (`rgb(232 184 74 / 34%)`/`rgb(232 184 74 / 24%)`) en vez del rojo que usaba
+  antes. Texto y superficies secundarias pasan a crema/dorado
+  (`#FFF7E6`, `#D9B984`, `#57320F`) para alto contraste. Cambio en
+  `src/styles/globals.css`.
+- Arreglada la miniatura de vista previa en el selector de temas
+  (`ThemeSwitch.tsx`): usaba clases `theme-preview-<tema>` que no existían en
+  el CSS, así que las nueve miniaturas mostraban siempre los colores del tema
+  *activo* en vez de los propios. Ahora cada miniatura recibe sus colores de
+  fondo, tarjeta y color primario como estilo en línea (paridad con
+  `mobile/constants/Colors.ts` y `components/theme-toggle.tsx` del sitio web).
+
+## 2026-07-26 — bloques sin controles dentro del documento
+
+- Los versículos, definiciones y tablas dejan de mostrar la barra interna con
+  `↑ ↓ Copiar Cortar Eliminar`. El documento solo contiene el contenido final de
+  la nota, como en el PDF exportado.
+- Al seleccionar un elemento solo se ve un contorno dorado fino, que no desplaza
+  ni aumenta la altura del contenido.
+- Las acciones pasan a pestañas contextuales de la cinta: **Formato de
+  versículo**, **Formato de definición**, **Diseño de tabla** y **Formato de
+  imagen**. Aparecen y se activan solas, y desaparecen al deseleccionar.
+- Las notas ya guardadas con la barra dentro la descartan al abrirse, y se
+  guardan limpias. Se conserva todo el contenido.
+- El panel de herramientas especiales queda reservado a insertar contenido
+  nuevo; las acciones sobre un elemento existente viven en su pestaña.
+
+Detalle: [18-bloques-sin-controles-incrustados.md](./18-bloques-sin-controles-incrustados.md).
+
+## 2026-07-26 — editor a pantalla completa con cinta estilo Word
+
+- El cuerpo de la nota ocupa todo el alto y el ancho de la ventana; el scroll
+  ocurre dentro del documento y ya no en la página. Se recuperan unos 490 px
+  verticales que consumían el relleno, la cabecera y la fila inferior.
+- Cabecera compacta de una sola fila: volver, título editable, estado de
+  guardado y contador de palabras.
+- Desaparece la fila inferior de botones. **Guardar** pasa a la cabecera con
+  cuatro estados, y Compartir, Exportar PDF y Eliminar al menú de tres puntos;
+  Eliminar pide confirmación.
+- Cinta de herramientas contraíble con pestañas **Inicio** e **Insertar**.
+- Panel de herramientas especiales con pestañas **Fondos**, **Versículos**,
+  **Diccionario** e **Imagen**, con carrusel de dos tarjetas y flechas.
+- Barra lateral contraíble a solo iconos. Los tres estados (cinta, pestaña y
+  barra lateral) se recuerdan entre sesiones.
+- Los colores escritos a mano pasan a tokens derivados con `color-mix`, de modo
+  que la pantalla respeta los ocho temas y no solo el oscuro.
+- Atajo **Ctrl/Cmd + S** para guardar.
+
+Detalle: [17-editor-pantalla-completa.md](./17-editor-pantalla-completa.md).
+
+## 2026-07-26 — prueba del editor con Tiptap y cinta contextual
+
+- Esquema de documento sobre Tiptap/ProseMirror que sustituiría a `execCommand`,
+  manteniendo HTML como formato guardado: la base de datos, la API y las notas
+  existentes no cambian.
+- La barra de botones de los bloques deja de guardarse dentro de la nota, porque
+  `wrapAllContentBlocks` ya la reconstruye a partir de elementos desnudos.
+- Cinta contextual con pestañas **Tabla** e **Imagen** que aparecen solas según
+  dónde esté el cursor, más combinar y dividir celdas y redimensionado de
+  columnas, que el editor actual no tiene.
+- Convive con el editor actual detrás del interruptor «Editor nuevo»; el editor
+  por defecto no cambia.
+- Banco de pruebas `npm run check:editor` con 11 casos de ida y vuelta del HTML
+  e interoperabilidad con web y móvil.
+
+Detalle: [15-editor-tiptap-prueba.md](./15-editor-tiptap-prueba.md) y
+[16-editor-cinta-contextual.md](./16-editor-cinta-contextual.md).
+
+## 2026-07-26 — tablas configurables y autoguardado visible
+
+- Selector de tablas de 1–10 columnas y 1–20 filas, encabezado opcional y vista previa.
+- Controles para añadir o quitar filas/columnas después de insertar la tabla.
+- Edición de celdas mediante segundo clic después de seleccionar el bloque.
+- Autoguardado reducido de 4 segundos a 1.5 segundos con estados explícitos.
+
+Detalle: [13-editor-notas.md](./13-editor-notas.md).
+
 ## 2026-07-19 — v0.3.3: robustez offline y paquete Arch
 
 - Las vistas principales usan un contenedor fluido, centrado y de hasta 1536 px para aprovechar mejor ventanas amplias.

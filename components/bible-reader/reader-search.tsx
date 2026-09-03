@@ -130,12 +130,16 @@ export function ReaderSearch({ bibleId, className, onNavigate }: ReaderSearchPro
 
   return (
     <div className={cn("min-w-[220px] flex-1 md:max-w-sm", className)} ref={searchRef}>
-      <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Buscar</p>
+      <p id="reader-search-label" className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Buscar</p>
       <div className="relative">
         <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
         <input
           type="text"
-          placeholder="Buscar palabras o pasajes (p. ej. 1 Pedro 5)..."
+          name="reader-search"
+          autoComplete="off"
+          spellCheck={false}
+          aria-labelledby="reader-search-label"
+          placeholder="Buscar palabras o pasajes (p. ej. 1 Pedro 5)…"
           value={searchQuery}
           onChange={(e) => {
             setSearchQuery(e.target.value)
@@ -156,7 +160,7 @@ export function ReaderSearch({ bibleId, className, onNavigate }: ReaderSearchPro
               setSearchResults([])
             }}
             className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground cursor-pointer"
-            title="Limpiar búsqueda"
+            aria-label="Limpiar búsqueda"
           >
             <X className="size-4" />
           </button>

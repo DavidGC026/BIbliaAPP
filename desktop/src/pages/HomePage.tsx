@@ -194,7 +194,7 @@ export function HomePage({ onOpenBible, onNavigate, onOpenNote }: Props) {
       {lastPassage ? (
         <Card className="flex items-center gap-4 border-primary/25">
           <span className="rounded-xl bg-primary/10 p-2 text-primary">
-            <Icon name="book" size={26} />
+            <Icon name="bible" size={26} />
           </span>
           <button
             className="min-w-0 flex-1 text-left"

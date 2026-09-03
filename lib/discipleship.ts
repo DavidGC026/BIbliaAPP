@@ -38,8 +38,22 @@ export async function requestDiscipleship(discipleId: number, mentorUsername: st
       `INSERT INTO user_discipleship (mentor_id, disciple_id, status) VALUES (?, ?, 'pending')`,
       [mentor.id, discipleId],
     )
+    const [discipleRows] = await getPool().query<RowDataPacket[]>(
+      `SELECT name, username FROM users WHERE id = ? LIMIT 1`,
+      [discipleId],
+    )
+    const discipleName = (discipleRows[0]?.name as string) || "Un usuario"
+    import("./expo-push").then(({ sendPushToUser }) =>
+      sendPushToUser(mentor.id, {
+        title: "Solicitud de Discipulado",
+        body: `${discipleName} te ha enviado una solicitud para ser su mentor espiritual.`,
+        data: { type: "discipleship_request" },
+      }),
+    ).catch(() => {})
+
     return result.insertId
-  } catch {
+  } catch (err: any) {
+    if (err?.message?.includes("Solicitud")) throw err
     throw new Error("Ya existe una solicitud con este mentor")
   }
 }
@@ -56,6 +70,28 @@ export async function respondDiscipleship(
     [status, relationshipId, mentorId],
   )
   if (result.affectedRows === 0) throw new Error("Solicitud no encontrada")
+
+  if (accept) {
+    const [relRows] = await getPool().query<RowDataPacket[]>(
+      `SELECT disciple_id FROM user_discipleship WHERE id = ? LIMIT 1`,
+      [relationshipId],
+    )
+    const discipleId = relRows[0]?.disciple_id
+    if (discipleId) {
+      const [mentorRows] = await getPool().query<RowDataPacket[]>(
+        `SELECT name FROM users WHERE id = ? LIMIT 1`,
+        [mentorId],
+      )
+      const mentorName = (mentorRows[0]?.name as string) || "Tu mentor"
+      import("./expo-push").then(({ sendPushToUser }) =>
+        sendPushToUser(discipleId, {
+          title: "Discipulado Aceptado",
+          body: `${mentorName} ha aceptado ser tu mentor espiritual. ¡Gloria a Dios!`,
+          data: { type: "discipleship_accepted" },
+        }),
+      ).catch(() => {})
+    }
+  }
 }
 
 export async function listDiscipleshipForUser(userId: number) {

@@ -72,9 +72,11 @@ export function NotesPage({
     setView({ kind: "hub" });
   }
 
+  // Sin relleno ni contenedor: el editor gestiona su propia altura y scroll
+  // para ocupar toda la ventana, como un editor de documentos.
   if (view.kind === "note-edit") {
     return (
-      <div className="p-6">
+      <div className="h-full">
         <NoteEditorView
           notebookId={view.notebookId}
           noteId={view.noteId}

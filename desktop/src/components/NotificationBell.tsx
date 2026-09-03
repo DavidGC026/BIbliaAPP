@@ -24,9 +24,11 @@ type Props = {
   onNavigateToFeed?: () => void;
   onNavigateToGroups?: () => void;
   onNavigateToGroup?: (groupId: number, tab?: "prayers" | "events") => void;
+  /** La barra lateral esta contraida: centrar el icono. */
+  collapsed?: boolean;
 };
 
-export function NotificationBell({ onNavigateToFeed, onNavigateToGroups, onNavigateToGroup }: Props) {
+export function NotificationBell({ onNavigateToFeed, onNavigateToGroups, onNavigateToGroup, collapsed = false }: Props) {
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -97,7 +99,10 @@ export function NotificationBell({ onNavigateToFeed, onNavigateToGroups, onNavig
   }
 
   return (
-    <div ref={containerRef} className="relative px-3">
+    <div
+      ref={containerRef}
+      className={`relative ${collapsed ? "flex justify-center px-0" : "px-3"}`}
+    >
       <button
         type="button"
         onClick={() => setOpen(!open)}
@@ -106,7 +111,7 @@ export function NotificationBell({ onNavigateToFeed, onNavigateToGroups, onNavig
         }`}
         title="Notificaciones"
       >
-        <Icon name="bell" size={19} />
+        <Icon name="notifications" size={19} />
         {unreadCount > 0 ? (
           <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-bold text-white">
             {unreadCount > 99 ? "99+" : unreadCount}

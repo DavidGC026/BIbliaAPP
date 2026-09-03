@@ -1,7 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 
-// Next.js Route Cache config: cache for 1 hour to avoid hitting rate limits
-export const revalidate = 3600
+export const dynamic = "force-dynamic"
 
 function mapImages(data: { id: string; urls: { regular: string; thumb: string }; user: { name: string; links: { html: string } } }[]) {
   return data.map((img) => ({

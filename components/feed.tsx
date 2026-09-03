@@ -23,9 +23,14 @@ import {
   Reply,
   ChevronDown,
   ChevronRight,
-  X
+  X,
+  Flag,
+  UserX,
+  ShieldBan
 } from "lucide-react"
 import { ProfileSection } from "./profile-section"
+import { ReportModal, type ReportTargetType } from "./report-modal"
+import { BlockedUsersDialog } from "./blocked-users-dialog"
 
 // ------------------------------------------------------------------
 // Hilos de comentarios anidados (estilo Reddit)
@@ -76,6 +81,12 @@ export function Feed({ currentUserId, userRole }: { currentUserId: number; userR
   const [attachments, setAttachments] = useState<PendingAttachment[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
+  const [reportTarget, setReportTarget] = useState<{
+    type: ReportTargetType
+    id: number
+    label?: string
+  } | null>(null)
+  const [showBlockedDialog, setShowBlockedDialog] = useState(false)
 
   // In a real app, 'explore' might hit a different endpoint or pass a flag.
   // For now, getFeed returns public posts from followed users + own posts.
@@ -163,11 +174,40 @@ export function Feed({ currentUserId, userRole }: { currentUserId: number; userR
     }
   }
 
+  const handleBlockUser = async (targetUserId: number, targetName: string) => {
+    if (!confirm(`¿Estás seguro de que deseas bloquear a ${targetName}? Ya no verás sus publicaciones ni comentarios.`)) {
+      return
+    }
+    try {
+      const res = await fetch("/api/moderation/block", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: targetUserId }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Error al bloquear")
+      mutateFeed()
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Error al bloquear usuario")
+    }
+  }
+
   return (
     <div className="flex flex-col h-full bg-card/10 relative">
       {/* Header */}
       <div className="sticky top-0 z-10 flex flex-col px-4 pt-4 pb-0 bg-card/80 backdrop-blur-md border-b border-border/80">
-        <h2 className="text-xl font-bold text-foreground mb-4">Comunidad</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-bold text-foreground">Comunidad</h2>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowBlockedDialog(true)}
+            className="text-xs text-muted-foreground hover:text-foreground gap-1.5 h-8"
+          >
+            <ShieldBan className="size-3.5" />
+            <span className="hidden sm:inline">Bloqueados</span>
+          </Button>
+        </div>
         
         <div className="flex gap-6">
           <button
@@ -400,12 +440,30 @@ export function Feed({ currentUserId, userRole }: { currentUserId: number; userR
                   currentUserId={currentUserId}
                   onLikeToggle={handleLikeToggle} 
                   onDelete={handleDeletePost}
+                  onReport={(type, id, label) => setReportTarget({ type, id, label })}
+                  onBlockUser={handleBlockUser}
                 />
               ))}
             </div>
           )}
         </div>
       </div>
+
+      {/* Modales de moderación */}
+      {reportTarget && (
+        <ReportModal
+          isOpen={true}
+          onClose={() => setReportTarget(null)}
+          targetType={reportTarget.type}
+          targetId={reportTarget.id}
+          targetLabel={reportTarget.label}
+        />
+      )}
+
+      <BlockedUsersDialog
+        isOpen={showBlockedDialog}
+        onClose={() => setShowBlockedDialog(false)}
+      />
 
       {/* Floating Action Button (Mobile only) */}
       {!isComposing && (
@@ -429,12 +487,16 @@ function CommentThread({
   currentUserId,
   onReply,
   onDelete,
+  onReport,
+  onBlockUser,
 }: {
   node: CommentNode
   depth: number
   currentUserId: number
   onReply: (id: number, name: string) => void
   onDelete: (id: number) => void
+  onReport: (type: ReportTargetType, id: number, label?: string) => void
+  onBlockUser: (userId: number, name: string) => void
 }) {
   const [collapsed, setCollapsed] = useState(false)
   const isDeleted = !!node.is_deleted
@@ -488,6 +550,26 @@ function CommentThread({
                 Eliminar
               </button>
             )}
+            {!isDeleted && node.user_id && node.user_id !== currentUserId && (
+              <>
+                <button
+                  onClick={() => onReport("comment", node.id, node.content?.slice(0, 60))}
+                  className="flex items-center gap-0.5 text-[10px] font-semibold text-muted-foreground hover:text-rose-500 transition-colors"
+                  title="Denunciar comentario"
+                >
+                  <Flag className="size-2.5" />
+                  Denunciar
+                </button>
+                <button
+                  onClick={() => onBlockUser(node.user_id!, node.user_name)}
+                  className="flex items-center gap-0.5 text-[10px] font-semibold text-muted-foreground hover:text-rose-500 transition-colors"
+                  title="Bloquear usuario"
+                >
+                  <UserX className="size-2.5" />
+                  Bloquear
+                </button>
+              </>
+            )}
             {hasReplies && (
               <button
                 onClick={() => setCollapsed(!collapsed)}
@@ -513,6 +595,8 @@ function CommentThread({
                   currentUserId={currentUserId}
                   onReply={onReply}
                   onDelete={onDelete}
+                  onReport={onReport}
+                  onBlockUser={onBlockUser}
                 />
               ))}
             </div>
@@ -535,12 +619,16 @@ function FeedPostCard({
   post, 
   currentUserId,
   onLikeToggle, 
-  onDelete 
+  onDelete,
+  onReport,
+  onBlockUser
 }: { 
   post: any, 
   currentUserId: number,
   onLikeToggle: (id: number, isLiked: boolean) => void,
-  onDelete: (id: number) => void
+  onDelete: (id: number) => void,
+  onReport: (type: ReportTargetType, id: number, label?: string) => void,
+  onBlockUser: (userId: number, name: string) => void
 }) {
   const [showComments, setShowComments] = useState(false)
   const [newComment, setNewComment] = useState("")
@@ -644,7 +732,7 @@ function FeedPostCard({
           <span className="text-[10px] font-semibold uppercase tracking-wider bg-muted px-2 py-0.5 rounded text-muted-foreground">
             {post.type === 'verse' ? '📖 Versículo' : post.type === 'devotional' ? '🌅 Devocional' : post.type === 'note' ? '📝 Nota' : 'Publicación'}
           </span>
-          {post.user_id === currentUserId && (
+          {post.user_id === currentUserId ? (
             <button
               onClick={() => onDelete(post.id)}
               className="text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 p-1 rounded-md transition-colors"
@@ -652,6 +740,23 @@ function FeedPostCard({
             >
               <Trash2 className="size-4" />
             </button>
+          ) : (
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => onReport("post", post.id, post.content?.slice(0, 80))}
+                className="text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 p-1 rounded-md transition-colors"
+                title="Denunciar publicación"
+              >
+                <Flag className="size-3.5" />
+              </button>
+              <button
+                onClick={() => onBlockUser(post.user_id, post.user_name)}
+                className="text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 p-1 rounded-md transition-colors"
+                title="Bloquear usuario"
+              >
+                <UserX className="size-3.5" />
+              </button>
+            </div>
           )}
         </div>
       </div>
@@ -750,6 +855,8 @@ function FeedPostCard({
                   currentUserId={currentUserId}
                   onReply={(id, name) => setReplyTo({ id, name })}
                   onDelete={handleDeleteComment}
+                  onReport={onReport}
+                  onBlockUser={onBlockUser}
                 />
               ))}
             </div>

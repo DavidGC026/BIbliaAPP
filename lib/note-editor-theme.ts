@@ -11,7 +11,7 @@ const PRIMARY_EXTRAS: Record<string, { soft: string; border: string }> = {
   midnight: { soft: "#1E2D57", border: "rgba(138, 164, 255, 0.3)" },
   forest: { soft: "#123D31", border: "rgba(74, 222, 167, 0.28)" },
   lavender: { soft: "#E9E1FF", border: "rgba(103, 72, 173, 0.22)" },
-  dvg: { soft: "#3F0D12", border: "rgba(248, 113, 113, 0.34)" },
+  dvg: { soft: "#4A1015", border: "rgba(244, 201, 93, 0.48)" },
   ubg: { soft: "#0B3B35", border: "rgba(56, 189, 248, 0.36)" },
 }
 

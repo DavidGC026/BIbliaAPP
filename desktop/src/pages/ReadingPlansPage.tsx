@@ -94,7 +94,7 @@ export function ReadingPlansPage({
     <div className="space-y-6">
       <Card className="flex items-center gap-4">
         <span className="rounded-xl bg-primary/10 p-2 text-primary">
-          <Icon name="book" size={24} />
+          <Icon name="reading-plan" size={24} />
         </span>
         <div className="flex-1">
           <h2 className="text-lg font-bold text-foreground">

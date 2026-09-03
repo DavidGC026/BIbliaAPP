@@ -1,3 +1,4 @@
+import { getNoteBlockCss, getNoteBlockScript } from "./note-editor-blocks"
 import {
   getNoteTableCss,
   getNoteTablePickerHtml,
@@ -140,6 +141,7 @@ export function getEditorHtml(
     th { background: ${colors.accent}; font-weight: 700; }
 
     ${getNoteTableCss(colors, isReadOnly)}
+    ${getNoteBlockCss(colors, isReadOnly)}
 
     blockquote {
       border-left: 3px solid ${colors.primary};
@@ -1682,6 +1684,9 @@ export function getEditorHtml(
         scrollCaretIntoView();
       }
 
+      ${getNoteBlockScript(isReadOnly)}
+      ${getNoteTableScript(isReadOnly)}
+
       /* ── Wire up toolbar buttons ────────────────────── */
       if (!isReadOnly) {
         document.querySelectorAll('.tb[data-action]').forEach(function(btn) {
@@ -1768,11 +1773,9 @@ export function getEditorHtml(
         // Initial active states
         setTimeout(updateActiveStates, 100);
         initTablePicker();
-        initTableBlocks();
+        initContentBlocks();
         ensureImageBlocksAtomic();
       }
-
-      ${getNoteTableScript(isReadOnly)}
 
       if (isReadOnly) {
         wrapTablesForReadOnly();
@@ -1820,6 +1823,9 @@ export function getEditorHtml(
             }
             // No guardar estilos temporales de edición (outline, panel abierto).
             clearImageEditingChrome();
+            // Nunca persistir un bloque a medias: si el borrado nativo dejó un
+            // versículo sin barra de botones, se repara antes de guardar.
+            if (typeof normalizeContentBlocks === 'function') normalizeContentBlocks();
             postToHost({
               type: 'getHtmlResponse',
               html: editor.innerHTML
@@ -1835,6 +1841,7 @@ export function getEditorHtml(
           if (action.type === 'updateContent') {
             editor.innerHTML = action.value;
             ensureImageBlocksAtomic();
+            if (typeof normalizeContentBlocks === 'function') normalizeContentBlocks();
             return;
           }
           if (action.type === 'updateColors') {
@@ -1863,8 +1870,11 @@ export function getEditorHtml(
             }
           } else if (action.type === 'insertVerse') {
             insertHtmlAtSelection(buildVerseBlockHtml(action.value));
+            // insertHTML puede anidar o partir el bloque recién insertado.
+            normalizeContentBlocks();
           } else if (action.type === 'insertDictionary') {
             insertHtmlAtSelection(buildDictBlockHtml(action.value));
+            normalizeContentBlocks();
           }
 
           notifyChange();

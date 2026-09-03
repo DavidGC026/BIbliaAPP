@@ -11,13 +11,23 @@ import type { Book, Verse, NoteLink, BibleVersion } from "@/lib/types"
 import { NotePanel } from "../note-panel"
 import { NotebookSidebar } from "../notebook-sidebar"
 import { VerseImageCreator } from "../verse-image-creator"
-import { FileText, ChevronLeft, ChevronRight, Search } from "lucide-react"
+import { FileText, ChevronLeft, ChevronRight, Search, SlidersHorizontal, Headphones } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { insertHtmlIntoNoteContent } from "@/lib/note-content"
 import { VerseText, type HighlightColor } from "./verse-text"
+import type { VerseCommentaryEntry as ChapterCommentary } from "./verse-commentary"
 import { ReaderToolbar } from "./reader-toolbar"
+import { ReaderSettings } from "./reader-settings"
+import { BibleAudioPlayer } from "./audio-player"
 import { VersionSelector, BookSelector, ChapterSelector } from "./version-selector"
 import { ReaderSearch } from "./reader-search"
+import {
+  DEFAULT_READER_PREFERENCES,
+  getReaderPalette,
+  loadReaderPreferences,
+  saveReaderPreferences,
+  type ReaderPreferences,
+} from "@/lib/reader-preferences"
 
 const bookAbbrMap = BOOK_ID_TO_ABBR
 
@@ -118,9 +128,15 @@ export function BibleReader({
 
   // -------------------------------------------------------- UI / Ajustes
   const [mobileMenuTab, setMobileMenuTab] = useState<"selectors" | "search" | "settings" | null>(null)
-  const [fontSize, setFontSize] = useState<number>(18)
+  const [showDesktopSettings, setShowDesktopSettings] = useState(false)
+  const [readerPreferences, setReaderPreferences] = useState<ReaderPreferences>(DEFAULT_READER_PREFERENCES)
   const [canShare, setCanShare] = useState(false)
   const [imageCreatorOpen, setImageCreatorOpen] = useState(false)
+  const [showAudioPlayer, setShowAudioPlayer] = useState(false)
+  const [speakingVerseNumber, setSpeakingVerseNumber] = useState<number | null>(null)
+  const [audioMode, setAudioMode] = useState<"chapter" | "selection">("chapter")
+  const readerPalette = getReaderPalette(readerPreferences.theme)
+  const readerLineHeight = readerPreferences.density === "compact" ? 1.45 : 1.8
 
   // ------------------------------------------------------ Notas / Sidebar
   const [activeNoteId, setActiveNoteId] = useState<string | null>(null)
@@ -154,23 +170,15 @@ export function BibleReader({
   // Ajustes persistidos
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const savedSize = localStorage.getItem("bible_font_size")
-      if (savedSize) {
-        const parsed = parseInt(savedSize, 10)
-        if (!isNaN(parsed) && parsed >= 14 && parsed <= 28) {
-          setFontSize(parsed)
-        }
-      }
+      setReaderPreferences(loadReaderPreferences())
       if (typeof navigator.share === "function") {
         setCanShare(true)
       }
     }
   }, [])
 
-  const changeFontSize = (newSize: number) => {
-    const size = Math.min(28, Math.max(14, newSize))
-    setFontSize(size)
-    localStorage.setItem("bible_font_size", String(size))
+  const updateReaderPreferences = (patch: Partial<ReaderPreferences>) => {
+    setReaderPreferences((current) => saveReaderPreferences({ ...current, ...patch }))
   }
 
   // Deep link por query params (?bible=&book=&chapter=&verse=1-3)
@@ -353,6 +361,36 @@ export function BibleReader({
     for (const l of linksData?.links ?? []) map.set(Number(l.verse), l)
     return map
   }, [linksData])
+
+  // Comentarios clásicos del capítulo entero en una sola petición: pedirlos por
+  // versículo dispararía 176 llamadas en Salmo 119. Solo se piden con la opción
+  // de estudio activada, y no dependen del usuario, así que se cachean.
+  const commentariesKey =
+    readerPreferences.showCommentaries && bookId
+      ? `/api/commentaries?bible=${bibleId}&book=${bookId}&chapter=${chapter}`
+      : null
+  const { data: commentariesData } = useSWR<{ commentaries: ChapterCommentary[] }>(
+    commentariesKey,
+    fetcher,
+    { revalidateOnFocus: false },
+  )
+
+  /**
+   * Un comentario cubre un rango (`verse_start`..`verse_end`), así que se
+   * reparte entre todos los versículos que abarca: al leer Génesis 1:3 aparece
+   * el bloque «1:1-5» igual que al leer el 1:1.
+   */
+  const commentariesByVerse = useMemo(() => {
+    const map = new Map<number, ChapterCommentary[]>()
+    for (const commentary of commentariesData?.commentaries ?? []) {
+      for (let verse = commentary.verseStart; verse <= commentary.verseEnd; verse++) {
+        const existing = map.get(verse)
+        if (existing) existing.push(commentary)
+        else map.set(verse, [commentary])
+      }
+    }
+    return map
+  }, [commentariesData])
 
   const highlightsKey = !isGuest && bookId && bibleId ? `/api/highlights?book=${bookId}&chapter=${chapter}&bibleId=${bibleId}` : null
   const { data: highlightsData, mutate: mutateHighlights } = useSWR<{ highlights: { verse: number; color: string }[] }>(
@@ -594,6 +632,14 @@ export function BibleReader({
   const handleClearSelection = useCallback(() => setSelectedVerses([]), [])
   const handleLoginRequest = useCallback(() => onLoginRequest?.(), [onLoginRequest])
 
+  // En modo párrafos no hay botón de nota por versículo: con un solo
+  // versículo seleccionado, la barra flotante ofrece crear/ver su nota.
+  const handleAddNoteToSelection = useCallback(() => {
+    if (selectedVerses.length !== 1) return
+    const v = verses.find((x) => Number(x.verse) === selectedVerses[0])
+    if (v) handleVerseNote(v)
+  }, [selectedVerses, verses, handleVerseNote])
+
   const imageCreatorData = useMemo(() => {
     if (selectedVerses.length === 0) return null
     const selectedVersesData = verses
@@ -629,6 +675,7 @@ export function BibleReader({
 
   const handleChapterChange = useCallback((newChapter: number) => {
     setChapter(newChapter)
+    setCurrentVerse(1)
     setMobileMenuTab(null)
   }, [])
 
@@ -645,11 +692,13 @@ export function BibleReader({
   }, [])
 
   const renderLayoutSwitcher = () => (
-    <div className="flex items-center rounded-lg border border-border bg-muted/30 p-1">
+    <div className="flex items-center gap-0.5 rounded-lg border border-border bg-muted/30 p-1">
       <button
+        type="button"
         onClick={() => setLayoutMode("split")}
+        aria-pressed={layoutMode === "split"}
         className={cn(
-          "px-2.5 py-1 text-xs font-semibold rounded transition-colors",
+          "rounded-md px-3 py-1.5 text-xs font-semibold transition-colors",
           layoutMode === "split"
             ? "bg-background shadow text-foreground font-bold"
             : "text-muted-foreground hover:text-foreground"
@@ -658,9 +707,11 @@ export function BibleReader({
         Dividido
       </button>
       <button
+        type="button"
         onClick={() => setLayoutMode("bible")}
+        aria-pressed={layoutMode === "bible"}
         className={cn(
-          "px-2.5 py-1 text-xs font-semibold rounded transition-colors",
+          "rounded-md px-3 py-1.5 text-xs font-semibold transition-colors",
           layoutMode === "bible"
             ? "bg-background shadow text-foreground font-bold"
             : "text-muted-foreground hover:text-foreground"
@@ -670,9 +721,11 @@ export function BibleReader({
       </button>
       {!showOnlyVerseNotes && !isGuest && (
         <button
+          type="button"
           onClick={() => setLayoutMode("notebook")}
+          aria-pressed={layoutMode === "notebook"}
           className={cn(
-            "px-2.5 py-1 text-xs font-semibold rounded transition-colors",
+            "rounded-md px-3 py-1.5 text-xs font-semibold transition-colors",
             layoutMode === "notebook"
               ? "bg-background shadow text-foreground font-bold"
               : "text-muted-foreground hover:text-foreground"
@@ -696,13 +749,16 @@ export function BibleReader({
             {/* Header compacto para móvil */}
             <div className="flex md:hidden items-center justify-between w-full border-b border-border/40 pb-2 mb-1">
               <button
+                type="button"
                 onClick={() => toggleMobileTab("selectors")}
+                aria-expanded={mobileMenuTab === "selectors"}
+                aria-controls="reader-mobile-selectors"
                 className="flex items-center gap-1.5 text-xs font-bold text-foreground bg-muted/40 px-3 py-1.5 rounded-lg border border-border hover:bg-muted transition-colors cursor-pointer"
               >
                 <span>{currentBible?.abbr || "RVR1960"}</span>
                 <span className="text-muted-foreground/60">•</span>
-                <span className="text-primary font-serif">
-                  {currentBook ? currentBook.bookName : "Libro"} {chapter}
+                <span className="text-primary font-serif tabular-nums">
+                  {currentBook ? currentBook.bookName : "Libro"} {chapter}:{currentVerse}
                 </span>
                 <ChevronRight className={cn("size-3.5 text-muted-foreground transition-transform", mobileMenuTab === "selectors" && "rotate-90")} />
               </button>
@@ -720,9 +776,24 @@ export function BibleReader({
                     }
                   }}
                   className="size-8 rounded-lg cursor-pointer"
-                  title="Buscar"
+                  aria-label="Buscar en la Biblia"
+                  aria-expanded={mobileMenuTab === "search"}
                 >
                   <Search className="size-4" />
+                </Button>
+
+                <Button
+                  variant={showAudioPlayer ? "default" : "ghost"}
+                  size="icon"
+                  onClick={() => {
+                    setAudioMode("chapter")
+                    setShowAudioPlayer((prev) => !prev)
+                  }}
+                  className={cn("size-8 rounded-lg cursor-pointer", showAudioPlayer && "bg-primary text-primary-foreground")}
+                  aria-label="Escuchar capítulo"
+                  title="Escuchar capítulo con audio"
+                >
+                  <Headphones className="size-4" />
                 </Button>
 
                 <Button
@@ -730,7 +801,8 @@ export function BibleReader({
                   size="icon"
                   onClick={() => toggleMobileTab("settings")}
                   className="size-8 rounded-lg cursor-pointer text-xs font-bold"
-                  title="Ajustes de lectura"
+                  aria-label="Ajustes de lectura"
+                  aria-expanded={mobileMenuTab === "settings"}
                 >
                   <span className="font-serif">Aa</span>
                 </Button>
@@ -749,18 +821,18 @@ export function BibleReader({
                     }
                   }}
                   className="size-8 rounded-lg cursor-pointer text-emerald-600 dark:text-emerald-400"
-                  title={isGuest ? "Inicia sesión para ver notas" : "Ver notas"}
+                  aria-label={isGuest ? "Inicia sesión para ver notas" : "Ver notas"}
                 >
                   <FileText className="size-4" />
                 </Button>
               </div>
             </div>
 
-            {/* Selectores de versión / libro / capítulo / tamaño */}
+            {/* Selectores de versión / libro / capítulo */}
             <div className={cn(
               "flex-wrap items-end gap-3",
               mobileMenuTab === "selectors" ? "flex" : "hidden md:flex"
-            )}>
+            )} id="reader-mobile-selectors">
               <VersionSelector
                 bibles={bibles}
                 currentBible={currentBible}
@@ -784,41 +856,19 @@ export function BibleReader({
                 />
               )}
 
-              <div className="flex flex-col gap-1">
-                <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Tamaño</p>
-                <div className="flex items-center rounded-lg border border-border bg-muted/20 p-0.5 h-10">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-xs font-semibold cursor-pointer"
-                    onClick={() => changeFontSize(fontSize - 1)}
-                    disabled={fontSize <= 14}
-                    title="Reducir letra"
-                  >
-                    A-
-                  </Button>
-                  <span className="px-2 text-xs font-bold text-muted-foreground min-w-[32px] text-center">
-                    {fontSize}px
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-xs font-semibold cursor-pointer"
-                    onClick={() => changeFontSize(fontSize + 1)}
-                    disabled={fontSize >= 28}
-                    title="Aumentar letra"
-                  >
-                    A+
-                  </Button>
-                </div>
-              </div>
             </div>
 
-            {/* Búsqueda + switcher de vista */}
+            {/* Búsqueda + controles compactos */}
             <div className={cn(
               "flex-wrap items-end justify-between gap-3",
               (mobileMenuTab === "search" || mobileMenuTab === "settings") ? "flex" : "hidden md:flex"
             )}>
+              <ReaderSettings
+                preferences={readerPreferences}
+                onChange={updateReaderPreferences}
+                className={mobileMenuTab === "settings" ? "flex md:hidden" : "hidden"}
+              />
+
               <ReaderSearch
                 bibleId={bibleId}
                 className={mobileMenuTab === "search" ? "block" : "hidden md:block"}
@@ -826,14 +876,64 @@ export function BibleReader({
               />
 
               <div className={cn(
-                "items-center gap-2 w-full md:w-auto justify-between md:justify-end border-t border-border/40 pt-2 md:pt-0 md:border-0",
+                "items-center gap-3 w-full md:w-auto justify-between md:justify-end border-t border-border/40 pt-2 md:pt-0 md:border-0",
                 mobileMenuTab === "settings" ? "flex" : "hidden md:flex"
               )}>
-                <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Vista</span>
+                {verses.length > 0 && (
+                  <span aria-hidden="true" className="mr-auto hidden font-serif text-sm italic text-muted-foreground tabular-nums md:inline">
+                    {currentBook?.bookName} {chapter}:{currentVerse}
+                  </span>
+                )}
+                <Button
+                  type="button"
+                  variant={showAudioPlayer ? "default" : "outline"}
+                  onClick={() => {
+                    setAudioMode("chapter")
+                    setShowAudioPlayer((prev) => !prev)
+                  }}
+                  className="hidden h-9 gap-2 px-3.5 md:inline-flex cursor-pointer"
+                  title="Escuchar este capítulo con voz natural"
+                >
+                  <Headphones className="size-4" />
+                  <span>Escuchar</span>
+                </Button>
+
+                <Button
+                  type="button"
+                  variant={showDesktopSettings ? "secondary" : "outline"}
+                  onClick={() => setShowDesktopSettings((visible) => !visible)}
+                  aria-expanded={showDesktopSettings}
+                  aria-controls="reader-desktop-settings"
+                  className="hidden h-9 gap-2 px-3.5 md:inline-flex"
+                >
+                  <SlidersHorizontal className="size-4" />
+                  Lectura
+                </Button>
+                <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground md:sr-only">Vista</span>
                 {renderLayoutSwitcher()}
               </div>
             </div>
+
+            {showDesktopSettings ? (
+              <div id="reader-desktop-settings">
+                <ReaderSettings
+                  preferences={readerPreferences}
+                  onChange={updateReaderPreferences}
+                  className="hidden md:flex"
+                />
+              </div>
+            ) : null}
           </div>
+
+          {/* Progreso del capítulo según el versículo visible (scroll-spy) */}
+          {verses.length > 0 && (
+            <div className="relative -mx-2 -mb-2 mt-2 h-[3px] overflow-hidden rounded-b-xl bg-primary/10 md:-mx-4 md:-mb-4 md:mt-3">
+              <div
+                className="h-full bg-primary/70 transition-[width] duration-300 ease-out"
+                style={{ width: `${Math.min(100, Math.max(2, (currentVerse / verses.length) * 100))}%` }}
+              />
+            </div>
+          )}
         </div>
 
         {!bookId && (
@@ -858,19 +958,53 @@ export function BibleReader({
           </div>
         )}
 
-        <ol className="space-y-1">
+        {bookId && !versesLoading && verses.length > 0 ? (
+          <header className="mx-auto mb-6 flex w-full max-w-[68ch] flex-col items-center text-center md:mb-8">
+            <p className="text-[11px] font-bold uppercase tracking-[0.32em] text-muted-foreground">
+              {currentBook?.bookName}
+            </p>
+            <h1 className="mt-1 font-serif text-5xl font-semibold tracking-tight text-foreground md:text-6xl">
+              {chapter}
+            </h1>
+            <div aria-hidden="true" className="mt-3 flex items-center gap-2.5 text-primary/70">
+              <span className="h-px w-10 bg-current opacity-40" />
+              <span className="text-xs leading-none">❦</span>
+              <span className="h-px w-10 bg-current opacity-40" />
+            </div>
+          </header>
+        ) : null}
+
+        <ol
+          className={cn(
+            "mx-auto w-full max-w-[68ch] rounded-xl transition-colors",
+            readerPreferences.layout === "paragraphs"
+              ? "reader-paragraphs"
+              : readerPreferences.density === "compact" ? "space-y-0" : "space-y-1",
+            readerPalette && "border p-2 sm:p-4",
+          )}
+          style={readerPalette ? { backgroundColor: readerPalette.background, borderColor: readerPalette.border } : undefined}
+        >
           {verses.map((v) => (
             <VerseText
               key={v.id}
               verse={v}
-              fontSize={fontSize}
+              fontSize={readerPreferences.fontSize}
+              lineHeight={readerLineHeight}
+              textAlign={readerPreferences.align}
+              layout={readerPreferences.layout}
+              textColor={readerPalette?.text}
+              mutedColor={readerPalette?.muted}
+              accentColor={readerPalette?.accent}
               hasNote={linksByVerse.has(Number(v.verse))}
               highlightColor={highlightsByVerse.get(Number(v.verse))}
               isSelected={selectedVerses.includes(Number(v.verse))}
               isFlashed={highlightedVerse === Number(v.verse)}
+              isSpeaking={speakingVerseNumber === Number(v.verse)}
               isGuest={isGuest}
               isCreatingNote={creating === Number(v.verse)}
               showInsertButton={editingNotebookNote !== null}
+              commentaries={commentariesByVerse.get(Number(v.verse))}
+              borderColor={readerPalette?.border}
               onToggleSelect={toggleVerseSelection}
               onSetCurrent={setCurrentVerseStable}
               onNote={handleVerseNote}
@@ -881,10 +1015,10 @@ export function BibleReader({
 
         {/* Navegación de capítulo al pie */}
         {bookId && !versesLoading && verses.length > 0 && (
-          <div className="mt-8 flex items-center justify-between border-t border-border/60 pt-6 pb-4">
+          <div className="mx-auto mt-8 flex w-full max-w-[68ch] items-center justify-between border-t border-border/60 pt-6 pb-4">
             <Button
               variant="outline"
-              onClick={() => setChapter(c => Math.max(1, c - 1))}
+              onClick={() => handleChapterChange(Math.max(1, chapter - 1))}
               disabled={chapter <= 1}
               className="gap-2 cursor-pointer"
             >
@@ -892,13 +1026,13 @@ export function BibleReader({
               <span>Capítulo anterior</span>
             </Button>
 
-            <span className="text-sm font-semibold text-muted-foreground">
+            <span className="font-serif text-sm italic text-muted-foreground tabular-nums">
               {currentBook?.bookName} {chapter}
             </span>
 
             <Button
               variant="outline"
-              onClick={() => setChapter(c => Math.min(chapterCount, c + 1))}
+              onClick={() => handleChapterChange(Math.min(chapterCount, chapter + 1))}
               disabled={chapter >= chapterCount}
               className="gap-2 cursor-pointer"
             >
@@ -999,8 +1133,30 @@ export function BibleReader({
           onShare={handleShareSelection}
           onFavorite={handleFavoriteSelection}
           onOpenImageCreator={() => setImageCreatorOpen(true)}
+          onAddNote={!isGuest && selectedVerses.length === 1 ? handleAddNoteToSelection : undefined}
+          onListen={() => {
+            setAudioMode("selection")
+            setShowAudioPlayer(true)
+          }}
           onClearSelection={handleClearSelection}
           onLoginRequest={handleLoginRequest}
+        />
+      )}
+
+      {/* Reproductor de audio TTS */}
+      {showAudioPlayer && (
+        <BibleAudioPlayer
+          verses={
+            audioMode === "selection"
+              ? verses.filter((v) => selectedVerses.includes(Number(v.verse))).map((v) => ({ verse: Number(v.verse), text: v.text }))
+              : verses.map((v) => ({ verse: Number(v.verse), text: v.text }))
+          }
+          chapterLabel={`${currentBook?.bookName || ""} ${chapter}${audioMode === "selection" ? " (Selección)" : ""}`}
+          onActiveVerseChange={setSpeakingVerseNumber}
+          onClose={() => {
+            setShowAudioPlayer(false)
+            setSpeakingVerseNumber(null)
+          }}
         />
       )}
 

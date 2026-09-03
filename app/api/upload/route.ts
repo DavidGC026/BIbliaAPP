@@ -2,6 +2,7 @@ import { writeFile } from "fs/promises"
 import { join } from "path"
 import { type NextRequest, NextResponse } from "next/server"
 import { getSession } from "@/lib/auth"
+import { maxEdgeForPurpose, shrinkImage } from "@/lib/image-resize"
 import {
   createUserMedia,
   ensureUserMediaTables,
@@ -66,7 +67,11 @@ export async function POST(req: NextRequest) {
     }
 
     const bytes = await file.arrayBuffer()
-    const buffer = Buffer.from(bytes)
+    const original = Buffer.from(bytes)
+    // Se guarda reducida: el navegador descodifica el original entero a mapa de
+    // bits para mostrarlo, así que una foto de 4000×3000 costaba ~45 MB de RAM
+    // aunque se pintara en una tarjeta pequeña. Ver lib/image-resize.ts.
+    const { buffer } = await shrinkImage(original, extension, maxEdgeForPurpose(purpose))
     const filename = `${crypto.randomUUID()}.${extension}`
     const uploadDir = join(process.cwd(), "public", "uploads")
     const filepath = join(uploadDir, filename)

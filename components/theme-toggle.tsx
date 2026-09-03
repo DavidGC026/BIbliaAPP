@@ -79,9 +79,9 @@ export const THEME_OPTIONS: ThemeOption[] = [
   {
     value: 'dvg',
     label: 'DVG',
-    description: 'Base borgoña, rojo principal y alto contraste',
+    description: 'Base borgoña, rojo y bordes dorados',
     adminOnly: true,
-    preview: { bg: '#15090A', card: '#251012', text: '#FFF7F7', primary: '#DC2626' },
+    preview: { bg: '#18090A', card: '#2A1012', text: '#FFF7E6', primary: '#DC2626' },
   },
   {
     value: 'ubg',
@@ -93,6 +93,7 @@ export const THEME_OPTIONS: ThemeOption[] = [
 ]
 
 export const ADMIN_ONLY_THEMES = THEME_OPTIONS.filter(t => t.adminOnly).map(t => t.value)
+const INTERFACE_THEMES = new Set(['system', 'light', 'dark'])
 
 function ThemeSwatch({ preview }: { preview: ThemeOption['preview'] }) {
   return (
@@ -110,6 +111,43 @@ function ThemeSwatch({ preview }: { preview: ThemeOption['preview'] }) {
       </span>
     </span>
   )
+}
+
+function ThemeOptionItems({
+  options,
+  activeValue,
+  onSelect,
+}: {
+  options: ThemeOption[]
+  activeValue: string
+  onSelect: (value: string) => void
+}) {
+  return options.map(option => {
+    const selected = activeValue === option.value
+    return (
+      <DropdownMenuItem
+        key={option.value}
+        role="menuitemradio"
+        aria-checked={selected}
+        onClick={() => onSelect(option.value)}
+        className={cn('gap-2.5 py-2', selected && 'bg-accent/60')}
+      >
+        <ThemeSwatch preview={option.preview} />
+        <span className="flex min-w-0 flex-1 flex-col">
+          <span className="flex items-center gap-1.5 text-sm font-semibold">
+            {option.label}
+            {option.adminOnly ? (
+              <span className="rounded bg-primary px-1 py-px text-[9px] font-bold uppercase tracking-wide text-primary-foreground">
+                Admin
+              </span>
+            ) : null}
+          </span>
+          <span className="truncate text-[11px] text-muted-foreground">{option.description}</span>
+        </span>
+        {selected ? <Check className="size-4 shrink-0 text-primary" /> : null}
+      </DropdownMenuItem>
+    )
+  })
 }
 
 export function ThemeToggle() {
@@ -140,6 +178,9 @@ export function ThemeToggle() {
 
   const activeValue = mounted ? (theme ?? 'system') : 'system'
   const visibleOptions = THEME_OPTIONS.filter(t => !t.adminOnly || isAdmin)
+  const interfaceOptions = visibleOptions.filter(option => INTERFACE_THEMES.has(option.value))
+  const readingOptions = visibleOptions.filter(option => !INTERFACE_THEMES.has(option.value) && !option.adminOnly)
+  const organizationOptions = visibleOptions.filter(option => option.adminOnly)
 
   return (
     <DropdownMenu>
@@ -160,35 +201,23 @@ export function ThemeToggle() {
       <DropdownMenuContent align="end" className="w-64">
         {/* GroupLabel de Base UI debe vivir dentro de un Menu.Group */}
         <DropdownMenuGroup>
-          <DropdownMenuLabel>Apariencia</DropdownMenuLabel>
+          <DropdownMenuLabel>Interfaz</DropdownMenuLabel>
+          <ThemeOptionItems options={interfaceOptions} activeValue={activeValue} onSelect={setTheme} />
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        {visibleOptions.map(option => {
-          const selected = activeValue === option.value
-          return (
-            <DropdownMenuItem
-              key={option.value}
-              role="menuitemradio"
-              aria-checked={selected}
-              onClick={() => setTheme(option.value)}
-              className={cn('gap-2.5 py-2', selected && 'bg-accent/60')}
-            >
-              <ThemeSwatch preview={option.preview} />
-              <span className="flex min-w-0 flex-1 flex-col">
-                <span className="flex items-center gap-1.5 text-sm font-semibold">
-                  {option.label}
-                  {option.adminOnly && (
-                    <span className="rounded bg-primary/10 px-1 py-px text-[9px] font-bold uppercase tracking-wide text-primary">
-                      Admin
-                    </span>
-                  )}
-                </span>
-                <span className="truncate text-[11px] text-muted-foreground">{option.description}</span>
-              </span>
-              {selected && <Check className="size-4 shrink-0 text-primary" />}
-            </DropdownMenuItem>
-          )
-        })}
+        <DropdownMenuGroup>
+          <DropdownMenuLabel>Papeles de lectura</DropdownMenuLabel>
+          <ThemeOptionItems options={readingOptions} activeValue={activeValue} onSelect={setTheme} />
+        </DropdownMenuGroup>
+        {organizationOptions.length > 0 ? (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuGroup>
+              <DropdownMenuLabel>Organización</DropdownMenuLabel>
+              <ThemeOptionItems options={organizationOptions} activeValue={activeValue} onSelect={setTheme} />
+            </DropdownMenuGroup>
+          </>
+        ) : null}
       </DropdownMenuContent>
     </DropdownMenu>
   )

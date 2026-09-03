@@ -56,14 +56,35 @@ Los devocionales recientes ya existían en la web.
   ([`components/bible-reader/reader-search.tsx`](../components/bible-reader/reader-search.tsx))
   ya tenía su propio historial (`recent_searches`); se dejó como está.
 
+### 4. Acciones rápidas configurables
+
+- [`lib/home-actions.ts`](../lib/home-actions.ts) centraliza el catálogo web,
+  la validación y la persistencia local.
+- [`components/home-quick-actions.tsx`](../components/home-quick-actions.tsx)
+  permite activar o desactivar accesos desde Inicio, conservando al menos uno.
+- La web ofrece solo destinos reales: lectura, búsqueda, notas, estadísticas,
+  actividad, diccionario y comunidad. Las descargas nativas y la creación de
+  imagen desde una selección no se presentan como rutas independientes.
+
+### 5. Preferencias completas del lector
+
+- [`lib/reader-preferences.ts`](../lib/reader-preferences.ts) guarda tamaño,
+  densidad, alineación y tema, y migra la clave anterior `bible_font_size`.
+- [`components/bible-reader/reader-settings.tsx`](../components/bible-reader/reader-settings.tsx)
+  presenta controles equivalentes a mobile.
+- El lector ofrece Auto, Claro, Sepia, Noche y Contraste, además de lectura
+  amplia/compacta y alineación izquierda/justificada.
+
+La auditoría y sus decisiones completas están en
+[`docs/auditoria-paridad-mobile-web-julio-2026.md`](auditoria-paridad-mobile-web-julio-2026.md).
+
 ## Pendiente de portar (candidatos siguientes)
 
 | Mejora móvil | Estado en web | Notas |
 |--------------|---------------|-------|
 | Compartir unificado (`mobile/lib/share.ts`) | Parcial | El lector y el versículo del día comparten con formatos propios; falta un módulo común con formato/créditos consistentes. |
-| Temas de lectura del lector (auto/claro/sepia/noche/alto contraste) | No | La web ya tiene temas globales ([temas-visuales-web.md](temas-visuales-web.md)); el tema propio de la superficie de lectura sería el siguiente paso. |
-| Preferencias del lector: densidad y alineación | No | La web solo persiste tamaño de fuente (`bible_font_size`). |
-| Acciones rápidas configurables en Inicio | No | El Dashboard web tiene 3 acciones fijas. |
+| Onboarding ligero descartable | No | Siguiente candidato corto; debe enlazar a destinos web reales. |
+| Búsqueda universal multifuente | No | La búsqueda web actual es bíblica; falta agregar notas, devocionales y diccionario. |
 | Exportar notas a PDF | No | En móvil usa `expo-print`; en web podría hacerse con la impresión del navegador. |
 | Descargas offline | No aplica | Es una capacidad nativa; la web es siempre online. |
 

@@ -32,6 +32,10 @@ docs/*
 !docs/temas-visuales-web.md
 !docs/mejoras-uso-diario-web.md
 !docs/estilos-moviles-web.md
+!docs/auditoria-paridad-mobile-web-julio-2026.md
+!docs/editor-tiptap-web.md
+!docs/comentarios-biblicos.md
+!docs/diseno-lector-biblico.md
 !desktop/docs/
 !desktop/docs/**
 
@@ -41,3 +45,6 @@ mobile/
 
 # Cache incremental de TypeScript: se regenera en cada build
 *.tsbuildinfo
+
+# Configuracion local de Claude Code (permisos por maquina)
+.claude/

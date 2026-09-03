@@ -13,24 +13,14 @@ import { Input } from "@/components/ui/input"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { NotificationBell } from "@/components/notification-bell"
 import { LegalFooter } from "@/components/legal/legal-footer"
-import { 
-  LogOut,
-  LogIn,
-  Loader2,
-  Lock,
-  Search,
-  User,
-  Users,
-  Flame,
-  MoreHorizontal,
-  PanelLeftClose,
-  PanelLeftOpen,
-  ArrowRight
-} from "lucide-react"
+import { AppIcon } from "@/components/ui/app-icon"
+import { SectionNavLink } from "@/components/navigation/section-nav-link"
+import { Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { loadReaderDeepLink, lockReaderDeepLink, isReaderDeepLinkLocked } from "@/lib/bible-url"
 import { loadPendingGroupJoin, clearPendingGroupJoin } from "@/lib/group-invite"
 import { GUEST_SECTIONS, resolveAllowedSections } from "@/lib/app-sections"
+import { buildAppSectionUrl, parseAppSection } from "@/lib/app-section-url"
 import {
   AppSectionOutlet,
   buildAppNavItems,
@@ -100,11 +90,39 @@ export default function Page() {
   }, [])
 
   // Navigation tabs
-  const [activeTab, setActiveTab] = useState<string>(() => {
+  const [activeTab, setActiveTabState] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      const requestedSection = parseAppSection(window.location.search)
+      if (requestedSection) return requestedSection
+    }
     if (hasStrongDeepLink()) return "dictionary"
     const deepLink = getInitialDeepLink()
     return deepLink || isReaderDeepLinkLocked() ? "reading" : "dashboard"
   })
+
+  const updateSection = useCallback((section: string, historyMode: "push" | "replace") => {
+    setActiveTabState(section)
+    if (typeof window === "undefined") return
+    const url = buildAppSectionUrl(window.location.pathname, window.location.search, section)
+    window.history[historyMode === "push" ? "pushState" : "replaceState"](null, "", url)
+  }, [])
+
+  const setActiveTab = useCallback((section: string) => {
+    updateSection(section, "push")
+  }, [updateSection])
+
+  const replaceActiveTab = useCallback((section: string) => {
+    updateSection(section, "replace")
+  }, [updateSection])
+
+  useEffect(() => {
+    const handlePopState = () => {
+      const section = parseAppSection(window.location.search)
+      if (section) setActiveTabState(section)
+    }
+    window.addEventListener("popstate", handlePopState)
+    return () => window.removeEventListener("popstate", handlePopState)
+  }, [])
 
   // Direct reader navigation state (from Search page or shared links)
   const [navBookId, setNavBookId] = useState<number | null>(() => getInitialDeepLink()?.book ?? null)
@@ -128,12 +146,12 @@ export default function Page() {
   const applyDeepLink = useCallback((deepLink: NonNullable<ReturnType<typeof loadReaderDeepLink>>) => {
     lockReaderDeepLink()
     setHasPendingDeepLink(true)
-    setActiveTab("reading")
+    replaceActiveTab("reading")
     if (deepLink.bible != null) setNavBibleId(deepLink.bible)
     if (deepLink.book != null) setNavBookId(deepLink.book)
     if (deepLink.chapter != null) setNavChapter(deepLink.chapter)
     if (deepLink.verse != null) setNavVerse(deepLink.verse)
-  }, [])
+  }, [replaceActiveTab])
 
   // Separated Notebook Tab States
   const [notebookEditingNote, setNotebookEditingNote] = useState<{ id: number; title: string; content: string; tags?: string } | null>(null)
@@ -206,6 +224,11 @@ export default function Page() {
 
   // Set default tab based on user role and permissions (never override a shared verse link)
   useEffect(() => {
+    const requestedSection = parseAppSection(window.location.search)
+    if (requestedSection && (!user || allowedSections.includes(requestedSection))) {
+      setActiveTabState(requestedSection)
+      return
+    }
     if (isReaderDeepLinkLocked()) return
     if (hasStrongDeepLink()) return
     if (pendingGroupJoinCode) return
@@ -217,16 +240,16 @@ export default function Page() {
     }
 
     if (isGuest) {
-      setActiveTab("dashboard")
+      replaceActiveTab("dashboard")
     } else if (user) {
       const defaults = user.role === "admin" ? "dashboard" : "reading"
       if (allowedSections.includes(defaults)) {
-        setActiveTab(defaults)
+        replaceActiveTab(defaults)
       } else if (allowedSections.length > 0) {
-        setActiveTab(allowedSections[0])
+        replaceActiveTab(allowedSections[0])
       }
     }
-  }, [isGuest, user, allowedSections, applyDeepLink, pendingGroupJoinCode])
+  }, [isGuest, user, allowedSections, applyDeepLink, pendingGroupJoinCode, replaceActiveTab])
 
   async function handleLogout() {
     if (!confirm("¿Estás seguro de cerrar sesión?")) return
@@ -262,7 +285,7 @@ export default function Page() {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-background text-muted-foreground">
         <Loader2 className="size-10 animate-spin text-primary mb-4" />
-        <p className="text-sm font-medium">Cargando tu estudio bíblico...</p>
+        <p className="text-sm font-medium">Cargando tu estudio bíblico…</p>
       </div>
     )
   }
@@ -336,7 +359,7 @@ export default function Page() {
               />
               {!sidebarCollapsed && (
                 <div className="flex flex-col min-w-0">
-                  <h1 className="text-sm font-bold tracking-tight text-foreground leading-none">{churchName}</h1>
+                  <p className="text-sm font-bold tracking-tight text-foreground leading-none">{churchName}</p>
                   <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider mt-0.5">
                     {isGuest ? "Visitante" : user?.role === "admin" ? "Administrador" : "Lector"}
                   </p>
@@ -349,7 +372,7 @@ export default function Page() {
                 title="Colapsar menú"
                 className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-all shrink-0"
               >
-                <PanelLeftClose className="size-4" />
+                <AppIcon name="sidebar-collapse" className="size-4" />
               </button>
             )}
           </div>
@@ -359,11 +382,11 @@ export default function Page() {
           <div className={cn("flex items-center mb-4 shrink-0", sidebarCollapsed ? "justify-center px-2" : "px-5")}>
             {sidebarCollapsed ? (
               <div title={`Racha: ${user.streakCount || 0} días`} className="flex items-center justify-center size-8 rounded-lg bg-amber-500/10 border border-amber-500/20">
-                <Flame className="size-4 fill-amber-500 text-amber-500 animate-pulse" />
+                <AppIcon name="flame" className="size-4 text-amber-500 animate-pulse" />
               </div>
             ) : (
               <div className="flex items-center gap-1.5 px-3 py-1 bg-amber-500/10 border border-amber-500/20 text-amber-800 dark:text-amber-300 rounded-xl text-xs font-bold">
-                <Flame className="size-4 fill-amber-500 text-amber-500 animate-pulse" />
+                <AppIcon name="flame" className="size-4 text-amber-500 animate-pulse" />
                 <span>Racha: {user.streakCount || 0} {user.streakCount === 1 ? "día" : "días"}</span>
               </div>
             )}
@@ -379,23 +402,26 @@ export default function Page() {
                 const isActive = activeTab === item.id
                 const locked = isTabLocked(item.id)
                 return (
-                  <button
+                  <SectionNavLink
                     key={item.id}
-                    onClick={() => setActiveTab(item.id)}
+                    section={item.id}
+                    active={isActive}
+                    onNavigate={setActiveTab}
+                    ariaLabel={locked ? `${item.label}, requiere cuenta` : item.label}
                     title={locked ? `${item.label} (requiere cuenta)` : item.label}
                     className={cn(
                       "flex items-center justify-center w-full p-2.5 rounded-xl transition-all group cursor-pointer relative",
                       isActive
                         ? "bg-primary text-primary-foreground shadow-md"
                         : "text-muted-foreground hover:bg-accent/40 hover:text-foreground",
-                      locked && !isActive && "opacity-70"
+                      locked && !isActive && "text-muted-foreground"
                     )}
                   >
                     <Icon className="size-5 shrink-0" />
                     {locked && (
-                      <Lock className="size-2.5 absolute top-1 right-1 text-muted-foreground" />
+                      <AppIcon name="lock" className="size-2.5 absolute top-1 right-1 text-muted-foreground" />
                     )}
-                  </button>
+                  </SectionNavLink>
                 )
               })
             ) : (
@@ -413,21 +439,23 @@ export default function Page() {
                       const isActive = activeTab === item.id
                       const locked = isTabLocked(item.id)
                       return (
-                        <button
+                        <SectionNavLink
                           key={item.id}
-                          onClick={() => setActiveTab(item.id)}
+                          section={item.id}
+                          active={isActive}
+                          onNavigate={setActiveTab}
                           className={cn(
                             "flex items-center gap-3 w-full px-3 py-2 rounded-xl text-sm font-medium transition-all group cursor-pointer",
                             isActive
                               ? "bg-primary text-primary-foreground shadow-md shadow-primary/10"
                               : "text-muted-foreground hover:bg-accent/40 hover:text-foreground",
-                            locked && !isActive && "opacity-75"
+                            locked && !isActive && "text-muted-foreground"
                           )}
                         >
                           <Icon className={cn("size-4 shrink-0 transition-transform group-hover:scale-110", isActive ? "" : "text-muted-foreground group-hover:text-primary")} />
                           <span className="flex-1 text-left">{item.label}</span>
-                          {locked && <Lock className="size-3 shrink-0 opacity-60" />}
-                        </button>
+                          {locked && <AppIcon name="lock" className="size-3 shrink-0 opacity-60" />}
+                        </SectionNavLink>
                       )
                     })}
                   </div>
@@ -447,7 +475,7 @@ export default function Page() {
                   title="Expandir menú"
                   className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-all"
                 >
-                  <PanelLeftOpen className="size-4" />
+                  <AppIcon name="sidebar-expand" className="size-4" />
                 </button>
                 <ThemeToggle />
                 <button
@@ -455,7 +483,7 @@ export default function Page() {
                   title="Iniciar sesión"
                   className="p-2 rounded-lg text-primary hover:bg-primary/10 transition-all"
                 >
-                  <LogIn className="size-4" />
+                  <AppIcon name="login" className="size-4" />
                 </button>
               </>
             ) : (
@@ -463,7 +491,7 @@ export default function Page() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="flex size-8 items-center justify-center rounded-full bg-muted text-muted-foreground shrink-0">
-                      <User className="size-4" />
+                      <AppIcon name="profile" className="size-4" />
                     </span>
                     <div className="min-w-0">
                       <p className="text-xs font-bold text-foreground truncate">Modo visitante</p>
@@ -476,7 +504,7 @@ export default function Page() {
                   onClick={openLogin}
                   className="flex items-center justify-center gap-2 w-full px-3 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-all cursor-pointer"
                 >
-                  <LogIn className="size-3.5" />
+                  <AppIcon name="login" className="size-3.5" />
                   <span>Iniciar sesión</span>
                 </button>
               </>
@@ -488,7 +516,7 @@ export default function Page() {
                 title="Expandir menú"
                 className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-all"
               >
-                <PanelLeftOpen className="size-4" />
+                <AppIcon name="sidebar-expand" className="size-4" />
               </button>
               <ThemeToggle />
               <button
@@ -496,7 +524,7 @@ export default function Page() {
                 title="Cerrar Sesión"
                 className="p-2 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
               >
-                <LogOut className="size-4" />
+                <AppIcon name="logout" className="size-4" />
               </button>
             </>
           ) : (
@@ -504,7 +532,7 @@ export default function Page() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 min-w-0">
                   <span className="flex size-8 items-center justify-center rounded-full bg-primary/10 text-primary shrink-0">
-                    <User className="size-4" />
+                    <AppIcon name="profile" className="size-4" />
                   </span>
                   <div className="min-w-0">
                     <p className="text-xs font-bold text-foreground truncate">{user?.name}</p>
@@ -530,7 +558,7 @@ export default function Page() {
                 onClick={handleLogout}
                 className="flex items-center justify-center gap-2 w-full px-3 py-2 rounded-lg border border-border bg-transparent text-xs font-semibold text-muted-foreground hover:bg-destructive/10 hover:text-destructive hover:border-destructive/25 transition-all cursor-pointer"
               >
-                <LogOut className="size-3.5" />
+                <AppIcon name="logout" className="size-3.5" />
                 <span>Cerrar Sesión</span>
               </button>
             </>
@@ -554,7 +582,7 @@ export default function Page() {
           {/* Racha (Mobile) */}
           {!isGuest && user && (
           <div className="ml-0.5 flex shrink-0 items-center gap-0.5 rounded-full border border-amber-500/20 bg-amber-500/10 px-2 py-1 text-xs font-extrabold text-amber-700 dark:text-amber-300">
-            <Flame className="size-3.5 fill-amber-500 text-amber-500 animate-pulse" />
+            <AppIcon name="flame" className="size-3.5 text-amber-500 animate-pulse" />
             <span>{user.streakCount || 0}</span>
           </div>
           )}
@@ -562,32 +590,36 @@ export default function Page() {
         
         <div className="flex shrink-0 items-center gap-1.5">
           {allowedSections.includes("search") && (
-            <button
-              onClick={() => setActiveTab("search")}
+            <SectionNavLink
+              section="search"
+              active={activeTab === "search"}
+              onNavigate={setActiveTab}
+              ariaLabel="Buscar"
               className={cn(
                 "flex size-9 items-center justify-center rounded-xl border transition-colors",
                 activeTab === "search"
                   ? "border-primary/25 bg-primary/10 text-primary"
                   : "border-border/70 bg-card text-muted-foreground hover:text-foreground"
               )}
-              title="Buscar"
             >
-              <Search className="size-4.5" />
-            </button>
+              <AppIcon name="search" className="size-4.5" />
+            </SectionNavLink>
           )}
           {allowedSections.includes("users") && (
-            <button
-              onClick={() => setActiveTab("users")}
+            <SectionNavLink
+              section="users"
+              active={activeTab === "users"}
+              onNavigate={setActiveTab}
+              ariaLabel="Gestión de usuarios"
               className={cn(
                 "flex size-9 items-center justify-center rounded-xl border transition-colors",
                 activeTab === "users"
                   ? "border-primary/25 bg-primary/10 text-primary"
                   : "border-border/70 bg-card text-muted-foreground hover:text-foreground"
               )}
-              title="Gestión de Usuarios"
             >
-              <Users className="size-4.5" />
-            </button>
+              <AppIcon name="groups" className="size-4.5" />
+            </SectionNavLink>
           )}
           {!isGuest && allowedSections.includes("feed") && (
             <NotificationBell
@@ -606,7 +638,7 @@ export default function Page() {
               className="flex size-9 items-center justify-center rounded-xl border border-primary/25 bg-primary/10 text-primary transition-colors hover:bg-primary/15"
               title="Iniciar sesión"
             >
-              <LogIn className="size-4.5" />
+              <AppIcon name="login" className="size-4.5" />
             </button>
           ) : (
           <button
@@ -614,7 +646,7 @@ export default function Page() {
             className="flex size-9 items-center justify-center rounded-xl border border-border/70 bg-card text-muted-foreground transition-colors hover:text-destructive"
             title="Cerrar Sesión"
           >
-            <LogOut className="size-4.5" />
+            <AppIcon name="logout" className="size-4.5" />
           </button>
           )}
         </div>
@@ -674,12 +706,12 @@ export default function Page() {
                 const Icon = item.icon
                 const isActive = activeTab === item.id
                 return (
-                  <button
+                  <SectionNavLink
                     key={item.id}
-                    onClick={() => {
-                      setActiveTab(item.id)
-                      setShowMobileMore(false)
-                    }}
+                    section={item.id}
+                    active={isActive}
+                    onNavigate={setActiveTab}
+                    onAfterNavigate={() => setShowMobileMore(false)}
                     className={cn(
                       "flex min-h-[58px] items-center gap-3 rounded-2xl border px-4 py-3 text-left transition-all active:scale-[0.99] cursor-pointer",
                       isActive 
@@ -696,8 +728,8 @@ export default function Page() {
                     <span className="min-w-0 flex-1 text-sm font-extrabold text-foreground data-[active=true]:text-primary-foreground" data-active={isActive}>
                       {item.label}
                     </span>
-                    <ArrowRight className="size-4 opacity-50" />
-                  </button>
+                    <AppIcon name="arrow-right" className="size-4 opacity-50" />
+                  </SectionNavLink>
                 )
               })}
             </div>
@@ -711,12 +743,12 @@ export default function Page() {
           const Icon = item.icon
           const isActive = activeTab === item.id && !showMobileMore
           return (
-            <button
+            <SectionNavLink
               key={item.id}
-              onClick={() => {
-                setActiveTab(item.id)
-                setShowMobileMore(false)
-              }}
+              section={item.id}
+              active={isActive}
+              onNavigate={setActiveTab}
+              onAfterNavigate={() => setShowMobileMore(false)}
               className={cn(
                 "flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-2xl py-1 text-[10px] font-extrabold transition-all cursor-pointer",
                 isActive 
@@ -731,7 +763,7 @@ export default function Page() {
                 <Icon className={cn("size-5 transition-transform", isActive ? "stroke-[2.5]" : "")} />
               </span>
               <span className="max-w-full truncate leading-tight">{item.label}</span>
-            </button>
+            </SectionNavLink>
           )
         })}
         {showMoreButton && (
@@ -748,7 +780,7 @@ export default function Page() {
               "flex size-9 items-center justify-center rounded-2xl transition-colors",
               showMobileMore ? "bg-primary text-primary-foreground shadow-sm" : "bg-transparent"
             )}>
-              <MoreHorizontal className={cn("size-5 transition-transform", showMobileMore ? "stroke-[2.5]" : "")} />
+              <AppIcon name="more" className="size-5" />
             </span>
             <span className="leading-tight">Más</span>
           </button>
@@ -826,7 +858,7 @@ function UsernameSetupModal({ user, onComplete }: { user: UserProfile, onComplet
       <div className="bg-card border border-border rounded-2xl shadow-xl w-full max-w-md p-6 sm:p-8">
         <div className="text-center mb-6">
           <div className="size-16 bg-primary/10 text-primary rounded-full flex items-center justify-center mx-auto mb-4">
-            <User className="size-8" />
+            <AppIcon name="profile" className="size-8" />
           </div>
           <h2 className="text-2xl font-bold text-foreground">Elige tu Apodo</h2>
           <p className="text-sm text-muted-foreground mt-2">

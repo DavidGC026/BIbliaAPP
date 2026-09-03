@@ -71,17 +71,64 @@ con `env(safe-area-inset-top)` para no quedar bajo el notch (el selector lleva
 
 Mientras se edita una nota en móvil, el editor ocupa **toda la pantalla**:
 
-- [`components/notebook-sidebar.tsx`](../components/notebook-sidebar.tsx) pone
-  `note-immersive` en `<body>` y mantiene `--app-visual-height` sincronizada
-  con `window.visualViewport`;
+- [`components/notes/editor-shell/use-immersive-viewport.ts`](../components/notes/editor-shell/use-immersive-viewport.ts)
+  pone `note-immersive` en `<body>` y mantiene `--app-visual-height` y
+  `--app-visual-offset` sincronizadas con `window.visualViewport`;
+  [`components/notebook-sidebar.tsx`](../components/notebook-sidebar.tsx) solo
+  lo activa mientras hay nota en edición;
 - [`app/globals.css`](../app/globals.css) oculta `.mobile-app-header` y
   `.mobile-tabbar`, quita el padding de `.mobile-content-frame` /
-  `.mobile-section-shell` y ata el alto del contenedor de sección a esa
-  variable.
+  `.mobile-section-shell` y **ancla la sección al viewport visible** con esas
+  variables.
 
-La variable cubre **iOS**, donde `interactive-widget` no está soportado y
+Las variables cubren **iOS**, donde `interactive-widget` no está soportado y
 `100dvh` no encoge con el teclado. La salida del modo es el botón **Volver** del
 propio editor, igual que la pantalla dedicada de la app móvil.
+
+### Hueco entre la cinta del editor y el teclado (iPhone)
+
+Probado en un **iPhone 15 Pro**, la cinta inferior del editor quedaba separada
+del teclado y ese hueco se comía el área visible para escribir. Eran dos causas
+sumadas:
+
+**1. El desplazamiento del viewport visible no se compensaba.** iOS no encoge el
+viewport de *layout* al abrir el teclado: lo mantiene y **desplaza el viewport
+visible dentro de él** para revelar el cursor (`visualViewport.offsetTop`). La
+sección iba en flujo, anclada al layout, así que subía con ese desplazamiento y
+dejaba exactamente `offsetTop` píxeles de fondo entre la cinta y el teclado.
+
+Ahora la sección se ancla al viewport visible:
+
+```css
+body.note-immersive .mobile-section-shell {
+  position: fixed;
+  top: var(--app-visual-offset, 0px);   /* compensa visualViewport.offsetTop */
+  height: var(--app-visual-height, 100dvh);
+}
+```
+
+Se usa `top` y no `transform` a propósito: `transform` crearía un bloque
+contenedor y reubicaría los modales `fixed` del editor (versículo, diccionario).
+
+De paso desaparece la otra vía por la que Safari podía mover el editor: el
+armazón (`.mobile-app-shell`, `.mobile-content-frame`) deja de medir `100dvh` y
+pasa a medir el alto visible, `.mobile-web-content` deja de desplazarse, y el
+pie legal —hermano de la sección, que heredaba `min-height: 100%`— se oculta en
+modo inmersivo. Sin nada que desplazar detrás, no hay hueco que abrir.
+
+**2. La franja de `safe-area-inset-bottom` se contaba dos veces.** La cinta
+reserva `env(safe-area-inset-bottom)` (34 px en un iPhone 15 Pro) para no quedar
+bajo el indicador de inicio, pero con el teclado abierto el indicador ya está
+tapado por el propio teclado: esos 34 px eran fondo vacío. Con
+`body.keyboard-open` la reserva se anula.
+
+Medido en un armazón que replica la cadena real de nodos contra el CSS
+compilado, con un viewport visible de 460 px y `offsetTop` de 120 px:
+
+| | Borde inferior de la cinta | Hueco hasta el teclado |
+|---|---|---|
+| Antes | 460 px | **120 px** + 34 px de franja segura |
+| Ahora | 580 px | **0 px** |
 
 Es **opt-in** (`immersiveOnMobile`): solo lo usa la sección Notas. El editor
 embebido del lector conserva el chrome porque vive dentro de un panel dividido.
@@ -140,9 +187,12 @@ problema real.
 
 ## Pendiente
 
-- El editor sigue sin **rueda cromática** ni **fuente por nota**, presentes en
-  móvil (ver [docs-mobile/16](../docs-mobile/16-editor-webview-teclado-seleccion.md)
-  y [docs-mobile/20](../docs-mobile/20-plan-maestro-mejoras-generales.md)).
+- El editor ya usa Tiptap y una cinta adaptativa inferior en móvil; la
+  arquitectura y el comportamiento completo están en
+  [`editor-tiptap-web.md`](editor-tiptap-web.md).
+- La cinta ya permite color libre mediante el selector nativo y aplicar una
+  tipografía a la selección. Sigue pendiente definir una **fuente global por
+  nota** persistida como preferencia, distinta del formato inline actual.
 - Revisión fina de espaciados en el resto de secciones en pantallas pequeñas.
 
 ## Verificación
@@ -159,6 +209,9 @@ Pruebas manuales en un teléfono real (lo que no cubre el navegador headless):
 2. Tocar el cuerpo de la nota: al abrirse el teclado, el área de escritura y la
    barra de formato deben quedar **encima** del teclado, y el bloque de título
    reducirse a una sola línea.
+2b. En un iPhone, con el teclado abierto la cinta debe quedar **pegada** al
+   teclado, sin fondo vacío entre ambos, y seguir pegada al mover el cursor por
+   la nota (es cuando Safari desplaza el viewport visible).
 3. Cerrar el teclado: el bloque de título vuelve a mostrar el estado de guardado
    y las métricas.
 4. **Volver**: reaparecen header y tabbar.

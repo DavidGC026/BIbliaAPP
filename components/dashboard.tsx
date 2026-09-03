@@ -9,8 +9,6 @@ import {
   BookText,
   Heart,
   Highlighter,
-  PlusCircle,
-  Search,
   Sparkles,
   ArrowRight,
   Lock,
@@ -21,6 +19,7 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { loadLastReading, type LastReading } from "@/lib/reader-state"
+import { HomeQuickActions } from "@/components/home-quick-actions"
 
 interface DashboardProps {
   userName?: string
@@ -263,29 +262,16 @@ export function Dashboard({ userName, isGuest = false, userRole, setActiveTab, o
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
         <div className="lg:col-span-5 space-y-4">
-          <h2 className="text-lg font-bold text-foreground">Acciones Rápidas</h2>
-
-          <div className="flex flex-col gap-3">
-            <QuickAction
-              icon={BookOpen}
-              title="Ir a Lectura"
-              description="Lee la Biblia capítulo a capítulo"
-              onClick={() => setActiveTab("reading")}
-            />
-            <QuickAction
-              icon={PlusCircle}
-              title="Nuevo Devocional"
-              description={isGuest ? "Requiere iniciar sesión" : "Escribe en tu diario espiritual hoy"}
-              locked={isGuest}
-              onClick={() => handleProtectedAction("devotionals")}
-            />
-            <QuickAction
-              icon={Search}
-              title="Buscador Avanzado"
-              description="Busca versículos y palabras clave"
-              onClick={() => setActiveTab("search")}
-            />
-          </div>
+          <HomeQuickActions
+            isGuest={isGuest}
+            onNavigate={(section, requiresAuth) => {
+              if (requiresAuth) {
+                handleProtectedAction(section)
+              } else {
+                setActiveTab(section)
+              }
+            }}
+          />
         </div>
 
         <div className="lg:col-span-7 space-y-4">
@@ -418,40 +404,5 @@ export function Dashboard({ userName, isGuest = false, userRole, setActiveTab, o
         </div>
       </div>
     </div>
-  )
-}
-
-function QuickAction({
-  icon: Icon,
-  title,
-  description,
-  onClick,
-  locked = false,
-}: {
-  icon: React.ComponentType<{ className?: string }>
-  title: string
-  description: string
-  onClick: () => void
-  locked?: boolean
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className="flex items-center justify-between w-full p-4 rounded-xl border border-border bg-card/40 hover:bg-accent/40 text-left transition-all group active:scale-[0.99]"
-    >
-      <div className="flex items-center gap-3">
-        <span className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-          <Icon className="size-5" />
-        </span>
-        <div>
-          <h3 className="font-semibold text-sm text-foreground flex items-center gap-1.5">
-            {title}
-            {locked && <Lock className="size-3 text-muted-foreground" />}
-          </h3>
-          <p className="text-xs text-muted-foreground">{description}</p>
-        </div>
-      </div>
-      <ArrowRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-1" />
-    </button>
   )
 }

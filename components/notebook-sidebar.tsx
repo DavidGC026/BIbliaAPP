@@ -14,7 +14,14 @@ import {
   parseNoteTags,
   togglePinnedNoteTag,
 } from "@/lib/notebook-covers"
-import { NoteContent, NoteRichEditor, requestEditorHtml } from "@/components/note-rich-editor"
+import {
+  NoteContent,
+  NoteRichEditor,
+  requestEditorHtml,
+  type NoteRichEditorHandle,
+} from "@/components/note-rich-editor"
+import { NoteEditorHeader } from "@/components/notes/editor-shell/note-editor-header"
+import { useImmersiveViewport } from "@/components/notes/editor-shell/use-immersive-viewport"
 import { defaultNoteTitle, insertHtmlIntoNoteContent } from "@/lib/note-content"
 import { 
   ChevronRight, 
@@ -24,7 +31,6 @@ import {
   X,
   ArrowLeft,
   Loader2,
-  Save,
   BookOpen,
   FolderPlus,
   Book,
@@ -38,8 +44,6 @@ import {
   FolderInput,
   Share2,
   Languages,
-  Eye,
-  Image as ImageIcon,
 } from "lucide-react"
 
 const AVAILABLE_TAGS = NOTE_TAGS
@@ -329,7 +333,7 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
     }
   }, [noteDetails, editingNote?.id, contentDirty, savingNote])
 
-  const editorFrameRef = useRef<HTMLIFrameElement>(null)
+  const editorFrameRef = useRef<NoteRichEditorHandle>(null)
 
   useEffect(() => {
     setContentDirty(false)
@@ -337,40 +341,10 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
     setImageEditMode(false)
   }, [editingNote?.id])
 
-  // Modo inmersivo de escritura (solo móvil, ver app/globals.css): mientras se
-  // edita una nota se ocultan header y tabbar para que el editor use toda la
-  // pantalla, y --app-visual-height sigue al viewport visible para que el
-  // teclado no tape el área de escritura ni la barra de formato.
-  const isEditingNote = !!editingNote
-  useEffect(() => {
-    if (!isEditingNote || !immersiveOnMobile) return
-
-    const root = document.documentElement
-    const viewport = window.visualViewport
-    // Altura de referencia sin teclado: se queda con la mayor vista, porque
-    // con interactive-widget=resizes-content innerHeight también encoge.
-    let baseline = 0
-    const syncHeight = () => {
-      const height = Math.round(viewport?.height ?? window.innerHeight)
-      root.style.setProperty("--app-visual-height", `${height}px`)
-      baseline = Math.max(baseline, height)
-      // Margen de 120px para no confundir el teclado con la barra del navegador
-      document.body.classList.toggle("keyboard-open", height < baseline - 120)
-    }
-
-    document.body.classList.add("note-immersive")
-    syncHeight()
-    viewport?.addEventListener("resize", syncHeight)
-    window.addEventListener("orientationchange", syncHeight)
-
-    return () => {
-      document.body.classList.remove("note-immersive")
-      document.body.classList.remove("keyboard-open")
-      root.style.removeProperty("--app-visual-height")
-      viewport?.removeEventListener("resize", syncHeight)
-      window.removeEventListener("orientationchange", syncHeight)
-    }
-  }, [isEditingNote, immersiveOnMobile])
+  // Modo inmersivo de escritura (responsive, ver app/globals.css): en móvil se
+  // ocultan header y tabbar y el editor se ancla al viewport visible; en
+  // escritorio elimina el marco exterior para usar toda el área disponible.
+  useImmersiveViewport(!!editingNote && immersiveOnMobile)
 
   // Autoguardado: tras 4s sin teclear se persiste en silencio, como en la app
   // móvil, así la nota sobrevive aunque se cierre la pestaña sin pulsar Guardar.
@@ -606,8 +580,8 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
     alert("Nota copiada al portapapeles")
   }
 
-  function handleExportPdf(note: NotebookNote, event: React.MouseEvent) {
-    event.stopPropagation()
+  function handleExportPdf(note: Pick<NotebookNote, "title" | "content">, event?: React.MouseEvent) {
+    event?.stopPropagation()
     const win = window.open("", "_blank", "width=820,height=900")
     if (!win) return
     win.document.write(`<!doctype html><html><head><title>${note.title}</title><style>body{font-family:system-ui,sans-serif;line-height:1.6;padding:32px;color:#1f2937}img{max-width:100%;height:auto;border-radius:8px}blockquote{border-left:4px solid #92700C;padding-left:16px;color:#57534e}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ddd;padding:8px}</style></head><body><h1>${note.title || "Sin título"}</h1>${note.content || "<p>Sin contenido</p>"}</body></html>`)
@@ -692,104 +666,46 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
     .filter((notebook) => notebook.name.toLowerCase().includes(notebookSearch.trim().toLowerCase()))
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
 
-  // Note Editor view (mobile-style)
+  // Editor de nota: shell compacto inspirado en desktop, responsive en web móvil.
   if (editingNote) {
     return (
-      <div className="flex h-full flex-col bg-background">
-        <header className="sticky top-0 z-10 flex shrink-0 items-center justify-between gap-2 border-b border-border/60 bg-background/95 px-3 py-2 backdrop-blur md:px-4 md:py-3" style={{ paddingTop: "max(0.5rem, env(safe-area-inset-top))" }}>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
+      <div className="web-note-shell flex h-full min-h-0 flex-col bg-background">
+        <NoteEditorHeader
+          title={editingNote.title}
+          onTitleChange={(title) => {
+            setContentDirty(true)
+            setEditingNote((previous) => previous ? { ...previous, title } : previous)
+          }}
+          saveState={savingNote ? "saving" : contentDirty ? "pending" : "saved"}
+          savedAt={savedAt}
+          wordCount={countNoteWords(editingNote.content)}
+          previewMode={previewMode}
+          imageEditMode={imageEditMode}
+          onBack={() => {
+            void (async () => {
+              if (contentDirty) {
+                const html = await requestEditorHtml(editorFrameRef.current)
+                await handleSaveNote(html || editingNote.content, { silent: true })
+              }
               setEditingNote(null)
               setSavedAt(null)
               setPreviewMode(false)
               setContentDirty(false)
               setEditorEpoch(0)
               setImageEditMode(false)
-            }}
-            className="h-8 gap-1.5 px-2 text-muted-foreground hover:text-foreground"
-          >
-            <ArrowLeft className="size-4" />
-            <span>Volver</span>
-          </Button>
-          <div className="flex items-center gap-1">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => handleShareNote(editingNote)}
-              className="size-8 text-muted-foreground hover:text-foreground"
-              aria-label="Compartir nota"
-            >
-              <Share2 className="size-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => handleDeleteNote(editingNote.id, editingNote.title)}
-              className="size-8 text-destructive hover:bg-destructive/10"
-              aria-label="Borrar nota"
-            >
-              <Trash2 className="size-4" />
-            </Button>
-            <Button
-              onClick={async () => {
-                const html = await requestEditorHtml(editorFrameRef.current)
-                await handleSaveNote(html || editingNote.content)
-              }}
-              disabled={savingNote}
-              size="sm"
-              className="ml-1 h-8 gap-1.5 rounded-full bg-primary/90 px-4 font-extrabold shadow-sm hover:bg-primary"
-            >
-              {savingNote ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                <Save className="size-4" />
-              )}
-              <span>Guardar</span>
-            </Button>
-          </div>
-        </header>
-
-        <div className="note-editor-titlebar shrink-0 px-3 py-2 md:px-4 md:py-3">
-          <div className="note-editor-title-card rounded-2xl border border-border bg-card px-3 py-2.5 shadow-sm md:px-3.5 md:py-3">
-            <Input
-              value={editingNote.title}
-              onChange={(e) => {
-                setContentDirty(true)
-                setEditingNote((prev) => (prev ? { ...prev, title: e.target.value } : prev))
-              }}
-              placeholder="Título"
-              disabled={imageEditMode}
-              className="h-auto border-0 bg-transparent px-0 py-0 text-xl font-extrabold focus-visible:ring-0 placeholder:text-muted-foreground/40 md:text-2xl"
-            />
-            <div className="note-editor-meta mt-2 flex flex-wrap items-center justify-between gap-2 md:mt-3">
-            <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-muted-foreground">
-              <span className={cn("size-2 rounded-full", contentDirty ? "bg-amber-500" : "bg-primary")} />
-              <span>{savingNote ? "Guardando..." : contentDirty ? "Sin guardar" : savedAt ? `Guardado ${savedAt}` : "Aún sin guardar"}</span>
-              {/* Métricas secundarias: en pantallas chicas roban una línea entera */}
-              <span className="hidden sm:inline">·</span>
-              <span className="hidden sm:inline">{countNoteWords(editingNote.content)} palabras</span>
-              <span className="hidden sm:inline">·</span>
-              <span className="hidden sm:inline">{estimateNoteReadMinutes(editingNote.content)} min</span>
-            </div>
-            <button
-              type="button"
-              onClick={() => setPreviewMode((p) => !p)}
-              className="flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-extrabold text-primary transition-colors hover:bg-primary/15"
-            >
-              {previewMode ? <Edit2 className="size-3.5" /> : <Eye className="size-3.5" />}
-              {previewMode ? "Editar" : "Vista previa"}
-            </button>
-            </div>
-            {imageEditMode ? (
-              <div className="mt-2.5 inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-xs font-extrabold text-primary">
-                <ImageIcon className="size-3.5" />
-                Editando imagen
-              </div>
-            ) : null}
-          </div>
-        </div>
+            })()
+          }}
+          onSave={() => {
+            void (async () => {
+              const html = await requestEditorHtml(editorFrameRef.current)
+              await handleSaveNote(html || editingNote.content)
+            })()
+          }}
+          onTogglePreview={() => setPreviewMode((value) => !value)}
+          onShare={() => handleShareNote(editingNote)}
+          onExportPdf={() => handleExportPdf(editingNote)}
+          onDelete={() => void handleDeleteNote(editingNote.id, editingNote.title)}
+        />
 
         <div className="flex-1 min-h-0 relative">
           {noteDetailsLoading ? (
@@ -798,8 +714,8 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
               Cargando nota...
             </div>
           ) : previewMode ? (
-            <div className="h-full overflow-y-auto px-4 pb-6">
-              <div className="rounded-xl border border-border bg-card p-4 min-h-[280px]">
+            <div className="web-note-preview h-full overflow-y-auto">
+              <div className="web-note-preview-document min-h-full">
                 <NoteContent content={editingNote.content || "Sin contenido"} />
               </div>
             </div>
@@ -1041,7 +957,7 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
                       setDictionaryQuery(e.target.value)
                       if (e.target.value) setDictionaryBrowse(false)
                     }}
-                    placeholder="G25, H430, agapao, shalom..."
+                    placeholder="G25, H430, agapao, shalom…"
                     className="h-11 pl-9"
                   />
                 </div>
@@ -1224,7 +1140,11 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
               <Input
                 value={notebookSearch}
                 onChange={(e) => setNotebookSearch(e.target.value)}
-                placeholder="Buscar libreta..."
+                name="notebook-search"
+                autoComplete="off"
+                spellCheck={false}
+                aria-label="Buscar libretas"
+                placeholder="Buscar libreta…"
                 className="h-7 border-0 bg-transparent px-0 text-sm focus-visible:ring-0"
               />
             </div>
@@ -1265,22 +1185,9 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
             ) : (
               <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-4">
                 {visibleNotebooks.map((n) => (
-                  <div
+                  <article
                     key={n.id}
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => {
-                      setActiveNotebookId(n.id)
-                      setSearchQuery("")
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault()
-                        setActiveNotebookId(n.id)
-                        setSearchQuery("")
-                      }
-                    }}
-                    className="group relative flex min-h-[258px] cursor-pointer flex-col items-center gap-3 rounded-2xl border border-border bg-card p-3 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md"
+                    className="group relative flex min-h-[258px] flex-col rounded-2xl border border-border bg-card p-3 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md"
                   >
                     <div className="absolute right-2 top-2 z-10 flex gap-1 opacity-100 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100">
                       <button
@@ -1296,6 +1203,7 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
                         }}
                         className="flex size-8 items-center justify-center rounded-lg border border-border bg-background/90 text-muted-foreground shadow-sm hover:text-primary"
                         title="Editar libreta"
+                        aria-label={`Editar libreta ${n.name}`}
                       >
                         <Edit2 className="size-3.5" />
                       </button>
@@ -1304,29 +1212,37 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
                         onClick={(e) => handleDeleteNotebook(n.id, n.name, e)}
                         className="flex size-8 items-center justify-center rounded-lg border border-border bg-background/90 text-muted-foreground shadow-sm hover:text-destructive"
                         title="Eliminar libreta"
+                        aria-label={`Eliminar libreta ${n.name}`}
                       >
                         <Trash2 className="size-3.5" />
                       </button>
                     </div>
 
-                    <BookCover
-                      title={n.name}
-                      coverImage={n.coverImage}
-                      className="pointer-events-none mt-1"
-                    />
-
-                    <div className="flex w-full min-w-0 flex-col items-center gap-2">
-                      <div className="min-h-9 max-w-full text-center text-[13px] font-extrabold leading-[17px] text-foreground line-clamp-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveNotebookId(n.id)
+                        setSearchQuery("")
+                      }}
+                      aria-label={`Abrir libreta ${n.name}`}
+                      className="flex min-h-[232px] w-full flex-1 flex-col items-center gap-3 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    >
+                      <BookCover
+                        title={n.name}
+                        coverImage={n.coverImage}
+                        className="pointer-events-none mt-1"
+                      />
+                      <span className="min-h-9 max-w-full text-center text-[13px] font-extrabold leading-[17px] text-foreground line-clamp-2">
                         {n.name}
-                      </div>
-                      <div className="max-w-full rounded-full border border-border bg-muted/50 px-2.5 py-1 text-[11px] font-extrabold text-muted-foreground">
+                      </span>
+                      <span className="max-w-full rounded-full border border-border bg-muted/50 px-2.5 py-1 text-[11px] font-extrabold text-muted-foreground">
                         Libreta de estudio
-                      </div>
-                      <div className="text-center text-[11px] font-bold text-muted-foreground">
-                        Creada {new Date(n.createdAt).toLocaleDateString()}
-                      </div>
-                    </div>
-                  </div>
+                      </span>
+                      <span className="text-center text-[11px] font-bold text-muted-foreground">
+                        Creada {new Date(n.createdAt).toLocaleDateString("es-MX")}
+                      </span>
+                    </button>
+                  </article>
                 ))}
               </div>
             )}
@@ -1356,7 +1272,7 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
                   <Input 
                     value={configName}
                     onChange={(e) => setConfigName(e.target.value)}
-                    placeholder="Ej. Apuntes de Proverbios, Teología..."
+                    placeholder="Ej. Apuntes de Proverbios, Teología…"
                     className="h-10"
                     autoFocus
                   />
@@ -1389,7 +1305,7 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
                   <Input 
                     value={customCoverUrl}
                     onChange={(e) => setCustomCoverUrl(e.target.value)}
-                    placeholder="https://images.unsplash.com/..."
+                    placeholder="https://images.unsplash.com/…"
                     className="h-10 text-xs"
                   />
                 </div>
@@ -1496,7 +1412,7 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
                 <Input
                   value={newNoteTitle}
                   onChange={(e) => setNewNoteTitle(e.target.value)}
-                  placeholder="Título..."
+                  placeholder="Título…"
                   className="h-8 text-xs w-32 md:w-40"
                   autoFocus
                   onKeyDown={(e) => {
@@ -1528,7 +1444,7 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
           <Input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Buscar apuntes o contenido..."
+            placeholder="Buscar apuntes o contenido…"
             className="h-10 rounded-xl border-border bg-card pl-9 pr-4 text-sm"
           />
         </div>
@@ -1561,7 +1477,7 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
         {notesLoading ? (
           <div className="flex h-32 items-center justify-center text-xs text-muted-foreground gap-2">
             <Loader2 className="size-4 animate-spin text-primary" />
-            <span>Cargando notas de la libreta...</span>
+            <span>Cargando notas de la libreta…</span>
           </div>
         ) : filteredNotes.length === 0 ? (
           <div className="rounded-xl border border-dashed border-border p-8 text-center text-muted-foreground space-y-2">
@@ -1730,7 +1646,7 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
                 <Input 
                   value={configName}
                   onChange={(e) => setConfigName(e.target.value)}
-                  placeholder="Ej. Apuntes de Proverbios, Teología..."
+                  placeholder="Ej. Apuntes de Proverbios, Teología…"
                   className="h-10"
                   autoFocus
                 />
@@ -1764,7 +1680,7 @@ export function NotebookSidebar({ editingNote, setEditingNote, onSessionExpired,
                   <Input 
                     value={customCoverUrl}
                     onChange={(e) => setCustomCoverUrl(e.target.value)}
-                    placeholder="https://images.unsplash.com/..."
+                    placeholder="https://images.unsplash.com/…"
                     className="h-10 text-xs flex-1"
                   />
                   <input

@@ -1,0 +1,50 @@
+{
+  "_nota": "CONTENIDO DE MUESTRA, NO ES UNA EDICIÓN DE REFERENCIA. Sirve para probar el importador, el endpoint y la interfaz de un extremo a otro con datos realistas. Los textos son resúmenes breves en español de ideas conocidas de cada autor, no la traducción literal de sus obras. Antes de publicar, sustitúyelo por una edición real de dominio público (por ejemplo, desde CCEL: https://www.ccel.org/ccel/henry/mhc y https://www.ccel.org/ccel/spurgeon/treasury) manteniendo este mismo formato. Ver docs/comentarios-biblicos.md.",
+  "comentarios": [
+    {
+      "bookId": 1,
+      "chapter": 1,
+      "verseStart": 1,
+      "verseEnd": 2,
+      "author": "Matthew Henry",
+      "languageCode": "es",
+      "contentMd": "## La obra de la creación\n\nLa Escritura no empieza demostrando que Dios existe, sino **dándolo por supuesto**: quien niegue esto no encontrará aquí un argumento, sino una declaración. El primer versículo asienta dos verdades sobre las que descansa todo lo demás: que el mundo tuvo principio y que Dios lo hizo.\n\n> En el principio creó Dios los cielos y la tierra.\n\nAdvierte el orden de la obra: primero la materia informe, después la hermosura y el orden. Así procede Dios también en la obra de la gracia, que comienza en un corazón *sin forma y vacío* y termina en una nueva criatura."
+    },
+    {
+      "bookId": 1,
+      "chapter": 1,
+      "verseStart": 3,
+      "verseEnd": 5,
+      "author": "Matthew Henry",
+      "languageCode": "es",
+      "contentMd": "## La luz del primer día\n\nDios pudo haber hecho la luz con solo quererlo, pero quiso hablar, para enseñarnos el poder de su palabra. **Dijo, y fue hecho**: no hubo demora entre el mandato y la obra, ni resistencia en la criatura.\n\nObserva tres cosas en este pasaje:\n\n- La luz es la primogénita de las obras visibles, y la más parecida a su Autor.\n- Dios *vio que era buena*: aprueba su propia obra antes de que ninguna criatura pueda juzgarla.\n- Separó la luz de las tinieblas, porque no han de mezclarse; tampoco en el alma del creyente."
+    },
+    {
+      "bookId": 19,
+      "chapter": 23,
+      "verseStart": 1,
+      "verseEnd": 1,
+      "author": "Charles Spurgeon",
+      "languageCode": "es",
+      "contentMd": "## «Jehová es mi pastor»\n\nNota bien el pronombre: no dice *un* pastor, ni *el* pastor de Israel, sino **mi pastor**. Hay más dulzura en esa sola palabra que en todo el resto del salmo, porque una posesión pequeña de la que se puede decir «mía» vale más que un tesoro inmenso que pertenece a otro.\n\n> Nada me faltará.\n\nY fíjate en que la segunda frase se sigue necesariamente de la primera. No dice que no deseará nada, sino que **nada le faltará**; el que tiene a Dios por pastor tiene ya, en germen, todo lo que Dios juzgue necesario darle."
+    },
+    {
+      "bookId": 43,
+      "chapter": 3,
+      "verseStart": 16,
+      "verseEnd": 17,
+      "author": "Matthew Henry",
+      "languageCode": "es",
+      "contentMd": "## El amor de Dios manifestado\n\nAquí tenemos el evangelio entero en un versículo. Considera:\n\n1. **La causa**: el amor de Dios, no nuestro mérito. Nos amó siendo aún enemigos.\n2. **El don**: su Hijo unigénito, lo más precioso que el cielo tenía que dar.\n3. **La condición**: creer, que es el acto más sencillo y el más difícil para el orgullo humano.\n4. **El fin**: vida eterna, en lugar de la perdición que merecíamos.\n\nEl versículo siguiente responde a la objeción del temeroso: Cristo no vino a condenar al mundo. La condenación es la obra de la que ya estábamos bajo sentencia; la salvación es la obra que Él trajo."
+    },
+    {
+      "bookId": 43,
+      "chapter": 3,
+      "verseStart": 16,
+      "verseEnd": 16,
+      "author": "Charles Spurgeon",
+      "languageCode": "es",
+      "contentMd": "## «De tal manera amó»\n\nNadie ha medido jamás ese *de tal manera*. Es una palabra que se queda abierta, porque el amor que describe no tiene fondo. Si el texto hubiera dicho cuánto amó Dios al mundo, el consuelo tendría un límite; al no decirlo, se lo deja al alma para que lo explore eternamente y nunca llegue al final.\n\n> Todo aquel que en él cree.\n\n**Todo aquel.** No hay aquí lista de nombres, ni requisito de dignidad. Si eres «todo aquel», el texto habla de ti tanto como del mayor de los santos."
+    }
+  ]
+}

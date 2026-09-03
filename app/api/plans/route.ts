@@ -47,6 +47,8 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "El progreso debe ser un array de días completados." }, { status: 400 })
       }
       await updateReadingPlanProgress(session.userId, planId, progress)
+      const { updateUserStreak } = await import("@/lib/bible")
+      await updateUserStreak(session.userId)
       return NextResponse.json({ success: true, message: "Progreso actualizado correctamente." })
     } else {
       return NextResponse.json({ error: "Acción inválida. Utilice 'join' o 'progress'." }, { status: 400 })

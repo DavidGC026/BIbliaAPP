@@ -31,6 +31,8 @@ La pestaña **Notas** del menú web ahora replica la estructura y el editor de l
 | `components/ui/segment-tabs.tsx` | UI desplazable de pestañas segmentadas compartida por los hubs web |
 | `components/note-rich-editor.tsx` | Editor iframe + vista previa de solo lectura |
 | `lib/note-editor-html.ts` | Plantilla HTML del editor (portada desde `mobile/lib/editorHtml.ts`) |
+| `lib/note-editor-blocks.ts` | Bloques de contenido del editor: versículo, diccionario y tabla (espejo de `mobile/lib/noteEditorBlocks.ts`) |
+| `lib/note-editor-table.ts` | Tablas del editor: HTML, selector de filas/columnas y vista compacta (espejo de `mobile/lib/noteEditorTable.ts`) |
 | `lib/note-editor-theme.ts` | Colores del editor leídos de variables CSS del tema web |
 | `lib/notebook-covers.ts` | `stripNotePreview()`, tags y utilidades de libretas |
 
@@ -209,6 +211,8 @@ Recarga el navegador con **Ctrl+Shift+R** en https://biblia2.dvguzman.com → me
 - La publicación de notas al feed de comunidad se retiró del editor web para igualar la UX móvil (solo Guardar / Borrar).
 - La inserción de referencias cruzadas se retiró de los editores web y mobile por decisión de producto. La consulta de referencias del lector/área de estudio permanece disponible; el contenido que ya estaba insertado en notas no se modifica.
 - La web ahora tiene autoguardado silencioso tras unos segundos sin escribir y solicita el HTML actual del iframe antes del guardado manual.
+- El móvil ya no manda imágenes en base64: cuando inserta una foto sin conexión la deja como Data URI temporalmente, pero la sube y sustituye por su URL de `/uploads/` antes de guardar el contenido, así que `bible_notebook_notes.content` deja de recibir megas de base64 desde la app. La web nunca generó base64 (si la subida falla, avisa y no inserta). Detalle en [`docs-mobile/21-insercion-y-edicion-de-imagenes.md`](../docs-mobile/21-insercion-y-edicion-de-imagenes.md) §16.
+- Los bloques insertados (versículo, diccionario, tabla) viven en `lib/note-editor-blocks.ts`, espejo del módulo móvil. La barra del bloque tiene dos filas: las acciones comunes (↑ ↓ Copiar Cortar Eliminar) y las del tipo; la tabla aporta **+ Fila / − Fila / + Col / − Col**, así que ya se puede cambiar el tamaño de una tabla después de insertarla (hasta 10 × 20, sin dejarla sin filas ni columnas). Las tablas de notas antiguas estrenan esos botones al abrirlas, porque la reparación rehace las barras con formato anterior. Incluye la reparación de bloques que el motor del `contenteditable` rompía al borrar justo encima o debajo (se perdía la barra de botones y el bloque quedaba inservible) y el borrado en dos pasos: la primera pulsación selecciona el bloque, la segunda lo elimina completo. Detalle y pruebas en [`docs-mobile/29-notas-bloques-de-contenido.md`](../docs-mobile/29-notas-bloques-de-contenido.md); verificación con `node scripts/test_note_blocks.cjs`.
 
 ## Regla de documentación para cambios web
 

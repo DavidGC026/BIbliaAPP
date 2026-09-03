@@ -2,7 +2,7 @@
 
 import { memo } from "react"
 import { Button } from "@/components/ui/button"
-import { Copy, FileText, Image as ImageIcon, Share2, Star, X } from "lucide-react"
+import { Copy, FileText, Headphones, Image as ImageIcon, Share2, Star, X } from "lucide-react"
 import type { HighlightColor } from "./verse-text"
 
 const HIGHLIGHT_PALETTE: { color: HighlightColor; className: string; title: string }[] = [
@@ -26,6 +26,9 @@ export interface ReaderToolbarProps {
   onShare: () => void
   onFavorite: () => void
   onOpenImageCreator: () => void
+  /** Solo con un único versículo seleccionado: crear/ver su nota. */
+  onAddNote?: () => void
+  onListen?: () => void
   onClearSelection: () => void
   onLoginRequest: () => void
 }
@@ -45,6 +48,8 @@ export const ReaderToolbar = memo(function ReaderToolbar({
   onShare,
   onFavorite,
   onOpenImageCreator,
+  onAddNote,
+  onListen,
   onClearSelection,
   onLoginRequest,
 }: ReaderToolbarProps) {
@@ -140,6 +145,18 @@ export const ReaderToolbar = memo(function ReaderToolbar({
               <Copy className="size-3.5" />
               <span className="hidden sm:inline">Copiar</span>
             </Button>
+            {onListen && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onListen}
+                className="h-8 rounded-full text-primary hover:text-primary hover:bg-primary/10 border-primary/20 text-xs font-semibold px-2 sm:px-3 gap-1 shadow-sm cursor-pointer"
+                title="Escuchar versículos seleccionados"
+              >
+                <Headphones className="size-3.5" />
+                <span className="hidden sm:inline">Escuchar</span>
+              </Button>
+            )}
             <Button
               variant="outline"
               size="sm"
@@ -149,6 +166,18 @@ export const ReaderToolbar = memo(function ReaderToolbar({
               <Star className="size-3.5 fill-amber-500/20" />
               <span className="hidden sm:inline">Favorito</span>
             </Button>
+            {onAddNote && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onAddNote}
+                title="Crear o ver la nota de este versículo"
+                className="h-8 rounded-full text-emerald-600 hover:text-emerald-600 hover:bg-emerald-500/10 border-emerald-500/30 text-xs font-semibold px-2 sm:px-3 gap-1 shadow-sm cursor-pointer"
+              >
+                <FileText className="size-3.5" />
+                <span className="hidden sm:inline">Nota</span>
+              </Button>
+            )}
           </div>
         </>
       )}

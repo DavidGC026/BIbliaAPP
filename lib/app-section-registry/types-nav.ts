@@ -1,9 +1,9 @@
-import type { LucideIcon } from "lucide-react"
+import type { AppIconComponent } from "@/components/ui/app-icon"
 
 export interface AppNavItem {
   id: string
   label: string
-  icon: LucideIcon
+  icon: AppIconComponent
   groupId: string
   groupLabel: string
 }
