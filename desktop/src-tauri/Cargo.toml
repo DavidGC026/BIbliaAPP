@@ -1,7 +1,8 @@
 [package]
 name = "bibliaapp-desktop"
-version = "0.3.4"
+version = "0.3.5"
 description = "BibliaAPP — cliente de escritorio"
+
 authors = ["BibliaAPP"]
 edition = "2021"
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Genera bibliaapp-desktop-0.3.4-1-x86_64.pkg.tar.zst para pacman -U
+# Genera bibliaapp-desktop-0.3.5-1-x86_64.pkg.tar.zst para pacman -U
 # Requiere: cd desktop && npm run icons && npm run build:arch
 
 set -euo pipefail
@@ -7,8 +7,9 @@ ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 OUTDIR="$(cd "$(dirname "$0")" && pwd)"
 PKGDIR=$(mktemp -d)
 BUILD_DATE=$(date +%s)
-PKGVER=0.3.4
+PKGVER=0.3.5
 PKGREL=1
+
 
 BIN="$ROOT/src-tauri/target/release/bibliaapp-desktop"
 ICON_SRC="$ROOT/app-icon.png"
