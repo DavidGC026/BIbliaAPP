@@ -996,6 +996,20 @@ select option {
   text-align: left;
 }
 
+.reader-paragraphs .interlinear-panel,
+.reader-paragraphs .verse-commentary {
+  display: block;
+  width: 100%;
+}
+
+.interlinear-original {
+  font-family: var(--font-serif);
+}
+
+.interlinear-original[lang="he"] {
+  font-family: "Noto Serif Hebrew", "Times New Roman", serif;
+}
+
 /* Animación y seguimiento de lectura en voz alta */
 @keyframes speaking-pulse {
   0%, 100% {

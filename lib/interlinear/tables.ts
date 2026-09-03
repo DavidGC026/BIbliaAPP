@@ -1,4 +1,4 @@
-import type { ResultSetHeader } from "mysql2"
+import type { ResultSetHeader, RowDataPacket } from "mysql2"
 
 import { getPool } from "../mysql"
 import { runOnce } from "../once-async"
@@ -62,6 +62,13 @@ async function _ensureInterlinearTables(): Promise<void> {
       PRIMARY KEY (strong_code)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   `)
+
+  const [countRows] = await pool.query<RowDataPacket[]>(
+    `SELECT COUNT(*) AS n FROM bible_interlinear`,
+  )
+  if (Number(countRows[0]?.n ?? 0) > 0) {
+    await pool.query(`UPDATE bible_bibles SET fuertes = 1 WHERE fuertes IS NULL OR fuertes = 0`)
+  }
 }
 
 const INSERT_SQL = `

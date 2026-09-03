@@ -10,6 +10,8 @@ export interface ReaderSettingsProps {
   preferences: ReaderPreferences;
   onChange: (next: ReaderPreferences) => void;
   className?: string;
+  /** bible_bibles.fuertes: si es falso no se ofrece el interruptor. */
+  interlinearAvailable?: boolean;
 }
 
 const THEME_OPTIONS: Array<{ key: ReaderTheme; label: string }> = [
@@ -24,6 +26,7 @@ export function ReaderSettings({
   preferences,
   onChange,
   className = "",
+  interlinearAvailable = false,
 }: ReaderSettingsProps) {
   const update = (partial: Partial<ReaderPreferences>) => {
     onChange({ ...preferences, ...partial });
@@ -192,6 +195,19 @@ export function ReaderSettings({
             Comentarios clásicos
           </span>
         </label>
+        {interlinearAvailable && (
+          <label className="flex items-center gap-2 cursor-pointer py-1">
+            <input
+              type="checkbox"
+              checked={preferences.showInterlinear}
+              onChange={(e) => update({ showInterlinear: e.target.checked })}
+              className="size-4 rounded border-border text-primary focus:ring-primary"
+            />
+            <span className="text-xs font-medium text-foreground">
+              Interlineal
+            </span>
+          </label>
+        )}
       </div>
 
       {/* 7. Reset */}

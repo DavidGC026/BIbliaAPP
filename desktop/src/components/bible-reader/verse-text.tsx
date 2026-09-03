@@ -1,7 +1,12 @@
 import { memo } from "react";
 import { Icon } from "@/components/ui/Icon";
 import type { ReaderLayout } from "@/lib/preferences";
-import type { Verse, VerseCommentaryEntry } from "@/lib/types";
+import type {
+  InterlinearWordView,
+  Verse,
+  VerseCommentaryEntry,
+} from "@/lib/types";
+import { InterlinearPanel } from "./interlinear-panel";
 import { VerseCommentary } from "./verse-commentary";
 
 export interface VerseTextProps {
@@ -21,6 +26,7 @@ export interface VerseTextProps {
   isSpeaking?: boolean;
   canAnnotate?: boolean;
   commentaries?: VerseCommentaryEntry[];
+  interlinearWords?: InterlinearWordView[];
   onToggleSelect: (verseNumber: number, isShiftKey: boolean) => void;
   onSetCurrent: (verseNumber: number) => void;
   onNote: (verseNumber: number) => void;
@@ -58,6 +64,7 @@ export const VerseText = memo(function VerseText({
   isSpeaking,
   canAnnotate: _canAnnotate,
   commentaries,
+  interlinearWords,
 
   onToggleSelect,
   onSetCurrent,
@@ -145,6 +152,18 @@ export const VerseText = memo(function VerseText({
         {/* Espacio real de separación entre versículos para saltos de línea naturales */}
         <span className="select-none"> </span>
 
+        {interlinearWords && interlinearWords.length > 0 && (
+          <div className="my-2 block clear-both">
+            <InterlinearPanel
+              words={interlinearWords}
+              fontSize={fontSize}
+              mutedColor={mutedColor}
+              accentColor={accentColor}
+              borderColor={borderColor}
+            />
+          </div>
+        )}
+
         {/* Comentarios bíblicos rompen el inline como bloque propio */}
         {commentaries && commentaries.length > 0 && (
           <div className="my-2 block clear-both">
@@ -230,6 +249,18 @@ export const VerseText = memo(function VerseText({
           </div>
         </div>
       </button>
+
+      {interlinearWords && interlinearWords.length > 0 && (
+        <div className="px-3 pb-2">
+          <InterlinearPanel
+            words={interlinearWords}
+            fontSize={fontSize}
+            mutedColor={mutedColor}
+            accentColor={accentColor}
+            borderColor={borderColor}
+          />
+        </div>
+      )}
 
       {/* Comentarios bíblicos debajo del versículo */}
       {commentaries && commentaries.length > 0 && (

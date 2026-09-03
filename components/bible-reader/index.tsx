@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils"
 import { insertHtmlIntoNoteContent } from "@/lib/note-content"
 import { VerseText, type HighlightColor } from "./verse-text"
 import type { VerseCommentaryEntry as ChapterCommentary } from "./verse-commentary"
+import type { InterlinearWordView } from "@/lib/interlinear/types"
 import { ReaderToolbar } from "./reader-toolbar"
 import { ReaderSettings } from "./reader-settings"
 import { BibleAudioPlayer } from "./audio-player"
@@ -391,6 +392,26 @@ export function BibleReader({
     }
     return map
   }, [commentariesData])
+
+  const interlinearEnabled = Boolean(currentBible?.hasInterlinear) && readerPreferences.showInterlinear
+  const interlinearKey =
+    interlinearEnabled && bookId
+      ? `/api/interlinear?book=${bookId}&chapter=${chapter}`
+      : null
+  const { data: interlinearData } = useSWR<{ words: InterlinearWordView[] }>(
+    interlinearKey,
+    fetcher,
+    { revalidateOnFocus: false },
+  )
+  const interlinearByVerse = useMemo(() => {
+    const map = new Map<number, InterlinearWordView[]>()
+    for (const word of interlinearData?.words ?? []) {
+      const existing = map.get(word.verse)
+      if (existing) existing.push(word)
+      else map.set(word.verse, [word])
+    }
+    return map
+  }, [interlinearData])
 
   const highlightsKey = !isGuest && bookId && bibleId ? `/api/highlights?book=${bookId}&chapter=${chapter}&bibleId=${bibleId}` : null
   const { data: highlightsData, mutate: mutateHighlights } = useSWR<{ highlights: { verse: number; color: string }[] }>(
@@ -866,6 +887,7 @@ export function BibleReader({
               <ReaderSettings
                 preferences={readerPreferences}
                 onChange={updateReaderPreferences}
+                interlinearAvailable={Boolean(currentBible?.hasInterlinear)}
                 className={mobileMenuTab === "settings" ? "flex md:hidden" : "hidden"}
               />
 
@@ -919,6 +941,7 @@ export function BibleReader({
                 <ReaderSettings
                   preferences={readerPreferences}
                   onChange={updateReaderPreferences}
+                  interlinearAvailable={Boolean(currentBible?.hasInterlinear)}
                   className="hidden md:flex"
                 />
               </div>
@@ -1004,6 +1027,7 @@ export function BibleReader({
               isCreatingNote={creating === Number(v.verse)}
               showInsertButton={editingNotebookNote !== null}
               commentaries={commentariesByVerse.get(Number(v.verse))}
+              interlinearWords={interlinearByVerse.get(Number(v.verse))}
               borderColor={readerPalette?.border}
               onToggleSelect={toggleVerseSelection}
               onSetCurrent={setCurrentVerseStable}

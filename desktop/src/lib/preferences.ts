@@ -12,6 +12,7 @@ export type ReaderPreferences = {
   theme: ReaderTheme;
   layout: ReaderLayout;
   showCommentaries: boolean;
+  showInterlinear: boolean;
 };
 
 export type ReaderPalette = {
@@ -172,6 +173,7 @@ export const DEFAULT_READER_PREFERENCES: ReaderPreferences = {
   theme: "auto",
   layout: "verses",
   showCommentaries: false,
+  showInterlinear: false,
 };
 
 const KEYS = {
@@ -203,6 +205,7 @@ export function getReaderPreferences(): ReaderPreferences {
       : "auto",
     layout: value.layout === "paragraphs" ? "paragraphs" : "verses",
     showCommentaries: value.showCommentaries === true,
+    showInterlinear: value.showInterlinear === true,
   };
 }
 

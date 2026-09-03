@@ -38,6 +38,7 @@ import type {
   FeedAnnouncement,
   HighlightItem,
   VerseCommentaryEntry,
+  InterlinearWordView,
   TtsVoice,
   ReportItem,
   ReportTargetType,
@@ -759,6 +760,21 @@ export async function getCommentaryAuthors(lang = "es") {
   return request<{
     authors: Array<{ author: string; count: number }>;
   }>(`/api/commentaries?list&lang=${encodeURIComponent(lang)}`);
+}
+
+export async function getInterlinear(params: {
+  book: number;
+  chapter: number;
+  verse?: number;
+}) {
+  const query = new URLSearchParams({
+    book: String(params.book),
+    chapter: String(params.chapter),
+  });
+  if (params.verse != null) query.set("verse", String(params.verse));
+  return request<{ words: InterlinearWordView[] }>(
+    `/api/interlinear?${query.toString()}`,
+  );
 }
 
 // — Lector de audio TTS (Kokoro / Gateway) —

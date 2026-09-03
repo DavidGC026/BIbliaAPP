@@ -1101,6 +1101,34 @@
   line-height: 0.82;
 }
 
+/* Modo párrafos: el ol y sus li fluyen; los paneles de estudio se salen a bloque. */
+.reader-paragraphs {
+  display: block;
+}
+
+.reader-paragraphs > li {
+  display: inline;
+}
+
+.reader-paragraphs > li > button {
+  display: inline;
+  text-align: left;
+}
+
+.reader-paragraphs .interlinear-panel,
+.reader-paragraphs .verse-commentary {
+  display: block;
+  width: 100%;
+}
+
+.interlinear-original {
+  font-family: var(--font-source-serif), var(--font-serif), serif;
+}
+
+.interlinear-original[lang="he"] {
+  font-family: var(--font-hebrew), "Times New Roman", serif;
+}
+
 @layer utilities {
   @media (max-width: 767px) {
     html,

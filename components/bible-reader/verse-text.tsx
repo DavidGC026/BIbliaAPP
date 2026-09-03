@@ -6,6 +6,8 @@ import { cn } from "@/lib/utils"
 import type { Verse } from "@/lib/types"
 import type { ReaderLayout } from "@/lib/reader-preferences"
 import { VerseCommentary, type VerseCommentaryEntry } from "./verse-commentary"
+import { InterlinearPanel } from "./interlinear-panel"
+import type { InterlinearWordView } from "@/lib/interlinear/types"
 
 export type HighlightColor = "yellow" | "green" | "blue" | "orange" | "pink"
 
@@ -51,6 +53,8 @@ export interface VerseTextProps {
    * Sin comentarios (o con la opción desactivada) no se pinta nada.
    */
   commentaries?: VerseCommentaryEntry[]
+  /** Palabras del interlineal de este versículo (capítulo ya cargado). */
+  interlinearWords?: InterlinearWordView[]
   /** Color de borde del tema del lector, para el separador del comentario. */
   borderColor?: string
   onToggleSelect: (verseNum: number, shiftKey: boolean) => void
@@ -86,6 +90,7 @@ export const VerseText = memo(function VerseText({
   isCreatingNote,
   showInsertButton,
   commentaries,
+  interlinearWords,
   borderColor,
   onToggleSelect,
   onSetCurrent,
@@ -135,6 +140,20 @@ export const VerseText = memo(function VerseText({
       borderColor={borderColor}
     />
   ) : null
+  const extrasNode = (
+    <>
+      {interlinearWords && interlinearWords.length > 0 ? (
+        <InterlinearPanel
+          words={interlinearWords}
+          fontSize={fontSize}
+          mutedColor={mutedColor}
+          accentColor={accentColor}
+          borderColor={borderColor}
+        />
+      ) : null}
+      {commentaryNode}
+    </>
+  )
 
   if (layout === "paragraphs") {
     return (
@@ -182,7 +201,7 @@ export const VerseText = memo(function VerseText({
           )}
         </button>
         {" "}
-        {commentaryNode}
+        {extrasNode}
       </li>
     )
   }
@@ -270,7 +289,7 @@ export const VerseText = memo(function VerseText({
         </div>
       </div>
 
-      {commentaryNode}
+      {extrasNode}
     </li>
   )
 })

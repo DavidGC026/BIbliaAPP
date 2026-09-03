@@ -4,6 +4,7 @@ import * as React from "react"
 import { useState } from "react"
 import useSWR from "swr"
 import { fetcher } from "@/lib/fetcher"
+import { parseStrongDefinition } from "@/lib/strong-definition"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import {
@@ -68,28 +69,6 @@ function getInitialStrongCode(): string {
   return /^[gh]\d+$/i.test(code) ? code.toUpperCase() : ""
 }
 
-/**
- * Separa la definición cruda ("Strong: ...\n\nKJV: ...\n\nDerivation: ...")
- * en secciones etiquetadas para mostrarlas de forma estructurada.
- */
-function parseDefinition(definition: string): { label: string; text: string }[] {
-  if (!definition) return []
-  const labelMap: Record<string, string> = {
-    Strong: "Definición",
-    KJV: "Traducciones (KJV)",
-    Derivation: "Derivación",
-  }
-  const sections: { label: string; text: string }[] = []
-  for (const block of definition.split(/\n\n+/)) {
-    const match = block.match(/^(Strong|KJV|Derivation):\s*([\s\S]*)$/)
-    if (match) {
-      sections.push({ label: labelMap[match[1]] ?? match[1], text: match[2].trim() })
-    } else if (block.trim()) {
-      sections.push({ label: "", text: block.trim() })
-    }
-  }
-  return sections
-}
 
 /** Convierte códigos Strong (G25, H031) dentro de un texto en enlaces clicables. */
 function LinkifiedText({ text, onCodeClick }: { text: string; onCodeClick: (code: string) => void }) {
@@ -281,7 +260,7 @@ export function StrongDictionary() {
               {entries.map((entry) => {
                 const isOpen = expanded === entry.strongCode
                 const isGreek = entry.strongCode.startsWith("G")
-                const sections = parseDefinition(entry.definition)
+                const sections = parseStrongDefinition(entry.definition)
                 return (
                   <div
                     key={entry.strongCode}

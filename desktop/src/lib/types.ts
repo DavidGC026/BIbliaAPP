@@ -44,6 +44,8 @@ export interface BibleVersion {
   canCreateImages?: boolean;
   canUseAudio?: boolean;
   cacheMaxAgeDays?: number | null;
+  /** bible_bibles.fuertes: esta versión ofrece el panel interlineal. */
+  hasInterlinear?: boolean;
 }
 
 export interface ReadingPlan {
@@ -350,6 +352,25 @@ export interface VerseCommentaryEntry {
   author: string;
   languageCode?: string;
   contentMd: string;
+}
+
+export type InterlinearLanguage = "grc" | "heb" | "arc";
+
+/** Palabra lista para el panel del lector (misma forma que /api/interlinear). */
+export interface InterlinearWordView {
+  bookId: number;
+  chapter: number;
+  verse: number;
+  position: number;
+  original: string;
+  transliteration: string | null;
+  strongCode: string | null;
+  morph: string | null;
+  lemma: string | null;
+  glossEs: string | null;
+  glossEn: string | null;
+  language: InterlinearLanguage;
+  definition: string | null;
 }
 
 export interface TtsVoice {

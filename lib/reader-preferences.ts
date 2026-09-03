@@ -19,6 +19,11 @@ export type ReaderPreferences = {
    * estudio lo enciende. Apagado, el capítulo ni siquiera los pide al servidor.
    */
   showCommentaries: boolean
+  /**
+   * Panel interlineal bajo el versículo. Desactivado por defecto, igual que
+   * los comentarios: solo se pide al servidor cuando alguien lo enciende.
+   */
+  showInterlinear: boolean
 }
 
 export type ReaderPalette = {
@@ -52,6 +57,7 @@ export const DEFAULT_READER_PREFERENCES: ReaderPreferences = {
   theme: "auto",
   layout: "verses",
   showCommentaries: false,
+  showInterlinear: false,
 }
 
 function clampFontSize(value: unknown): number {
@@ -70,6 +76,7 @@ export function sanitizeReaderPreferences(value: unknown): ReaderPreferences {
       : "auto",
     layout: source.layout === "paragraphs" ? "paragraphs" : "verses",
     showCommentaries: source.showCommentaries === true,
+    showInterlinear: source.showInterlinear === true,
   }
 }
 

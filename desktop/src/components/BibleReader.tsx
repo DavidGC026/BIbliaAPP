@@ -18,6 +18,7 @@ import type {
   BibleTarget,
   BibleVersion,
   Book,
+  InterlinearWordView,
   Verse,
   VerseCommentaryEntry,
   VerseHighlight,
@@ -53,6 +54,7 @@ export function BibleReader({ target }: Props) {
   const [highlights, setHighlights] = useState<VerseHighlight[]>([]);
   const [noteLinks, setNoteLinks] = useState<VerseNoteLink[]>([]);
   const [commentaries, setCommentaries] = useState<VerseCommentaryEntry[]>([]);
+  const [interlinearWords, setInterlinearWords] = useState<InterlinearWordView[]>([]);
 
   const [loading, setLoading] = useState(true);
   const [loadingChapter, setLoadingChapter] = useState(false);
@@ -136,6 +138,17 @@ export function BibleReader({ target }: Props) {
     }
     return map;
   }, [commentaries, preferences.showCommentaries]);
+
+  const interlinearByVerse = useMemo(() => {
+    const map = new Map<number, InterlinearWordView[]>();
+    if (!preferences.showInterlinear || interlinearWords.length === 0) return map;
+    for (const word of interlinearWords) {
+      const list = map.get(word.verse) ?? [];
+      list.push(word);
+      map.set(word.verse, list);
+    }
+    return map;
+  }, [interlinearWords, preferences.showInterlinear]);
 
   const readerPalette = useMemo(
     () => getReaderPalette(preferences.theme),
@@ -291,6 +304,34 @@ export function BibleReader({ target }: Props) {
       loadChapter();
     }
   }, [bookId, chapter, bibleId, preferences.showCommentaries, loadChapter, loading]);
+
+  useEffect(() => {
+    if (
+      bookId == null ||
+      !preferences.showInterlinear ||
+      !currentBible?.hasInterlinear
+    ) {
+      setInterlinearWords([]);
+      return;
+    }
+    let mounted = true;
+    api
+      .getInterlinear({ book: bookId, chapter })
+      .then((res) => {
+        if (mounted) setInterlinearWords(res.words || []);
+      })
+      .catch(() => {
+        if (mounted) setInterlinearWords([]);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, [
+    bookId,
+    chapter,
+    preferences.showInterlinear,
+    currentBible?.hasInterlinear,
+  ]);
 
   // Carga de versículos paralelos cuando el modo paralelo está activo
   useEffect(() => {
@@ -624,6 +665,7 @@ export function BibleReader({ target }: Props) {
             <ReaderSettings
               preferences={preferences}
               onChange={updatePreferences}
+              interlinearAvailable={Boolean(currentBible?.hasInterlinear)}
             />
           </div>
         )}
@@ -801,6 +843,7 @@ export function BibleReader({ target }: Props) {
                       isSpeaking={speakingVerseNumber === vNum}
                       canAnnotate={canAnnotate}
                       commentaries={commentariesByVerse.get(vNum)}
+                      interlinearWords={interlinearByVerse.get(vNum)}
                       onToggleSelect={toggleVerseSelection}
                       onSetCurrent={setCurrentVerse}
                       onNote={() => {

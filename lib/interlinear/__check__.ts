@@ -311,7 +311,7 @@ async function checkSchema() {
 
   const [flags] = await pool.query(`SELECT COUNT(*) AS n FROM bible_bibles WHERE fuertes = 1`)
   const enabled = Number((flags as Array<{ n: number }>)[0]?.n ?? 0)
-  assert("ninguna biblia tiene fuertes=1 todavía", enabled === 0, String(enabled))
+  assert("fuertes=1 en las biblias con datos cargados", enabled >= 1, String(enabled))
 }
 
 function checkTagntParser() {

@@ -57,7 +57,7 @@ export const VerseCommentary = memo(function VerseCommentary({
 
   return (
     <div
-      className="mt-1 border-t border-dashed border-border/70 pt-1.5"
+      className="verse-commentary mt-1 border-t border-dashed border-border/70 pt-1.5"
       style={borderColor ? { borderColor } : undefined}
     >
       <button

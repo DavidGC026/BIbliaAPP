@@ -13,6 +13,8 @@ type ReaderSettingsProps = {
   preferences: ReaderPreferences
   onChange: (patch: Partial<ReaderPreferences>) => void
   className?: string
+  /** bible_bibles.fuertes: si es falso no se ofrece el interruptor. */
+  interlinearAvailable?: boolean
 }
 
 const toggleClass = (active: boolean) =>
@@ -23,7 +25,7 @@ const toggleClass = (active: boolean) =>
       : "border-border bg-background text-muted-foreground hover:text-foreground",
   )
 
-export function ReaderSettings({ preferences, onChange, className }: ReaderSettingsProps) {
+export function ReaderSettings({ preferences, onChange, className, interlinearAvailable = false }: ReaderSettingsProps) {
   return (
     <div className={cn("flex w-full flex-wrap items-end gap-x-5 gap-y-4 rounded-xl border border-border/70 bg-muted/10 p-4", className)}>
       <fieldset className="min-w-[148px]">
@@ -83,6 +85,18 @@ export function ReaderSettings({ preferences, onChange, className }: ReaderSetti
         >
           Comentarios
         </button>
+        {interlinearAvailable && (
+          <button
+            type="button"
+            role="switch"
+            aria-checked={preferences.showInterlinear}
+            onClick={() => onChange({ showInterlinear: !preferences.showInterlinear })}
+            title="Muestra el texto original (griego o hebreo) bajo cada versículo que lo tenga"
+            className={cn(toggleClass(preferences.showInterlinear), "mt-2 w-full")}
+          >
+            Interlineal
+          </button>
+        )}
       </fieldset>
     </div>
   )

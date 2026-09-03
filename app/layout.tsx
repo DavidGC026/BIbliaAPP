@@ -1,6 +1,6 @@
 import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
-import { Geist, Geist_Mono, Source_Serif_4 } from 'next/font/google'
+import { Geist, Geist_Mono, Source_Serif_4, Noto_Serif_Hebrew } from 'next/font/google'
 import { ThemeProvider } from '@/components/theme-provider'
 import './globals.css'
 
@@ -11,9 +11,13 @@ const geistMono = Geist_Mono({
 })
 const sourceSerif = Source_Serif_4({
   variable: '--font-source-serif',
-  subsets: ['latin'],
-  // Eje óptico: la serif ajusta sola su dibujo al tamaño (texto vs. display)
+  subsets: ['latin', 'greek'],
   axes: ['opsz'],
+})
+const notoHebrew = Noto_Serif_Hebrew({
+  variable: '--font-hebrew',
+  subsets: ['hebrew'],
+  weight: ['400', '600'],
 })
 
 export const metadata: Metadata = {
@@ -49,7 +53,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="es" className={`${geistSans.variable} ${geistMono.variable} ${sourceSerif.variable} bg-background`} suppressHydrationWarning>
+    <html lang="es" className={`${geistSans.variable} ${geistMono.variable} ${sourceSerif.variable} ${notoHebrew.variable} bg-background`} suppressHydrationWarning>
       <body className="font-sans antialiased">
         <ThemeProvider
           attribute="class"

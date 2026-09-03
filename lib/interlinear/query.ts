@@ -2,22 +2,9 @@ import type { RowDataPacket } from "mysql2/promise"
 
 import { getPool } from "../mysql"
 import { ensureInterlinearTables } from "./tables"
+import type { InterlinearWordView } from "./types"
 
-export interface InterlinearWordView {
-  bookId: number
-  chapter: number
-  verse: number
-  position: number
-  original: string
-  transliteration: string | null
-  strongCode: string | null
-  morph: string | null
-  lemma: string | null
-  glossEs: string | null
-  glossEn: string | null
-  language: "grc" | "heb" | "arc"
-  definition: string | null
-}
+export type { InterlinearWordView, InterlinearLanguage } from "./types"
 
 export interface InterlinearCoverageBook {
   bookId: number

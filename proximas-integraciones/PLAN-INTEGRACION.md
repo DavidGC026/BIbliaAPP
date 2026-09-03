@@ -6,7 +6,7 @@ interlineal en el lector, con criterios de aceptación medibles en cada paso.
 
 **Fecha de redacción:** 2026-09-01
 **Rama de referencia:** `fix/notas-bloques-contenido`
-**Estado global:** `EN CURSO` (Fase 4 cerrada)
+**Estado global:** `EN CURSO` (Fase 5 cerrada; Desktop incluido)
 
 ---
 
@@ -336,25 +336,26 @@ Columnas verificadas sobre `Mat.1.1#04`:
 
 ## 8. Fase 5 — Interfaz del lector
 
-- [ ] **5.1** Crear `components/bible-reader/interlinear-panel.tsx`.
-
-Reutilizar el patrón de `components/bible-reader/verse-commentary.tsx`, que ya
-resuelve este problema: bloque plegado por defecto bajo el versículo, que solo
-procesa y pinta su contenido al abrirse. El comentario de ese fichero lo explica
-bien — el lector es para leer la Biblia, y un panel abierto en cada versículo
-entierra el texto.
-
-- [ ] **5.2** Cada palabra es pulsable → abre la ficha Strong. Reaprovechar
-      `components/strong-dictionary.tsx`, que ya sabe pintar una entrada.
-- [ ] **5.3** Fuentes: el hebreo necesita tipografía con diacríticos correctos.
-      La carpeta `bdb-hebrew-lexicon-eliranwong/` incluye `sileot.ttf` y
-      `sileotsr.ttf` (SIL Ezra, licencia OFL) por si las del sistema fallan.
-- [ ] **5.4** Dirección del texto: el hebreo es RTL. Verificar que no rompe el
-      layout del lector ni el modo párrafos.
-- [ ] **5.5** No tocar `verse-text.tsx` para hacer clicables las palabras del
-      texto español: no hay alineación posible (ver §1). El interlineal es un
-      panel aparte.
-- [ ] **5.6** Activar el botón solo cuando `bible_bibles.fuertes = 1`.
+- [x] **5.1** `components/bible-reader/interlinear-panel.tsx`, plegado por
+      defecto. Opción **Interlineal** en Lectura (apagada de inicio).
+- [x] **5.2** Cada palabra abre la ficha Strong en el propio panel (definición
+      ya viene en la API). `parseStrongDefinition` extraído a
+      `lib/strong-definition.ts`.
+- [x] **5.3** Griego: Source Serif 4 con subset `greek`. Hebreo: `Noto Serif Hebrew`
+      (`--font-hebrew`). No se copió `sileot.ttf` (carpeta gitignored / `public/`
+      ignorado); Noto cubre diacríticos.
+- [x] **5.4** `dir=rtl` + `flex-row-reverse` si `heb`/`arc`. En modo párrafos el
+      panel es `display:block` (también se añadió `.reader-paragraphs` que faltaba
+      en la web).
+- [x] **5.5** `verse-text.tsx` no hace clicables las palabras españolas.
+- [x] **5.6** El interruptor solo aparece si `hasInterlinear` (`fuertes=1`).
+      Al haber datos NT, `ensureInterlinearTables` pone `fuertes=1` en las 6
+      biblias. En Génesis el panel no pinta nada (sin palabras).
+- [x] **5.7** Mismo panel en Desktop (`desktop/src/components/bible-reader/interlinear-panel.tsx`).
+      Toggle en Lectura, `hasInterlinear` desde `/api/bibles`, fuentes Noto Hebrew
+      + Source Serif 4. Verificado en la web 2026-09-03 (Juan 1 expandido + ficha
+      G3056; Génesis 1 sin paneles; modo párrafos `display:block`). Desktop
+      typecheck OK; no se abrió la ventana Tauri en esta sesión.
 
 ---
 
@@ -461,7 +462,7 @@ Columnas verificadas sobre `Gen.1.1#01` — **ojo, no son las mismas que TAGNT**
 | 2 | Esquema de base de datos | `cerrada` | 2026-09-03 |
 | 3 | Importador NT (TAGNT) | `cerrada` | 2026-09-03 |
 | 4 | API | `cerrada` | 2026-09-03 |
-| 5 | Interfaz del lector | `pendiente` | — |
+| 5 | Interfaz del lector | `cerrada` | 2026-09-03 |
 | 6 | Importador AT (TAHOT) | `pendiente` | — |
 | 7 | Cierres (offline, licencias) | `pendiente` | — |
 
@@ -478,6 +479,8 @@ Una entrada por sesión de trabajo. Añadir al final, sin borrar lo anterior.
 | 2026-09-03 | Brothers / agente | Fase 2 | `scripts/004_interlinear.sql` + `ensureInterlinearTables`. Tablas creadas vacías. `hasInterlinear` desde `fuertes`. | `strong_raw` VARCHAR(80). `fuertes` sigue en 0. |
 | 2026-09-03 | Brothers / agente | Fase 3 | Parser TAGNT + importador. Carga real: 141.746 palabras / 7.949 versos / 99,56 % Strong / 0 glosas vacías. | No se filtran K/O: cada una tiene su `position`. `fuertes` sigue en 0. |
 | 2026-09-03 | Brothers / agente | Fase 4 | `/api/interlinear` + coverage. Mt 1: 194 KB. Sin paginar. | Sal 119 sin datos hasta Fase 6 (~465 KB estimados). |
+| 2026-09-03 | Brothers / agente | Fase 5 | Panel plegado, toggle Lectura, `fuertes=1`, fuentes griego/hebreo. | Desktop aún sin panel. Hebreo RTL listo; no hay datos AT. |
+| 2026-09-03 | Brothers / agente | Fase 5.7 | Verificación web (Juan 1 / Génesis / párrafos / Strong) y panel Desktop. | Desktop no se ejecutó en Tauri; `tsc` limpio. AT sigue sin datos. |
 
 ---
 
