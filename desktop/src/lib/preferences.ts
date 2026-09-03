@@ -3,13 +3,67 @@ import type { IconName } from "@/components/ui/Icon";
 export type ReaderDensity = "relaxed" | "compact";
 export type ReaderAlign = "left" | "justify";
 export type ReaderTheme = "auto" | "light" | "sepia" | "night" | "contrast";
+export type ReaderLayout = "verses" | "paragraphs";
 
 export type ReaderPreferences = {
   fontSize: number;
   density: ReaderDensity;
   align: ReaderAlign;
   theme: ReaderTheme;
+  layout: ReaderLayout;
+  showCommentaries: boolean;
 };
+
+export type ReaderPalette = {
+  background: string;
+  text: string;
+  muted: string;
+  border: string;
+  accent: string;
+  accentSoft: string;
+};
+
+export const READER_THEME_PALETTES: Record<
+  Exclude<ReaderTheme, "auto">,
+  ReaderPalette
+> = {
+  light: {
+    background: "#FFFFFF",
+    text: "#1F2937",
+    muted: "#6B7280",
+    border: "#E5E7EB",
+    accent: "#92700C",
+    accentSoft: "#FEF3C7",
+  },
+  sepia: {
+    background: "#F5ECD9",
+    text: "#433422",
+    muted: "#8A7256",
+    border: "#DCCBA4",
+    accent: "#8A5A2B",
+    accentSoft: "#EAD7B3",
+  },
+  night: {
+    background: "#0B1220",
+    text: "#E5E7EB",
+    muted: "#94A3B8",
+    border: "#1E293B",
+    accent: "#E8B84A",
+    accentSoft: "#332A11",
+  },
+  contrast: {
+    background: "#000000",
+    text: "#FFFFFF",
+    muted: "#D1D5DB",
+    border: "#4B5563",
+    accent: "#FFD866",
+    accentSoft: "#2B2200",
+  },
+};
+
+export function getReaderPalette(theme: ReaderTheme): ReaderPalette | null {
+  return theme === "auto" ? null : READER_THEME_PALETTES[theme];
+}
 
 export type LastPassage = {
   bibleId: number;
@@ -112,10 +166,12 @@ export const DEFAULT_HOME_ACTIONS: HomeActionKey[] = [
 ];
 
 export const DEFAULT_READER_PREFERENCES: ReaderPreferences = {
-  fontSize: 19,
+  fontSize: 18,
   density: "relaxed",
   align: "left",
   theme: "auto",
+  layout: "verses",
+  showCommentaries: false,
 };
 
 const KEYS = {
@@ -139,12 +195,14 @@ function readJson<T>(key: string, fallback: T): T {
 export function getReaderPreferences(): ReaderPreferences {
   const value = readJson<Partial<ReaderPreferences>>(KEYS.reader, {});
   return {
-    fontSize: Math.min(24, Math.max(16, Number(value.fontSize) || 19)),
+    fontSize: Math.min(28, Math.max(14, Number(value.fontSize) || 18)),
     density: value.density === "compact" ? "compact" : "relaxed",
     align: value.align === "justify" ? "justify" : "left",
     theme: ["light", "sepia", "night", "contrast"].includes(value.theme ?? "")
       ? (value.theme as ReaderTheme)
       : "auto",
+    layout: value.layout === "paragraphs" ? "paragraphs" : "verses",
+    showCommentaries: value.showCommentaries === true,
   };
 }
 

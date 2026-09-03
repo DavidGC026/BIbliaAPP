@@ -6,33 +6,30 @@ import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { useAuth } from "@/context/AuthContext";
 import { DEFAULT_BIBLE_ID } from "@/lib/config";
-import {
-  HIGHLIGHT_COLORS,
-  highlightSwatch,
-  verseHighlightStyle,
-} from "@/lib/highlightColors";
 import * as repo from "@/lib/repo";
+import * as api from "@/lib/api";
 import { buildImageCreatorData } from "@/lib/verseUtils";
 import {
-  DEFAULT_READER_PREFERENCES,
+  getReaderPalette,
   getReaderPreferences,
   saveLastPassage,
   saveReaderPreferences,
   type ReaderPreferences,
-  type ReaderTheme,
 } from "@/lib/preferences";
-import * as api from "@/lib/api";
 import type {
   BibleTarget,
-  Book,
   BibleVersion,
+  Book,
   Verse,
+  VerseCommentaryEntry,
   VerseHighlight,
   VerseNoteLink,
 } from "@/lib/types";
-
-const SELECT_CLS =
-  "w-full rounded-lg border border-border bg-card px-3 py-2 text-foreground";
+import { VerseText } from "./bible-reader/verse-text";
+import { VersionSelector } from "./bible-reader/version-selector";
+import { ReaderSettings } from "./bible-reader/reader-settings";
+import { ReaderToolbar } from "./bible-reader/reader-toolbar";
+import { BibleAudioPlayer } from "./bible-reader/audio-player";
 
 type Props = {
   target?: BibleTarget;
@@ -45,11 +42,9 @@ function selectionLabel(
 ): string {
   if (selected.length === 0) return "";
   const sorted = [...selected].sort((a, b) => a - b);
-  const ref =
-    sorted.length === 1
-      ? `${bookName} ${chapter}:${sorted[0]}`
-      : `${bookName} ${chapter}:${sorted[0]}-${sorted[sorted.length - 1]}`;
-  return ref;
+  return sorted.length === 1
+    ? `${bookName} ${chapter}:${sorted[0]}`
+    : `${bookName} ${chapter}:${sorted[0]}-${sorted[sorted.length - 1]}`;
 }
 
 export function BibleReader({ target }: Props) {
@@ -61,35 +56,75 @@ export function BibleReader({ target }: Props) {
   const [verses, setVerses] = useState<Verse[]>([]);
   const [highlights, setHighlights] = useState<VerseHighlight[]>([]);
   const [noteLinks, setNoteLinks] = useState<VerseNoteLink[]>([]);
+  const [commentaries, setCommentaries] = useState<VerseCommentaryEntry[]>([]);
+
   const [bibleId, setBibleId] = useState(DEFAULT_BIBLE_ID);
   const [bookId, setBookId] = useState<number | null>(null);
   const [chapter, setChapter] = useState(1);
+  const [currentVerse, setCurrentVerse] = useState(1);
+
   const [selectedVerses, setSelectedVerses] = useState<number[]>([]);
   const [noteModalOpen, setNoteModalOpen] = useState(false);
   const [imageCreatorOpen, setImageCreatorOpen] = useState(false);
   const [refsModalOpen, setRefsModalOpen] = useState(false);
+  const [selectedVerseForRefs, setSelectedVerseForRefs] =
+    useState<Verse | null>(null);
+
   const [noteText, setNoteText] = useState("");
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadingChapter, setLoadingChapter] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
   const [preferences, setPreferences] = useState<ReaderPreferences>(() =>
     getReaderPreferences(),
   );
-  const [showPreferences, setShowPreferences] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+
+  // Audio / TTS state
+  const [showAudioPlayer, setShowAudioPlayer] = useState(false);
+  const [audioMode, setAudioMode] = useState<"chapter" | "selection">("chapter");
+  const [speakingVerseNumber, setSpeakingVerseNumber] = useState<number | null>(
+    null,
+  );
 
   const lastSelectedRef = useRef<number | null>(null);
-  const isDark = document.documentElement.classList.contains("dark");
-
   const selectedBook = books.find((b) => b.bookId === bookId) ?? null;
   const maxChapter = selectedBook?.chapters ?? 1;
   const currentBible = bibles.find((b) => b.bibleId === bibleId);
-  const highlightMap = new Map(highlights.map((h) => [h.verse, h.color]));
-  const noteMap = new Map(noteLinks.map((n) => [n.verse, n]));
-  const primaryVerse =
-    selectedVerses.length === 1
-      ? selectedVerses[0]
-      : (selectedVerses[0] ?? null);
+
+  const highlightMap = useMemo(
+    () => new Map(highlights.map((h) => [h.verse, h.color])),
+    [highlights],
+  );
+  const noteMap = useMemo(
+    () => new Map(noteLinks.map((n) => [n.verse, n])),
+    [noteLinks],
+  );
+
+  // Group commentaries by verse number (since a commentary spans verseStart..verseEnd)
+  const commentariesByVerse = useMemo(() => {
+    const map = new Map<number, VerseCommentaryEntry[]>();
+    if (!preferences.showCommentaries || commentaries.length === 0) return map;
+
+    for (const c of commentaries) {
+      const start = Number(c.verseStart);
+      const end = Number(c.verseEnd || c.verseStart);
+      for (let v = start; v <= end; v++) {
+        const list = map.get(v) ?? [];
+        list.push(c);
+        map.set(v, list);
+      }
+    }
+    return map;
+  }, [commentaries, preferences.showCommentaries]);
+
+  const readerPalette = useMemo(
+    () => getReaderPalette(preferences.theme),
+    [preferences.theme],
+  );
+
+  const readerLineHeight = preferences.density === "compact" ? 1.5 : 1.8;
 
   const imageCreatorData = useMemo(() => {
     if (!selectedBook || selectedVerses.length === 0) return null;
@@ -100,199 +135,189 @@ export function BibleReader({ target }: Props) {
       chapter,
       bibleAbbr: currentBible?.abbr ?? "RVR1960",
     });
-  }, [selectedVerses, verses, selectedBook, chapter, currentBible?.abbr]);
+  }, [selectedBook, selectedVerses, verses, chapter, currentBible?.abbr]);
 
   const clearSelection = useCallback(() => {
     setSelectedVerses([]);
     lastSelectedRef.current = null;
   }, []);
 
+  const updatePreferences = (next: ReaderPreferences) => {
+    setPreferences(next);
+    saveReaderPreferences(next);
+  };
+
+  // 1. Initial Load: Bibles and Books
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        setLoading(true);
+        const { bibles: bibleList } = await repo.repoListBibles();
+        if (!mounted) return;
+
+        setBibles(bibleList);
+
+        const initialBible = target?.bibleId ?? bibleId;
+        const validBible =
+          bibleList.find((b: BibleVersion) => b.bibleId === initialBible)?.bibleId ??
+          bibleList[0]?.bibleId ??
+          DEFAULT_BIBLE_ID;
+        setBibleId(validBible);
+
+        const { books: bookList } = await repo.repoListBooks(validBible);
+        if (!mounted) return;
+        setBooks(bookList);
+
+        const initialBook =
+          target?.bookId ??
+          (bookList.length > 0 ? bookList[0].bookId : 1);
+        setBookId(initialBook);
+
+        const initialChapter = target?.chapter ?? 1;
+        setChapter(initialChapter);
+      } catch (e) {
+        if (!mounted) return;
+        setError(e instanceof Error ? e.message : "Error al cargar la Biblia");
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  // 2. Handle external target updates
+  useEffect(() => {
+    if (!target) return;
+    if (target.bibleId && target.bibleId !== bibleId) {
+      setBibleId(target.bibleId);
+    }
+    if (target.bookId && target.bookId !== bookId) {
+      setBookId(target.bookId);
+    }
+    if (target.chapter && target.chapter !== chapter) {
+      setChapter(target.chapter);
+    }
+    clearSelection();
+  }, [target]);
+
+  // 3. Load Chapter Verses, Highlights, Notes, Commentaries
   const loadChapter = useCallback(async () => {
-    if (bookId === null) return;
-    const bid = bookId;
+    if (bookId == null) return;
     setLoadingChapter(true);
     setError(null);
     try {
-      const tasks: [
-        Promise<{ verses: Verse[] }>,
-        Promise<{ highlights: VerseHighlight[] }>,
-        Promise<{ links: VerseNoteLink[] }>,
-      ] = [
-        repo.repoGetVerses(bibleId, bid, chapter),
+      const [vResult, hResult, notesResult] = await Promise.all([
+        repo.repoGetVerses(bookId, chapter, bibleId),
         canAnnotate
-          ? repo.repoGetHighlights(bid, chapter, bibleId)
+          ? repo.repoGetHighlights(bookId, chapter, bibleId)
           : Promise.resolve({ highlights: [] }),
         canAnnotate
-          ? repo.repoGetChapterNotes(bid, chapter)
+          ? repo.repoGetChapterNotes(bookId, chapter)
           : Promise.resolve({ links: [] }),
-      ];
-      const [versesRes, hlRes, notesRes] = await Promise.allSettled(tasks);
-      if (versesRes.status === "rejected") throw versesRes.reason;
-      setVerses(versesRes.value.verses);
-      setHighlights(hlRes.status === "fulfilled" ? hlRes.value.highlights : []);
-      setNoteLinks(notesRes.status === "fulfilled" ? notesRes.value.links : []);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al cargar capítulo");
+      ]);
+      setVerses(vResult.verses || []);
+      setHighlights(hResult.highlights || []);
+      setNoteLinks(notesResult.links || []);
+      setCurrentVerse(1);
+
+      if (selectedBook && currentBible) {
+        saveLastPassage({
+          bibleId,
+          bibleAbbr: currentBible.abbr,
+          bookId,
+          bookName: selectedBook.bookName,
+          chapter,
+        });
+      }
+
+
+
+      // Load commentaries if enabled
+      if (preferences.showCommentaries) {
+        api
+          .getCommentaries({ book: bookId, chapter, bible: bibleId })
+          .then((res) => setCommentaries(res.commentaries || []))
+          .catch(() => setCommentaries([]));
+      } else {
+        setCommentaries([]);
+      }
+    } catch (e) {
+      setError(
+        e instanceof Error ? e.message : "Error al cargar el capítulo",
+      );
     } finally {
       setLoadingChapter(false);
-    }
-  }, [bibleId, bookId, chapter, canAnnotate]);
-
-  useEffect(() => {
-    let cancelled = false;
-    async function init() {
-      try {
-        setLoading(true);
-        setError(null);
-        const { bibles: list, defaultBibleId } = await repo.repoListBibles();
-        if (cancelled) return;
-        setBibles(list);
-        const startBible =
-          (target?.bibleId && list.some((b) => b.bibleId === target.bibleId)
-            ? target.bibleId
-            : null) ??
-          list.find((b) => b.bibleId === (defaultBibleId ?? DEFAULT_BIBLE_ID))
-            ?.bibleId ??
-          list[0]?.bibleId ??
-          DEFAULT_BIBLE_ID;
-        setBibleId(startBible);
-        const { books: bookList } = await repo.repoListBooks(startBible);
-        if (cancelled) return;
-        if (bookList.length === 0)
-          throw new Error("No se encontraron libros para esta versión.");
-        setBooks(bookList);
-        const startBook =
-          target?.bookId && bookList.some((b) => b.bookId === target.bookId)
-            ? target.bookId
-            : (bookList[0]?.bookId ?? null);
-        setBookId(startBook);
-        setChapter(target?.chapter && target.chapter > 0 ? target.chapter : 1);
-      } catch (err) {
-        if (!cancelled) {
-          setError(
-            err instanceof Error ? err.message : "Error al cargar la Biblia",
-          );
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-    init();
-    return () => {
-      cancelled = true;
-    };
-  }, [target]);
-
-  useEffect(() => {
-    if (!target?.bookId || books.length === 0) return;
-    if (!books.some((b) => b.bookId === target.bookId)) return;
-    setBookId(target.bookId);
-    if (target.bibleId) setBibleId(target.bibleId);
-    setChapter(target.chapter > 0 ? target.chapter : 1);
-  }, [target, books]);
-
-  useEffect(() => {
-    clearSelection();
-    void loadChapter();
-  }, [loadChapter, clearSelection]);
-
-  useEffect(() => {
-    if (
-      loadingChapter ||
-      verses.length === 0 ||
-      !selectedBook ||
-      !currentBible ||
-      !bookId ||
-      !chapter
-    )
-      return;
-    saveLastPassage({
-      bibleId,
-      bibleAbbr: currentBible.abbr,
-      bookId,
-      bookName: selectedBook.bookName,
-      chapter,
-    });
-    const activityKey = `bibliaapp_read_${new Date().toISOString().slice(0, 10)}_${bookId}_${chapter}`;
-    if (!sessionStorage.getItem(activityKey)) {
-      sessionStorage.setItem(activityKey, "1");
-      api.recordReadingActivity(bookId, 1, verses.length).catch(() => {});
     }
   }, [
-    bibleId,
     bookId,
     chapter,
+    bibleId,
+    canAnnotate,
     selectedBook,
     currentBible,
-    loadingChapter,
-    verses.length,
+    preferences.showCommentaries,
   ]);
 
-  function updatePreferences(next: ReaderPreferences) {
-    setPreferences(next);
-    saveReaderPreferences(next);
-  }
-
-  function toggleVerse(verseNum: number, extend: boolean) {
-    if (extend && lastSelectedRef.current !== null) {
-      const anchor = lastSelectedRef.current;
-      const start = Math.min(anchor, verseNum);
-      const end = Math.max(anchor, verseNum);
-      const range: number[] = [];
-      for (let i = start; i <= end; i++) range.push(i);
-      lastSelectedRef.current = verseNum;
-      setSelectedVerses(Array.from(new Set(range)).sort((a, b) => a - b));
-      return;
+  useEffect(() => {
+    if (bookId != null && !loading) {
+      loadChapter();
     }
-    lastSelectedRef.current = verseNum;
-    setSelectedVerses((prev) =>
-      prev.includes(verseNum)
-        ? prev.filter((v) => v !== verseNum)
-        : [...prev, verseNum].sort((a, b) => a - b),
+  }, [bookId, chapter, bibleId, preferences.showCommentaries, loadChapter, loading]);
+
+  // 4. Scroll-Spy: Track visible verse in viewport
+  useEffect(() => {
+    if (verses.length === 0) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            const verseNum = Number(entry.target.getAttribute("data-verse"));
+            if (verseNum) {
+              setCurrentVerse(verseNum);
+            }
+          }
+        }
+      },
+      {
+        root: null,
+        rootMargin: "-20% 0px -60% 0px",
+        threshold: 0,
+      },
     );
-  }
 
-  async function onBibleChange(nextId: number) {
-    clearSelection();
-    setBibleId(nextId);
-    try {
-      setLoadingChapter(true);
-      const { books: bookList } = await repo.repoListBooks(nextId);
-      if (bookList.length === 0)
-        throw new Error("No se encontraron libros para esta versión.");
-      setBooks(bookList);
-      setBookId(bookList[0]?.bookId ?? null);
-      setChapter(1);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al cambiar versión");
-    } finally {
-      setLoadingChapter(false);
-    }
-  }
+    verses.forEach((v) => {
+      const el = document.getElementById(`verse-${v.verse}`);
+      if (el) observer.observe(el);
+    });
 
-  async function addToFavorites() {
-    if (!bookId || selectedVerses.length === 0 || !canAnnotate) return;
-    setSaving(true);
-    try {
-      for (const verseNum of selectedVerses) {
-        const verse = verses.find((item) => item.verse === verseNum);
-        await repo.repoAddFavorite(
-          bibleId,
-          bookId,
-          chapter,
-          verseNum,
-          verse?.text,
-          selectedBook?.bookName,
-        );
+    return () => observer.disconnect();
+  }, [verses, preferences.layout]);
+
+  // Handlers for verse selection
+  const toggleVerseSelection = useCallback((verseNum: number, shiftKey: boolean) => {
+    setSelectedVerses((prev) => {
+      if (shiftKey && lastSelectedRef.current != null) {
+        const from = Math.min(lastSelectedRef.current, verseNum);
+        const to = Math.max(lastSelectedRef.current, verseNum);
+        const range: number[] = [];
+        for (let i = from; i <= to; i++) range.push(i);
+        return Array.from(new Set([...prev, ...range])).sort((a, b) => a - b);
       }
-      clearSelection();
-    } finally {
-      setSaving(false);
-    }
-  }
+      lastSelectedRef.current = verseNum;
+      if (prev.includes(verseNum)) {
+        return prev.filter((v) => v !== verseNum);
+      }
+      return [...prev, verseNum].sort((a, b) => a - b);
+    });
+  }, []);
 
-  async function applyHighlight(color: string) {
-    if (!bookId || selectedVerses.length === 0 || !canAnnotate) return;
+  const handleHighlightSelection = async (color: string | null) => {
+    if (!canAnnotate || selectedVerses.length === 0 || bookId == null) return;
     setSaving(true);
     try {
       await repo.repoSetHighlights(
@@ -302,460 +327,503 @@ export function BibleReader({ target }: Props) {
         color,
         bibleId,
       );
-      clearSelection();
-      await loadChapter();
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function removeHighlight() {
-    if (!bookId || selectedVerses.length === 0 || !canAnnotate) return;
-    setSaving(true);
-    try {
-      await repo.repoSetHighlights(
+      const { highlights: updated } = await repo.repoGetHighlights(
         bookId,
         chapter,
-        selectedVerses,
-        null,
         bibleId,
       );
+      setHighlights(updated);
       clearSelection();
-      await loadChapter();
+    } catch (e) {
+      setError(
+        e instanceof Error ? e.message : "Error al guardar el subrayado",
+      );
     } finally {
       setSaving(false);
     }
-  }
+  };
 
-  async function copySelection() {
-    if (!selectedBook || selectedVerses.length === 0) return;
-    if (currentBible?.canCopy === false) {
-      setError("La licencia de esta versión no permite copiar el texto.");
-      return;
-    }
-    const sorted = [...selectedVerses].sort((a, b) => a - b);
-    const lines = sorted
-      .map((n) => {
-        const v = verses.find((x) => x.verse === n);
-        return v ? `${n} ${v.text}` : "";
-      })
-      .filter(Boolean);
-    const ref =
-      sorted.length === 1
-        ? `${selectedBook.bookName} ${chapter}:${sorted[0]}`
-        : `${selectedBook.bookName} ${chapter}:${sorted[0]}-${sorted[sorted.length - 1]}`;
-    await navigator.clipboard.writeText(`${ref}\n\n${lines.join("\n")}`);
-  }
 
-  async function shareSelection() {
-    if (!selectedBook || selectedVerses.length === 0) return;
-    if (currentBible?.canShare === false) {
-      setError("La licencia de esta versión no permite compartir el texto.");
-      return;
+  const handleCopySelection = async () => {
+    if (selectedVerses.length === 0 || !selectedBook) return;
+    const selectedList = verses.filter((v) =>
+      selectedVerses.includes(Number(v.verse)),
+    );
+    const text = selectedList
+      .map((v) => `${v.verse}. ${v.text}`)
+      .join("\n");
+    const citation = `${selectedBook.bookName} ${chapter}:${selectedVerses.join(",")}`;
+    const fullText = `${citation} (${currentBible?.abbr ?? "Biblia"})\n${text}`;
+
+    await navigator.clipboard.writeText(fullText);
+    clearSelection();
+  };
+
+  const handleShareSelection = async () => {
+    if (selectedVerses.length === 0 || !selectedBook) return;
+    const selectedList = verses.filter((v) =>
+      selectedVerses.includes(Number(v.verse)),
+    );
+    const text = selectedList
+      .map((v) => `${v.verse}. ${v.text}`)
+      .join("\n");
+    const citation = `${selectedBook.bookName} ${chapter}:${selectedVerses.join(",")}`;
+    const shareText = `${citation}\n\n${text}`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: citation, text: shareText });
+      } catch {
+        await navigator.clipboard.writeText(shareText);
+      }
+    } else {
+      await navigator.clipboard.writeText(shareText);
     }
-    const sorted = [...selectedVerses].sort((a, b) => a - b);
-    const text = sorted
-      .map((number) => verses.find((item) => item.verse === number)?.text)
-      .filter(Boolean)
-      .join(" ");
-    const reference = selectionLabel(
-      selectedBook.bookName,
+  };
+
+  const handleFavoriteSelection = async () => {
+    if (!canAnnotate || selectedVerses.length === 0 || bookId == null || !selectedBook)
+      return;
+    setSaving(true);
+    try {
+      for (const vNum of selectedVerses) {
+        const verseObj = verses.find((v) => Number(v.verse) === vNum);
+        if (verseObj) {
+          await repo.repoAddFavorite(
+            bibleId,
+            bookId,
+            chapter,
+            vNum,
+            verseObj.text,
+          );
+        }
+      }
+      clearSelection();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Error al guardar favoritos");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleOpenNoteModal = (vNum?: number) => {
+    const targetVerse = vNum ?? selectedVerses[0];
+    if (!targetVerse) return;
+    const existing = noteMap.get(targetVerse);
+    setNoteText(existing?.noteContent ?? "");
+    setNoteModalOpen(true);
+  };
+
+  const handleSaveNote = async () => {
+    const targetVerse = selectedVerses[0];
+    if (!targetVerse || bookId == null) return;
+    setSaving(true);
+    try {
+      const existing = noteMap.get(targetVerse);
+      if (!noteText.trim()) {
+        if (existing?.id) {
+          await repo.repoDeleteVerseNote(existing.id);
+        }
+      } else {
+        await repo.repoSaveVerseNote(
+          bookId,
+          chapter,
+          targetVerse,
+          noteText.trim(),
+        );
+      }
+      setNoteModalOpen(false);
+      setNoteText("");
+      const { links: updated } = await repo.repoGetChapterNotes(
+        bookId,
+        chapter,
+      );
+      setNoteLinks(updated);
+      clearSelection();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Error al guardar la nota");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteNote = async () => {
+    const targetVerse = selectedVerses[0];
+    if (!targetVerse) return;
+    const existing = noteMap.get(targetVerse);
+    if (!existing?.id) return;
+    setSaving(true);
+    try {
+      await repo.repoDeleteVerseNote(existing.id);
+      setNoteModalOpen(false);
+      setNoteText("");
+      const { links: updated } = await repo.repoGetChapterNotes(
+        bookId!,
+        chapter,
+      );
+      setNoteLinks(updated);
+      clearSelection();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Error al eliminar la nota");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+
+
+  const currentSelectionLabel = useMemo(() => {
+    return selectionLabel(
+      selectedBook?.bookName ?? "",
       chapter,
       selectedVerses,
     );
-    const message = `“${text}”\n\n— ${reference}${currentBible?.abbr ? ` (${currentBible.abbr})` : ""}\n\nCompartido desde BibliaAPP`;
-    if (navigator.share)
-      await navigator
-        .share({ title: reference, text: message })
-        .catch(() => {});
-    else await navigator.clipboard.writeText(message);
-  }
-
-  function openNoteModal() {
-    if (primaryVerse === null) return;
-    setNoteText(noteMap.get(primaryVerse)?.noteContent ?? "");
-    setNoteModalOpen(true);
-  }
-
-  async function saveNote() {
-    if (!bookId || primaryVerse === null || !canAnnotate) return;
-    setSaving(true);
-    try {
-      await repo.repoSaveVerseNote(
-        bookId,
-        chapter,
-        primaryVerse,
-        noteText.trim(),
-      );
-      setNoteModalOpen(false);
-      await loadChapter();
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function deleteNote() {
-    if (primaryVerse === null || !canAnnotate) return;
-    const link = noteMap.get(primaryVerse);
-    if (!link?.id) return;
-    setSaving(true);
-    try {
-      await repo.repoDeleteVerseNote(link.id);
-      setNoteModalOpen(false);
-      setNoteText("");
-      await loadChapter();
-    } finally {
-      setSaving(false);
-    }
-  }
+  }, [selectedBook?.bookName, chapter, selectedVerses]);
 
   if (loading) {
     return (
       <div className="flex h-full items-center justify-center p-8">
-        <p className="text-muted-foreground">Cargando Biblia…</p>
+        <p className="text-muted-foreground animate-pulse">Cargando Biblia…</p>
       </div>
     );
   }
 
   return (
-    <div className="desktop-page relative space-y-6 p-6 pb-28">
+    <div className="desktop-page relative space-y-6 p-4 sm:p-6 pb-28">
       <OfflineBanner bibleId={bibleId} autoHideMs={10000} />
-      <header>
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">
-              Lector bíblico
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              {currentBible?.name ?? "Versión"} ·{" "}
-              {selectedBook?.bookName ?? "—"} {chapter}
-            </p>
-          </div>
-          <Button
-            variant="outline"
-            onClick={() => setShowPreferences((value) => !value)}
-          >
-            Aa
-          </Button>
-        </div>
-        {!canAnnotate ? (
-          <p className="mt-2 text-xs text-muted-foreground">
-            Inicia sesión para subrayar versículos y añadir notas.
-          </p>
-        ) : (
-          <p className="mt-2 text-xs text-muted-foreground">
-            Clic en un versículo para seleccionar · Shift+clic para rango
-          </p>
-        )}
-      </header>
 
-      {showPreferences ? (
-        <div className="grid gap-4 rounded-xl border border-border bg-card p-4 sm:grid-cols-2 lg:grid-cols-4">
-          <label className="text-sm text-muted-foreground">
-            Tamaño{" "}
-            <input
-              type="range"
-              min={16}
-              max={24}
-              value={preferences.fontSize}
-              onChange={(e) =>
-                updatePreferences({
-                  ...preferences,
-                  fontSize: Number(e.target.value),
-                })
-              }
-              className="mt-2 block w-full"
-            />
-            <span className="text-xs">{preferences.fontSize}px</span>
-          </label>
-          <label className="text-sm text-muted-foreground">
-            Espaciado
-            <select
-              value={preferences.density}
-              onChange={(e) =>
-                updatePreferences({
-                  ...preferences,
-                  density: e.target.value as ReaderPreferences["density"],
-                })
-              }
-              className={SELECT_CLS}
-            >
-              <option value="relaxed">Relajado</option>
-              <option value="compact">Compacto</option>
-            </select>
-          </label>
-          <label className="text-sm text-muted-foreground">
-            Alineación
-            <select
-              value={preferences.align}
-              onChange={(e) =>
-                updatePreferences({
-                  ...preferences,
-                  align: e.target.value as ReaderPreferences["align"],
-                })
-              }
-              className={SELECT_CLS}
-            >
-              <option value="left">Izquierda</option>
-              <option value="justify">Justificado</option>
-            </select>
-          </label>
-          <label className="text-sm text-muted-foreground">
-            Tema de lectura
-            <select
-              value={preferences.theme}
-              onChange={(e) =>
-                updatePreferences({
-                  ...preferences,
-                  theme: e.target.value as ReaderTheme,
-                })
-              }
-              className={SELECT_CLS}
-            >
-              <option value="auto">Automático</option>
-              <option value="light">Claro</option>
-              <option value="sepia">Sepia</option>
-              <option value="night">Noche</option>
-              <option value="contrast">Contraste</option>
-            </select>
-          </label>
-          <button
-            className="text-left text-xs font-semibold text-primary"
-            onClick={() => updatePreferences(DEFAULT_READER_PREFERENCES)}
-          >
-            Restaurar preferencias
-          </button>
-        </div>
-      ) : null}
-
-      <div className="grid gap-3 sm:grid-cols-3">
-        <label className="block text-sm">
-          <span className="mb-1 block text-muted-foreground">Versión</span>
-          <select
-            value={bibleId}
-            onChange={(e) => onBibleChange(Number(e.target.value))}
-            className={SELECT_CLS}
-          >
-            {bibles.map((b) => (
-              <option key={b.bibleId} value={b.bibleId}>
-                {b.abbr} — {b.name}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className="block text-sm">
-          <span className="mb-1 block text-muted-foreground">Libro</span>
-          <select
-            value={bookId ?? ""}
-            onChange={(e) => {
+      {/* Sticky top control panel */}
+      <div className="sticky top-0 z-30 -mx-4 -mt-4 sm:-mx-6 sm:-mt-6 rounded-b-2xl border-b border-border/80 bg-background/95 p-3 sm:p-4 shadow-sm backdrop-blur-md transition-all">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          {/* Selectors for version, book, chapter */}
+          <VersionSelector
+            bibles={bibles}
+            selectedBibleId={bibleId}
+            onBibleChange={(bId) => {
               clearSelection();
-              setBookId(Number(e.target.value));
+              setBibleId(bId);
+            }}
+            books={books}
+            selectedBookId={bookId}
+            onBookChange={(bId) => {
+              clearSelection();
+              setBookId(bId);
               setChapter(1);
             }}
-            className={SELECT_CLS}
-          >
-            {books.map((b) => (
-              <option key={b.bookId} value={b.bookId}>
-                {b.bookName}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className="block text-sm">
-          <span className="mb-1 block text-muted-foreground">Capítulo</span>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              disabled={chapter <= 1}
-              onClick={() => {
-                clearSelection();
-                setChapter((c) => Math.max(1, c - 1));
-              }}
-              className="rounded-lg border border-border px-3 py-2 text-foreground disabled:opacity-40"
-            >
-              ‹
-            </button>
-            <select
-              value={chapter}
-              onChange={(e) => {
-                clearSelection();
-                setChapter(Number(e.target.value));
-              }}
-              className={`min-w-0 flex-1 ${SELECT_CLS}`}
-            >
-              {Array.from({ length: maxChapter }, (_, i) => i + 1).map((n) => (
-                <option key={n} value={n}>
-                  {n}
-                </option>
-              ))}
-            </select>
-            <button
-              type="button"
-              disabled={chapter >= maxChapter}
-              onClick={() => {
-                clearSelection();
-                setChapter((c) => Math.min(maxChapter, c + 1));
-              }}
-              className="rounded-lg border border-border px-3 py-2 text-foreground disabled:opacity-40"
-            >
-              ›
-            </button>
-          </div>
-        </label>
-      </div>
-
-      {error ? <p className="text-sm text-destructive">{error}</p> : null}
-
-      <article
-        className={`reader-theme-${preferences.theme} rounded-xl border border-border p-6`}
-      >
-        {loadingChapter ? (
-          <p className="text-muted-foreground">Cargando capítulo…</p>
-        ) : (
-          <div
-            className={`font-serif ${preferences.density === "compact" ? "space-y-1 leading-snug" : "space-y-3 leading-relaxed"}`}
-            style={{
-              fontSize: preferences.fontSize,
-              textAlign: preferences.align,
+            chapter={chapter}
+            maxChapter={maxChapter}
+            onChapterChange={(c) => {
+              clearSelection();
+              setChapter(c);
             }}
-          >
-            {verses.map((v) => {
-              const hl = highlightMap.get(v.verse);
-              const hasNote = noteMap.has(v.verse);
-              const isSelected = selectedVerses.includes(v.verse);
-              return (
-                <button
-                  key={v.id}
-                  type="button"
-                  onClick={(e) => toggleVerse(v.verse, e.shiftKey)}
-                  className={`block w-full cursor-pointer rounded-md py-1 text-left transition-colors ${
-                    isSelected
-                      ? "bg-primary/20 ring-1 ring-primary/40"
-                      : "hover:bg-accent/50"
-                  }`}
-                  style={
-                    hl && !isSelected
-                      ? verseHighlightStyle(hl, isDark)
-                      : undefined
-                  }
-                >
-                  <sup className="mr-1 text-xs font-bold text-primary">
-                    {v.verse}
-                    {hasNote ? " 📝" : ""}
-                  </sup>
-                  {v.text}
-                </button>
-              );
-            })}
-          </div>
-        )}
-      </article>
+            disabled={loadingChapter}
+          />
 
-      {selectedVerses.length > 0 ? (
-        <div className="fixed bottom-4 left-1/2 z-50 w-[min(640px,calc(100%-2rem))] -translate-x-1/2 rounded-xl border border-border bg-card p-3 shadow-lg">
-          <div className="mb-2 flex items-center justify-between gap-2">
-            <span className="truncate text-xs font-medium text-muted-foreground">
-              {selectionLabel(
-                selectedBook?.bookName ?? "",
-                chapter,
-                selectedVerses,
-              )}
-            </span>
-            <button
-              type="button"
-              onClick={clearSelection}
-              className="text-muted-foreground hover:text-foreground"
+          {/* Right actions: Scroll-spy passage reference & tool buttons */}
+          <div className="flex items-center gap-2">
+            {/* Live scroll-spy verse reference */}
+            {selectedBook && verses.length > 0 && (
+              <span className="hidden md:inline font-serif text-xs italic text-muted-foreground tabular-nums px-2">
+                {selectedBook.bookName} {chapter}:{currentVerse}
+              </span>
+            )}
+
+            {/* TTS Audio button */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setAudioMode("chapter");
+                setShowAudioPlayer((v) => !v);
+              }}
+              className={`h-9 gap-1.5 px-3 ${
+                showAudioPlayer
+                  ? "border-emerald-500 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold"
+                  : ""
+              }`}
+              title="Escuchar capítulo en voz alta"
             >
-              ×
-            </button>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={() => copySelection()}
-              className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-primary"
+              <Icon name="volume" size={15} />
+              <span className="hidden sm:inline">Escuchar</span>
+            </Button>
+
+            {/* Reader settings button */}
+            <Button
+              variant={showSettings ? "primary" : "outline"}
+              size="sm"
+              onClick={() => setShowSettings((v) => !v)}
+              className="h-9 gap-1.5 px-3"
+              title="Ajustes de lectura (tipografía, párrafos, temas)"
             >
-              Copiar
-            </button>
-            <button
-              type="button"
-              onClick={() => shareSelection()}
-              disabled={currentBible?.canShare === false}
-              className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-primary disabled:opacity-40"
-            >
-              Compartir
-            </button>
-            {imageCreatorData ? (
-              <button
-                type="button"
-                onClick={() => setImageCreatorOpen(true)}
-                disabled={currentBible?.canCreateImages === false}
-                className="rounded-lg border border-primary px-3 py-1.5 text-xs font-semibold text-primary disabled:opacity-40"
-              >
-                Imagen
-              </button>
-            ) : null}
-            {canAnnotate
-              ? HIGHLIGHT_COLORS.map((c) => (
-                  <button
-                    key={c}
-                    type="button"
-                    disabled={saving}
-                    title={c}
-                    onClick={() => applyHighlight(c)}
-                    className="h-8 w-8 rounded-full border border-black/10"
-                    style={{ backgroundColor: highlightSwatch(c) }}
-                  />
-                ))
-              : null}
-            {canAnnotate ? (
-              <>
-                <button
-                  type="button"
-                  disabled={saving}
-                  onClick={addToFavorites}
-                  className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-primary"
-                >
-                  <span className="flex items-center gap-1.5">
-                    <Icon name="heart" size={15} />
-                    Favorito
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  disabled={saving}
-                  onClick={removeHighlight}
-                  className="rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground"
-                >
-                  Quitar
-                </button>
-                {primaryVerse !== null ? (
-                  <button
-                    type="button"
-                    onClick={openNoteModal}
-                    className="rounded-lg border border-primary px-3 py-1.5 text-xs font-semibold text-primary"
-                  >
-                    Nota
-                  </button>
-                ) : null}
-              </>
-            ) : null}
-            {primaryVerse !== null ? (
-              <button
-                type="button"
-                onClick={() => setRefsModalOpen(true)}
-                className="rounded-lg border border-primary px-3 py-1.5 text-xs font-semibold text-primary"
-              >
-                Referencias
-              </button>
-            ) : null}
+              <span className="font-serif font-bold text-xs">Aa</span>
+              <span className="hidden sm:inline">Lectura</span>
+            </Button>
           </div>
         </div>
-      ) : null}
 
-      {imageCreatorData ? (
+        {/* Collapsible Reader Settings Panel */}
+        {showSettings && (
+          <div className="mt-3 pt-3 border-t border-border/60">
+            <ReaderSettings
+              preferences={preferences}
+              onChange={updatePreferences}
+            />
+          </div>
+        )}
+
+        {/* Chapter progress bar (scroll-spy dynamic fill) */}
+        {verses.length > 0 && (
+          <div className="relative -mx-3 -mb-3 sm:-mx-4 sm:-mb-4 mt-3 h-[3px] overflow-hidden rounded-b-2xl bg-primary/10">
+            <div
+              className="h-full bg-primary/70 transition-[width] duration-300 ease-out"
+              style={{
+                width: `${Math.min(
+                  100,
+                  Math.max(2, (currentVerse / verses.length) * 100),
+                )}%`,
+              }}
+            />
+          </div>
+        )}
+      </div>
+
+      {error && (
+        <div className="mx-auto max-w-[68ch] rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+          {error}
+        </div>
+      )}
+
+      {/* Editorial Chapter Header (versalitas, large display numeral, fleurón ❦) */}
+      {selectedBook && !loadingChapter && verses.length > 0 && (
+        <header className="mx-auto mb-6 flex w-full max-w-[68ch] flex-col items-center text-center pt-2 sm:pt-4 md:mb-8">
+          <p className="text-[11px] font-bold uppercase tracking-[0.32em] text-muted-foreground">
+            {selectedBook.bookName}
+          </p>
+          <h1 className="mt-1 font-serif text-5xl font-semibold tracking-tight text-foreground md:text-6xl">
+            {chapter}
+          </h1>
+          <div
+            aria-hidden="true"
+            className="mt-3 flex items-center gap-2.5 text-primary/70"
+          >
+            <span className="h-px w-10 bg-current opacity-40" />
+            <span className="text-xs leading-none">❦</span>
+            <span className="h-px w-10 bg-current opacity-40" />
+          </div>
+        </header>
+      )}
+
+      {loadingChapter && (
+        <div className="mx-auto max-w-[68ch] py-12 text-center text-sm text-muted-foreground animate-pulse">
+          Cargando versículos de {selectedBook?.bookName} {chapter}…
+        </div>
+      )}
+
+      {/* Verses Container */}
+      {!loadingChapter && verses.length > 0 && (
+        <ol
+          className={`mx-auto w-full max-w-[68ch] rounded-2xl transition-colors ${
+            preferences.layout === "paragraphs"
+              ? "reader-paragraphs"
+              : preferences.density === "compact"
+                ? "space-y-0.5"
+                : "space-y-1"
+          } ${readerPalette ? "border p-4 sm:p-6" : ""}`}
+          style={
+            readerPalette
+              ? {
+                  backgroundColor: readerPalette.background,
+                  borderColor: readerPalette.border,
+                }
+              : undefined
+          }
+        >
+          {verses.map((v) => {
+            const vNum = Number(v.verse);
+            return (
+              <VerseText
+                key={v.id}
+                verse={v}
+                fontSize={preferences.fontSize}
+                lineHeight={readerLineHeight}
+                textAlign={preferences.align}
+                layout={preferences.layout}
+                textColor={readerPalette?.text}
+                mutedColor={readerPalette?.muted}
+                accentColor={readerPalette?.accent}
+                borderColor={readerPalette?.border}
+                hasNote={noteMap.has(vNum)}
+                highlightColor={highlightMap.get(vNum)}
+                isSelected={selectedVerses.includes(vNum)}
+                isFlashed={false}
+                isSpeaking={speakingVerseNumber === vNum}
+                canAnnotate={canAnnotate}
+                commentaries={commentariesByVerse.get(vNum)}
+                onToggleSelect={toggleVerseSelection}
+                onSetCurrent={setCurrentVerse}
+                onNote={() => {
+                  setSelectedVerses([vNum]);
+                  handleOpenNoteModal(vNum);
+                }}
+                onCrossReferences={() => {
+                  setSelectedVerseForRefs(v);
+                  setRefsModalOpen(true);
+                }}
+              />
+            );
+          })}
+        </ol>
+      )}
+
+      {/* Chapter Bottom Navigation */}
+      {selectedBook && !loadingChapter && verses.length > 0 && (
+        <div className="mx-auto mt-8 flex w-full max-w-[68ch] items-center justify-between border-t border-border/60 pt-6 pb-4">
+          <Button
+            variant="outline"
+            onClick={() => {
+              clearSelection();
+              setChapter((c) => Math.max(1, c - 1));
+            }}
+            disabled={chapter <= 1}
+            className="gap-2 cursor-pointer"
+          >
+            <span>‹ Capítulo anterior</span>
+          </Button>
+
+          <span className="font-serif text-sm italic text-muted-foreground tabular-nums">
+            {selectedBook.bookName} {chapter}
+          </span>
+
+          <Button
+            variant="outline"
+            onClick={() => {
+              clearSelection();
+              setChapter((c) => Math.min(maxChapter, c + 1));
+            }}
+            disabled={chapter >= maxChapter}
+            className="gap-2 cursor-pointer"
+          >
+            <span>Capítulo siguiente ›</span>
+          </Button>
+        </div>
+      )}
+
+      {/* Floating Selection Toolbar */}
+      {selectedVerses.length > 0 && (
+        <ReaderToolbar
+          selectionLabel={currentSelectionLabel}
+          canShare={currentBible?.canShare !== false}
+          canCreateImage={
+            !!imageCreatorData && currentBible?.canCreateImages !== false
+          }
+          onHighlight={handleHighlightSelection}
+          onCopy={handleCopySelection}
+          onShare={handleShareSelection}
+          onFavorite={canAnnotate ? handleFavoriteSelection : undefined}
+          onAddNote={
+            canAnnotate && selectedVerses.length === 1
+              ? () => handleOpenNoteModal()
+              : undefined
+          }
+          onOpenImageCreator={() => setImageCreatorOpen(true)}
+          onCrossReferences={
+            selectedVerses.length === 1
+              ? () => {
+                  const vObj = verses.find(
+                    (v) => Number(v.verse) === selectedVerses[0],
+                  );
+                  if (vObj) {
+                    setSelectedVerseForRefs(vObj);
+                    setRefsModalOpen(true);
+                  }
+                }
+              : undefined
+          }
+          onListen={() => {
+            setAudioMode("selection");
+            setShowAudioPlayer(true);
+          }}
+          onClearSelection={clearSelection}
+        />
+      )}
+
+      {/* Floating Audio Player */}
+      {showAudioPlayer && (
+        <BibleAudioPlayer
+          verses={
+            audioMode === "selection"
+              ? verses
+                  .filter((v) => selectedVerses.includes(Number(v.verse)))
+                  .map((v) => ({ verse: Number(v.verse), text: v.text }))
+              : verses.map((v) => ({ verse: Number(v.verse), text: v.text }))
+          }
+          chapterLabel={`${selectedBook?.bookName || ""} ${chapter}${
+            audioMode === "selection" ? " (Selección)" : ""
+          }`}
+          onActiveVerseChange={setSpeakingVerseNumber}
+          onClose={() => {
+            setShowAudioPlayer(false);
+            setSpeakingVerseNumber(null);
+          }}
+        />
+      )}
+
+      {/* Note Modal */}
+      {noteModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="w-full max-w-lg rounded-2xl border border-border bg-card p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="font-serif text-lg font-bold text-foreground">
+                Nota en {currentSelectionLabel}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setNoteModalOpen(false)}
+                className="rounded-lg p-1 text-muted-foreground hover:bg-muted"
+              >
+                ✕
+              </button>
+            </div>
+
+            <textarea
+              value={noteText}
+              onChange={(e) => setNoteText(e.target.value)}
+              placeholder="Escribe tu reflexión o comentario personal sobre este versículo…"
+              rows={6}
+              className="w-full rounded-xl border border-border bg-background p-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+
+            <div className="flex items-center justify-between gap-3 pt-2">
+              {noteMap.has(selectedVerses[0]) ? (
+                <Button
+                  variant="outline"
+                  onClick={handleDeleteNote}
+                  loading={saving}
+                  className="text-destructive hover:bg-destructive/10"
+                >
+                  Eliminar
+                </Button>
+              ) : (
+                <div />
+              )}
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setNoteModalOpen(false)}
+                >
+                  Cancelar
+                </Button>
+                <Button onClick={handleSaveNote} loading={saving}>
+                  Guardar
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Verse Image Creator Modal */}
+      {imageCreatorData && (
         <VerseImageCreatorModal
           open={imageCreatorOpen}
           onClose={() => setImageCreatorOpen(false)}
@@ -763,66 +831,31 @@ export function BibleReader({ target }: Props) {
           reference={imageCreatorData.reference}
           abbr={imageCreatorData.abbr}
         />
-      ) : null}
+      )}
 
-      <CrossReferencesModal
-        open={refsModalOpen}
-        bibleId={bibleId}
-        bookId={bookId}
-        chapter={chapter}
-        verse={primaryVerse}
-        reference={`${selectedBook?.bookName ?? ""} ${chapter}:${primaryVerse ?? ""}`}
-        onClose={() => setRefsModalOpen(false)}
-        onOpenReference={(refBookId, refChapter) => {
-          clearSelection();
-          setBookId(refBookId);
-          setChapter(refChapter);
-        }}
-      />
-
-      {noteModalOpen && primaryVerse !== null ? (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md rounded-xl border border-border bg-card p-4 shadow-xl">
-            <h2 className="mb-3 font-bold text-foreground">
-              Nota · {selectedBook?.bookName} {chapter}:{primaryVerse}
-            </h2>
-            <textarea
-              value={noteText}
-              onChange={(e) => setNoteText(e.target.value)}
-              rows={5}
-              placeholder="Escribe tu nota…"
-              className="w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-foreground outline-none focus:ring-2 focus:ring-ring"
-            />
-            <div className="mt-3 flex flex-wrap gap-2">
-              <button
-                type="button"
-                disabled={saving}
-                onClick={saveNote}
-                className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
-              >
-                Guardar
-              </button>
-              {noteMap.has(primaryVerse) ? (
-                <button
-                  type="button"
-                  disabled={saving}
-                  onClick={deleteNote}
-                  className="rounded-lg border border-destructive px-4 py-2 text-sm text-destructive"
-                >
-                  Eliminar
-                </button>
-              ) : null}
-              <button
-                type="button"
-                onClick={() => setNoteModalOpen(false)}
-                className="rounded-lg border border-border px-4 py-2 text-sm text-muted-foreground"
-              >
-                Cerrar
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
+      {/* Cross References Modal */}
+      {selectedVerseForRefs && selectedBook && (
+        <CrossReferencesModal
+          open={refsModalOpen}
+          onClose={() => {
+            setRefsModalOpen(false);
+            setSelectedVerseForRefs(null);
+          }}
+          bibleId={bibleId}
+          bookId={selectedBook.bookId}
+          chapter={chapter}
+          verse={Number(selectedVerseForRefs.verse)}
+          reference={`${selectedBook.bookName} ${chapter}:${selectedVerseForRefs.verse}`}
+          onOpenReference={(bId: number, c: number) => {
+            setRefsModalOpen(false);
+            setSelectedVerseForRefs(null);
+            setBookId(bId);
+            setChapter(c);
+            clearSelection();
+          }}
+        />
+      )}
     </div>
   );
+
 }

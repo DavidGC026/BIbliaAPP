@@ -2,6 +2,20 @@ import type { CSSProperties } from "react";
 
 export const HIGHLIGHT_COLORS = ["yellow", "green", "blue", "orange", "pink"] as const;
 
+
+export const HIGHLIGHT_COLOR_ITEMS: Array<{
+  key: (typeof HIGHLIGHT_COLORS)[number];
+  hex: string;
+  label: string;
+}> = [
+  { key: "yellow", hex: "#FACC15", label: "Amarillo" },
+  { key: "green", hex: "#34D399", label: "Verde" },
+  { key: "blue", hex: "#38BDF8", label: "Azul" },
+  { key: "orange", hex: "#FB923C", label: "Naranja" },
+  { key: "pink", hex: "#F472B6", label: "Rosa" },
+];
+
+
 type HighlightTheme = {
   id: string;
   swatch: string;

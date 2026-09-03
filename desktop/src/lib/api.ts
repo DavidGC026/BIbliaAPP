@@ -37,11 +37,17 @@ import type {
   ProgressBook,
   FeedAnnouncement,
   HighlightItem,
+  VerseCommentaryEntry,
+  TtsVoice,
+  ReportItem,
+  ReportTargetType,
+  BlockedUser,
 } from "@/lib/types";
 
 type TokenGetter = () => string | null;
 
 let getToken: TokenGetter = () => null;
+
 
 export function setApiTokenGetter(getter: TokenGetter) {
   getToken = getter;
@@ -724,3 +730,116 @@ export async function markNotificationsRead(ids: number[] | "all") {
 export async function healthCheck() {
   return request<{ ok?: boolean; status?: string }>("/api/health");
 }
+
+// — Comentarios bíblicos —
+export async function getCommentaries(params: {
+  book: number;
+  chapter: number;
+  verse?: number;
+  bible?: number;
+  author?: string;
+  lang?: string;
+}) {
+  const query = new URLSearchParams({
+    book: String(params.book),
+    chapter: String(params.chapter),
+  });
+  if (params.verse != null) query.set("verse", String(params.verse));
+  if (params.bible != null) query.set("bible", String(params.bible));
+  if (params.author) query.set("author", params.author);
+  if (params.lang) query.set("lang", params.lang);
+
+  return request<{
+    commentaries: VerseCommentaryEntry[];
+    nearest?: boolean;
+  }>(`/api/commentaries?${query.toString()}`);
+}
+
+export async function getCommentaryAuthors(lang = "es") {
+  return request<{
+    authors: Array<{ author: string; count: number }>;
+  }>(`/api/commentaries?list&lang=${encodeURIComponent(lang)}`);
+}
+
+// — Lector de audio TTS (Kokoro / Gateway) —
+export async function getTtsVoices() {
+  return request<{
+    available: boolean;
+    voices: TtsVoice[];
+  }>("/api/tts?info=voices");
+}
+
+export function getTtsAudioUrl(text: string, voice = "em_alex", speed = 1) {
+  const query = new URLSearchParams({
+    text,
+    voice,
+    speed: String(speed),
+  });
+  return `${API_BASE_URL}/api/tts?${query.toString()}`;
+}
+
+// — Moderación UGC y Seguridad —
+export async function reportContent(body: {
+  targetType: ReportTargetType;
+  targetId: number;
+  reason: string;
+  details?: string;
+}) {
+  return request<{ success: boolean; reportId: number }>(
+    "/api/moderation/report",
+    {
+      method: "POST",
+      body: JSON.stringify(body),
+    },
+  );
+}
+
+export async function blockUser(userId: number) {
+  return request<{ success: boolean }>("/api/moderation/block", {
+    method: "POST",
+    body: JSON.stringify({ userId }),
+  });
+}
+
+export async function unblockUser(userId: number) {
+  return request<{ success: boolean }>(
+    `/api/moderation/block?userId=${userId}`,
+    {
+      method: "DELETE",
+    },
+  );
+}
+
+export async function getBlockedUsers() {
+  return request<{ blockedUsers: BlockedUser[] }>("/api/moderation/blocked");
+}
+
+export async function getAdminModerationReports(
+  status: "pending" | "resolved" | "dismissed" | "all" = "pending",
+) {
+  return request<{ reports: ReportItem[] }>(
+    `/api/admin/moderation?status=${status}`,
+  );
+}
+
+export async function resolveAdminModerationReport(
+  reportId: number,
+  action: "dismiss" | "delete_content",
+  notes?: string,
+) {
+  return request<{ success: boolean }>(
+    `/api/admin/moderation/${reportId}/resolve`,
+    {
+      method: "POST",
+      body: JSON.stringify({ action, notes }),
+    },
+  );
+}
+
+export async function deleteAccount(password?: string) {
+  return request<{ success: boolean }>("/api/profile", {
+    method: "DELETE",
+    body: JSON.stringify({ password }),
+  });
+}
+

@@ -77,7 +77,12 @@ export type IconName =
   | "user"
   | "users"
   | "visibility"
-  | "visibility-off";
+  | "visibility-off"
+  | "volume"
+  | "volume-x"
+  | "play"
+  | "pause";
+
 
 const ASSET_NAME: Partial<Record<IconName, string>> = {
   alert: "error",
@@ -220,7 +225,28 @@ const CONTENT: Partial<Record<IconName, ReactNode>> = {
     </>
   ),
   close: <path d="M18 6 6 18M6 6l12 12" />,
+  volume: (
+    <>
+      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+      <path d="M15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14" />
+    </>
+  ),
+  "volume-x": (
+    <>
+      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+      <line x1="23" y1="9" x2="17" y2="15" />
+      <line x1="17" y1="9" x2="23" y2="15" />
+    </>
+  ),
+  play: <polygon points="5 3 19 12 5 21 5 3" fill="currentColor" />,
+  pause: (
+    <>
+      <rect x="6" y="4" width="4" height="16" fill="currentColor" />
+      <rect x="14" y="4" width="4" height="16" fill="currentColor" />
+    </>
+  ),
 };
+
 
 type Props = Omit<SVGProps<SVGSVGElement>, "name"> & {
   name: IconName;

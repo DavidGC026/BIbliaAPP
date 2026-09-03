@@ -4,7 +4,29 @@ Registro cronológico de cambios en `desktop/`. Lo más reciente arriba.
 
 ---
 
+## 2026-09-03 — release 0.3.5 (Paridad de Diseño Web, Lector Editorial, Audio Kokoro TTS y Moderación UGC)
+
+- **Rediseño editorial del lector bíblico**:
+  - Implementado modo de lectura continua por párrafos (`layout: "paragraphs"`) con superíndices para versículos y capitular elegante (`.verse-dropcap`) en el primer versículo del capítulo.
+  - Cabecera monumental de capítulo con versalitas espaciadas, numeral display serif y fleurón tipográfico `❦`.
+  - Subrayados tipo marcador de texto real (`box-decoration-clone`) y scroll-spy con barra de progreso de 3px y referencia viva.
+- **Comentarios bíblicos clásicos**:
+  - Integración de comentarios por versículo (Matthew Henry, Spurgeon) con acordeón desplegable y parseo de markdown puro y seguro.
+- **Reproductor de audio inteligente TTS**:
+  - Integración con el motor neuronal Kokoro (`/api/tts`) y respaldo fluido con Web Speech API nativo.
+  - Selector de velocidad (0.75x - 2.0x), precarga de versículos y sincronización visual de lectura en tiempo real.
+- **Moderación UGC, bloqueo de usuarios y privacidad**:
+  - Nuevo modal universal de reportes (`ReportModal.tsx`) para publicaciones, comentarios y perfiles.
+  - Nuevo diálogo de usuarios bloqueados (`BlockedUsersDialog.tsx`) para gestionar desbloqueos.
+  - Nuevo panel de moderación para administradores (`AdminModerationPanel.tsx`) integrado en `AdminUsersPage.tsx`.
+  - Diálogo de eliminación definitiva de cuenta en `ProfilePage.tsx`.
+- **Tipografía**:
+  - Fuentes `Geist` y `Source Serif 4` con soporte para ejes ópticos variables añadidas en `index.html` y `globals.css`.
+- **Documentación**:
+  - Creado `desktop/docs/20-paridad-diseno-lector-audio-y-moderacion-web.md`.
+
 ## 2026-07-28 — release 0.3.4 (paquete Arch)
+
 
 - Versión `0.3.3` → `0.3.4` en `package.json`, `src-tauri/tauri.conf.json`,
   `src-tauri/Cargo.toml`, `packaging/arch/PKGBUILD` y

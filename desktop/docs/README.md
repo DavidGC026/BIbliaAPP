@@ -2,7 +2,7 @@
 
 Cliente de escritorio (Tauri v2 + React) para congregaciones. Consume la API REST de BibliaAPP; no accede directamente a MariaDB.
 
-**Versión actual:** `0.3.4`
+**Versión actual:** `0.3.5`
 **Backend por defecto:** `https://biblia2.dvguzman.com`
 
 ---
@@ -32,25 +32,20 @@ Cliente de escritorio (Tauri v2 + React) para congregaciones. Consume la API RES
 | 17  | [17-editor-pantalla-completa.md](./17-editor-pantalla-completa.md) | Editor a pantalla completa y cinta contraíble |
 | 18  | [18-bloques-sin-controles-incrustados.md](./18-bloques-sin-controles-incrustados.md) | Bloques sin barras internas y pestañas contextuales |
 | 19  | [19-release-arch-0.3.4.md](./19-release-arch-0.3.4.md) | Paridad de tema DVG, fix de versión mostrada y paquete Arch 0.3.4 |
+| 20  | [20-paridad-diseno-lector-audio-y-moderacion-web.md](./20-paridad-diseno-lector-audio-y-moderacion-web.md) | Paridad con diseño web: modo párrafos, capitular, audio Kokoro TTS y moderación UGC |
 
 Regla Cursor para agentes: [`.cursor/rules/desktop.mdc`](../../.cursor/rules/desktop.mdc)
 
 ---
 
-## Resumen v0.3.3
+## Resumen v0.3.5
 
-- Auth (email + Google OAuth localhost), sesión offline
-- Lector con resaltados, notas, favoritos, imagen de versículo — **sync offline**
-- Biblia offline SQLite, búsqueda
-- Libretas y notas con sync bidireccional (como móvil)
-- Feed con comentarios, grupos con detalle, notificaciones SSE
-- Empaquetado Arch + Debian; CI Linux/Windows; auto-update preparado
-- Inicio inteligente, búsqueda universal, planes, actividad y preferencias avanzadas
-- Diez temas, permisos por sección, administración y flujo legal
-- Capacidades/licencias aplicadas también al caché SQLite
-- Editor interoperable con Auto semántico, imágenes normales/de fondo y autoguardado robusto
-- Portadas avanzadas de libretas y calendario completo con RSVP
-- Devocionales compartibles con apertura directa del pasaje
+- **Rediseño editorial del lector bíblico**: Cabecera con versalitas y fleurón ❦, modo párrafos (`layout: "paragraphs"`), capitular en versículo 1, medida de lectura `max-w-[68ch]` y scroll-spy con barra de progreso.
+- **Comentarios bíblicos clásicos**: Matthew Henry y Spurgeon plegados bajo los versículos con selector de autores y Markdown seguro.
+- **Audio inteligente Kokoro TTS**: Reproductor híbrido con IA neuronal Kokoro (`/api/tts`) y respaldo nativo Web Speech, velocidad graduable y seguimiento visual de lectura.
+- **Moderación UGC y Privacidad**: Modal de denuncias, gestión y desbloqueo de usuarios, panel administrativo de resolución de reportes y eliminación permanente de cuenta.
+- **Tipografía**: Integración de Geist y Source Serif 4 con eje óptico variable.
+
 
 ---
 

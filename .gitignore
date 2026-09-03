@@ -39,8 +39,9 @@ docs/*
 !desktop/docs/
 !desktop/docs/**
 
-proximas-integraciones/
-proximas-integraciones/**   
+proximas-integraciones/*
+!proximas-integraciones/PLAN-INTEGRACION.md
+!proximas-integraciones/README.md
 
 desktop/capturas/
 desktop/capturas/**

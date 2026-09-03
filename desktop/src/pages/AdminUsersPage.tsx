@@ -17,8 +17,11 @@ function parseSections(raw: string | string[] | null): string[] | null {
   }
 }
 
+import { AdminModerationPanel } from "@/components/AdminModerationPanel";
+
 export function AdminUsersPage() {
   const { user } = useAuth();
+  const [activeTab, setActiveTab] = useState<"users" | "moderation">("users");
   const [users, setUsers] = useState<ManagedUser[]>([]);
   const [groups, setGroups] = useState<AdminSectionGroup[]>([]);
   const [defaults, setDefaults] = useState<string[]>([]);
@@ -72,24 +75,58 @@ export function AdminUsersPage() {
       />
     );
   return (
-    <div className="desktop-page space-y-5 p-6">
-      <header>
-        <h1 className="text-2xl font-bold text-foreground">
-          Gestión de usuarios
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Administra cuentas, roles y permisos de secciones.
-        </p>
+    <div className="desktop-page space-y-6 p-6 max-w-5xl mx-auto">
+      <header className="flex flex-wrap items-center justify-between gap-4 border-b border-border/40 pb-4">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">
+            Panel de Administración
+          </h1>
+          <p className="text-xs text-muted-foreground">
+            Administra usuarios, permisos de secciones y moderación comunitaria.
+          </p>
+        </div>
+
+        {/* Tab Switcher */}
+        <div className="flex rounded-xl border border-border/80 bg-card p-1 text-xs">
+          <button
+            type="button"
+            onClick={() => setActiveTab("users")}
+            className={`rounded-lg px-3.5 py-1.5 font-semibold transition-colors ${
+              activeTab === "users"
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Usuarios ({users.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("moderation")}
+            className={`rounded-lg px-3.5 py-1.5 font-semibold transition-colors ${
+              activeTab === "moderation"
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Moderación UGC
+          </button>
+        </div>
       </header>
-      <div className="flex gap-2">
-        <input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Buscar por nombre o correo…"
-          className="min-w-0 flex-1 rounded-lg border border-input bg-card px-3 py-2 text-foreground"
-        />
-        <Button onClick={() => setEditing("new")}>Crear usuario</Button>
-      </div>
+
+      {activeTab === "moderation" ? (
+        <AdminModerationPanel />
+      ) : (
+        <div className="space-y-5">
+          <div className="flex gap-2">
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Buscar por nombre o correo…"
+              className="min-w-0 flex-1 rounded-xl border border-input bg-card px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+            <Button onClick={() => setEditing("new")}>Crear usuario</Button>
+          </div>
+
       {loading ? (
         <p className="text-muted-foreground">Cargando…</p>
       ) : error ? (
@@ -144,9 +181,12 @@ export function AdminUsersPage() {
       ) : (
         <EmptyState title="Ningún usuario coincide" />
       )}
+        </div>
+      )}
     </div>
   );
 }
+
 
 function AdminForm({
   target,

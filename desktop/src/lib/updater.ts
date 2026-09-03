@@ -51,4 +51,5 @@ function isTauri(): boolean {
   return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 }
 
-export const APP_VERSION = import.meta.env.PACKAGE_VERSION ?? "0.3.4";
+export const APP_VERSION = import.meta.env.PACKAGE_VERSION ?? "0.3.5";
+

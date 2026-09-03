@@ -339,3 +339,52 @@ export interface BookLog {
   reflection?: string | null;
   createdAt: string;
 }
+
+export interface VerseCommentaryEntry {
+  id: number;
+  bibleId: number;
+  bookId: number;
+  chapter: number;
+  verseStart: number;
+  verseEnd: number;
+  author: string;
+  languageCode?: string;
+  contentMd: string;
+}
+
+export interface TtsVoice {
+  id: string;
+  name: string;
+  lang: string;
+  gender: string;
+}
+
+export type ReportTargetType = "post" | "comment" | "user";
+
+export interface ReportItem {
+  id: number;
+  reporter_id: number;
+  reporter_name?: string;
+  reporter_username?: string;
+  target_type: ReportTargetType;
+  target_id: number;
+  reason: string;
+  details: string | null;
+  status: "pending" | "resolved" | "dismissed";
+  action_taken: string | null;
+  resolved_at: string | null;
+  created_at: string;
+  target_content?: string | null;
+  target_author_id?: number | null;
+  target_author_name?: string | null;
+  target_author_username?: string | null;
+}
+
+export interface BlockedUser {
+  id: number;
+  name: string;
+  username: string;
+  avatar_media_id: number | null;
+  blocked_at: string;
+}
+
