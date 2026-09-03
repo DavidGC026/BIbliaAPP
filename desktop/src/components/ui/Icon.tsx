@@ -81,7 +81,11 @@ export type IconName =
   | "volume"
   | "volume-x"
   | "play"
-  | "pause";
+  | "pause"
+  | "columns"
+  | "split"
+  | "compare";
+
 
 
 const ASSET_NAME: Partial<Record<IconName, string>> = {
@@ -245,7 +249,29 @@ const CONTENT: Partial<Record<IconName, ReactNode>> = {
       <rect x="14" y="4" width="4" height="16" fill="currentColor" />
     </>
   ),
+  columns: (
+    <>
+      <rect width="18" height="18" x="3" y="3" rx="2" />
+      <path d="M12 3v18" />
+    </>
+  ),
+  split: (
+    <>
+      <rect width="18" height="18" x="3" y="3" rx="2" />
+      <path d="M14 3v18" />
+      <path d="m8 9-2 3 2 3" />
+    </>
+  ),
+  compare: (
+    <>
+      <path d="m16 3 4 4-4 4" />
+      <path d="M20 7H4" />
+      <path d="m8 21-4-4 4-4" />
+      <path d="M4 17h16" />
+    </>
+  ),
 };
+
 
 
 type Props = Omit<SVGProps<SVGSVGElement>, "name"> & {

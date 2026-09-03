@@ -13,6 +13,7 @@ export interface ReaderToolbarProps {
   onAddNote?: () => void;
   onOpenImageCreator?: () => void;
   onCrossReferences?: () => void;
+  onCompare?: () => void;
   onListen?: () => void;
   onClearSelection: () => void;
 }
@@ -28,9 +29,11 @@ export function ReaderToolbar({
   onAddNote,
   onOpenImageCreator,
   onCrossReferences,
+  onCompare,
   onListen,
   onClearSelection,
 }: ReaderToolbarProps) {
+
   return (
     <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 w-[95%] max-w-xl animate-fade-in">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 rounded-2xl border border-border/80 bg-card/95 p-3 shadow-2xl backdrop-blur-md">
@@ -122,6 +125,19 @@ export function ReaderToolbar({
               <Icon name="sparkles" size={14} />
             </Button>
           )}
+
+          {onCompare && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onCompare}
+              className="size-8 p-0 text-indigo-500 hover:text-indigo-600"
+              title="Comparar versículo en varias versiones"
+            >
+              <Icon name="compare" size={14} />
+            </Button>
+          )}
+
 
           {onListen && (
             <Button
