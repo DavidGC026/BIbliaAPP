@@ -1002,6 +1002,11 @@ select option {
   width: 100%;
 }
 
+.reader-paragraphs > li.interlinear-superscription {
+  display: block;
+  width: 100%;
+}
+
 .interlinear-original {
   font-family: var(--font-serif);
 }

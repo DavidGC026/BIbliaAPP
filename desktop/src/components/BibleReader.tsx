@@ -30,6 +30,7 @@ import { ReaderToolbar } from "./bible-reader/reader-toolbar";
 import { ReaderSettings } from "./bible-reader/reader-settings";
 import { BibleAudioPlayer } from "./bible-reader/audio-player";
 import { VerseText } from "./bible-reader/verse-text";
+import { InterlinearSuperscription } from "./bible-reader/interlinear-panel";
 import { StudyPanel } from "./bible-reader/study-panel";
 import { VerseCompareModal } from "./bible-reader/verse-compare-modal";
 
@@ -77,8 +78,9 @@ export function BibleReader({ target }: Props) {
   const [selectedVerseForRefs, setSelectedVerseForRefs] = useState<Verse | null>(null);
   const [imageCreatorOpen, setImageCreatorOpen] = useState(false);
 
-  // Panel de estudio lateral dividido (Split View)
-  const [showStudyPanel, setShowStudyPanel] = useState(false);
+  // Panel de estudio lateral dividido (Split View) — Activo por defecto en escritorio
+  const [showStudyPanel, setShowStudyPanel] = useState(true);
+
 
   // Modo Paralelo de lectura (2 Versiones lado a lado sincronizadas)
   const [isParallel, setIsParallel] = useState(false);
@@ -149,6 +151,7 @@ export function BibleReader({ target }: Props) {
     }
     return map;
   }, [interlinearWords, preferences.showInterlinear]);
+  const superscriptionWords = interlinearByVerse.get(0);
 
   const readerPalette = useMemo(
     () => getReaderPalette(preferences.theme),
@@ -822,6 +825,15 @@ export function BibleReader({ target }: Props) {
                     : undefined
                 }
               >
+                {superscriptionWords && superscriptionWords.length > 0 ? (
+                  <InterlinearSuperscription
+                    words={superscriptionWords}
+                    fontSize={preferences.fontSize}
+                    mutedColor={readerPalette?.muted}
+                    accentColor={readerPalette?.accent}
+                    borderColor={readerPalette?.border}
+                  />
+                ) : null}
                 {verses.map((v) => {
                   const vNum = Number(v.verse);
                   return (

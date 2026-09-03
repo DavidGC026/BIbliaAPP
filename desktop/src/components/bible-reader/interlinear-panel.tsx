@@ -182,3 +182,19 @@ export const InterlinearPanel = memo(function InterlinearPanel({
     </div>
   );
 });
+
+/** Títulos de salmo y superscripciones (verse = 0): no hay versículo RV60 que los ancle. */
+export function InterlinearSuperscription(props: InterlinearPanelProps) {
+  if (props.words.length === 0) return null;
+  return (
+    <li className="interlinear-superscription mb-3 block">
+      <p
+        className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
+        style={props.mutedColor ? { color: props.mutedColor } : undefined}
+      >
+        Título
+      </p>
+      <InterlinearPanel {...props} />
+    </li>
+  );
+}
