@@ -2,8 +2,9 @@
 # Uso: cd desktop/packaging/arch && makepkg -si
 
 pkgname=bibliaapp-desktop
-pkgver=0.3.5.4
+pkgver=0.3.5.5
 pkgrel=1
+
 
 
 

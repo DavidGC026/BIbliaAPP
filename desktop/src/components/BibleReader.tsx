@@ -229,6 +229,22 @@ export function BibleReader({ target }: Props) {
     };
   }, []);
 
+  // Sincronizar catálogo de libros al cambiar de versión bíblica
+  useEffect(() => {
+    if (!bibleId || loading) return;
+    let mounted = true;
+    repo
+      .repoListBooks(bibleId)
+      .then(({ books: list }) => {
+        if (!mounted) return;
+        setBooks(list);
+      })
+      .catch(() => {});
+    return () => {
+      mounted = false;
+    };
+  }, [bibleId, loading]);
+
   // Control de target externo
   useEffect(() => {
     if (!target) return;
@@ -244,6 +260,7 @@ export function BibleReader({ target }: Props) {
     clearSelection();
   }, [target]);
 
+
   // --------------------------------------------------------------------------
   // CARGA DE CAPÍTULO (Versículos, Subrayados, Notas, Comentarios)
   // --------------------------------------------------------------------------
@@ -253,7 +270,7 @@ export function BibleReader({ target }: Props) {
     setError(null);
     try {
       const [vResult, hResult, notesResult] = await Promise.all([
-        repo.repoGetVerses(bookId, chapter, bibleId),
+        repo.repoGetVerses(bibleId, bookId, chapter),
         canAnnotate
           ? repo.repoGetHighlights(bookId, chapter, bibleId)
           : Promise.resolve({ highlights: [] }),
@@ -262,6 +279,7 @@ export function BibleReader({ target }: Props) {
           : Promise.resolve({ links: [] }),
       ]);
       setVerses(vResult.verses || []);
+
       setHighlights(hResult.highlights || []);
       setNoteLinks(notesResult.links || []);
       setCurrentVerse(1);
