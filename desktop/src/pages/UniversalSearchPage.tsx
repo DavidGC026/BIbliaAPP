@@ -234,82 +234,90 @@ export function UniversalSearchPage({
           description="Prueba otra palabra o activa más filtros."
         />
       ) : null}
-      {verses.items.length ? (
-        <Result title="Biblia">
-          {verses.items.map((verse) => (
-            <button
-              key={verse.id}
-              onClick={() =>
-                onOpenBible({
-                  bibleId,
-                  bookId: verse.bookId,
-                  chapter: verse.chapter,
-                })
-              }
-              className="block w-full border-b border-border py-3 text-left last:border-0"
-            >
-              <b className="text-primary">
-                {verse.bookName} {verse.chapter}:{verse.verse}
-              </b>
-              <span className="mt-1 block text-sm text-foreground">
-                {verse.text}
-              </span>
-            </button>
-          ))}
-        </Result>
-      ) : null}
-      {notes.items.length ? (
-        <Result title="Notas">
-          {notes.items.map((note) => (
-            <button
-              key={note.id}
-              onClick={() => onOpenNote?.(note.notebookId, note.id)}
-              className="block w-full border-b border-border py-3 text-left last:border-0"
-            >
-              <b className="text-foreground">{note.title || "Sin título"}</b>
-              <span className="block text-xs text-primary">
-                {note.notebookName}
-              </span>
-              <span className="mt-1 line-clamp-2 text-sm text-muted-foreground">
-                {plain(note.content)}
-              </span>
-            </button>
-          ))}
-        </Result>
-      ) : null}
-      {devotionals.items.length ? (
-        <Result title="Devocionales">
-          {devotionals.items.map((item) => (
-            <div
-              key={item.id}
-              className="border-b border-border py-3 last:border-0"
-            >
-              <b className="text-foreground">{item.title}</b>
-              {item.verseRef ? (
-                <span className="block text-sm text-primary">
-                  {item.verseRef}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
+        {verses.items.length ? (
+          <Result title="Biblia">
+            {verses.items.map((verse) => (
+              <button
+                key={verse.id}
+                onClick={() =>
+                  onOpenBible({
+                    bibleId,
+                    bookId: verse.bookId,
+                    chapter: verse.chapter,
+                  })
+                }
+                className="block w-full border-b border-border/60 py-3 text-left hover:bg-accent/40 px-2 rounded-lg transition-colors last:border-0"
+              >
+                <b className="text-primary text-xs font-bold block">
+                  {verse.bookName} {verse.chapter}:{verse.verse}
+                </b>
+                <span className="mt-1 block text-xs text-foreground">
+                  {verse.text}
                 </span>
-              ) : null}
-            </div>
-          ))}
-        </Result>
-      ) : null}
-      {dictionary.items.length ? (
-        <Result title="Diccionario">
-          {dictionary.items.map((item) => (
-            <div
-              key={item.strongCode}
-              className="border-b border-border py-3 last:border-0"
-            >
-              <b className="text-primary">{item.strongCode}</b>{" "}
-              <strong className="text-foreground">{item.lemma}</strong>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {item.definition}
-              </p>
-            </div>
-          ))}
-        </Result>
-      ) : null}
+              </button>
+            ))}
+          </Result>
+        ) : null}
+
+        {notes.items.length ? (
+          <Result title="Notas">
+            {notes.items.map((note) => (
+              <button
+                key={note.id}
+                onClick={() => onOpenNote?.(note.notebookId, note.id)}
+                className="block w-full border-b border-border/60 py-3 text-left hover:bg-accent/40 px-2 rounded-lg transition-colors last:border-0"
+              >
+                <b className="text-foreground text-sm font-bold block">{note.title || "Sin título"}</b>
+                <span className="block text-xs text-primary font-semibold">
+                  {note.notebookName}
+                </span>
+                <span className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+                  {plain(note.content)}
+                </span>
+              </button>
+            ))}
+          </Result>
+        ) : null}
+
+        {devotionals.items.length ? (
+          <Result title="Devocionales">
+            {devotionals.items.map((item) => (
+              <div
+                key={item.id}
+                className="border-b border-border/60 py-3 px-2 last:border-0"
+              >
+                <b className="text-foreground text-sm font-bold block">{item.title}</b>
+                {item.verseRef ? (
+                  <span className="block text-xs text-primary font-semibold mt-0.5">
+                    {item.verseRef}
+                  </span>
+                ) : null}
+              </div>
+            ))}
+          </Result>
+        ) : null}
+
+        {dictionary.items.length ? (
+          <Result title="Diccionario">
+            {dictionary.items.map((item) => (
+              <div
+                key={item.strongCode}
+                className="border-b border-border/60 py-3 px-2 last:border-0"
+              >
+                <div className="flex items-center gap-2">
+                  <b className="text-primary font-mono text-xs">{item.strongCode}</b>
+                  <strong className="text-foreground text-sm">{item.lemma}</strong>
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
+                  {item.definition}
+                </p>
+              </div>
+            ))}
+          </Result>
+        ) : null}
+      </div>
+
     </div>
   );
 }

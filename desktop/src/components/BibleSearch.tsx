@@ -94,8 +94,9 @@ export function BibleSearch({ onOpenVerse }: Props) {
         </p>
       ) : null}
 
-      <div className="space-y-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 w-full">
         {results.map((v) => (
+
           <Card
             key={`${v.bookId}-${v.chapter}-${v.verse}`}
             className="cursor-pointer transition-colors hover:bg-accent/50"

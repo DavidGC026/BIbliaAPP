@@ -93,7 +93,7 @@ export function ProfilePage({ onOpenBible, onNavigate }: Props) {
   }
 
   return (
-    <div className="desktop-page space-y-6 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto pb-24">
+    <div className="desktop-page space-y-6 p-4 sm:p-6 lg:p-8 w-full pb-24">
       {/* Header */}
       <header className="border-b border-border/40 pb-4">
         <h1 className="text-3xl font-bold tracking-tight text-foreground">
@@ -107,7 +107,8 @@ export function ProfilePage({ onOpenBible, onNavigate }: Props) {
       {/* 2-COLUMN WIDESCREEN GRID */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* LEFT COLUMN: User Card, Personal Content, Status & App info */}
-        <div className="lg:col-span-5 xl:col-span-4 space-y-6">
+        <div className="lg:col-span-4 xl:col-span-3 space-y-6">
+
           {/* User info card */}
           <Card className="text-center shadow-sm border-border/80 p-6 space-y-4">
             <div className="mx-auto flex size-24 items-center justify-center rounded-full bg-primary/15 text-4xl font-bold text-primary ring-4 ring-primary/10">
@@ -259,7 +260,8 @@ export function ProfilePage({ onOpenBible, onNavigate }: Props) {
         </div>
 
         {/* RIGHT COLUMN: Appearance, Reminders, Safety & Admin */}
-        <div className="lg:col-span-7 xl:col-span-8 space-y-6">
+        <div className="lg:col-span-8 xl:col-span-9 space-y-6">
+
           {/* Appearance & Themes */}
           <Card className="space-y-4 shadow-sm border-border/80 p-6">
             <div>
