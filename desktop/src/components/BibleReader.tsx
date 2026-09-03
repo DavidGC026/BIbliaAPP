@@ -598,8 +598,8 @@ export function BibleReader({ target }: Props) {
                 clearSelection();
                 setChapter(c);
               }}
-              disabled={loadingChapter}
             />
+
 
             {/* Selector de 2ª versión para Modo Paralelo */}
             {isParallel && (

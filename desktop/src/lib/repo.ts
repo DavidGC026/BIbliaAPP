@@ -122,70 +122,84 @@ export async function repoListBibles(): Promise<{
   bibles: BibleVersion[];
   defaultBibleId: number | null;
 }> {
-  if (getIsOnline()) {
-    try {
-      const res = await api.listBibles();
+  try {
+    const res = await api.listBibles();
+    if (res.bibles && res.bibles.length > 0) {
       if (isSqliteAvailable()) {
         await tryCache(() => cacheBibleCatalog(res.bibles));
       }
       return res;
-    } catch (onlineErr) {
-      if (isSqliteAvailable()) {
-        try {
-          await initOffline();
-          const local = await listLocalBibles();
-          if (local.length > 0) {
-            const downloaded = local.find((item) => item.downloaded);
-            return {
-              bibles: local.map(
-                ({ downloaded: _d, downloadedAt: _a, ...b }) => b,
-              ),
-              defaultBibleId: downloaded?.bibleId ?? local[0]?.bibleId ?? null,
-            };
-          }
-        } catch {
-          // ponytail: cae al error de red original
-        }
-      }
-      throw onlineErr instanceof Error ? onlineErr : new Error("Sin conexión");
     }
+  } catch (onlineErr) {
+    if (isSqliteAvailable()) {
+      try {
+        await initOffline();
+        const local = await listLocalBibles();
+        if (local.length > 0) {
+          const downloaded = local.find((item) => item.downloaded);
+          return {
+            bibles: local.map(
+              ({ downloaded: _d, downloadedAt: _a, ...b }) => b,
+            ),
+            defaultBibleId: downloaded?.bibleId ?? local[0]?.bibleId ?? null,
+          };
+        }
+      } catch {
+        // fall through
+      }
+    }
+    throw onlineErr instanceof Error ? onlineErr : new Error("Sin conexión");
   }
-  if (!isSqliteAvailable()) throw new Error("Sin conexión");
-  try {
-    await initOffline();
-    const local = await listLocalBibles();
-    if (local.length === 0)
-      throw new Error("Sin conexión y no hay versiones descargadas");
-    const downloaded = local.find((item) => item.downloaded);
-    return {
-      bibles: local.map(({ downloaded: _d, downloadedAt: _a, ...b }) => b),
-      defaultBibleId: downloaded?.bibleId ?? local[0]?.bibleId ?? null,
-    };
-  } catch (err) {
-    throw err instanceof Error ? err : new Error("Sin conexión");
+
+  if (isSqliteAvailable()) {
+    try {
+      await initOffline();
+      const local = await listLocalBibles();
+      if (local.length > 0) {
+        const downloaded = local.find((item) => item.downloaded);
+        return {
+          bibles: local.map(
+            ({ downloaded: _d, downloadedAt: _a, ...b }) => b,
+          ),
+          defaultBibleId: downloaded?.bibleId ?? local[0]?.bibleId ?? null,
+        };
+      }
+    } catch {}
   }
+  throw new Error("Sin conexión y no hay versiones descargadas");
 }
 
 export async function repoListBooks(
   bibleId: number,
 ): Promise<{ books: Book[] }> {
   const local = await localBooksIfReady(bibleId);
-  if (local) return { books: local };
+  if (local && local.length > 0) return { books: local };
 
-  if (getIsOnline()) {
+  try {
     const res = await api.listBooks(bibleId);
-    if (isSqliteAvailable()) {
-      await tryCache(() => cacheBooks(bibleId, res.books));
+    if (res.books && res.books.length > 0) {
+      if (isSqliteAvailable()) {
+        await tryCache(() => cacheBooks(bibleId, res.books));
+      }
+      return res;
     }
-    return res;
+  } catch (onlineErr) {
+    if (isSqliteAvailable()) {
+      try {
+        const books = await getLocalBooks(bibleId);
+        if (books.length > 0) return { books };
+      } catch {}
+    }
+    throw onlineErr instanceof Error ? onlineErr : new Error("Sin conexión");
   }
 
-  if (!isSqliteAvailable()) throw new Error("Sin conexión");
-  const books = await getLocalBooks(bibleId);
-  if (books.length === 0) {
-    throw new Error("Descarga esta versión para leer sin conexión");
+  if (isSqliteAvailable()) {
+    try {
+      const books = await getLocalBooks(bibleId);
+      if (books.length > 0) return { books };
+    } catch {}
   }
-  return { books };
+  throw new Error("Descarga esta versión para leer sin conexión");
 }
 
 export async function repoGetVerses(
@@ -194,39 +208,37 @@ export async function repoGetVerses(
   chapter: number,
 ): Promise<{ verses: Verse[] }> {
   const local = await localVersesIfReady(bibleId, bookId, chapter);
-  if (local) return { verses: local };
+  if (local && local.length > 0) return { verses: local };
 
-  if (getIsOnline()) {
-    try {
-      const res = await api.getVerses(bibleId, bookId, chapter);
+  try {
+    const res = await api.getVerses(bibleId, bookId, chapter);
+    if (res.verses && res.verses.length > 0) {
       if (isSqliteAvailable() && (await canCacheBible(bibleId))) {
         await tryCache(() =>
           cacheChapterVerses(bibleId, bookId, chapter, res.verses),
         );
       }
       return res;
-    } catch (onlineErr) {
-      if (isSqliteAvailable()) {
-        try {
-          const verses = await getLocalVerses(bibleId, bookId, chapter);
-          if (verses.length > 0) return { verses };
-        } catch {
-          // ponytail: cae al error de red original
-        }
-      }
-      throw onlineErr instanceof Error ? onlineErr : new Error("Sin conexión");
     }
+  } catch (onlineErr) {
+    if (isSqliteAvailable()) {
+      try {
+        const verses = await getLocalVerses(bibleId, bookId, chapter);
+        if (verses.length > 0) return { verses };
+      } catch {}
+    }
+    throw onlineErr instanceof Error ? onlineErr : new Error("Sin conexión");
   }
 
-  if (!isSqliteAvailable()) throw new Error("Sin conexión");
-  const verses = await getLocalVerses(bibleId, bookId, chapter);
-  if (verses.length === 0) {
-    throw new Error(
-      "Capítulo no disponible offline. Descarga la versión en Biblia → Descargas.",
-    );
+  if (isSqliteAvailable()) {
+    try {
+      const verses = await getLocalVerses(bibleId, bookId, chapter);
+      if (verses.length > 0) return { verses };
+    } catch {}
   }
-  return { verses };
+  throw new Error("Capítulo no disponible offline. Descarga la versión en Biblia → Descargas.");
 }
+
 
 export async function repoSearchVerses(bibleId: number, q: string) {
   if (getIsOnline()) {
