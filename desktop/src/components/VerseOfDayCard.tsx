@@ -212,14 +212,14 @@ export function VerseOfDayCard({ onReadInBible }: Props) {
 
   if (hasBg) {
     return (
-      <div className="relative mx-auto w-full max-w-md overflow-hidden rounded-2xl border shadow-sm">
-        <div className="relative aspect-[3/4] w-full">
+      <div className="relative w-full overflow-hidden rounded-2xl border border-border/80 shadow-sm transition-all hover:shadow-md">
+        <div className="relative min-h-[360px] lg:min-h-[420px] w-full flex flex-col justify-center">
           <img
             src={verse.backgroundImage!}
             alt=""
             className="absolute inset-0 h-full w-full object-cover"
           />
-          <div className="absolute inset-0 bg-black/45" />
+          <div className="absolute inset-0 bg-black/55 backdrop-blur-[1px]" />
           <div className="relative z-10 flex h-full flex-col items-center justify-center p-6 text-center md:p-8">
             {content}
           </div>
@@ -229,12 +229,13 @@ export function VerseOfDayCard({ onReadInBible }: Props) {
   }
 
   return (
-    <div className="relative overflow-hidden rounded-2xl border bg-card/50 shadow-sm backdrop-blur-xl">
-      <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-primary/5 blur-[50px]" />
-      <div className="pointer-events-none absolute -bottom-10 -left-10 h-40 w-40 rounded-full bg-blue-500/5 blur-[50px]" />
+    <div className="relative w-full overflow-hidden rounded-2xl border border-border/80 bg-card/60 shadow-sm backdrop-blur-xl transition-all hover:shadow-md min-h-[360px] lg:min-h-[420px] flex flex-col justify-center">
+      <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-primary/10 blur-[60px]" />
+      <div className="pointer-events-none absolute -bottom-10 -left-10 h-40 w-40 rounded-full bg-blue-500/10 blur-[60px]" />
       <div className="relative z-10 flex flex-col items-center p-6 text-center md:p-8">
         {content}
       </div>
     </div>
   );
 }
+

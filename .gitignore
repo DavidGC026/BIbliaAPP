@@ -25,6 +25,7 @@ public/uploads
 #scripts (se versiona el SQL del interlineal; el resto es local)
 scripts/*
 !scripts/004_interlinear.sql
+!scripts/import_interlinear_gnt.ts
 .continue
 # docs/ queda fuera del repo porque contiene material privado
 # (infra-privada.md, comandos de servidor). Se publican solo los

@@ -4,7 +4,6 @@ import type { ReaderLayout } from "@/lib/preferences";
 import type { Verse, VerseCommentaryEntry } from "@/lib/types";
 import { VerseCommentary } from "./verse-commentary";
 
-
 export interface VerseTextProps {
   verse: Verse;
   fontSize: number;
@@ -15,25 +14,28 @@ export interface VerseTextProps {
   mutedColor?: string;
   accentColor?: string;
   borderColor?: string;
-  hasNote: boolean;
-  highlightColor?: string;
-  isSelected: boolean;
-  isFlashed: boolean;
+  hasNote?: boolean;
+  highlightColor?: string | null;
+  isSelected?: boolean;
+  isFlashed?: boolean;
   isSpeaking?: boolean;
-  canAnnotate: boolean;
+  canAnnotate?: boolean;
   commentaries?: VerseCommentaryEntry[];
-  onToggleSelect: (verseNum: number, shiftKey: boolean) => void;
-  onSetCurrent: (verseNum: number) => void;
-  onNote?: (verse: Verse) => void;
-  onCrossReferences?: (verse: Verse) => void;
+  onToggleSelect: (verseNumber: number, isShiftKey: boolean) => void;
+  onSetCurrent: (verseNumber: number) => void;
+  onNote: (verseNumber: number) => void;
+  onCrossReferences: (verse: Verse) => void;
 }
 
 const MARKER_BG_CLASSES: Record<string, string> = {
-  yellow: "bg-yellow-400/45 dark:bg-yellow-400/40",
-  green: "bg-emerald-400/45 dark:bg-emerald-400/40",
-  blue: "bg-sky-400/45 dark:bg-sky-400/40",
-  orange: "bg-orange-400/45 dark:bg-orange-400/40",
-  pink: "bg-pink-400/45 dark:bg-pink-400/40",
+  yellow:
+    "bg-yellow-400/40 text-neutral-900 dark:bg-yellow-400/35 dark:text-neutral-50",
+  green:
+    "bg-emerald-400/40 text-neutral-900 dark:bg-emerald-400/35 dark:text-neutral-50",
+  blue: "bg-sky-400/40 text-neutral-900 dark:bg-sky-400/35 dark:text-neutral-50",
+  orange:
+    "bg-amber-400/40 text-neutral-900 dark:bg-amber-400/35 dark:text-neutral-50",
+  pink: "bg-rose-400/40 text-neutral-900 dark:bg-rose-400/35 dark:text-neutral-50",
 };
 
 const MARKER_SHAPE_CLASSES =
@@ -54,20 +56,15 @@ export const VerseText = memo(function VerseText({
   isSelected,
   isFlashed,
   isSpeaking,
-  canAnnotate,
+  canAnnotate: _canAnnotate,
   commentaries,
+
   onToggleSelect,
   onSetCurrent,
   onNote,
   onCrossReferences,
 }: VerseTextProps) {
   const verseNum = Number(v.verse);
-
-  // Capitular en versículo 1 si empieza con letra
-  const dropCapMatch =
-    verseNum === 1 ? v.text.match(/^(\p{L})([\s\S]*)$/u) : null;
-  const dropCap = dropCapMatch?.[1] ?? null;
-  const bodyText = dropCapMatch ? dropCapMatch[2] : v.text;
 
   const markerClasses = highlightColor
     ? `${MARKER_SHAPE_CLASSES} ${MARKER_BG_CLASSES[highlightColor] || "bg-yellow-400/45"}`
@@ -78,20 +75,16 @@ export const VerseText = memo(function VerseText({
     onSetCurrent(verseNum);
   };
 
-  const dropCapNode = dropCap ? (
-    <span
-      aria-hidden="true"
-      className="verse-dropcap select-none font-serif"
-      style={accentColor ? { color: accentColor } : undefined}
-    >
-      {dropCap}
-    </span>
-  ) : null;
-
   // --------------------------------------------------------------------------
-  // MODO PÁRRAFOS (Texto continuo)
+  // MODO PÁRRAFOS (Texto continuo con capitular en v1)
   // --------------------------------------------------------------------------
   if (layout === "paragraphs") {
+    // Solo en modo párrafos se extrae la letra capitular del versículo 1
+    const dropCapMatch =
+      verseNum === 1 ? v.text.match(/^(\p{L})([\s\S]*)$/u) : null;
+    const dropCap = dropCapMatch?.[1] ?? null;
+    const bodyText = dropCapMatch ? dropCapMatch[2] : v.text;
+
     return (
       <li
         id={`verse-${verseNum}`}
@@ -118,7 +111,16 @@ export const VerseText = memo(function VerseText({
             textAlign,
           }}
         >
-          {dropCapNode}
+          {dropCap && (
+            <span
+              aria-hidden="true"
+              className="verse-dropcap select-none font-serif"
+              style={accentColor ? { color: accentColor } : undefined}
+            >
+              {dropCap}
+            </span>
+          )}
+
           {/* Número de versículo en superíndice (salvo capitular v1) */}
           {!dropCap && (
             <sup
@@ -160,7 +162,7 @@ export const VerseText = memo(function VerseText({
   }
 
   // --------------------------------------------------------------------------
-  // MODO VERSÍCULOS (Bloques individuales por versículo)
+  // MODO VERSÍCULOS (Filas individuales limpias por versículo)
   // --------------------------------------------------------------------------
   return (
     <li
@@ -188,72 +190,59 @@ export const VerseText = memo(function VerseText({
           textAlign,
         }}
       >
-        <div className="flex items-start gap-2.5">
-          {/* Número de versículo */}
-          {!dropCap ? (
-            <span
-              className="mt-0.5 min-w-[1.8rem] shrink-0 font-serif text-xs font-semibold text-primary/70 select-none tabular-nums"
-              style={accentColor ? { color: accentColor } : undefined}
-            >
-              {verseNum}
-            </span>
-          ) : null}
+        <div className="flex items-start gap-3">
+          {/* Número de versículo fijo a la izquierda */}
+          <span
+            className="mt-0.5 min-w-[2rem] shrink-0 font-serif text-xs font-bold text-primary/75 select-none tabular-nums"
+            style={accentColor ? { color: accentColor } : undefined}
+          >
+            {verseNum}
+          </span>
 
           <div className="min-w-0 flex-1 leading-relaxed">
-            {dropCapNode}
-            <span className={markerClasses}>{bodyText}</span>
+            <span className={markerClasses}>{v.text}</span>
           </div>
 
           {/* Quick inline note indicator / action button */}
           <div className="flex shrink-0 items-center gap-1 opacity-80 group-hover:opacity-100 transition-opacity">
             {hasNote && (
               <span
-                className="flex size-7 items-center justify-center rounded-lg text-primary bg-primary/10"
-                title="Tiene notas de versículo"
+                className="rounded p-1 text-primary hover:bg-primary/10 transition-colors"
+                title="Ver nota de este versículo"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onNote(verseNum);
+                }}
               >
                 <Icon name="notes" size={14} />
               </span>
             )}
-            {canAnnotate && onNote && !hasNote && (
-              <span
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onNote(v);
-                }}
-                className="hidden sm:inline-flex size-7 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground transition-colors cursor-pointer"
-                title="Añadir nota"
-              >
-                <Icon name="notes" size={14} />
-              </span>
-            )}
-            {onCrossReferences && (
-              <span
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onCrossReferences(v);
-                }}
-                className="hidden sm:inline-flex size-7 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground transition-colors cursor-pointer"
-                title="Referencias cruzadas"
-              >
-                <Icon name="sparkles" size={14} />
-              </span>
-            )}
+            <span
+              className="rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground transition-colors opacity-0 group-hover:opacity-100"
+              title="Referencias cruzadas"
+              onClick={(e) => {
+                e.stopPropagation();
+                onCrossReferences(v);
+              }}
+            >
+              <Icon name="sparkles" size={14} />
+            </span>
           </div>
         </div>
-
-        {/* Comentarios bíblicos debajo del versículo */}
-        {commentaries && commentaries.length > 0 && (
-          <div className="mt-2 pl-7">
-            <VerseCommentary
-              commentaries={commentaries}
-              fontSize={fontSize}
-              mutedColor={mutedColor}
-              accentColor={accentColor}
-              borderColor={borderColor}
-            />
-          </div>
-        )}
       </button>
+
+      {/* Comentarios bíblicos debajo del versículo */}
+      {commentaries && commentaries.length > 0 && (
+        <div className="px-3 pb-3">
+          <VerseCommentary
+            commentaries={commentaries}
+            fontSize={fontSize}
+            mutedColor={mutedColor}
+            accentColor={accentColor}
+            borderColor={borderColor}
+          />
+        </div>
+      )}
     </li>
   );
 });

@@ -6,7 +6,7 @@ interlineal en el lector, con criterios de aceptación medibles en cada paso.
 
 **Fecha de redacción:** 2026-09-01
 **Rama de referencia:** `fix/notas-bloques-contenido`
-**Estado global:** `EN CURSO` (Fase 2 cerrada)
+**Estado global:** `EN CURSO` (Fase 3 cerrada)
 
 ---
 
@@ -273,9 +273,9 @@ CREATE TABLE IF NOT EXISTS bible_strong_particles (
 
 **Objetivo:** la fase de mayor retorno. Es donde el español viene regalado.
 
-- [ ] **3.1** Crear `scripts/import_interlinear_gnt.ts`, siguiendo el estilo de
-      `scripts/import_strong_dictionary.ts` (mysql2, dotenv, inserción por
-      lotes, reanudable).
+- [x] **3.1** Crear `scripts/import_interlinear_gnt.ts` y el parser
+      `lib/interlinear/tagnt.ts`. Upsert por lotes de 500, `--fresh` / `--dry-run`.
+      `npm run import:interlinear-gnt`.
 
 Ficheros de origen (2, por límite de tamaño de GitHub):
 ```
@@ -302,19 +302,20 @@ Columnas verificadas sobre `Mat.1.1#04`:
 | 11 | Posición | `#04` |
 | 12 | Strong simple + instancia | `G5547`, `G5207_A` |
 
-- [ ] **3.2** Filtrar variantes textuales. La columna 1 lleva el sufijo de
-      ediciones (`=NKO`, `=N`, `=K`…). Cargar **una sola lectura por posición**
-      para no duplicar palabras; guardar la variante en `strong_raw` o
-      descartarla, pero decidirlo explícitamente y anotarlo aquí.
-- [ ] **3.3** Cargar por lotes (`CHUNK_SIZE = 500`, como el importador de Strong).
-- [ ] **3.4** Validación post-carga:
-      - 141.720 palabras insertadas (menos las variantes filtradas en 3.2 —
-        **anotar la cifra final**).
-      - 7.948 versículos distintos.
-      - **99,74 % de las filas** con `strong_code` que resuelve contra
-        `bible_strong_dictionary`.
-      - Cero filas con `gloss_es` vacía.
-      - Prueba manual: Jn 1:1 y Mt 1:1 palabra por palabra contra el fichero.
+- [x] **3.2** **Decisión:** no se descarta ninguna fila. Las variantes `=K` /
+      `=O` **no comparten `position`** con la lectura NA: son palabras extra
+      (Hch 8:37, Mc 16:9-20, Jn 8:1-11…). Cargarlas cubre la RV60 (tradición
+      TR). `strong_raw` guarda el Strong de la columna 12, no la variante.
+- [x] **3.3** Cargar por lotes (`CHUNK_SIZE = 500`). Hecho 2026-09-03.
+- [x] **3.4** Validación 2026-09-03:
+      - **141.746** palabras (las 141.720 del plan + 26 filas con paréntesis
+        hebreo/NA en la referencia, que el patrón original no contaba).
+      - **7.949** versículos (7948 + 1).
+      - **141.120 / 141.746 (99,56 %)** resuelven Strong. El 99,74 % del plan
+        era sobre 141.720 sin las extra TR/`G6xxx`. Los que no resuelven son
+        `G6xxx`, `G20447` y 254 filas sin código.
+      - Cero `gloss_es` vacía.
+      - Mt 1:1 y Jn 1:1 cuadran con el fichero (Βίβλος/Libro, Ἐν/En, λόγος/Palabra).
 
 ---
 
@@ -459,7 +460,7 @@ Columnas verificadas sobre `Gen.1.1#01` — **ojo, no son las mismas que TAGNT**
 | 0 | Higiene del repositorio | `parcial` (`.gitignore` ya ignora datos; 0.2 excepciones de los `.md` hechas 2026-09-03) | — |
 | 1 | Cimientos (libros, códigos, versificación) | `cerrada` | 2026-09-03 |
 | 2 | Esquema de base de datos | `cerrada` | 2026-09-03 |
-| 3 | Importador NT (TAGNT) | `pendiente` | — |
+| 3 | Importador NT (TAGNT) | `cerrada` | 2026-09-03 |
 | 4 | API | `pendiente` | — |
 | 5 | Interfaz del lector | `pendiente` | — |
 | 6 | Importador AT (TAHOT) | `pendiente` | — |
@@ -476,6 +477,7 @@ Una entrada por sesión de trabajo. Añadir al final, sin borrar lo anterior.
 | 2026-09-01 | — | — | Redacción del plan. Cifras medidas sobre los datos y la BD reales. | — |
 | 2026-09-03 | Brothers / agente | Fase 1 | `lib/interlinear/*`: mapa de libros, normalizador Strong, TVTMS, `parseTahotHeadRef`, `npm run check:interlinear`. Excepciones de `.gitignore` para este plan y el README. | TAHOT ya viene en numeración NRSV (hebreo entre paréntesis). 21.178 era un recuento incompleto. Strong: 13.974 / 13.845 / 129. RV60 AT: 23.146. TVTMS vs TAHOT: 58 desacuerdos únicos. |
 | 2026-09-03 | Brothers / agente | Fase 2 | `scripts/004_interlinear.sql` + `ensureInterlinearTables`. Tablas creadas vacías. `hasInterlinear` desde `fuertes`. | `strong_raw` VARCHAR(80). `fuertes` sigue en 0. |
+| 2026-09-03 | Brothers / agente | Fase 3 | Parser TAGNT + importador. Carga real: 141.746 palabras / 7.949 versos / 99,56 % Strong / 0 glosas vacías. | No se filtran K/O: cada una tiene su `position`. `fuertes` sigue en 0. |
 
 ---
 
@@ -484,7 +486,7 @@ Una entrada por sesión de trabajo. Añadir al final, sin borrar lo anterior.
 | # | Asunto | Estado |
 |---|---|---|
 | R1 | La versificación es el punto de fallo silencioso: se desalinea sin dar error. Debe cerrarse **antes** de cargar el AT. | mitigado: TAHOT trae la ref inglesa; TVTMS queda como comprobación (99,35 %). Importar la columna 1 principal, no recomputar. |
-| R2 | Filtrado de variantes textuales en TAGNT (tarea 3.2): sin decidir si se guardan o se descartan. | abierto |
+| R2 | Filtrado de variantes textuales en TAGNT (tarea 3.2): sin decidir si se guardan o se descartan. | cerrado: se cargan todas; no hay colisión de `position`. |
 | R3 | Glosas españolas del AT (tarea 6.3): sin elegir opción A, B o C. | abierto |
 | R4 | Interlineal sin conexión (tarea 7.1): sin estrategia. | abierto |
 | R5 | ¿La aplicación tiene componente comercial? Determina si TTESV queda descartada de forma definitiva. | abierto |

@@ -1,5 +1,23 @@
+import type { ResultSetHeader } from "mysql2"
+
 import { getPool } from "../mysql"
 import { runOnce } from "../once-async"
+
+export interface InterlinearWord {
+  idBook: number
+  chapter: number
+  verse: number
+  position: number
+  original: string
+  transliteration: string | null
+  strongCode: string | null
+  strongRaw: string | null
+  morph: string | null
+  lemma: string | null
+  glossEs: string | null
+  glossEn: string | null
+  language: "grc" | "heb" | "arc"
+}
 
 /**
  * Tablas del interlineal. DDL canónico en scripts/004_interlinear.sql.
@@ -44,4 +62,49 @@ async function _ensureInterlinearTables(): Promise<void> {
       PRIMARY KEY (strong_code)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   `)
+}
+
+const INSERT_SQL = `
+  INSERT INTO bible_interlinear
+    (idBook, chapter, verse, position, original, transliteration,
+     strong_code, strong_raw, morph, lemma, gloss_es, gloss_en, language)
+  VALUES ?
+  ON DUPLICATE KEY UPDATE
+    original = VALUES(original),
+    transliteration = VALUES(transliteration),
+    strong_code = VALUES(strong_code),
+    strong_raw = VALUES(strong_raw),
+    morph = VALUES(morph),
+    lemma = VALUES(lemma),
+    gloss_es = VALUES(gloss_es),
+    gloss_en = VALUES(gloss_en),
+    language = VALUES(language)
+`
+
+export async function upsertInterlinearWords(words: InterlinearWord[]): Promise<void> {
+  if (words.length === 0) return
+  const values = words.map((word) => [
+    word.idBook,
+    word.chapter,
+    word.verse,
+    word.position,
+    word.original,
+    word.transliteration,
+    word.strongCode,
+    word.strongRaw,
+    word.morph,
+    word.lemma,
+    word.glossEs,
+    word.glossEn,
+    word.language,
+  ])
+  await getPool().query(INSERT_SQL, [values])
+}
+
+export async function deleteInterlinearByLanguage(language: InterlinearWord["language"]): Promise<number> {
+  const [result] = await getPool().query<ResultSetHeader>(
+    `DELETE FROM bible_interlinear WHERE language = ?`,
+    [language],
+  )
+  return Number(result.affectedRows ?? 0)
 }

@@ -494,7 +494,7 @@ export function BibleReader({ target }: Props) {
 
       {/* Sticky top control panel */}
       <div className="sticky top-0 z-30 -mx-4 -mt-4 sm:-mx-6 sm:-mt-6 rounded-b-2xl border-b border-border/80 bg-background/95 p-3 sm:p-4 shadow-sm backdrop-blur-md transition-all">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="max-w-5xl mx-auto flex flex-wrap items-center justify-between gap-3">
           {/* Selectors for version, book, chapter */}
           <VersionSelector
             bibles={bibles}
@@ -563,7 +563,7 @@ export function BibleReader({ target }: Props) {
 
         {/* Collapsible Reader Settings Panel */}
         {showSettings && (
-          <div className="mt-3 pt-3 border-t border-border/60">
+          <div className="max-w-5xl mx-auto mt-3 pt-3 border-t border-border/60">
             <ReaderSettings
               preferences={preferences}
               onChange={updatePreferences}
@@ -588,14 +588,14 @@ export function BibleReader({ target }: Props) {
       </div>
 
       {error && (
-        <div className="mx-auto max-w-[68ch] rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+        <div className="mx-auto max-w-4xl xl:max-w-5xl rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
           {error}
         </div>
       )}
 
       {/* Editorial Chapter Header (versalitas, large display numeral, fleurón ❦) */}
       {selectedBook && !loadingChapter && verses.length > 0 && (
-        <header className="mx-auto mb-6 flex w-full max-w-[68ch] flex-col items-center text-center pt-2 sm:pt-4 md:mb-8">
+        <header className="mx-auto mb-6 flex w-full max-w-4xl xl:max-w-5xl flex-col items-center text-center pt-2 sm:pt-4 md:mb-8">
           <p className="text-[11px] font-bold uppercase tracking-[0.32em] text-muted-foreground">
             {selectedBook.bookName}
           </p>
@@ -614,7 +614,7 @@ export function BibleReader({ target }: Props) {
       )}
 
       {loadingChapter && (
-        <div className="mx-auto max-w-[68ch] py-12 text-center text-sm text-muted-foreground animate-pulse">
+        <div className="mx-auto max-w-4xl xl:max-w-5xl py-12 text-center text-sm text-muted-foreground animate-pulse">
           Cargando versículos de {selectedBook?.bookName} {chapter}…
         </div>
       )}
@@ -622,9 +622,9 @@ export function BibleReader({ target }: Props) {
       {/* Verses Container */}
       {!loadingChapter && verses.length > 0 && (
         <ol
-          className={`mx-auto w-full max-w-[68ch] rounded-2xl transition-colors ${
+          className={`mx-auto w-full max-w-4xl xl:max-w-5xl rounded-2xl transition-colors ${
             preferences.layout === "paragraphs"
-              ? "reader-paragraphs"
+              ? "reader-paragraphs leading-relaxed px-2 sm:px-4"
               : preferences.density === "compact"
                 ? "space-y-0.5"
                 : "space-y-1"
@@ -677,7 +677,7 @@ export function BibleReader({ target }: Props) {
 
       {/* Chapter Bottom Navigation */}
       {selectedBook && !loadingChapter && verses.length > 0 && (
-        <div className="mx-auto mt-8 flex w-full max-w-[68ch] items-center justify-between border-t border-border/60 pt-6 pb-4">
+        <div className="mx-auto mt-8 flex w-full max-w-4xl xl:max-w-5xl items-center justify-between border-t border-border/60 pt-6 pb-4">
           <Button
             variant="outline"
             onClick={() => {
@@ -709,6 +709,7 @@ export function BibleReader({ target }: Props) {
       )}
 
       {/* Floating Selection Toolbar */}
+
       {selectedVerses.length > 0 && (
         <ReaderToolbar
           selectionLabel={currentSelectionLabel}

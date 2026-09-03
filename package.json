@@ -8,6 +8,7 @@
     "check": "npm run check:editor && npm run check:interlinear",
     "check:editor": "tsx lib/tiptap/__roundtrip__.ts",
     "check:interlinear": "tsx --env-file=.env.local lib/interlinear/__check__.ts",
+    "import:interlinear-gnt": "tsx --env-file=.env.local scripts/import_interlinear_gnt.ts",
     "start": "next start",
     "lint": "eslint ."
   },

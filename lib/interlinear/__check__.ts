@@ -10,6 +10,9 @@ import {
   parseHebrewToStandardMap,
   parsePassageRef,
   parseTahotHeadRef,
+  parseTagntHead,
+  parseGreekCell,
+  tagntRowToWord,
   passageKey,
   stepbibleBookToId,
   type PassageRef,
@@ -309,17 +312,78 @@ async function checkSchema() {
   const [flags] = await pool.query(`SELECT COUNT(*) AS n FROM bible_bibles WHERE fuertes = 1`)
   const enabled = Number((flags as Array<{ n: number }>)[0]?.n ?? 0)
   assert("ninguna biblia tiene fuertes=1 todavía", enabled === 0, String(enabled))
-  console.log("  dato  dimensionado esperado al cargar: ~425k filas / 100–150 MB (vacío ahora)")
+}
+
+function checkTagntParser() {
+  console.log("\n3.1  Parser TAGNT\n")
+  const head = parseTagntHead("Mat.1.1#04=NKO")
+  assert("Mat.1.1#04=NKO → pos 4 NKO", Boolean(head && head.position === 4 && head.editions === "NKO"))
+  const greek = parseGreekCell("Χριστοῦ (Christou)")
+  assert("griego + transliteración", greek.original === "Χριστοῦ" && greek.transliteration === "Christou")
+  const word = tagntRowToWord([
+    "Jhn.1.1#05=NKO",
+    "λόγος, (logos)",
+    "Word",
+    "G3056=N-NSM",
+    "λόγος=word",
+    "",
+    "",
+    "",
+    "Palabra",
+    "",
+    "#05",
+    "G3056_A",
+  ])
+  assert(
+    "Jn 1:1 λόγος → G3056 / Palabra / libro 43",
+    Boolean(word && word.idBook === 43 && word.strongCode === "G3056" && word.glossEs === "Palabra" && word.position === 5),
+  )
+}
+
+async function checkNtLoad() {
+  console.log("\n3.4  Carga NT\n")
+  if (!process.env.MYSQL_HOST || !process.env.MYSQL_DATABASE) {
+    console.log("  SALTA  faltan MYSQL_*")
+    return
+  }
+  const { getPool } = await import("../mysql")
+  const [rows] = await getPool().query(
+    `SELECT COUNT(*) AS words,
+            COUNT(DISTINCT CONCAT(idBook, ':', chapter, ':', verse)) AS verses,
+            SUM(gloss_es IS NULL OR gloss_es = '') AS empty_gloss
+     FROM bible_interlinear WHERE language = 'grc'`,
+  )
+  const row = (rows as Array<{ words: number; verses: number; empty_gloss: number }>)[0]
+  const words = Number(row.words)
+  console.log(`  dato  palabras grc: ${words}`)
+  console.log(`  dato  versículos: ${row.verses}`)
+  if (words === 0) {
+    console.log("  SALTA  NT aún no cargado")
+    return
+  }
+  assert("NT ≥ 141.720 palabras", words >= 141720, String(words))
+  assert("NT ≥ 7.948 versículos", Number(row.verses) >= 7948, String(row.verses))
+  assert("cero gloss_es vacía", Number(row.empty_gloss) === 0, String(row.empty_gloss))
+
+  const [john] = await getPool().query(
+    `SELECT original, gloss_es, strong_code FROM bible_interlinear
+     WHERE language = 'grc' AND idBook = 43 AND chapter = 1 AND verse = 1
+     ORDER BY position`,
+  )
+  const first = (john as Array<{ original: string; gloss_es: string; strong_code: string }>)[0]
+  assert("Jn 1:1 empieza por Ἐν / En / G1722", Boolean(first && first.strong_code === "G1722"))
 }
 
 async function main() {
   console.log("\nChequeos del interlineal\n")
   checkBookMap()
   checkStrongNormalizer()
+  checkTagntParser()
   const map = await checkVersification()
   await checkTahotAlignment(map)
   await checkStrongAgainstDataAndDb()
   await checkSchema()
+  await checkNtLoad()
 
   if (process.env.MYSQL_HOST && process.env.MYSQL_DATABASE) {
     const { getPool } = await import("../mysql")
