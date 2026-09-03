@@ -6,7 +6,7 @@ interlineal en el lector, con criterios de aceptación medibles en cada paso.
 
 **Fecha de redacción:** 2026-09-01
 **Rama de referencia:** `fix/notas-bloques-contenido`
-**Estado global:** `EN CURSO` (Fase 1 cerrada)
+**Estado global:** `EN CURSO` (Fase 2 cerrada)
 
 ---
 
@@ -221,8 +221,11 @@ El fichero de mapeo viene incluido en la carpeta:
 
 ## 5. Fase 2 — Esquema de base de datos
 
-- [ ] **2.1** Crear `scripts/004_interlinear.sql`, siguiendo la convención
-      numerada que ya existe en `scripts/`.
+- [x] **2.1** Crear `scripts/004_interlinear.sql`, siguiendo la convención
+      numerada que ya existe en `scripts/`. La app también las crea al arrancar
+      (`lib/interlinear/tables.ts`). `strong_raw` quedó en `VARCHAR(80)` (el
+      plan decía 40) por tokens TAHOT con varios prefijos. `verse = 0` son
+      títulos de salmo.
 
 ```sql
 CREATE TABLE IF NOT EXISTS bible_interlinear (
@@ -234,7 +237,7 @@ CREATE TABLE IF NOT EXISTS bible_interlinear (
   original     VARCHAR(120) NOT NULL,        -- griego / hebreo con diacríticos
   transliteration VARCHAR(120)  NULL,
   strong_code  VARCHAR(12)  NULL,            -- normalizado: G5547, H7225
-  strong_raw   VARCHAR(40)   NULL,           -- tal cual venía: {H1254A}, G5207_A
+  strong_raw   VARCHAR(80)   NULL,           -- tal cual venía: {H1254A}, G5207_A
   morph        VARCHAR(40)   NULL,           -- N-GSM-T, HVqp3ms
   lemma        VARCHAR(120)  NULL,
   gloss_es     VARCHAR(255)  NULL,           -- solo NT (TAGNT col. 9)
@@ -256,13 +259,13 @@ CREATE TABLE IF NOT EXISTS bible_strong_particles (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 ```
 
-- [ ] **2.2** Dimensionado esperado: **425.454 filas** (141.720 NT + 283.734 AT),
-      unos 100–150 MB con índices. Comparar con `bible_verses`, que hoy tiene
-      186.672 filas. Verificar que el servidor lo aguanta antes de cargar.
-- [ ] **2.3** Aprovechar la columna **`bible_bibles.fuertes`**, que ya existe en
-      el esquema, está a `0`/`NULL` en las 6 biblias y **no se usa en ninguna
-      parte del código**. Es exactamente el interruptor de "esta versión tiene
-      interlineal disponible" que hace falta.
+- [x] **2.2** Dimensionado medido 2026-09-03: `bible_verses` tiene **186.672**
+      filas y **36,9 MB**. Tablas nuevas creadas vacías en `bibliadb`. El disco
+      del servidor tiene ~1,4 TB libres; 100–150 MB no son un problema. No se
+      cargan filas hasta las Fases 3 y 6.
+- [x] **2.3** `bible_bibles.fuertes` confirmado: `TINYINT(1)`, las 6 biblias en
+      `0` o `NULL`. Se expone como `hasInterlinear` en `BibleVersion` (catálogo
+      y `listBibles`). **No se pone a 1** hasta que haya datos cargados.
 
 ---
 
@@ -455,7 +458,7 @@ Columnas verificadas sobre `Gen.1.1#01` — **ojo, no son las mismas que TAGNT**
 |---|---|---|---|
 | 0 | Higiene del repositorio | `parcial` (`.gitignore` ya ignora datos; 0.2 excepciones de los `.md` hechas 2026-09-03) | — |
 | 1 | Cimientos (libros, códigos, versificación) | `cerrada` | 2026-09-03 |
-| 2 | Esquema de base de datos | `pendiente` | — |
+| 2 | Esquema de base de datos | `cerrada` | 2026-09-03 |
 | 3 | Importador NT (TAGNT) | `pendiente` | — |
 | 4 | API | `pendiente` | — |
 | 5 | Interfaz del lector | `pendiente` | — |
@@ -472,6 +475,7 @@ Una entrada por sesión de trabajo. Añadir al final, sin borrar lo anterior.
 |---|---|---|---|---|
 | 2026-09-01 | — | — | Redacción del plan. Cifras medidas sobre los datos y la BD reales. | — |
 | 2026-09-03 | Brothers / agente | Fase 1 | `lib/interlinear/*`: mapa de libros, normalizador Strong, TVTMS, `parseTahotHeadRef`, `npm run check:interlinear`. Excepciones de `.gitignore` para este plan y el README. | TAHOT ya viene en numeración NRSV (hebreo entre paréntesis). 21.178 era un recuento incompleto. Strong: 13.974 / 13.845 / 129. RV60 AT: 23.146. TVTMS vs TAHOT: 58 desacuerdos únicos. |
+| 2026-09-03 | Brothers / agente | Fase 2 | `scripts/004_interlinear.sql` + `ensureInterlinearTables`. Tablas creadas vacías. `hasInterlinear` desde `fuertes`. | `strong_raw` VARCHAR(80). `fuertes` sigue en 0. |
 
 ---
 

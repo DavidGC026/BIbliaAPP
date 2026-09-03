@@ -22,8 +22,9 @@ tsconfig.tsbuildinfo
 public
 public/uploads
 
-#scripts
-scripts
+#scripts (se versiona el SQL del interlineal; el resto es local)
+scripts/*
+!scripts/004_interlinear.sql
 .continue
 # docs/ queda fuera del repo porque contiene material privado
 # (infra-privada.md, comandos de servidor). Se publican solo los

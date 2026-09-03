@@ -460,11 +460,17 @@ async function _ensureDbTables(): Promise<void> {
 
 export async function listBibles(): Promise<BibleVersion[]> {
   const [rows] = await getPool().query<RowDataPacket[]>(
-    `SELECT idBible AS bibleId, abreviation AS abbr, name
+    `SELECT idBible AS bibleId, abreviation AS abbr, name,
+            (fuertes = 1) AS hasInterlinear
      FROM bible_bibles
      ORDER BY idBible`,
   )
-  return rows as BibleVersion[]
+  return rows.map((row) => ({
+    bibleId: Number(row.bibleId),
+    abbr: row.abbr,
+    name: row.name,
+    hasInterlinear: Boolean(row.hasInterlinear),
+  }))
 }
 
 export async function listBooks(bibleId: number): Promise<Book[]> {

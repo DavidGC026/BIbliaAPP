@@ -2,6 +2,7 @@ import type { RowDataPacket } from "mysql2/promise"
 
 import { getSession } from "@/lib/auth"
 import { getPool } from "@/lib/mysql"
+import { ensureInterlinearTables } from "@/lib/interlinear/tables"
 import type { BibleVersion } from "@/lib/types"
 
 export type BibleCapability =
@@ -29,6 +30,7 @@ interface BibleCatalogRow extends RowDataPacket {
   canCreateImages: number | null
   canUseAudio: number | null
   cacheMaxAgeDays: number | null
+  fuertes: number | null
 }
 
 interface EntitlementRow extends RowDataPacket {
@@ -71,6 +73,7 @@ async function hasEntitlement(userId: number, bibleId: number): Promise<boolean>
 }
 
 async function catalogRows(): Promise<BibleCatalogRow[]> {
+  await ensureInterlinearTables()
   try {
     const [rows] = await getPool().query<BibleCatalogRow[]>(
       `SELECT b.idBible AS bibleId, b.abreviation AS abbr, b.name,
@@ -81,7 +84,8 @@ async function catalogRows(): Promise<BibleCatalogRow[]> {
               l.can_copy AS canCopy, l.can_share AS canShare,
               l.can_create_images AS canCreateImages,
               l.can_use_audio AS canUseAudio,
-              l.cache_max_age_days AS cacheMaxAgeDays
+              l.cache_max_age_days AS cacheMaxAgeDays,
+              b.fuertes AS fuertes
        FROM bible_bibles b
        LEFT JOIN bible_licenses l ON l.bible_id = b.idBible
        ORDER BY b.idBible`,
@@ -93,7 +97,7 @@ async function catalogRows(): Promise<BibleCatalogRow[]> {
       return []
     }
     const [rows] = await getPool().query<BibleCatalogRow[]>(
-      `SELECT idBible AS bibleId, abreviation AS abbr, name
+      `SELECT idBible AS bibleId, abreviation AS abbr, name, fuertes
        FROM bible_bibles ORDER BY idBible`,
     )
     return rows
@@ -118,6 +122,7 @@ function toBible(row: BibleCatalogRow): BibleVersion {
     canCreateImages: legacyDevelopmentRow || row.canCreateImages === 1,
     canUseAudio: legacyDevelopmentRow || row.canUseAudio === 1,
     cacheMaxAgeDays: row.cacheMaxAgeDays == null ? null : Number(row.cacheMaxAgeDays),
+    hasInterlinear: row.fuertes === 1,
   }
 }
 

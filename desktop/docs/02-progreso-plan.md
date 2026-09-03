@@ -59,8 +59,6 @@ Leyenda: ✅ hecho · 🟡 parcial · ⬜ pendiente
 
 ---
 
-## Fase 5 — Extras
-
 | Item                                      | Estado                                                     |
 | ----------------------------------------- | ---------------------------------------------------------- |
 | Offline SQLite + búsqueda                 | ✅                                                         |
@@ -80,11 +78,16 @@ Leyenda: ✅ hecho · 🟡 parcial · ⬜ pendiente
 | Calendario + RSVP                         | ✅ iglesia y grupos; CRUD admin                            |
 | Editor avanzado de notas                  | ✅ imágenes, fuentes, autoguardado y PDF                   |
 | Portadas avanzadas                        | ✅ Unsplash, archivo, URL y gradientes                     |
+| Rediseño lector (párrafos + capitular)    | ✅ cabecera editorial, dropcap v1, versalitas y scroll-spy |
+| Comentarios bíblicos clásicos             | ✅ Henry, Spurgeon plegados con Markdown seguro            |
+| Audio Inteligente Kokoro TTS              | ✅ Kokoro neuronal + Web Speech fallback y visual tracker  |
+| Moderación UGC y privacidad               | ✅ reportes, bloqueos, panel admin y borrado de cuenta     |
 
 ---
 
 ## Siguiente sprint
 
-1. Publicar `latest.json` y artefactos firmados en producción.
-2. Verificar instalación limpia de v0.3.3 en Arch / Debian / Windows.
+1. Publicar `latest.json` y artefactos firmados de v0.3.5 en producción.
+2. Verificar instalación en Arch (`pacman`) / Debian (`.deb`) / Windows (`.msi`).
 3. Añadir recordatorios nativos en segundo plano si se requiere ejecución con la app cerrada.
+

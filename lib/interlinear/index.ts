@@ -13,6 +13,8 @@ export {
 } from "./strong-code"
 export type { StrongLanguageHint } from "./strong-code"
 
+export { ensureInterlinearTables } from "./tables"
+
 export {
   parsePassageRef,
   parseTahotHeadRef,
@@ -22,3 +24,4 @@ export {
   hebrewRefToBookIds,
 } from "./versification"
 export type { PassageRef, TahotHeadRef } from "./versification"
+

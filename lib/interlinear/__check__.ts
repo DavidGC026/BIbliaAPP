@@ -274,13 +274,52 @@ async function checkStrongAgainstDataAndDb() {
 
 }
 
+async function checkSchema() {
+  console.log("\n2.2  Esquema interlineal\n")
+  if (!process.env.MYSQL_HOST || !process.env.MYSQL_DATABASE) {
+    console.log("  SALTA  faltan MYSQL_*")
+    return
+  }
+
+  const { ensureInterlinearTables } = await import("./tables")
+  await ensureInterlinearTables()
+  const { getPool } = await import("../mysql")
+  const pool = getPool()
+
+  const [tables] = await pool.query(
+    `SELECT table_name, table_rows, ROUND((data_length + index_length)/1024/1024, 2) AS mb
+     FROM information_schema.tables
+     WHERE table_schema = DATABASE()
+       AND table_name IN ('bible_interlinear','bible_strong_particles','bible_verses')`,
+  )
+  const byName = new Map(
+    (tables as Array<{ table_name: string; table_rows: number; mb: string }>).map((row) => [
+      row.table_name,
+      row,
+    ]),
+  )
+  assert("existe bible_interlinear", byName.has("bible_interlinear"))
+  assert("existe bible_strong_particles", byName.has("bible_strong_particles"))
+
+  const [verseCount] = await pool.query(`SELECT COUNT(*) AS n FROM bible_verses`)
+  const verses = Number((verseCount as Array<{ n: number }>)[0]?.n ?? 0)
+  console.log(`  dato  bible_verses: ${verses} filas (${byName.get("bible_verses")?.mb ?? "?"} MB)`)
+  assert("bible_verses = 186.672 (plan)", verses === 186672, String(verses))
+
+  const [flags] = await pool.query(`SELECT COUNT(*) AS n FROM bible_bibles WHERE fuertes = 1`)
+  const enabled = Number((flags as Array<{ n: number }>)[0]?.n ?? 0)
+  assert("ninguna biblia tiene fuertes=1 todavía", enabled === 0, String(enabled))
+  console.log("  dato  dimensionado esperado al cargar: ~425k filas / 100–150 MB (vacío ahora)")
+}
+
 async function main() {
-  console.log("\nCimientos del interlineal (Fase 1)\n")
+  console.log("\nChequeos del interlineal\n")
   checkBookMap()
   checkStrongNormalizer()
   const map = await checkVersification()
   await checkTahotAlignment(map)
   await checkStrongAgainstDataAndDb()
+  await checkSchema()
 
   if (process.env.MYSQL_HOST && process.env.MYSQL_DATABASE) {
     const { getPool } = await import("../mysql")

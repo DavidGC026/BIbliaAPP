@@ -20,6 +20,8 @@ export interface BibleVersion {
   canCreateImages?: boolean
   canUseAudio?: boolean
   cacheMaxAgeDays?: number | null
+  /** bible_bibles.fuertes: esta versión ofrece el panel interlineal. */
+  hasInterlinear?: boolean
 }
 
 export interface Verse {
