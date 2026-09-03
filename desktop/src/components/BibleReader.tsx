@@ -9,6 +9,8 @@ import * as api from "@/lib/api";
 import { DEFAULT_BIBLE_ID } from "@/lib/config";
 import {
   getReaderPreferences,
+  interlinearAppliesToBook,
+  interlinearMismatchHint,
   saveLastPassage,
   saveReaderPreferences,
   type ReaderPreferences,
@@ -96,14 +98,22 @@ export function BibleReader({ target }: Props) {
   // MEMOS Y DATOS DERIVADOS
   // --------------------------------------------------------------------------
   const selectedBook = useMemo(
-    () => books.find((b) => b.bookId === bookId) ?? null,
+    () => books.find((b) => b.bookId === bookId) ?? books[0] ?? null,
     [books, bookId],
   );
 
   const currentBible = useMemo(
-    () => bibles.find((b) => b.bibleId === bibleId) ?? null,
+    () => bibles.find((b) => b.bibleId === bibleId) ?? bibles[0] ?? null,
     [bibles, bibleId],
   );
+
+
+  const interlinearMismatch =
+    bookId != null &&
+    preferences.showInterlinear &&
+    currentBible?.hasInterlinear
+      ? interlinearMismatchHint(preferences.interlinearLanguage, bookId)
+      : null;
 
   const parallelBible = useMemo(
     () => bibles.find((b) => b.bibleId === parallelBibleId) ?? null,
@@ -330,7 +340,8 @@ export function BibleReader({ target }: Props) {
     if (
       bookId == null ||
       !preferences.showInterlinear ||
-      !currentBible?.hasInterlinear
+      !currentBible?.hasInterlinear ||
+      !interlinearAppliesToBook(preferences.interlinearLanguage, bookId)
     ) {
       setInterlinearWords([]);
       return;
@@ -351,6 +362,7 @@ export function BibleReader({ target }: Props) {
     bookId,
     chapter,
     preferences.showInterlinear,
+    preferences.interlinearLanguage,
     currentBible?.hasInterlinear,
   ]);
 
@@ -730,6 +742,11 @@ export function BibleReader({ target }: Props) {
             <span className="text-xs leading-none">❦</span>
             <span className="h-px w-10 bg-current opacity-40" />
           </div>
+          {interlinearMismatch ? (
+            <p className="mt-3 max-w-[40ch] text-xs leading-relaxed text-muted-foreground">
+              {interlinearMismatch}
+            </p>
+          ) : null}
         </header>
       )}
 

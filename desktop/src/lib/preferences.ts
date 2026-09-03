@@ -4,6 +4,7 @@ export type ReaderDensity = "relaxed" | "compact";
 export type ReaderAlign = "left" | "justify";
 export type ReaderTheme = "auto" | "light" | "sepia" | "night" | "contrast";
 export type ReaderLayout = "verses" | "paragraphs";
+export type InterlinearLanguage = "auto" | "heb" | "grc";
 
 export type ReaderPreferences = {
   fontSize: number;
@@ -13,6 +14,7 @@ export type ReaderPreferences = {
   layout: ReaderLayout;
   showCommentaries: boolean;
   showInterlinear: boolean;
+  interlinearLanguage: InterlinearLanguage;
 };
 
 export type ReaderPalette = {
@@ -174,7 +176,32 @@ export const DEFAULT_READER_PREFERENCES: ReaderPreferences = {
   layout: "verses",
   showCommentaries: false,
   showInterlinear: false,
+  interlinearLanguage: "auto",
 };
+
+/** NT protestante: Mateo = 40. AT (hebreo y arameo) = 1–39. */
+export function bookInterlinearLanguage(bookId: number): "heb" | "grc" {
+  return bookId >= 40 ? "grc" : "heb";
+}
+
+export function interlinearAppliesToBook(
+  language: InterlinearLanguage,
+  bookId: number,
+): boolean {
+  if (language === "auto") return true;
+  return bookInterlinearLanguage(bookId) === language;
+}
+
+export function interlinearMismatchHint(
+  language: InterlinearLanguage,
+  bookId: number,
+): string | null {
+  if (interlinearAppliesToBook(language, bookId)) return null;
+  if (language === "heb") {
+    return "Este libro es griego. Elige Griego o Auto en Lectura para ver el interlineal.";
+  }
+  return "Este libro es hebreo. Elige Hebreo o Auto en Lectura para ver el interlineal.";
+}
 
 const KEYS = {
   reader: "bibliaapp_reader_preferences",
@@ -206,6 +233,10 @@ export function getReaderPreferences(): ReaderPreferences {
     layout: value.layout === "paragraphs" ? "paragraphs" : "verses",
     showCommentaries: value.showCommentaries === true,
     showInterlinear: value.showInterlinear === true,
+    interlinearLanguage:
+      value.interlinearLanguage === "heb" || value.interlinearLanguage === "grc"
+        ? value.interlinearLanguage
+        : "auto",
   };
 }
 

@@ -772,6 +772,7 @@ export async function getInterlinear(params: {
     chapter: String(params.chapter),
   });
   if (params.verse != null) query.set("verse", String(params.verse));
+  query.set("rev", "2");
   return request<{ words: InterlinearWordView[] }>(
     `/api/interlinear?${query.toString()}`,
   );

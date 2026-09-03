@@ -196,17 +196,49 @@ export function ReaderSettings({
           </span>
         </label>
         {interlinearAvailable && (
-          <label className="flex items-center gap-2 cursor-pointer py-1">
-            <input
-              type="checkbox"
-              checked={preferences.showInterlinear}
-              onChange={(e) => update({ showInterlinear: e.target.checked })}
-              className="size-4 rounded border-border text-primary focus:ring-primary"
-            />
-            <span className="text-xs font-medium text-foreground">
-              Interlineal
-            </span>
-          </label>
+          <div className="flex flex-col gap-1.5">
+            <label className="flex items-center gap-2 cursor-pointer py-1">
+              <input
+                type="checkbox"
+                checked={preferences.showInterlinear}
+                onChange={(e) => update({ showInterlinear: e.target.checked })}
+                className="size-4 rounded border-border text-primary focus:ring-primary"
+              />
+              <span className="text-xs font-medium text-foreground">
+                Interlineal
+              </span>
+            </label>
+            {preferences.showInterlinear ? (
+              <div
+                role="radiogroup"
+                aria-label="Lengua del interlineal"
+                className="grid grid-cols-3 gap-1"
+              >
+                {(
+                  [
+                    { key: "auto", label: "Auto" },
+                    { key: "heb", label: "Hebreo" },
+                    { key: "grc", label: "Griego" },
+                  ] as const
+                ).map((option) => (
+                  <button
+                    key={option.key}
+                    type="button"
+                    role="radio"
+                    aria-checked={preferences.interlinearLanguage === option.key}
+                    onClick={() => update({ interlinearLanguage: option.key })}
+                    className={`rounded-lg border px-2 py-1 text-[11px] font-semibold ${
+                      preferences.interlinearLanguage === option.key
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border bg-background text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+          </div>
         )}
       </div>
 
