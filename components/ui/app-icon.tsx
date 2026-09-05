@@ -60,4 +60,5 @@ export const AppIcons = {
   calendar: createAppIcon("calendar"),
   sync: createAppIcon("sync"),
   chart: createAppIcon("chart"),
+  trophy: createAppIcon("trophy"),
 } as const

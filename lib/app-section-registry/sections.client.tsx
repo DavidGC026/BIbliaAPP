@@ -18,6 +18,10 @@ const Dashboard = dynamic(
   () => import("@/components/dashboard").then((m) => ({ default: m.Dashboard })),
   { loading: sectionLoading("Cargando inicio...") },
 )
+const BibleGames = dynamic(
+  () => import("@/components/games").then((m) => ({ default: m.BibleGames })),
+  { loading: sectionLoading("Cargando juegos...") },
+)
 const BibleReader = dynamic(
   () => import("@/components/bible-reader").then((m) => ({ default: m.BibleReader })),
   { loading: sectionLoading("Cargando Biblia...") },
@@ -279,6 +283,12 @@ registerAppSectionComplete({
   ...meta("dictionary"),
   icon: AppIcons.dictionary,
   render: () => <StrongDictionary />,
+})
+
+registerAppSectionComplete({
+  ...meta("games"),
+  icon: AppIcons.trophy,
+  render: (ctx) => <BibleGames key={ctx.user?.id ?? "guest"} userId={ctx.user?.id} onOpenPassage={ctx.handleSelectVerse} />,
 })
 
 registerAppSectionComplete({

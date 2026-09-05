@@ -10,6 +10,7 @@ export type HomeActionKey =
   | "activity"
   | "dictionary"
   | "community"
+  | "games"
 
 export type HomeAction = {
   key: HomeActionKey
@@ -27,6 +28,13 @@ export type HomeAction = {
  * previa (imagen de versículo) no se anuncian como destinos web directos.
  */
 export const HOME_ACTION_CATALOG: readonly HomeAction[] = [
+  {
+    key: "games",
+    title: "Juegos bíblicos",
+    description: "Completa versículos, encuentra parejas y adivina palabras",
+    icon: "trophy",
+    targetSection: "games",
+  },
   {
     key: "read",
     title: "Ir a lectura",

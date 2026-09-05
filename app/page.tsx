@@ -89,16 +89,14 @@ export default function Page() {
     }
   }, [])
 
-  // Navigation tabs
-  const [activeTab, setActiveTabState] = useState<string>(() => {
-    if (typeof window !== "undefined") {
-      const requestedSection = parseAppSection(window.location.search)
-      if (requestedSection) return requestedSection
-    }
-    if (hasStrongDeepLink()) return "dictionary"
-    const deepLink = getInitialDeepLink()
-    return deepLink || isReaderDeepLinkLocked() ? "reading" : "dashboard"
-  })
+  // El primer render coincide con SSR; los enlaces se aplican al montar.
+  const [activeTab, setActiveTabState] = useState<string>("dashboard")
+  useEffect(() => {
+    const requestedSection = parseAppSection(window.location.search)
+    if (requestedSection) setActiveTabState(requestedSection)
+    else if (hasStrongDeepLink()) setActiveTabState("dictionary")
+    else if (getInitialDeepLink() || isReaderDeepLinkLocked()) setActiveTabState("reading")
+  }, [])
 
   const updateSection = useCallback((section: string, historyMode: "push" | "replace") => {
     setActiveTabState(section)

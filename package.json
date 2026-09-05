@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "check": "npm run check:editor && npm run check:interlinear",
+    "check": "npm run check:editor && npm run check:interlinear && npm run check:games",
+    "check:games": "tsx lib/games/__check__.ts",
     "check:editor": "tsx lib/tiptap/__roundtrip__.ts",
     "check:interlinear": "tsx --env-file=.env.local lib/interlinear/__check__.ts",
     "import:interlinear-gnt": "tsx --env-file=.env.local scripts/import_interlinear_gnt.ts",

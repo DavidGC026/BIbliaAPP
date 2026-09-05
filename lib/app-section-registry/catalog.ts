@@ -68,6 +68,15 @@ export const APP_SECTION_CATALOG: AppSectionDefinition[] = [
     defaultForReader: true,
   },
   {
+    id: "games",
+    label: "Juegos bíblicos",
+    navLabel: "Juegos",
+    groupId: "ESTUDIO",
+    groupLabel: "Estudio bíblico",
+    guestAccess: true,
+    defaultForReader: true,
+  },
+  {
     id: "library",
     label: "Libros",
     navLabel: "Libros",
