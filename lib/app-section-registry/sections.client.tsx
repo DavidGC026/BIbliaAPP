@@ -288,7 +288,7 @@ registerAppSectionComplete({
 registerAppSectionComplete({
   ...meta("games"),
   icon: AppIcons.trophy,
-  render: (ctx) => <BibleGames key={ctx.user?.id ?? "guest"} userId={ctx.user?.id} onOpenPassage={ctx.handleSelectVerse} />,
+  render: (ctx) => <BibleGames key={ctx.user?.id ?? "guest"} userId={ctx.user?.id} isAdmin={ctx.user?.role === "admin"} onOpenPassage={ctx.handleSelectVerse} />,
 })
 
 registerAppSectionComplete({

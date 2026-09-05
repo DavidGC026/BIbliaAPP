@@ -7,10 +7,11 @@ import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import { gradeGuess, keyboardGrades, LETTER_LABELS } from "@/lib/games/engine"
 import { useWordGame, type OnGameComplete } from "@/lib/games/hooks"
+import type { RoundContext } from "@/lib/games/round"
 import { GameResultPanel, PassageButton, letterClasses, letterSymbols, type OpenPassage } from "./game-ui"
 
-export function WordGame({ onComplete, onOpen, onRestart }: { onComplete: OnGameComplete; onOpen: OpenPassage; onRestart: () => void }) {
-  const game = useWordGame(onComplete)
+export function WordGame({ onComplete, onOpen, onRestart, settings, onAttempt }: RoundContext & { onComplete: OnGameComplete; onOpen: OpenPassage; onRestart: () => void }) {
+  const game = useWordGame(onComplete, { settings, onAttempt })
   const input = useRef<HTMLInputElement>(null)
   const grades = keyboardGrades(game.guesses, game.target)
   const canReveal = [...game.target].some((letter, index) => !game.hints.includes(index) && !game.guesses.some((guess) => guess[index] === letter))
@@ -43,7 +44,7 @@ export function WordGame({ onComplete, onOpen, onRestart }: { onComplete: OnGame
         <p id="wordle-help" className="text-xs text-muted-foreground">Sin tildes. La Ñ sí cuenta como letra distinta.</p>
         <p id="wordle-error" role="alert" className="min-h-5 text-sm font-semibold">{game.error}</p>
       </form>
-      <div className="flex flex-wrap justify-center gap-1.5" aria-label="Teclado de letras">{[..."QWERTYUIOPASDFGHJKLÑZXCVBNM"].map((letter) => <button key={letter} type="button" aria-label={`${letter}${grades[letter] ? `, ${LETTER_LABELS[grades[letter]]}` : ""}`} onClick={() => game.edit(game.draft + letter)} className={cn("relative min-h-11 min-w-11 cursor-pointer rounded-md border px-3 font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring", grades[letter] ? letterClasses[grades[letter]] : "border-border bg-card hover:bg-accent")}>
+      <div className="flex flex-wrap justify-center gap-1.5" role="group" aria-label="Teclado de letras">{[..."QWERTYUIOPASDFGHJKLÑZXCVBNM"].map((letter) => <button key={letter} type="button" aria-label={`${letter}${grades[letter] ? `, ${LETTER_LABELS[grades[letter]]}` : ""}`} onClick={() => game.edit(game.draft + letter)} className={cn("relative min-h-11 min-w-11 cursor-pointer rounded-md border px-3 font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring", grades[letter] ? letterClasses[grades[letter]] : "border-border bg-card hover:bg-accent")}>
         {letter}{grades[letter] && <span className="absolute bottom-0 right-1 text-[9px]" aria-hidden>{letterSymbols[grades[letter]]}</span>}
       </button>)}<Button variant="outline" className="min-h-11" onClick={() => game.edit(game.draft.slice(0, -1))}>Borrar</Button></div>
       <div className="space-y-2 border-t border-border pt-4">

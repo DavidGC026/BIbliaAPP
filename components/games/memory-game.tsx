@@ -5,12 +5,13 @@ import { Check, HelpCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { useMemoryGame, type OnGameComplete } from "@/lib/games/hooks"
+import type { RoundContext } from "@/lib/games/round"
 import { GameResultPanel, PassageButton, type OpenPassage } from "./game-ui"
 
-export function MemoryGame(props: { onComplete: OnGameComplete; onOpen: OpenPassage; onRestart: () => void }) {
+export function MemoryGame(props: RoundContext & { onComplete: OnGameComplete; onOpen: OpenPassage; onRestart: () => void }) {
   const [pairCount, setPairCount] = useState(6)
   const [started, setStarted] = useState(false)
-  if (started) return <MemoryRound pairCount={pairCount} {...props} />
+  if (started || props.settings?.mode === "daily") return <MemoryRound pairCount={pairCount} {...props} />
   return <div className="space-y-5 rounded-2xl border border-border bg-card p-5 sm:p-8">
     <h2 className="text-lg font-semibold">Elige el tamaño del tablero</h2>
     <div className="grid grid-cols-3 gap-3">{[4, 6, 8].map((count) => <Button key={count} variant={pairCount === count ? "default" : "outline"} className="min-h-14" aria-pressed={pairCount === count} onClick={() => setPairCount(count)}>{count} pares</Button>)}</div>
@@ -19,8 +20,8 @@ export function MemoryGame(props: { onComplete: OnGameComplete; onOpen: OpenPass
   </div>
 }
 
-function MemoryRound({ pairCount, onComplete, onOpen, onRestart }: { pairCount: number; onComplete: OnGameComplete; onOpen: OpenPassage; onRestart: () => void }) {
-  const game = useMemoryGame(pairCount, onComplete)
+function MemoryRound({ pairCount, onComplete, onOpen, onRestart, settings, onAttempt }: RoundContext & { pairCount: number; onComplete: OnGameComplete; onOpen: OpenPassage; onRestart: () => void }) {
+  const game = useMemoryGame(pairCount, onComplete, { settings, onAttempt })
   if (game.finished) return <GameResultPanel title="¡Encontraste todas las parejas!" score={game.score} onRestart={onRestart}>
     <p>{game.pairs.length} pares en {game.attempts} intentos.</p>
     <div className="divide-y divide-border">{game.pairs.map((pair) => <div key={pair.id} className="py-3"><p className="font-semibold">{pair.left} · {pair.right}</p><PassageButton passage={pair} onOpen={onOpen} /></div>)}</div>

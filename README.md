@@ -127,7 +127,7 @@ MariaDB corre en el contenedor `biblia-mariadb` (directorio aparte en el servido
 - **Anuncios oficiales** (admin / pastores)
 - **Calendario de eventos** con RSVP
 - **Discipulado** uno a uno
-- **Juegos bíblicos**: completa el versículo, memoria de parejas y Wordle bíblico (web y móvil)
+- **Juegos bíblicos**: completa y ordena versículos, memoria y Wordle, con retos diarios y repaso (web y móvil)
 
 Detalle en `docs/funcionalidades-iglesias.md`.
 
@@ -138,17 +138,27 @@ están en **Inicio → Acciones rápidas** (personalizables) y **Perfil → Jueg
 también para visitantes.
 
 - **Completa el versículo**: cinco pasajes por partida, con cuatro opciones o
-  respuesta escrita. La API `/api/games/verses?bible=ID` consulta 30 referencias
-  del catálogo autorizado y conserva el texto de la traducción elegida.
+  respuesta escrita. La API `/api/games/verses?bible=ID` consulta las referencias
+  publicadas (30 iniciales) y conserva el texto de la traducción elegida.
 - **Memoria bíblica**: 4, 6 u 8 pares, con referencias para repasar cada historia.
   Las tarjetas que no coinciden se cierran automáticamente después de 1,5 segundos.
 - **Wordle bíblico**: 50 palabras, seis intentos, pistas y letras reveladas a cambio de puntos.
   La corrección cuenta las letras repetidas y distingue Ñ de N; ignora tildes.
+  Las partidas libres recorren todo el catálogo antes de repetir una palabra.
+- **Ordena el versículo**: reconstruye tres pasajes tocando sus palabras;
+  puedes retirar fichas o consultar la respuesta para repasarla después.
+
+El **reto diario** comparte su contenido entre web y móvil y cambia a medianoche
+de Ciudad de México. Cada juego puntúa una vez por fecha y dispositivo.
+**Repasar mis errores** conserva las palabras y referencias falladas y programa
+su práctica en 1, 3 y 7 días. Los administradores pueden agregar y corregir
+palabras, parejas y pasajes desde **Administrar contenido**, con vista previa.
 
 Los resultados se guardan por cuenta y dispositivo: `localStorage` en web y
 SQLite en móvil. No hay clasificación global ni sincronización de puntos.
-Memoria y Wordle incluyen el contenido en el cliente; completar versículos
-requiere conexión. No se guardan traducciones completas en el historial de juegos.
+Memoria y Wordle usan el catálogo publicado y guardan una copia local; incluyen
+contenido inicial para jugar sin conexión. Completar y ordenar versículos
+requieren conexión. No se guardan traducciones completas en el historial de juegos.
 
 Las reglas, contenidos y hooks de `lib/games/` son la fuente común. Como móvil
 tiene su propio repositorio, `npm run sync:games` desde `mobile/` actualiza su
@@ -156,7 +166,8 @@ copia; `node scripts/sync_games.cjs --check` verifica que coincide. Cada cliente
 ejecuta `npm run check:games` (incluido también en `npm run check`).
 
 Para ampliar el contenido o cambiar las opciones de juego, consulta
-[Cómo ampliar los juegos bíblicos](docs/juegos-biblicos.md).
+[Cómo ampliar los juegos bíblicos](docs/juegos-biblicos.md) y la
+[bitácora de cambios](docs/juegos-cambios.md).
 
 ## Origen del proyecto
 
