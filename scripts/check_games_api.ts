@@ -8,6 +8,8 @@ import { GET as contentGet } from "../app/api/games/content/route"
 import { GET as versesGet } from "../app/api/games/verses/route"
 import { GET as adminGet, PUT as adminPut } from "../app/api/admin/games/content/route"
 import type { ContentEnvelope, EditorCatalog } from "../lib/games/catalog"
+import { POST as progressPost } from "../app/api/games/progress/route"
+import type { ProgressOperation, ProgressSyncReply } from "../lib/games/sync"
 
 async function main() {
   const sourceDatabase = process.env.MYSQL_DATABASE!
@@ -75,9 +77,52 @@ async function main() {
     for (const [query, status] of [["bible=0", 400], ["bible=999999", 404], ["passage=1:1:0", 400], ["daily=9999-01-01", 404]] as const) {
       assert.equal((await versesGet(new Request(`http://localhost/api/games/verses?${query}`))).status, status)
     }
+    const syncRequest = (token: string | undefined, accountId: number, operations: unknown[]) => new Request("http://localhost/api/games/progress", { method: "POST", headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}), "Content-Type": "application/json" }, body: JSON.stringify({ accountId, operations }) })
+    assert.equal((await progressPost(syncRequest(undefined, 900002, []))).status, 401)
+    assert.equal((await progressPost(syncRequest(reader, 900001, []))).status, 403)
+    assert.equal((await progressPost(syncRequest(generateToken({ userId: 900099, role: "user" }), 900099, []))).status, 401)
+    assert.equal((await progressPost(syncRequest(reader, 900002, [null]))).status, 400)
+    const now = Date.now()
+    const result = (id: string, score: number): Extract<ProgressOperation, { type: "result" }> => ({ id: `result:${id}`, at: now, type: "result", roundId: id, result: { id: `result:${id}`, game: "wordle", score, won: true }, mode: "free" })
+    const desktop = result("desktop-round", 90), phone = result("phone-round", 80)
+    const replies = await Promise.all([progressPost(syncRequest(reader, 900002, [desktop])), progressPost(syncRequest(reader, 900002, [phone]))])
+    assert.deepEqual(replies.map(response => response.status), [200, 200])
+    const merged = await (await progressPost(syncRequest(reader, 900002, [desktop, phone]))).json() as ProgressSyncReply
+    assert.equal(merged.progress.totals.games.wordle.played, 2)
+    assert.equal(merged.progress.totals.games.wordle.points, 170)
+    const separate = await (await progressPost(syncRequest(admin, 900001, []))).json() as ProgressSyncReply
+    assert.equal(separate.progress.totals.games.wordle.played, 0, "El progreso pertenece a una sola cuenta")
+    const dailyResult: ProgressOperation = { ...result("desktop-daily", 100), mode: "daily", result: { id: "desktop-daily", game: "wordle", score: 100, won: true, dailyKey: `${initial.daily.date}:wordle` } }
+    assert.equal((await progressPost(syncRequest(reader, 900002, [dailyResult]))).status, 200)
+    const repeatedDaily = { ...dailyResult, id: "result:phone-daily", roundId: "phone-daily" }
+    const repeated = await (await progressPost(syncRequest(reader, 900002, [repeatedDaily]))).json() as ProgressSyncReply
+    assert.equal(repeated.progress.totals.games.wordle.played, 3)
+    assert.equal(repeated.progress.totals.games.wordle.points, 270)
+    const savedRound = { id: "shared-round", game: "wordle" as const, settings: { mode: "free" as const, seed: "shared-seed", word: initial.catalog.words[0] }, checkpoint: { draft: "AB", hints: [0] }, createdAt: now, updatedAt: now }
+    const checkpoint: ProgressOperation = { id: "saved-shared-round", at: now, type: "save", round: savedRound }
+    assert.equal((await progressPost(syncRequest(reader, 900002, [checkpoint]))).status, 200)
+    const restored = await (await progressPost(syncRequest(reader, 900002, []))).json() as ProgressSyncReply
+    assert.equal(restored.progress.rounds["shared-round"].checkpoint.draft, "AB")
+    await progressPost(syncRequest(reader, 900002, [result("shared-round", 70)]))
+    const late = await (await progressPost(syncRequest(reader, 900002, [{ ...checkpoint, id: "late-checkpoint", at: now + 100, round: { ...savedRound, updatedAt: now + 100 } }]))).json() as ProgressSyncReply
+    assert.equal(late.progress.rounds["shared-round"], undefined)
+    const frozen = await versesGet(new Request(`http://localhost/api/games/verses?bible=${bibleId}&references=1:17:5,1:28:19`))
+    assert.equal(frozen.status, 200)
+    assert.equal((await frozen.json()).verses.length, 2)
+    assert.equal((await versesGet(new Request(`http://localhost/api/games/verses?references=1:1:100`))).status, 404)
+    assert.equal((await versesGet(new Request(`http://localhost/api/games/verses?references=1:1:1,mal`))).status, 400)
+    console.log("Sincronización: aislamiento por cuenta, concurrencia, reintentos, puntos diarios únicos y partidas compartidas verificados.")
     passed = true
     console.log("API de juegos: permisos, publicación, duplicados, referencias, concurrencia, reto estable y acceso bíblico verificados en una base temporal.")
     if (keep) {
+      // La revisión de la interfaz necesita los esquemas auxiliares, sin datos personales.
+      const [tables] = await connection.query<mysql.RowDataPacket[]>(`SHOW FULL TABLES FROM \`${sourceDatabase}\` WHERE Table_type = 'BASE TABLE'`)
+      for (const table of tables) {
+        const name = Object.values(table)[0] as string
+        assert.match(name, /^[a-zA-Z0-9_]+$/)
+        await connection.query(`CREATE TABLE IF NOT EXISTS \`${database}\`.\`${name}\` LIKE \`${sourceDatabase}\`.\`${name}\``)
+      }
+      await connection.query(`UPDATE \`${database}\`.users SET username=CONCAT('games_test_',role), legal_accepted_at=NOW() WHERE id IN (900001,900002)`)
       const fixture = `/tmp/${database}.json`
       const env = Object.fromEntries(["MYSQL_HOST", "MYSQL_PORT", "MYSQL_USER", "MYSQL_PASSWORD", "MYSQL_DATABASE", "DEFAULT_PUBLIC_BIBLE_ID", "JWT_SECRET"].filter(key => process.env[key] !== undefined).map(key => [key, process.env[key]]))
       await writeFile(fixture, JSON.stringify({ database, env, adminToken: admin, readerToken: reader, grantedUser: granted ? process.env.MYSQL_USER : null }), { mode: 0o600 })

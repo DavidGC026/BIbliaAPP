@@ -7,8 +7,8 @@ import type { RoundContext } from "@/lib/games/round"
 import { useOrderGame, type OnGameComplete } from "@/lib/games/hooks"
 import { GameResultPanel, PassageButton, type OpenPassage } from "./game-ui"
 
-export function OrderRound({ verses, bible, onComplete, onOpen, onRestart, settings, onAttempt }: RoundContext & { verses: GameVerse[]; bible: BibleVersion; onComplete: OnGameComplete; onOpen: OpenPassage; onRestart: () => void }) {
-  const game = useOrderGame(verses, onComplete, { settings, onAttempt, bibleId: bible.bibleId })
+export function OrderRound({ verses, bible, onComplete, onOpen, onRestart, ...context }: RoundContext & { verses: GameVerse[]; bible: BibleVersion; onComplete: OnGameComplete; onOpen: OpenPassage; onRestart: () => void }) {
+  const game = useOrderGame(verses, onComplete, { ...context, bibleId: bible.bibleId })
   if (!game.questions.length) return <div role="alert" className="space-y-3"><p>No hay pasajes de 3 a 40 palabras disponibles para esta partida. Prueba otra versión.</p><Button onClick={onRestart}>Elegir otra versión</Button></div>
   if (game.finished) return <GameResultPanel title={`${game.correctCount} de ${game.questions.length} versículos ordenados`} score={game.score} onRestart={onRestart}>
     {game.questions.map(({ verse }, index) => <div key={verse.id} className="space-y-2 border-t border-border pt-4"><p className="font-semibold">{game.answers[index] ? "Correcto" : "Para repasar"}</p><p className="font-serif text-lg leading-relaxed">{verse.text}</p><PassageButton passage={{ ...verse, reference: `${verse.bookName} ${verse.chapter}:${verse.verse}` }} bibleId={bible.bibleId} onOpen={onOpen} /></div>)}

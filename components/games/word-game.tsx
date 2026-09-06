@@ -10,8 +10,8 @@ import { useWordGame, type OnGameComplete } from "@/lib/games/hooks"
 import type { RoundContext } from "@/lib/games/round"
 import { GameResultPanel, PassageButton, letterClasses, letterSymbols, type OpenPassage } from "./game-ui"
 
-export function WordGame({ onComplete, onOpen, onRestart, settings, onAttempt }: RoundContext & { onComplete: OnGameComplete; onOpen: OpenPassage; onRestart: () => void }) {
-  const game = useWordGame(onComplete, { settings, onAttempt })
+export function WordGame({ onComplete, onOpen, onRestart, ...context }: RoundContext & { onComplete: OnGameComplete; onOpen: OpenPassage; onRestart: () => void }) {
+  const game = useWordGame(onComplete, context)
   const input = useRef<HTMLInputElement>(null)
   const grades = keyboardGrades(game.guesses, game.target)
   const canReveal = [...game.target].some((letter, index) => !game.hints.includes(index) && !game.guesses.some((guess) => guess[index] === letter))

@@ -9,23 +9,25 @@ import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import type { BibleVersion } from "@/lib/types"
 import { normalizeAnswer, type GameVerse } from "@/lib/games/engine"
-import { useVerseGame, type OnGameComplete } from "@/lib/games/hooks"
+import { useVerseGame, useRoundCheckpoint, type OnGameComplete } from "@/lib/games/hooks"
 import { verseQuery, type RoundContext } from "@/lib/games/round"
 import { OrderRound } from "./order-game"
 import { GameResultPanel, PassageButton, type OpenPassage } from "./game-ui"
 
-export function CompleteVerse({ onComplete, onOpen, onRestart, settings, onAttempt, order = false }: RoundContext & { onComplete: OnGameComplete; onOpen: OpenPassage; onRestart: () => void; order?: boolean }) {
+export function CompleteVerse({ onComplete, onOpen, onRestart, settings, onAttempt, checkpoint, onCheckpoint, roundId, order = false }: RoundContext & { onComplete: OnGameComplete; onOpen: OpenPassage; onRestart: () => void; order?: boolean }) {
   const { data: catalog } = useSWR<{ bibles: BibleVersion[]; defaultBibleId: number }>("/api/bibles", fetcher)
-  const [bibleId, setBibleId] = useState<number | null>(null)
-  const [difficulty, setDifficulty] = useState<"options" | "write">("options")
-  const [started, setStarted] = useState(false)
+  const [bibleId, setBibleId] = useState<number | null>(checkpoint?.bibleId ?? null)
+  const [difficulty, setDifficulty] = useState<"options" | "write">(checkpoint?.difficulty ?? "options")
+  const [started, setStarted] = useState(checkpoint?.started ?? false)
+  const [passages] = useState(checkpoint?.passages)
+  useRoundCheckpoint({ bibleId: bibleId ?? undefined, difficulty, started }, { onCheckpoint })
   const { data, error, isLoading, mutate } = useSWR<{ bible: BibleVersion; verses: GameVerse[] }>(
-    verseQuery(settings, bibleId), fetcher,
+    verseQuery({ ...settings, mode: settings?.mode ?? "free", seed: settings?.seed ?? "", passages }, bibleId), fetcher,
     { revalidateOnFocus: false, shouldRetryOnError: false },
   )
 
   const count = settings?.review ? 1 : order ? 3 : 5
-  const roundProps = { onComplete, onOpen, onRestart, settings, onAttempt }
+  const roundProps = { onComplete, onOpen, onRestart, settings, onAttempt, checkpoint, onCheckpoint, roundId }
   if (started && data) return order ? <OrderRound verses={data.verses} bible={data.bible} {...roundProps} /> : <VerseRound verses={data.verses} bible={data.bible} difficulty={difficulty} {...roundProps} />
 
   return <div className="space-y-5 rounded-2xl border border-border bg-card p-5 sm:p-8">
@@ -45,15 +47,15 @@ export function CompleteVerse({ onComplete, onOpen, onRestart, settings, onAttem
     </fieldset>}
     {order && <p className="text-sm text-muted-foreground">Toca cada palabra para colocarla. Puedes tocar una palabra colocada para devolverla al grupo. Conserva los signos de puntuación.</p>}
     {error ? <div role="alert" className="space-y-2"><p>No pudimos cargar los versículos. Revisa tu conexión e intenta de nuevo.</p><Button variant="outline" className="min-h-11" onClick={() => mutate()}>Reintentar</Button></div> : isLoading ? <p role="status" className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="size-4 motion-safe:animate-spin" aria-hidden />Preparando versículos…</p> : data && data.verses.length < count ? <p role="status">Esta versión no tiene suficientes pasajes para la partida. Elige otra versión.</p> : null}
-    <Button className="min-h-12 w-full" disabled={isLoading || !!error || !data || data.verses.length < count} onClick={() => setStarted(true)}>Comenzar · {count} {count === 1 ? "versículo" : "versículos"}</Button>
+    <Button className="min-h-12 w-full" disabled={isLoading || !!error || !data || data.verses.length < count} onClick={() => { if (data) onCheckpoint?.({ started: true, bibleId: data.bible.bibleId, difficulty, passages: data.verses.map(({ bookId, chapter, verse }) => ({ bookId, chapter, verse })) }); setStarted(true) }}>Comenzar · {count} {count === 1 ? "versículo" : "versículos"}</Button>
   </div>
 }
 
-function VerseRound({ verses, bible, difficulty, onComplete, onOpen, onRestart, settings, onAttempt }: RoundContext & {
+function VerseRound({ verses, bible, difficulty, onComplete, onOpen, onRestart, ...context }: RoundContext & {
   verses: GameVerse[]; bible: BibleVersion; difficulty: "options" | "write"; onComplete: OnGameComplete; onOpen: OpenPassage; onRestart: () => void;
 }) {
-  const game = useVerseGame(verses, onComplete, { settings, onAttempt, bibleId: bible.bibleId })
-  const [draft, setDraft] = useState("")
+  const game = useVerseGame(verses, onComplete, { ...context, bibleId: bible.bibleId })
+  const { draft, setDraft } = game
   const input = useRef<HTMLInputElement>(null)
   const heading = useRef<HTMLHeadingElement>(null)
   useEffect(() => { if (difficulty === "write") input.current?.focus(); else heading.current?.focus() }, [game.index, difficulty])

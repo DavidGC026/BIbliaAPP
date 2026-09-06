@@ -144,18 +144,25 @@ también para visitantes.
   Las tarjetas que no coinciden se cierran automáticamente después de 1,5 segundos.
 - **Wordle bíblico**: 50 palabras, seis intentos, pistas y letras reveladas a cambio de puntos.
   La corrección cuenta las letras repetidas y distingue Ñ de N; ignora tildes.
-  Las partidas libres recorren todo el catálogo antes de repetir una palabra.
+  Permite filtrar por 4–7 letras y categoría; cada combinación recorre su banco
+  antes de repetir una palabra.
 - **Ordena el versículo**: reconstruye tres pasajes tocando sus palabras;
   puedes retirar fichas o consultar la respuesta para repasarla después.
 
 El **reto diario** comparte su contenido entre web y móvil y cambia a medianoche
-de Ciudad de México. Cada juego puntúa una vez por fecha y dispositivo.
+de Ciudad de México. Cada juego puntúa una vez por fecha y cuenta.
 **Repasar mis errores** conserva las palabras y referencias falladas y programa
 su práctica en 1, 3 y 7 días. Los administradores pueden agregar y corregir
 palabras, parejas y pasajes desde **Administrar contenido**, con vista previa.
 
-Los resultados se guardan por cuenta y dispositivo: `localStorage` en web y
-SQLite en móvil. No hay clasificación global ni sincronización de puntos.
+Los puntos, repasos, ciclos y partidas se sincronizan por cuenta entre web y móvil,
+con una copia local y cambios pendientes para reconectar. Los visitantes conservan
+un historial local. La actualización importa los resultados anteriores.
+
+**Continuar** recupera hasta doce partidas guardadas durante siete días.
+**Personalizar práctica** permite elegir filtros y dificultad automática o manual
+para versículos. **Mi semana** muestra actividad, aciertos y temas para reforzar
+de los últimos siete días; el detalle comienza con la versión 4.4.0.
 Memoria y Wordle usan el catálogo publicado y guardan una copia local; incluyen
 contenido inicial para jugar sin conexión. Completar y ordenar versículos
 requieren conexión. No se guardan traducciones completas en el historial de juegos.

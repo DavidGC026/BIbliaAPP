@@ -22,7 +22,19 @@ export async function GET(req: Request) {
 
     const params = new URL(req.url).searchParams
     const daily = params.get("daily")
-    const references = [...(daily ? (await getDailyChallenge(daily)).passages : (await getGameContent()).catalog.passages)]
+    let references = [...(daily ? (await getDailyChallenge(daily)).passages : (await getGameContent()).catalog.passages)]
+    const restored = params.get("references")
+    if (restored && !daily) {
+      try {
+        const entries = restored.split(",")
+        if (!entries.length || entries.length > 500) throw new Error("Demasiados pasajes")
+        references = entries.map(entry => {
+          if (!/^\d+:\d+:\d+$/.test(entry)) throw new Error("Referencia inválida")
+          const [bookId, chapter, verse] = entry.split(":").map(Number)
+          return parseCoordinates({ bookId, chapter, verse })
+        })
+      } catch { return NextResponse.json({ error: "Los pasajes de la partida guardada no son válidos." }, { status: 400 }) }
+    }
     if (params.has("passage")) {
       const parts = params.get("passage")!.split(":")
       if (parts.length !== 3) return NextResponse.json({ error: "La referencia no es válida." }, { status: 400 })
@@ -41,6 +53,7 @@ export async function GET(req: Request) {
        ORDER BY bv.idBook, bv.chapter, bv.verse`,
       [bible.bibleId, ...unique.flatMap(passage => [passage.bookId, passage.chapter, passage.verse])],
     )
+    if (restored && !daily && verses.length !== unique.length) return NextResponse.json({ error: "Uno de los pasajes guardados ya no está disponible en esta versión." }, { status: 404 })
     return NextResponse.json({ bible, verses }, { headers: { "Cache-Control": "private, no-store" } })
   } catch (error) {
     if (error instanceof GameContentError) return NextResponse.json({ error: error.message }, { status: error.status })
