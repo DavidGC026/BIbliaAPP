@@ -186,13 +186,13 @@ Causas (dos fallos de contrato con la API web):
 
 Fix:
 
-- `mobile/lib/api.ts`: `uploadImage()` tipa también `filename` en la respuesta, y se añade `getPublicUploadUrl(filename)` → `${API_BASE_URL}/uploads/<filename>` (absoluta y **sin auth**: `public/uploads/` lo sirve Next estáticamente y el middleware solo cubre `/api/*`).
+- `mobile/lib/api.ts`: `uploadImage()` tipa también `filename` en la respuesta, y se añade `getPublicUploadUrl(filename)` → `${API_BASE_URL}/uploads/<filename>` (absoluta y **sin auth**: la ruta pública `GET /uploads/<filename>` lee el archivo en disco en cada petición; el middleware solo cubre `/api/*`). Detalle operativo: [`docs/servicio-uploads.md`](../docs/servicio-uploads.md).
 - `mobile/app/note/[noteId].tsx` (`handleImagePick`): inserta `api.getPublicUploadUrl(uploadRes.filename)`; si el servidor no devuelve `filename`, cae al fallback base64 como antes.
 - La web inserta el equivalente `${window.location.origin}/uploads/<filename>` (ver §10), así la misma nota se ve igual en web, móvil y escritorio.
 
 Nota de privacidad: las imágenes de notas quedan accesibles para quien tenga la URL exacta (nombre `crypto.randomUUID()`, no adivinable). Es el mismo nivel de exposición que ya tenía la ruta estática `/uploads/` de Next.
 
-Corrección web (julio 2026): Next en producción genera el inventario de `public/` durante `next build`. Por eso un archivo escrito posteriormente por `/api/upload` existía en `public/uploads`, pero `GET /uploads/<filename>` devolvía 404 y el editor mostraba una imagen rota. `app/uploads/[filename]/route.ts` atiende ahora esa misma URL de forma dinámica, lee el archivo en tiempo de petición y conserva el contrato compartido con mobile sin cambiar el HTML ya guardado.
+Corrección web (julio 2026): Next en producción genera el inventario de `public/` durante `next build`. Por eso un archivo escrito posteriormente por `/api/upload` existía en `public/uploads`, pero `GET /uploads/<filename>` devolvía 404 y el editor mostraba una imagen rota. `app/uploads/[filename]/route.ts` atiende ahora esa misma URL de forma dinámica, lee el archivo en tiempo de petición y conserva el contrato compartido con mobile sin cambiar el HTML ya guardado. Runbook completo: [`docs/servicio-uploads.md`](../docs/servicio-uploads.md).
 
 ---
 
