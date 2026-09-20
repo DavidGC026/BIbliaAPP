@@ -230,6 +230,20 @@ Limitaciones anotadas:
 - El estado del lector se guarda localmente, no en cuenta de usuario. Es suficiente para continuidad en el mismo dispositivo.
 - Las mejoras grandes deben seguir documentandose aqui antes o durante la implementacion para evitar perder decisiones.
 
+## Paridad web — uso diario (julio 2026)
+
+Tres bloques de la Fase 1 se portaron a la web (commit `c1288cd`):
+
+| Mejora mobile (este plan) | Web |
+|---------------------------|-----|
+| Continuar lectura (`readerState`, Inicio) | `lib/reader-state.ts`, tarjeta en Dashboard, restauración en `BibleReader` |
+| Recientes inteligentes (favoritos/subrayados en Inicio) | Dashboard: hasta 3 vía `/api/favorites` y `/api/highlights/all` |
+| Historial de búsqueda (`searchHistory.ts`, búsqueda universal) | `lib/search-history.ts` en **Buscador avanzado** (`search-advanced.tsx`); el buscador inline del lector sigue con clave `recent_searches` aparte |
+
+Documentación web: [`docs/uso-diario-web-paridad-movil.md`](../docs/uso-diario-web-paridad-movil.md).
+
+Pendiente en web respecto a mobile: búsqueda universal multi-tipo, notas recientes en Inicio, acciones rápidas configurables y recordatorios.
+
 ## Como actualizar este plan
 
 - Mover tareas de `Pendiente` a `En curso` cuando se empiecen.
