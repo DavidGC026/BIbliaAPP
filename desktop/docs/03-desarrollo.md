@@ -139,6 +139,10 @@ packaging/arch/
 | Google login no completa        | Verificar despliegue backend [08-backend-desktop.md](./08-backend-desktop.md) |
 | Sin SQLite en `npm run dev`     | Normal: usar `npm run tauri dev`                                              |
 | Búsqueda offline vacía          | Descargar versión en Biblia → Descargas                                       |
+| Lector offline sin versículos   | Descargar al menos una Biblia; `repoListBibles()` prioriza `downloaded = 1`   |
+| Datos de otra cuenta en offline | Cerrar sesión e iniciar con la cuenta correcta; `offline_user_id` limpia tablas privadas |
+| Cambios no suben al servidor    | Comprobar red y pulsar el badge de sincronización en la barra lateral           |
+| Inicio vacío sin red            | Normal para anuncios/eventos; notas/favoritos/subrayados vienen de SQLite      |
 | Icono genérico en Hyprland      | `npm run icons` + reinstalar paquete pacman                                   |
 | CORS en navegador puro          | Usar `tauri dev`                                                              |
 

@@ -15,13 +15,13 @@ Requiere conexión para el primer login. Tras eso la sesión persiste offline.
 
 ## Inicio (`HomePage`)
 
-- Saludo con nombre y nombre de iglesia (`/api/church-settings`)
-- **Versículo del día** con imagen de fondo (API + Unsplash)
+- Saludo con nombre y nombre de iglesia (`/api/church-settings`; sin red usa caché en `localStorage` vía `lib/offline/appCache.ts`)
+- **Versículo del día** con imagen de fondo (API + Unsplash; offline muestra el último versículo cacheado por `bibleId`)
 - Botón “Leer en la Biblia”
 - Accesos rápidos: Juan 3, Salmo 23
-- Continuar desde el último capítulo
-- Notas, favoritos y subrayados recientes
-- Anuncios, próximos eventos y métricas personales
+- Continuar desde el último capítulo (`lib/preferences.ts`, disponible offline)
+- Notas, favoritos y subrayados recientes desde SQLite cuando no hay red
+- Anuncios, próximos eventos y métricas personales (requieren conexión)
 - Acciones rápidas configurables y onboarding descartable
 - Accesos y contenido filtrados por permisos de sección
 
@@ -124,6 +124,7 @@ Tres sub-pestañas: **Lector** | **Buscar** | **Referencias** | **Diccionario** 
 - Logo + iglesia
 - Navegación: Inicio, Biblia, Búsqueda, Notas, Comunidad, Grupos, Calendario, Perfil
 - **Notificaciones** 🔔 (SSE + polling)
+- **`SyncStatusBadge`**: botón con contador de cambios pendientes (libretas, notas, subrayados, favoritos, notas de versículo); al pulsar ejecuta `syncAll()` si hay red
 - Indicador “Sin conexión”
 - Cerrar sesión
 

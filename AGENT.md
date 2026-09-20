@@ -13,6 +13,7 @@ Antes de escribir o modificar código, **lee la documentación del área corresp
 |--------|-----------------|--------|
 | Web (Next.js) | [`docs/`](./docs/) | raíz: `app/`, `components/`, `lib/`, etc. |
 | Móvil (Expo / React Native) | [`docs-mobile/`](./docs-mobile/) | [`mobile/`](./mobile/) |
+| Desktop (Tauri + React) | [`desktop/docs/`](./desktop/docs/) | [`desktop/`](./desktop/) |
 
 ### Cómo hacerlo
 
@@ -20,6 +21,7 @@ Antes de escribir o modificar código, **lee la documentación del área corresp
 2. Abre el índice:
    - Web: archivos en `docs/` (p. ej. despliegue, colores, notas, iglesias…).
    - Mobile: [`docs-mobile/README.md`](./docs-mobile/README.md) y el doc numerado de la feature.
+   - Desktop: [`desktop/docs/README.md`](./desktop/docs/README.md) — offline/SQLite en [07-api-y-offline.md](./desktop/docs/07-api-y-offline.md), release reciente en docs numerados.
 3. Lee al menos el documento de la feature afectada (arquitectura, pantallas, API, build, etc.) **antes** de implementar.
 4. Si el cambio toca API o paridad web↔móvil, revisa también docs del otro lado (`docs/` ↔ `docs-mobile/`).
 
