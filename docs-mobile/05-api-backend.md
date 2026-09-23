@@ -212,3 +212,5 @@ Dependencias web: Next 16.3.6, Tiptap 3.31.3 y Sharp 0.35.4 o superior. `npm run
 ### Referencias históricas a archivos
 
 La migración puede registrar un archivo sin metadatos únicamente si encuentra una referencia inequívoca en contenido existente. `source_id` junto con `legacy_feed`, `legacy_group` o `legacy_event` identifica ese contenido. La autorización consulta su visibilidad y pertenencia al grupo en cada lectura, comprueba que el contenido aún referencia el archivo y deniega si fue eliminado. Compartir otro grupo con el autor no basta. Los uploads normales no pueden solicitar estos tipos. Los archivos sin referencias o ambiguos permanecen bloqueados; no se atribuyen a un administrador por defecto.
+
+Los archivos de `public/uploads` no se versionan. Se retiró del índice el archivo histórico que seguía registrado a pesar del `.gitignore`; su copia local se conserva y la migración de almacenamiento sigue aplicándose al arrancar. Este cambio no reescribe el historial anterior de Git.
