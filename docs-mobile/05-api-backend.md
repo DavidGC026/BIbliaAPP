@@ -208,3 +208,7 @@ Las subidas se limitan a 10 MiB y se decodifican y reencodifican con Sharp: PNG,
 La migración y los cambios de clave/formato de sesión requieren un nuevo inicio de sesión una vez tras activar el servidor. Una desconexión normal posterior conserva las credenciales en el móvil.
 
 Dependencias web: Next 16.3.6, Tiptap 3.31.3 y Sharp 0.35.4 o superior. `npm run build` fija Webpack para compilar este repositorio con carpetas nativas grandes sin el consumo excesivo observado en Turbopack. Se comprueba TypeScript separadamente porque la configuración previa permite omitirlo durante el build.
+
+### Referencias históricas a archivos
+
+La migración puede registrar un archivo sin metadatos únicamente si encuentra una referencia inequívoca en contenido existente. `source_id` junto con `legacy_feed`, `legacy_group` o `legacy_event` identifica ese contenido. La autorización consulta su visibilidad y pertenencia al grupo en cada lectura, comprueba que el contenido aún referencia el archivo y deniega si fue eliminado. Compartir otro grupo con el autor no basta. Los uploads normales no pueden solicitar estos tipos. Los archivos sin referencias o ambiguos permanecen bloqueados; no se atribuyen a un administrador por defecto.

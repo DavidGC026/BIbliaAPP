@@ -3,6 +3,9 @@ import { test } from "node:test"
 import { randomUUID } from "node:crypto"
 import { createSessionToken, generateToken, getSession, renewSessionToken, revokeSession, hashPassword } from "./auth"
 import { getPool } from "./mysql"
+import { ensureGroupEventTables } from "./group-events"
+import { ensureGroupTables } from "./groups"
+import { canViewMedia } from "./media-privacy"
 import { limitAuthAttempts } from "./auth-rate-limit"
 import { consumePasswordResetToken, ensureDbTables } from "./bible"
 
@@ -59,6 +62,37 @@ test("persistent session and rate-limit guarantees against an isolated database"
       const results = await Promise.all([consumePasswordResetToken(reset, hashPassword("first-password")), consumePasswordResetToken(reset, hashPassword("second-password"))])
       assert.deepEqual(results.sort(), [false, true])
       assert.equal(await getSession(request(session)), null)
+    })
+    await t.test("legacy images inherit current publication visibility and the exact group membership", async () => {
+      await pool.query("ALTER TABLE feed_posts ADD COLUMN IF NOT EXISTS user_id INT, ADD COLUMN IF NOT EXISTS visibility VARCHAR(20), ADD COLUMN IF NOT EXISTS content TEXT")
+      await pool.query("REPLACE INTO feed_posts (id,user_id,visibility,content) VALUES (811,1,'public','/uploads/known.png')")
+      const media = { user_id: 1, kind: "legacy_feed", visibility: "private", source_id: 811, filename: "known.png" }
+      assert.equal(await canViewMedia(null, media), false)
+      assert.equal(await canViewMedia(2, media), true)
+      await pool.query("UPDATE feed_posts SET visibility = 'private' WHERE id = 811")
+      assert.equal(await canViewMedia(2, media), false)
+      assert.equal(await canViewMedia(1, media), true)
+      await pool.query("UPDATE feed_posts SET content = '' WHERE id = 811")
+      assert.equal(await canViewMedia(1, media), false)
+      await ensureGroupTables()
+      await pool.query("REPLACE INTO users (id, role, password) VALUES (2, 'user', ?)", [hashPassword("group-fixture-password")])
+      await pool.query("REPLACE INTO bible_groups (id,name,created_by,cover_image,avatar_image) VALUES (901,'Target',1,'/uploads/known.png',NULL),(902,'Unrelated',1,NULL,NULL)")
+      await pool.query("DELETE FROM bible_group_members WHERE group_id IN (901,902)")
+      await pool.query("INSERT INTO bible_group_members (group_id,user_id) VALUES (901,1),(902,1),(902,2)")
+      const groupImage = { ...media, kind: "legacy_group", source_id: 901 }
+      assert.equal(await canViewMedia(2, groupImage), false, "otro grupo compartido no otorga acceso")
+      await pool.query("INSERT INTO bible_group_members (group_id,user_id) VALUES (901,2)")
+      assert.equal(await canViewMedia(2, groupImage), true)
+      await pool.query("DELETE FROM bible_group_members WHERE group_id = 901 AND user_id = 2")
+      assert.equal(await canViewMedia(2, groupImage), false)
+      await ensureGroupEventTables()
+      await pool.query("REPLACE INTO bible_group_events (id,group_id,title,image_url,start_time,created_by) VALUES (991,901,'Test','/uploads/known.png',NOW(),1)")
+      const eventImage = { ...media, kind: "legacy_event", source_id: 991 }
+      assert.equal(await canViewMedia(2, eventImage), false)
+      await pool.query("INSERT INTO bible_group_members (group_id,user_id) VALUES (901,2)")
+      assert.equal(await canViewMedia(2, eventImage), true)
+      await pool.query("DELETE FROM bible_group_events WHERE id = 991")
+      assert.equal(await canViewMedia(2, eventImage), false)
     })
     await t.test("concurrent attempts share an atomic persistent limit", async () => {
       const subject = randomUUID()

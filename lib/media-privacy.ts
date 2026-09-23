@@ -88,8 +88,39 @@ export async function canViewFeedPost(
 
 export async function canViewMedia(
   viewerId: number | null,
-  media: { user_id: number; kind: string; visibility: string },
+  media: { user_id: number; kind: string; visibility: string; source_id?: number | null; filename?: string },
 ): Promise<boolean> {
+  // Referencias históricas registradas por la migración, nunca elegidas por un upload.
+  // Se consulta el contenido vigente: borrarlo, privatizarlo o salir del grupo retira el acceso.
+  if (media.kind.startsWith("legacy_")) {
+    if (viewerId == null || !Number.isSafeInteger(media.source_id) || !media.filename) return false
+    const pool = getPool()
+    if (media.kind === "legacy_feed") {
+      const [posts] = await pool.query<RowDataPacket[]>(
+        "SELECT user_id, visibility FROM feed_posts WHERE id = ? AND user_id = ? AND LOCATE(?, content) > 0",
+        [media.source_id, media.user_id, media.filename],
+      )
+      return !!posts[0] && canViewFeedPost(viewerId, Number(posts[0].user_id), String(posts[0].visibility))
+    }
+    if (media.kind === "legacy_group") {
+      const [groups] = await pool.query<RowDataPacket[]>(
+        `SELECT 1 FROM bible_groups g JOIN bible_group_members m ON m.group_id = g.id
+         WHERE g.id = ? AND g.created_by = ? AND m.user_id = ?
+         AND (LOCATE(?, g.cover_image) > 0 OR LOCATE(?, g.avatar_image) > 0) LIMIT 1`,
+        [media.source_id, media.user_id, viewerId, media.filename, media.filename],
+      )
+      return groups.length > 0
+    }
+    if (media.kind === "legacy_event") {
+      const [events] = await pool.query<RowDataPacket[]>(
+        `SELECT 1 FROM bible_group_events e JOIN bible_group_members m ON m.group_id = e.group_id
+         WHERE e.id = ? AND e.created_by = ? AND m.user_id = ? AND LOCATE(?, e.image_url) > 0 LIMIT 1`,
+        [media.source_id, media.user_id, viewerId, media.filename],
+      )
+      return events.length > 0
+    }
+    return false
+  }
   if (media.kind === "avatar") {
     return canViewUserAvatar(viewerId, media.user_id)
   }

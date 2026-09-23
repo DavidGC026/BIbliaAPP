@@ -17,7 +17,10 @@ export async function serveMedia(req: Request, reference: { id: string } | { fil
     const media = "id" in reference ? await getUserMediaById(Number(reference.id)) : await getUserMediaByFilename(reference.filename)
     // Sin dueño y reglas registradas, un archivo nunca es público por defecto.
     if (!media) return error(404)
-    if (!await canViewMedia(session.userId, { user_id: Number(media.user_id), kind: String(media.kind), visibility: String(media.visibility) })) return error(403)
+    if (!await canViewMedia(session.userId, {
+      user_id: Number(media.user_id), kind: String(media.kind), visibility: String(media.visibility),
+      source_id: media.source_id == null ? null : Number(media.source_id), filename: String(media.filename),
+    })) return error(403)
     if (!safeUploadFilename(media.filename)) return error(404)
     const file = await readUpload(media.filename)
     return new NextResponse(new Uint8Array(file), { headers: {

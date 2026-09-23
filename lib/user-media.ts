@@ -31,11 +31,17 @@ async function _ensureUserMediaTables(): Promise<void> {
       mime_type VARCHAR(100) DEFAULT NULL,
       visibility VARCHAR(20) DEFAULT 'groups',
       kind VARCHAR(20) DEFAULT 'other',
+      source_id INT DEFAULT NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
       KEY idx_user_kind (user_id, kind)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
   `)
+  try {
+    await pool.query("ALTER TABLE user_media ADD COLUMN source_id INT DEFAULT NULL")
+  } catch (error) {
+    if ((error as { code?: string }).code !== "ER_DUP_FIELDNAME") throw error
+  }
 }
 
 export async function createUserMedia(
@@ -56,7 +62,7 @@ export async function createUserMedia(
 export async function getUserMediaById(id: number) {
   await ensureUserMediaTables()
   const [rows] = await getPool().query<RowDataPacket[]>(
-    `SELECT id, user_id, filename, mime_type, visibility, kind FROM user_media WHERE id = ? LIMIT 1`,
+    `SELECT id, user_id, filename, mime_type, visibility, kind, source_id FROM user_media WHERE id = ? LIMIT 1`,
     [id],
   )
   return rows[0] || null
@@ -65,7 +71,7 @@ export async function getUserMediaById(id: number) {
 export async function getUserMediaByFilename(filename: string) {
   await ensureUserMediaTables()
   const [rows] = await getPool().query<RowDataPacket[]>(
-    `SELECT id, user_id, filename, mime_type, visibility, kind FROM user_media WHERE filename = ? LIMIT 1`,
+    `SELECT id, user_id, filename, mime_type, visibility, kind, source_id FROM user_media WHERE filename = ? LIMIT 1`,
     [filename],
   )
   return rows[0] || null
