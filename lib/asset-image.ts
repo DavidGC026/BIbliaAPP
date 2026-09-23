@@ -34,7 +34,7 @@ interface CacheEntry extends ServedImage {
 
 const cache = new Map<string, CacheEntry>()
 
-type SharpModule = typeof import("sharp")
+type SharpModule = typeof import("sharp").default
 let sharpPromise: Promise<SharpModule | null> | null = null
 
 async function loadSharp(): Promise<SharpModule | null> {

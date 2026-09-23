@@ -24,7 +24,7 @@ function mergeCalendarEvents(churchEvents: CalendarEventRow[], groupEvents: Cale
 
 export async function GET(req: NextRequest) {
   try {
-    const user = getSession(req)
+    const user = await getSession(req)
     if (user) {
       const [churchEvents, groupEvents] = await Promise.all([
         listEventsWithUserRsvp(user.userId),
@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ events: events.map((e) => ({ ...e, source: "church" })) })
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Error desconocido" },
+      { error: "Error desconocido" },
       { status: 500 },
     )
   }
@@ -46,7 +46,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const user = getSession(req)
+    const user = await getSession(req)
     if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 })
 
     const body = await req.json()
@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
-    const user = getSession(req)
+    const user = await getSession(req)
     if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 })
 
     const eventId = req.nextUrl.searchParams.get("id")
@@ -89,7 +89,7 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ success: true })
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Error desconocido" },
+      { error: "Error desconocido" },
       { status: 500 },
     )
   }

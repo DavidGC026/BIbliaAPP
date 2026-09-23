@@ -4,7 +4,7 @@ import { getSession } from "@/lib/auth"
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const session = getSession(req)
+    const session = await getSession(req)
     if (!session) {
       return NextResponse.json({ error: "No autorizado." }, { status: 401 })
     }
@@ -24,7 +24,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     return NextResponse.json({ success: true })
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Error al actualizar devocional" },
+      { error: "Error al actualizar devocional" },
       { status: 500 }
     )
   }
@@ -32,7 +32,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const session = getSession(req)
+    const session = await getSession(req)
     if (!session) {
       return NextResponse.json({ error: "No autorizado." }, { status: 401 })
     }
@@ -47,7 +47,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     return NextResponse.json({ success: true })
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Error al eliminar devocional" },
+      { error: "Error al eliminar devocional" },
       { status: 500 }
     )
   }

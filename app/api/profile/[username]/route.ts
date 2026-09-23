@@ -7,7 +7,7 @@ export async function GET(
   { params }: { params: Promise<{ username: string }> }
 ) {
   try {
-    const session = getSession(req)
+    const session = await getSession(req)
     if (!session) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 })
     }
@@ -28,7 +28,7 @@ export async function GET(
     return NextResponse.json({ profile: publicData })
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Error al obtener el perfil" },
+      { error: "Error al obtener el perfil" },
       { status: 500 }
     )
   }

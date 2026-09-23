@@ -20,7 +20,7 @@ function allowedOrigins(): string[] {
 // Se autentican por Bearer token, no por cookies, así que reflejarlos es seguro.
 function isTauriOrigin(origin: string): boolean {
   return (
-    origin.startsWith("tauri://") ||
+    origin === "tauri://localhost" ||
     /^https?:\/\/tauri\.localhost$/.test(origin)
   )
 }
@@ -32,7 +32,7 @@ function isAllowedOrigin(origin: string): boolean {
 function corsHeaders(request: NextRequest): Record<string, string> {
   const origin = request.headers.get("origin")
   const headers: Record<string, string> = {
-    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+    "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, Authorization, x-joplin-session",
   }
   if (origin && isAllowedOrigin(origin)) {
@@ -45,11 +45,22 @@ function corsHeaders(request: NextRequest): Record<string, string> {
 export function middleware(request: NextRequest) {
   const headers = corsHeaders(request)
 
+  const origin = request.headers.get("origin")
+  if (!["GET", "HEAD", "OPTIONS"].includes(request.method) &&
+      ((origin && !isAllowedOrigin(origin)) || (!origin && request.headers.get("sec-fetch-site") === "cross-site"))) {
+    return NextResponse.json({ error: "Origen no permitido." }, { status: 403, headers })
+  }
+
   if (request.method === "OPTIONS") {
     return new NextResponse(null, { status: 200, headers })
   }
 
-  const response = NextResponse.next()
+  // La reescritura ocurre antes de los archivos estáticos, incluso durante una migración.
+  const url = request.nextUrl.clone()
+  const legacyUpload = url.pathname.startsWith("/uploads/")
+  if (legacyUpload) url.pathname = `/api${url.pathname}`
+  const response = legacyUpload ? NextResponse.rewrite(url) : NextResponse.next()
+  if (legacyUpload || url.pathname.startsWith("/api/auth/")) response.headers.set("Cache-Control", "private, no-store")
   for (const [key, value] of Object.entries(headers)) {
     response.headers.set(key, value)
   }
@@ -57,5 +68,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: "/api/:path*",
+  matcher: ["/api/:path*", "/uploads/:path*"],
 }

@@ -2,7 +2,7 @@ import assert from "node:assert/strict"
 import crypto from "node:crypto"
 import { writeFile } from "node:fs/promises"
 import mysql from "mysql2/promise"
-import { generateToken, hashPassword } from "../lib/auth"
+import { generateToken, createSessionToken, hashPassword } from "../lib/auth"
 import { getPool } from "../lib/mysql"
 import { GET as contentGet } from "../app/api/games/content/route"
 import { GET as versesGet } from "../app/api/games/verses/route"
@@ -38,9 +38,11 @@ async function main() {
     for (const [id, role] of [[900001, "admin"], [900002, "user"]] as const) {
       await connection.query(`INSERT INTO \`${database}\`.users (id, name, email, password, role) VALUES (?, ?, ?, ?, ?)`, [id, `Prueba ${role}`, `${role}@games-test.invalid`, hashPassword(crypto.randomBytes(20).toString("hex")), role])
     }
-    const admin = generateToken({ userId: 900001, role: "admin" })
-    const reader = generateToken({ userId: 900002, role: "user" })
-    const revoked = generateToken({ userId: 900002, role: "admin" })
+    const admin = await createSessionToken(900001)
+    const reader = await createSessionToken(900002)
+    await getPool().query("UPDATE users SET role = 'admin' WHERE id = 900002")
+    const revoked = await createSessionToken(900002)
+    await getPool().query("UPDATE users SET role = 'user' WHERE id = 900002")
     const request = (token?: string, body?: unknown) => new Request("http://127.0.0.1:3107/api/admin/games/content", { method: body === undefined ? "GET" : "PUT", headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}), "Content-Type": "application/json" }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) })
     assert.equal((await adminGet(request())).status, 401)
     assert.equal((await adminGet(request(reader))).status, 403)

@@ -5,7 +5,7 @@ import { RowDataPacket } from "mysql2"
 
 export async function GET(req: NextRequest) {
   try {
-    const session = getSession(req)
+    const session = await getSession(req)
     if (!session) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 })
     }
@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ users })
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Error al buscar usuarios" },
+      { error: "Error al buscar usuarios" },
       { status: 500 }
     )
   }

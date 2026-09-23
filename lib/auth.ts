@@ -1,18 +1,12 @@
 import crypto from "crypto"
+import { createStoredSession, readStoredSession, deleteStoredSession } from "./auth-session-store"
 
 function getSecret(): string {
-  if (process.env.JWT_SECRET) return process.env.JWT_SECRET
+  if (process.env.JWT_SECRET && process.env.JWT_SECRET.length >= 32) return process.env.JWT_SECRET
   if (process.env.NODE_ENV === "production") {
-    const mysqlPassword = process.env.MYSQL_PASSWORD
-    const appUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL
-    if (mysqlPassword && appUrl) {
-      return crypto
-        .createHash("sha256")
-        .update(`jwt:${mysqlPassword}:${appUrl}`)
-        .digest("hex")
-    }
-    throw new Error("JWT_SECRET es obligatorio en producción (o define MYSQL_PASSWORD y APP_URL).")
+    throw new Error("JWT_SECRET independiente de al menos 32 caracteres es obligatorio en producción.")
   }
+  if (process.env.JWT_SECRET) return process.env.JWT_SECRET
   return "bibliaapp-dev-only-secret"
 }
 
@@ -22,6 +16,7 @@ export interface UserSession {
 }
 
 interface SessionClaims extends UserSession {
+  sid: string
   iat: number
   exp: number
   startedAt: number
@@ -49,12 +44,13 @@ function validIdentity(payload: UserSession): boolean {
     typeof payload.role === "string" && /^[a-z][a-z0-9_-]{0,63}$/i.test(payload.role)
 }
 
-function issueToken(payload: UserSession, startedAt: number): string {
+function issueToken(payload: UserSession, startedAt: number, sid = generateSecureToken()): string {
   if (!validIdentity(payload)) throw new Error("Identidad de sesión inválida.")
   const now = Date.now()
   const claims: SessionClaims = {
     userId: payload.userId,
     role: payload.role,
+    sid,
     iat: now,
     exp: Math.min(now + SESSION_MAX_AGE_MS, startedAt + ABSOLUTE_SESSION_AGE_MS),
     startedAt,
@@ -71,18 +67,28 @@ export function generateToken(payload: UserSession): string {
   return issueToken(payload, Date.now())
 }
 
+/** Única entrada de login: registra una familia revocable antes de entregar el token. */
+export async function createSessionToken(userId: number, expectedPassword?: string): Promise<string> {
+  const startedAt = Date.now()
+  const sid = generateSecureToken()
+  const identity = await createStoredSession(sid, userId, startedAt + ABSOLUTE_SESSION_AGE_MS, expectedPassword)
+  return issueToken(identity, startedAt, sid)
+}
+
 function verifyClaims(token: string): SessionClaims | null {
   if (typeof token !== "string" || token.length > 2048 ||
       !/^v2:[a-f0-9]{24}:(?:[a-f0-9]{2})+:[a-f0-9]{32}$/.test(token)) return null
+  const key = deriveKey()
   try {
     const [, iv, encrypted, tag] = token.split(":")
-    const decipher = crypto.createDecipheriv("aes-256-gcm", deriveKey(), Buffer.from(iv, "hex"))
+    const decipher = crypto.createDecipheriv("aes-256-gcm", key, Buffer.from(iv, "hex"))
     decipher.setAAD(TOKEN_CONTEXT)
     decipher.setAuthTag(Buffer.from(tag, "hex"))
     const decoded = Buffer.concat([decipher.update(Buffer.from(encrypted, "hex")), decipher.final()])
     const payload: SessionClaims = JSON.parse(decoded.toString("utf8"))
     const now = Date.now()
     if (!payload || !validIdentity(payload) ||
+        typeof payload.sid !== "string" || !/^[a-f0-9]{64}$/.test(payload.sid) ||
         !Number.isSafeInteger(payload.iat) || !Number.isSafeInteger(payload.exp) ||
         !Number.isSafeInteger(payload.startedAt) || payload.startedAt <= 0 ||
         payload.startedAt > payload.iat || payload.iat > now ||
@@ -100,13 +106,13 @@ export function verifyToken(token: string): UserSession | null {
   return payload ? { userId: payload.userId, role: payload.role } : null
 }
 
-/** Renueva solo una sesión vigente y conserva el límite absoluto del login. */
+/** Usar después de getSession; conserva la familia revocable y el límite del login. */
 export function renewSessionToken(req: Request, user: UserSession): string | null {
   const token = getRequestToken(req)
   const claims = token ? verifyClaims(token) : null
   if (!claims || claims.userId !== user.userId) return null
   if (Date.now() - claims.iat < RENEW_AFTER_MS && claims.role === user.role) return null
-  return issueToken(user, claims.startedAt)
+  return issueToken(user, claims.startedAt, claims.sid)
 }
 
 const LEGACY_SALT = "biblia-salt-2026"
@@ -153,7 +159,7 @@ export function generateSecureToken(): string {
 
 export { getAppUrl } from "./app-url"
 
-function getRequestToken(req: Request): string | null {
+export function getRequestToken(req: Request): string | null {
   const authHeader = req.headers.get("authorization")
   if (authHeader !== null) {
     const bearer = /^Bearer ([^\s]+)$/i.exec(authHeader)
@@ -163,9 +169,16 @@ function getRequestToken(req: Request): string | null {
   return match?.[1] ?? null
 }
 
-export function getSession(req: Request): UserSession | null {
+export async function getSession(req: Request): Promise<UserSession | null> {
   const token = getRequestToken(req)
-  return token ? verifyToken(token) : null
+  const claims = token ? verifyClaims(token) : null
+  return claims ? readStoredSession(claims.sid, claims.userId) : null
+}
+
+export async function revokeSession(req: Request): Promise<void> {
+  const token = getRequestToken(req)
+  const claims = token ? verifyClaims(token) : null
+  if (claims) await deleteStoredSession(claims.sid)
 }
 
 export function sessionCookieFlags(): string {

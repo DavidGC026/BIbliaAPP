@@ -4,7 +4,7 @@ import { joinGroupByInviteCode } from "@/lib/groups"
 
 export async function POST(req: NextRequest) {
   try {
-    const user = getSession(req)
+    const user = await getSession(req)
     if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 })
 
     const { inviteCode } = await req.json()

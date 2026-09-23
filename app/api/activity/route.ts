@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ heatmap: heatmapRows, recentProgress: progressRows })
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Error desconocido" },
+      { error: "Error desconocido" },
       { status: 500 }
     )
   }
@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true })
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Error desconocido" },
+      { error: "Error desconocido" },
       { status: 500 }
     )
   }

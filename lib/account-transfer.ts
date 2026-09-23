@@ -1,3 +1,4 @@
+import { RequestError } from "./request-security"
 import { getUserByEmail, transferNotebooksFromUser } from "@/lib/bible"
 import { verifyPassword } from "@/lib/auth"
 import { getPool } from "@/lib/mysql"
@@ -42,7 +43,7 @@ async function ensureHighlightsTable(): Promise<void> {
   `)
 }
 
-export class SameAccountTransferError extends Error {
+export class SameAccountTransferError extends RequestError {
   code = "SAME_ACCOUNT" as const
   constructor() {
     super(
@@ -59,18 +60,18 @@ export async function verifyTransferSourceAccount(
 ): Promise<{ id: number; email: string; name: string }> {
   const normalizedEmail = email.trim().toLowerCase()
   if (!normalizedEmail || !password) {
-    throw new Error("Correo y contraseña de la cuenta anterior son obligatorios.")
+    throw new RequestError("Correo y contraseña de la cuenta anterior son obligatorios.")
   }
 
   const user = await getUserByEmail(normalizedEmail)
   if (!user) {
-    throw new Error("No encontramos una cuenta con ese correo.")
+    throw new RequestError("Credenciales incorrectas.")
   }
   if (user.id === targetUserId) {
     throw new SameAccountTransferError()
   }
   if (!verifyPassword(password, user.password)) {
-    throw new Error("Contraseña incorrecta para la cuenta anterior.")
+    throw new RequestError("Credenciales incorrectas.")
   }
 
   return { id: user.id, email: user.email, name: user.name }
@@ -260,7 +261,7 @@ export async function transferAccountData(
   options: { move: boolean; categories: TransferCategory[] },
 ): Promise<TransferResult> {
   if (sourceUserId === targetUserId) {
-    throw new Error("La cuenta origen y destino son la misma.")
+    throw new RequestError("La cuenta origen y destino son la misma.")
   }
 
   const categories = new Set(options.categories)

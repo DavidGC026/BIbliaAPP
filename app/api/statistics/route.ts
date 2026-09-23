@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ statistics: rows })
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Error desconocido" },
+      { error: "Error desconocido" },
       { status: 500 }
     )
   }

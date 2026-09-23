@@ -7,7 +7,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = getSession(req)
+    const session = await getSession(req)
     if (!session) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 })
     }
@@ -23,7 +23,7 @@ export async function DELETE(
     return NextResponse.json({ success: true })
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Error al eliminar la publicación" },
+      { error: "Error al eliminar la publicación" },
       { status: 500 }
     )
   }

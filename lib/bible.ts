@@ -936,6 +936,17 @@ export async function updateUserPassword(userId: number, passwordHash: string): 
   await getPool().query(`UPDATE users SET password = ? WHERE id = ?`, [passwordHash, userId])
 }
 
+/** Consume el enlace y cambia la contraseña en una sola escritura: no admite carreras de reutilización. */
+export async function consumePasswordResetToken(token: string, passwordHash: string): Promise<boolean> {
+  await ensureDbTables()
+  const [result] = await getPool().query<ResultSetHeader>(
+    `UPDATE users SET password = ?, password_reset_token = NULL, password_reset_expires = NULL
+     WHERE password_reset_token = ? AND password_reset_expires > NOW()`,
+    [passwordHash, token],
+  )
+  return result.affectedRows === 1
+}
+
 export async function getUserById(id: number): Promise<any | null> {
   await ensureDbTables()
   const [rows] = await getPool().query<RowDataPacket[]>(

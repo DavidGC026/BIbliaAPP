@@ -7,7 +7,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const user = getSession(req)
+    const user = await getSession(req)
     if (!user) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 })
     }
@@ -35,7 +35,7 @@ export async function POST(
     return NextResponse.json({ success: true })
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Error desconocido" },
+      { error: "Error desconocido" },
       { status: 500 }
     )
   }

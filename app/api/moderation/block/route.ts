@@ -4,7 +4,7 @@ import { blockUser, unblockUser } from "@/lib/moderation"
 
 export async function POST(req: NextRequest) {
   try {
-    const session = getSession(req)
+    const session = await getSession(req)
     if (!session) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 })
     }
@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
     })
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Error al bloquear usuario." },
+      { error: "Error al bloquear usuario." },
       { status: 500 },
     )
   }
@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
-    const session = getSession(req)
+    const session = await getSession(req)
     if (!session) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 })
     }
@@ -56,7 +56,7 @@ export async function DELETE(req: NextRequest) {
     })
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Error al desbloquear usuario." },
+      { error: "Error al desbloquear usuario." },
       { status: 500 },
     )
   }

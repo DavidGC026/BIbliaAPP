@@ -4,7 +4,7 @@ import { createFeedPost } from "@/lib/bible"
 
 export async function POST(req: NextRequest) {
   try {
-    const session = getSession(req)
+    const session = await getSession(req)
     if (!session) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 })
     }
@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true, postId })
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Error al publicar en el feed" },
+      { error: "Error al publicar en el feed" },
       { status: 500 }
     )
   }

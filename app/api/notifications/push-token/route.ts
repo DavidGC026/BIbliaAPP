@@ -4,7 +4,7 @@ import { deletePushToken, upsertPushToken } from "@/lib/push-tokens"
 
 export async function POST(req: NextRequest) {
   try {
-    const session = getSession(req)
+    const session = await getSession(req)
     if (!session) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 })
     }
@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true })
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Error al registrar token" },
+      { error: "Error al registrar token" },
       { status: 500 },
     )
   }
@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
-    const session = getSession(req)
+    const session = await getSession(req)
     if (!session) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 })
     }
@@ -38,7 +38,7 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ success: true })
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Error al eliminar token" },
+      { error: "Error al eliminar token" },
       { status: 500 },
     )
   }

@@ -9,7 +9,7 @@ import {
 
 export async function GET(req: NextRequest) {
   try {
-    const user = getSession(req)
+    const user = await getSession(req)
     if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 })
 
     const discipleId = req.nextUrl.searchParams.get("discipleId")
@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(data)
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Error desconocido" },
+      { error: "Error desconocido" },
       { status: 500 },
     )
   }
@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const user = getSession(req)
+    const user = await getSession(req)
     if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 })
 
     const body = await req.json()
@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true, id })
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Error desconocido" },
+      { error: "Error desconocido" },
       { status: 500 },
     )
   }

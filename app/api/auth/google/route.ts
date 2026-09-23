@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
     return response
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Google OAuth no configurado" },
+      { error: "Google OAuth no configurado" },
       { status: 500 },
     )
   }

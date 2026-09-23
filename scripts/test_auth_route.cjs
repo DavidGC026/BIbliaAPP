@@ -10,6 +10,7 @@ test('profile endpoint preserves the authentication contract without a real data
   let currentUser = { id: 2, role: 'user', name: 'Test' };
   const mocks = {
     getUserById: async () => currentUser,
+    readStoredSession: async () => ({ userId: 2, role: "user" }),
     updateUserStreak: async () => {},
     processGroupEventRemindersThrottled: async () => {},
   };
@@ -20,6 +21,7 @@ test('profile endpoint preserves the authentication contract without a real data
     },
     bundle: true, write: false, platform: 'node', format: 'cjs', external: ['next/server'],
     plugins: [{ name: 'isolated-database', setup(builder) {
+      builder.onResolve({ filter: /auth-session-store$/ }, () => ({ path: "test-auth-dependencies", external: true }));
       builder.onResolve({ filter: /^@\/lib\/(bible|group-events)$/ }, () => ({ path: 'test-auth-dependencies', external: true }));
     } }],
   });

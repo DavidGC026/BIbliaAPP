@@ -8,7 +8,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = getSession(req)
+    const session = await getSession(req)
     if (!session) {
       return NextResponse.json({ error: "No autorizado." }, { status: 401 })
     }
@@ -42,7 +42,7 @@ export async function PUT(
     return NextResponse.json({ success: true })
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Error al actualizar el usuario" },
+      { error: "Error al actualizar el usuario" },
       { status: 500 }
     )
   }
@@ -53,7 +53,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = getSession(req)
+    const session = await getSession(req)
     if (!session) {
       return NextResponse.json({ error: "No autorizado." }, { status: 401 })
     }
@@ -77,7 +77,7 @@ export async function DELETE(
     return NextResponse.json({ success: true })
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Error al eliminar usuario" },
+      { error: "Error al eliminar usuario" },
       { status: 500 }
     )
   }

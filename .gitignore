@@ -21,12 +21,14 @@ tsconfig.tsbuildinfo
 #extras
 public
 public/uploads
+data/uploads/
 
 #scripts (se versiona el SQL del interlineal; el resto es local)
 scripts/*
 !scripts/004_interlinear.sql
 !scripts/import_interlinear_gnt.ts
 !scripts/test_auth_route.cjs
+!scripts/test_media_routes.cjs
 .continue
 # docs/ queda fuera del repo porque contiene material privado
 # (infra-privada.md, comandos de servidor). Se publican solo los

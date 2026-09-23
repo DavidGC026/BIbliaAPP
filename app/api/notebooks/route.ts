@@ -4,7 +4,7 @@ import { getSession } from "@/lib/auth"
 
 export async function GET(req: NextRequest) {
   try {
-    const session = getSession(req)
+    const session = await getSession(req)
     if (!session) {
       return NextResponse.json({ error: "No autorizado." }, { status: 401 })
     }
@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ notebooks })
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Error al obtener libretas" },
+      { error: "Error al obtener libretas" },
       { status: 500 }
     )
   }
@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const session = getSession(req)
+    const session = await getSession(req)
     if (!session) {
       return NextResponse.json({ error: "No autorizado." }, { status: 401 })
     }
@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ id, name: name.trim(), coverImage })
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Error al crear libreta" },
+      { error: "Error al crear libreta" },
       { status: 500 }
     )
   }

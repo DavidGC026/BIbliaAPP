@@ -1,3 +1,5 @@
+import { readAuthBody, emailField, passwordField, RequestError, securityErrorResponse } from "@/lib/request-security"
+import { limitAccountAccess } from "@/lib/auth-rate-limit"
 import { type NextRequest, NextResponse } from "next/server"
 import {
   getUserByEmail,
@@ -10,7 +12,12 @@ import { sendVerificationEmail } from "@/lib/email"
 
 export async function POST(req: NextRequest) {
   try {
-    const { name, email, password, acceptTerms } = await req.json()
+    const body = await readAuthBody(req)
+    const email = emailField(body.email)
+    const password = passwordField(body.password)
+    const { name, acceptTerms } = body
+    if (typeof name !== "string" || !name.trim() || name.length > 120) throw new RequestError("Nombre inválido.")
+    await limitAccountAccess(req, email, "register", 3)
 
     if (!name || !email || !password) {
       return NextResponse.json(
@@ -62,9 +69,6 @@ export async function POST(req: NextRequest) {
       email: normalizedEmail,
     })
   } catch (err) {
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Error al registrar usuario" },
-      { status: 500 },
-    )
+    return securityErrorResponse(err)
   }
 }

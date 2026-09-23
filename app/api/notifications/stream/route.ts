@@ -10,7 +10,9 @@ export const dynamic = "force-dynamic"
  * custom pero sí envía cookies, por lo que la sesión llega vía cookie HttpOnly.
  */
 export async function GET(req: NextRequest) {
-  const session = getSession(req)
+  let session
+  try { session = await getSession(req) }
+  catch { return new Response("Servicio temporalmente no disponible", { status: 503 }) }
   if (!session) {
     return new Response("No autorizado", { status: 401 })
   }
@@ -34,12 +36,22 @@ export async function GET(req: NextRequest) {
       const unsubscribe = subscribeToUser(session.userId, send)
 
       // Keep-alive: Cloudflare/proxies cortan conexiones idle (~100s)
-      const ping = setInterval(() => {
+      const ping = setInterval(async () => {
         if (closed) return
         try {
+          if (!await getSession(req)) {
+            closed = true
+            clearInterval(ping)
+            unsubscribe()
+            controller.close()
+            return
+          }
           controller.enqueue(encoder.encode(`: ping\n\n`))
         } catch {
           closed = true
+          clearInterval(ping)
+          unsubscribe()
+          try { controller.close() } catch {}
         }
       }, 30000)
 

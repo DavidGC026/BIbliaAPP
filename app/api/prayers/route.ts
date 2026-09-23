@@ -9,14 +9,14 @@ import {
 
 export async function GET(req: NextRequest) {
   try {
-    const user = getSession(req)
+    const user = await getSession(req)
     if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 })
 
     const prayers = await listUserPrayers(user.userId)
     return NextResponse.json({ prayers })
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Error desconocido" },
+      { error: "Error desconocido" },
       { status: 500 },
     )
   }
@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const user = getSession(req)
+    const user = await getSession(req)
     if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 })
 
     const { title, description, visibility, groupId } = await req.json()
@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ id, title, description, status: "active", visibility })
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Error desconocido" },
+      { error: "Error desconocido" },
       { status: 500 },
     )
   }
@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
   try {
-    const user = getSession(req)
+    const user = await getSession(req)
     if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 })
 
     const { id, status } = await req.json()
@@ -66,7 +66,7 @@ export async function PUT(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
-    const user = getSession(req)
+    const user = await getSession(req)
     if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 })
 
     const id = req.nextUrl.searchParams.get("id")

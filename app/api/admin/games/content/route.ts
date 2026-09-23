@@ -5,7 +5,7 @@ import { getPool } from "@/lib/mysql"
 import { GameContentError, getGameContent, saveGameContent } from "@/lib/game-content-store"
 
 async function administrator(req: Request) {
-  const session = getSession(req)
+  const session = await getSession(req)
   if (!session) throw new GameContentError("Inicia sesión para administrar el contenido.", 401)
   const [rows] = await getPool().query<RowDataPacket[]>("SELECT role FROM users WHERE id = ?", [session.userId])
   if (session.role !== "admin" || rows[0]?.role !== "admin") throw new GameContentError("Se requieren permisos de administrador.", 403)

@@ -5,7 +5,7 @@ import { sanitizeReaderSections } from "@/lib/app-sections"
 
 export async function GET(req: NextRequest) {
   try {
-    const session = getSession(req)
+    const session = await getSession(req)
     if (!session) {
       return NextResponse.json({ error: "No autorizado." }, { status: 401 })
     }
@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ users })
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Error al obtener usuarios" },
+      { error: "Error al obtener usuarios" },
       { status: 500 }
     )
   }
@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const session = getSession(req)
+    const session = await getSession(req)
     if (!session) {
       return NextResponse.json({ error: "No autorizado." }, { status: 401 })
     }
@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
     })
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Error al crear usuario" },
+      { error: "Error al crear usuario" },
       { status: 500 }
     )
   }

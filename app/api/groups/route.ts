@@ -4,14 +4,14 @@ import { createGroup, listUserGroups } from "@/lib/groups"
 
 export async function GET(req: NextRequest) {
   try {
-    const user = getSession(req)
+    const user = await getSession(req)
     if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 })
 
     const groups = await listUserGroups(user.userId)
     return NextResponse.json({ groups })
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Error desconocido" },
+      { error: "Error desconocido" },
       { status: 500 },
     )
   }
@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const user = getSession(req)
+    const user = await getSession(req)
     if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 })
 
     const { name, description, cover_image, avatar_image } = await req.json()
@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(group)
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Error desconocido" },
+      { error: "Error desconocido" },
       { status: 500 },
     )
   }

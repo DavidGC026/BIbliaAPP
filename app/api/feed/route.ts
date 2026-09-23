@@ -4,7 +4,7 @@ import { getFeed } from "@/lib/bible"
 
 export async function GET(req: NextRequest) {
   try {
-    const session = getSession(req)
+    const session = await getSession(req)
     if (!session) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 })
     }
@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ feed })
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Error al obtener el feed" },
+      { error: "Error al obtener el feed" },
       { status: 500 }
     )
   }

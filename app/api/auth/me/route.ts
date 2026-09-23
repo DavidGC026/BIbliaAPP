@@ -5,7 +5,7 @@ import { processGroupEventRemindersThrottled } from "@/lib/group-events"
 
 export async function GET(req: NextRequest) {
   try {
-    const session = getSession(req)
+    const session = await getSession(req)
     if (!session) {
       return NextResponse.json({ user: null }, { headers: { "Cache-Control": "private, no-store" } })
     }

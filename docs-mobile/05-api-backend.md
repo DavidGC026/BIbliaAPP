@@ -194,3 +194,17 @@ curl -s https://biblia2.dvguzman.com/api/health
 ```
 
 Útil al depurar conexión desde el móvil.
+
+## Archivos y sesiones protegidos — 2026-09-23
+
+Los handlers esperan `await getSession(req)`: la identidad requiere una familia de sesión registrada y el rol vigente en la BD. `/api/auth/logout` invalida todas las renovaciones de esa familia.
+
+`lib/serve-media.ts` aplica las mismas reglas a `/api/media/:id`, `/api/uploads/:filename` y `/uploads/:filename`. Se exige sesión, metadatos de propietario y permiso; un archivo sin registro no se entrega. Las respuestas llevan `private, no-store`, `nosniff` y CSP restrictiva, sin confiar en MIME aportado por usuarios. Middleware reescribe la ruta antigua antes del servicio estático.
+
+Los nuevos archivos se guardan en `data/uploads` (o `UPLOADS_DIR`, fuera de `public`). Al arrancar, `lib/upload-storage.ts` mueve los archivos antiguos de `public/uploads`; no sobrescribe nombres duplicados. Conservar ese directorio en el volumen persistente y en respaldos. La caché previamente almacenada en dispositivos o CDN necesita expiración/purga independiente.
+
+Las subidas se limitan a 10 MiB y se decodifican y reencodifican con Sharp: PNG, JPEG, WebP y GIF; máximo 40 megapíxeles y 200 fotogramas. Se rechazan SVG, MIME engañoso, contenido que no decodifique y solicitudes demasiado grandes. Los errores internos 500 de las rutas revisadas dejan de devolver mensajes SQL o de configuración.
+
+La migración y los cambios de clave/formato de sesión requieren un nuevo inicio de sesión una vez tras activar el servidor. Una desconexión normal posterior conserva las credenciales en el móvil.
+
+Dependencias web: Next 16.3.6, Tiptap 3.31.3 y Sharp 0.35.4 o superior. `npm run build` fija Webpack para compilar este repositorio con carpetas nativas grandes sin el consumo excesivo observado en Turbopack. Se comprueba TypeScript separadamente porque la configuración previa permite omitirlo durante el build.

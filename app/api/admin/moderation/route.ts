@@ -4,7 +4,7 @@ import { listReports, type ReportStatus } from "@/lib/moderation"
 
 export async function GET(req: NextRequest) {
   try {
-    const session = getSession(req)
+    const session = await getSession(req)
     if (!session || session.role !== "admin") {
       return NextResponse.json(
         { error: "Acceso denegado. Se requieren permisos de administrador." },
@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ reports })
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Error al obtener denuncias." },
+      { error: "Error al obtener denuncias." },
       { status: 500 },
     )
   }

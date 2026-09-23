@@ -1,14 +1,19 @@
+import { readAuthBody, emailField, passwordField, RequestError, securityErrorResponse } from "@/lib/request-security"
+import { limitAccountAccess } from "@/lib/auth-rate-limit"
 import { type NextRequest, NextResponse } from "next/server"
 import {
   getUserByPasswordResetToken,
-  updateUserPassword,
-  clearUserPasswordResetToken,
+  consumePasswordResetToken,
 } from "@/lib/bible"
 import { hashPassword } from "@/lib/auth"
 
 export async function POST(req: NextRequest) {
   try {
-    const { token, password } = await req.json()
+    const body = await readAuthBody(req)
+    const password = passwordField(body.password)
+    const { token } = body
+    if (typeof token !== "string" || !/^[a-f0-9]{64}$/.test(token)) throw new RequestError("Enlace inválido.")
+    await limitAccountAccess(req, token, "reset", 5)
 
     if (!token || !password) {
       return NextResponse.json(
@@ -41,17 +46,15 @@ export async function POST(req: NextRequest) {
     }
 
     const passwordHash = hashPassword(password)
-    await updateUserPassword(user.id, passwordHash)
-    await clearUserPasswordResetToken(user.id)
+    if (!await consumePasswordResetToken(token, passwordHash)) {
+      throw new RequestError("Enlace inválido, vencido o ya utilizado.")
+    }
 
     return NextResponse.json({
       success: true,
       message: "Contraseña actualizada. Ya puedes iniciar sesión.",
     })
   } catch (err) {
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Error al restablecer contraseña" },
-      { status: 500 },
-    )
+    return securityErrorResponse(err)
   }
 }

@@ -6,9 +6,9 @@ import { synchronizeGameProgress } from "@/lib/game-progress-store"
 import { parseOperation } from "@/lib/games/sync"
 
 export async function POST(request: Request) {
-  const session = getSession(request)
-  if (!session) return NextResponse.json({ error: "Inicia sesión para sincronizar tus juegos." }, { status: 401 })
   try {
+    const session = await getSession(request)
+    if (!session) return NextResponse.json({ error: "Inicia sesión para sincronizar tus juegos." }, { status: 401 })
     const [users] = await getPool().query<RowDataPacket[]>("SELECT id FROM users WHERE id = ?", [session.userId])
     if (!users.length) return NextResponse.json({ error: "La cuenta ya no está disponible." }, { status: 401 })
     const raw = await request.text()

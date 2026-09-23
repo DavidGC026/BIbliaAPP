@@ -66,7 +66,7 @@ Al regresar a primer plano y cada cinco minutos mientras está activa, la app re
 2. Poner usuario y token a `null` inmediatamente y cancelar validaciones anteriores.
 3. Borrar SecureStore. Los fallos de red no impiden el cierre local.
 
-Las peticiones de limpieza fijan la credencial saliente para evitar usar la de un login nuevo. El endpoint actual elimina la cookie, pero **no revoca en el servidor una copia del Bearer token**; falta un registro persistente de sesiones revocables.
+Las peticiones de limpieza fijan la credencial saliente para evitar usar la de un login nuevo. El endpoint revoca en `auth_sessions` la familia de sesión, incluidas sus copias y renovaciones, y elimina la cookie. Sin conexión solo se garantiza el borrado local.
 
 ## Expiración y renovación
 
@@ -74,7 +74,7 @@ Cada token vence siete días después de su emisión. `/api/auth/me` puede renov
 
 Tras siete días sin una renovación válida o al llegar al límite de 30 días, hay que volver a iniciar sesión. No existe un refresh token independiente ni se recuperan tokens vencidos. La política anterior obligaba a salir cada siete días incluso usando la app diariamente. La renovación evita ese vencimiento para usuarios activos, manteniendo un límite absoluto.
 
-Está pendiente la revocación por logout, cambio de contraseña y eliminación de cuenta en todos los endpoints; la renovación no sustituye ese control. Véase la [revisión de seguridad](../docs/moderacion-ugc-y-seguridad.md).
+`getSession` es asíncrono y valida el registro persistente en cada petición. Cambiar contraseña invalida todas las sesiones por su huella de credenciales; eliminar una cuenta impide la unión con usuarios. El rol se obtiene de la BD, de modo que retirar un permiso no espera al vencimiento. Logout elimina solo la familia actual. Las conexiones SSE revalidan cada 30 segundos.
 
 **Activación de v2:** el servidor rechaza los tokens CBC anteriores porque carecen de autenticidad. No se migran automáticamente: aceptar uno permitiría mantener la suplantación corregida. Al desplegar, los usuarios tendrán que iniciar sesión una vez. Los clientes anteriores pueden usar v2 como cadena opaca, pero necesitan actualizarse para consumir la renovación.
 
@@ -98,7 +98,7 @@ La verificación se realiza desde `/verify-email` en la web. El registro está d
 - Usar HTTPS en `API_BASE_URL` en builds de release.
 - No incluir secretos del servidor en el móvil ni en Git.
 - En imágenes y descargas, enviar el Bearer únicamente a rutas protegidas del **origen exacto** de `API_BASE_URL`. Un enlace externo no recibe credenciales aunque contenga `/api/media/`. La regla compartida está en `mobile/lib/media.ts`.
-- Provisionar un `JWT_SECRET` estable e independiente de MySQL y del dominio. El fallback actual sigue existiendo por compatibilidad operativa; cambiar esas variables cambia la clave e invalida sesiones.
+- Provisionar un `JWT_SECRET` estable e independiente de MySQL y del dominio. En producción se exige una clave de al menos 32 caracteres; se eliminó la derivación desde MySQL y el dominio. No rotarla en cada despliegue.
 
 ## Integración con `lib/api.ts`
 
@@ -114,3 +114,11 @@ El getter consulta la credencial actual inmediatamente, sin esperar un render de
 - `mobile/`: `npm run check:auth` prueba persistencia, offline, timeout, 403, respuestas inválidas, renovación, concurrencia, logout y envío de credenciales en archivos.
 - TypeScript: `tsc --noEmit --incremental false` en raíz y `tsc --noEmit` en móvil.
 - Antes de publicar: probar contraseña, Google, modo avión, regreso a primer plano y logout en Android e iOS reales. Las pruebas automatizadas no acceden al Keychain real ni al servidor de producción.
+
+## Endurecimiento adicional — 2026-09-23
+
+- `lib/auth-session-store.ts`: tabla `auth_sessions` creada de forma idempotente. Sesiones sin registro (incluidos los v2 iniciales sin identificador de familia) son inválidas. Un fallo de BD en `/me` devuelve 503 y conserva la sesión móvil.
+- `lib/auth-rate-limit.ts`: límites persistentes en MySQL por cuenta (login/transferencia: 10; registro y reenvíos: 3; recuperación con token: 5) cada 15 minutos. Respuesta 429 con `Retry-After`. Existe un tope global de 1000; con `AUTH_TRUSTED_IP_HEADER` se sustituye por 100 por origen. Configurar esa cabecera solo si un proxy la sobrescribe y el backend es inaccesible directamente.
+- Los cuerpos de autenticación admiten como máximo 16 KiB; se validan tipos, correo, nombre y longitud de contraseña antes de procesarlos. Los enlaces de correo usan el origen configurado, nunca `Origin` enviado por el cliente. La recuperación consume el token y cambia contraseña atómicamente.
+- Middleware rechaza mutaciones desde orígenes web ajenos. Los clientes móviles sin Origin y Tauri en los tres orígenes exactos siguen admitidos.
+- Pruebas: `npm run check:auth`; integración real con `SECURITY_TEST_DB=1`, `MYSQL_HOST=127.0.0.1`, `MYSQL_DATABASE=biblia_security_test` y `node --import tsx --test lib/security.integration.test.ts`. Usar exclusivamente una BD desechable.

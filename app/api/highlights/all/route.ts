@@ -5,7 +5,7 @@ import { bibleAccessStatus, listAccessibleBibles } from "@/lib/bible-access"
 
 export async function GET(req: NextRequest) {
   try {
-    const session = getSession(req)
+    const session = await getSession(req)
     if (!session) {
       return NextResponse.json({ error: "No autorizado." }, { status: 401 })
     }

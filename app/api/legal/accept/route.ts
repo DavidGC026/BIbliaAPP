@@ -8,7 +8,7 @@ import { getSession } from "@/lib/auth"
  */
 export async function POST(req: NextRequest) {
   try {
-    const session = getSession(req)
+    const session = await getSession(req)
     if (!session) {
       return NextResponse.json({ error: "No autorizado." }, { status: 401 })
     }
@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true, legalAcceptedAt: user?.legalAcceptedAt ?? null })
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Error al registrar la aceptación" },
+      { error: "Error al registrar la aceptación" },
       { status: 500 }
     )
   }

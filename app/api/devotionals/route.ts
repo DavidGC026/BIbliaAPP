@@ -4,7 +4,7 @@ import { getSession } from "@/lib/auth"
 
 export async function GET(req: NextRequest) {
   try {
-    const session = getSession(req)
+    const session = await getSession(req)
     if (!session) {
       return NextResponse.json({ error: "No autorizado." }, { status: 401 })
     }
@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ devotionals })
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Error al obtener devocionales" },
+      { error: "Error al obtener devocionales" },
       { status: 500 }
     )
   }
@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const session = getSession(req)
+    const session = await getSession(req)
     if (!session) {
       return NextResponse.json({ error: "No autorizado." }, { status: 401 })
     }
@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ id, title: title.trim(), emotion, verseRef, content })
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Error al crear devocional" },
+      { error: "Error al crear devocional" },
       { status: 500 }
     )
   }

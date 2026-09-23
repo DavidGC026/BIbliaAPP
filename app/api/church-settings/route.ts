@@ -5,7 +5,7 @@ import { listAllGroupsForAdmin } from "@/lib/groups"
 
 export async function GET(req: NextRequest) {
   try {
-    const user = getSession(req)
+    const user = await getSession(req)
     if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 })
 
     const settings = await getAppSettings()
@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ settings, groups })
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Error desconocido" },
+      { error: "Error desconocido" },
       { status: 500 },
     )
   }
@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
   try {
-    const user = getSession(req)
+    const user = await getSession(req)
     if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 })
     if (user.role !== "admin") {
       return NextResponse.json({ error: "Solo administradores" }, { status: 403 })
@@ -39,7 +39,7 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ settings, groups })
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Error desconocido" },
+      { error: "Error desconocido" },
       { status: 500 },
     )
   }

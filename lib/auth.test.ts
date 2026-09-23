@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import crypto from "node:crypto"
 import { test } from "node:test"
-import { generateToken, getSession, renewSessionToken, verifyToken, hashPassword, verifyPassword } from "./auth"
+import { generateToken, getRequestToken, renewSessionToken, verifyToken, hashPassword, verifyPassword } from "./auth"
 
 process.env.JWT_SECRET = "test-only-session-key-never-used-in-production"
 const identity = { userId: 2, role: "user" }
@@ -97,10 +97,10 @@ test("renewal binds the user ID and adopts the current database role", () => {
 
 test("matches the exact session cookie and never falls back from an invalid authorization header", () => {
   const token = generateToken(identity)
-  const withHeaders = (headers: Record<string, string>) => getSession(new Request("https://example.test", { headers }))
-  assert.deepEqual(withHeaders({ cookie: `other=1; session=${token}; theme=dark` }), identity)
+  const withHeaders = (headers: Record<string, string>) => getRequestToken(new Request("https://example.test", { headers }))
+  assert.deepEqual(withHeaders({ cookie: `other=1; session=${token}; theme=dark` }), token)
   assert.equal(withHeaders({ cookie: `other_session=${token}` }), null)
-  assert.equal(withHeaders({ cookie: `session=${token}`, authorization: "Bearer expired" }), null)
+  assert.equal(withHeaders({ cookie: `session=${token}`, authorization: "Bearer expired" }), "expired")
   assert.equal(withHeaders({ cookie: `session=${token}`, authorization: "Basic invalid" }), null)
 })
 

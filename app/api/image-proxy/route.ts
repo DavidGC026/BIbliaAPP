@@ -36,7 +36,7 @@ export async function GET(req: NextRequest) {
     })
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Error interno" },
+      { error: "Error interno" },
       { status: 500 },
     )
   }

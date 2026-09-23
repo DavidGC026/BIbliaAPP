@@ -15,7 +15,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = getSession(req)
+    const session = await getSession(req)
     if (!session) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 })
     }
@@ -30,7 +30,7 @@ export async function GET(
     return NextResponse.json({ comments })
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Error al obtener comentarios" },
+      { error: "Error al obtener comentarios" },
       { status: 500 }
     )
   }
@@ -41,7 +41,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = getSession(req)
+    const session = await getSession(req)
     if (!session) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 })
     }
@@ -99,7 +99,7 @@ export async function POST(
     return NextResponse.json({ success: true, commentId })
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Error al comentar" },
+      { error: "Error al comentar" },
       { status: 500 }
     )
   }

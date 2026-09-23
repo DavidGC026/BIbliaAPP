@@ -128,3 +128,9 @@ cd mobile
 npm run check:native          # la línea «firma release» dice con qué llave sale
 apksigner verify --print-certs /home/david/Biblia-release/BibliaAPP-4.1.0-dvg-release.apk
 ```
+
+## Compilación 4.4.2 — seguridad
+
+`withReleaseSigning` ahora impide cualquier tarea release si falta la llave. No recurre a debug; `check:native` también falla. Para esta entrega se usa explícitamente `DVGUZMAN_KEYSTORE_PROPERTIES=/home/david/.dvguzman/keystore.properties`, versión 4.4.2 y versionCode 58. Se conserva el paquete instalado `com.bibliaapp.mobile`, los esquemas OAuth existentes y Gradle 8.14.3.
+
+El APK para Telegram se limita a ARM64 (`-PreactNativeArchitectures=arm64-v8a`) y usa `-Pexpo.useLegacyPackaging=true` para comprimir las bibliotecas nativas y respetar los 50 MiB de la API del bot. Verificar con `apksigner verify --verbose --print-certs` antes del envío. El checkout contiene además cambios previos de descargas en segundo plano; la compilación utiliza ese estado de trabajo completo.

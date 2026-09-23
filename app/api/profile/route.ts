@@ -11,7 +11,7 @@ import { getPool } from "@/lib/mysql"
 
 export async function GET(req: NextRequest) {
   try {
-    const session = getSession(req)
+    const session = await getSession(req)
     if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 })
 
     await ensureUserMediaTables()
@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
     })
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Error desconocido" },
+      { error: "Error desconocido" },
       { status: 500 },
     )
   }
@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
   try {
-    const session = getSession(req)
+    const session = await getSession(req)
     if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 })
 
     const body = await req.json()
@@ -90,7 +90,7 @@ export async function PUT(req: NextRequest) {
     })
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Error al actualizar el perfil" },
+      { error: "Error al actualizar el perfil" },
       { status: 500 },
     )
   }
@@ -98,7 +98,7 @@ export async function PUT(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
-    const session = getSession(req)
+    const session = await getSession(req)
     if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 })
 
     await deleteUser(session.userId)
@@ -111,7 +111,7 @@ export async function DELETE(req: NextRequest) {
     return response
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Error al eliminar la cuenta" },
+      { error: "Error al eliminar la cuenta" },
       { status: 500 },
     )
   }

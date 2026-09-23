@@ -7,7 +7,7 @@ export async function POST(
   { params }: { params: Promise<{ username: string }> }
 ) {
   try {
-    const session = getSession(req)
+    const session = await getSession(req)
     if (!session) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 })
     }
@@ -26,7 +26,7 @@ export async function POST(
     return NextResponse.json({ success: true })
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Error al seguir al usuario" },
+      { error: "Error al seguir al usuario" },
       { status: 500 }
     )
   }
@@ -37,7 +37,7 @@ export async function DELETE(
   { params }: { params: Promise<{ username: string }> }
 ) {
   try {
-    const session = getSession(req)
+    const session = await getSession(req)
     if (!session) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 })
     }
@@ -52,7 +52,7 @@ export async function DELETE(
     return NextResponse.json({ success: true })
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Error al dejar de seguir al usuario" },
+      { error: "Error al dejar de seguir al usuario" },
       { status: 500 }
     )
   }

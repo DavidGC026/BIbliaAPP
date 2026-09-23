@@ -7,7 +7,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const session = getSession(req)
+    const session = await getSession(req)
     if (!session || session.role !== "admin") {
       return NextResponse.json(
         { error: "Acceso denegado. Se requieren permisos de administrador." },
@@ -36,7 +36,7 @@ export async function POST(
     })
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Error al resolver el reporte." },
+      { error: "Error al resolver el reporte." },
       { status: 500 },
     )
   }

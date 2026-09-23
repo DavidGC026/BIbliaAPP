@@ -1,10 +1,15 @@
+import { readAuthBody, emailField, passwordField, RequestError, securityErrorResponse } from "@/lib/request-security"
+import { limitAccountAccess } from "@/lib/auth-rate-limit"
 import { type NextRequest, NextResponse } from "next/server"
 import { getUserByEmail, updateUserPassword } from "@/lib/bible"
-import { hashPassword, verifyPassword, needsRehash, generateToken, sessionCookieFlags } from "@/lib/auth"
+import { hashPassword, verifyPassword, needsRehash, createSessionToken, sessionCookieFlags } from "@/lib/auth"
 
 export async function POST(req: NextRequest) {
   try {
-    const { email, password } = await req.json()
+    const body = await readAuthBody(req)
+    const email = emailField(body.email)
+    const password = passwordField(body.password)
+    await limitAccountAccess(req, email)
 
     if (!email || !password) {
       return NextResponse.json(
@@ -32,7 +37,9 @@ export async function POST(req: NextRequest) {
     // Migrar hashes con formato antiguo al nuevo formato scrypt
     if (needsRehash(user.password)) {
       try {
-        await updateUserPassword(user.id, hashPassword(password))
+        const upgradedHash = hashPassword(password)
+        await updateUserPassword(user.id, upgradedHash)
+        user.password = upgradedHash
       } catch {
         // No bloquear el login si falla la migración del hash
       }
@@ -49,7 +56,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const token = generateToken({ userId: user.id, role: user.role })
+    const token = await createSessionToken(user.id, user.password)
 
     const response = NextResponse.json({
       success: true,
@@ -71,9 +78,6 @@ export async function POST(req: NextRequest) {
 
     return response
   } catch (err) {
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Error al iniciar sesión" },
-      { status: 500 },
-    )
+    return securityErrorResponse(err)
   }
 }

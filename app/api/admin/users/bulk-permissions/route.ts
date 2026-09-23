@@ -5,7 +5,7 @@ import { sanitizeReaderSections } from "@/lib/app-sections"
 
 export async function POST(req: NextRequest) {
   try {
-    const session = getSession(req)
+    const session = await getSession(req)
     if (!session) {
       return NextResponse.json({ error: "No autorizado." }, { status: 401 })
     }
@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
     })
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Error al aplicar permisos globales" },
+      { error: "Error al aplicar permisos globales" },
       { status: 500 }
     )
   }

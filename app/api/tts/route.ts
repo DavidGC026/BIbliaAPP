@@ -86,7 +86,7 @@ export async function GET(req: NextRequest) {
     })
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Error en servicio TTS" },
+      { error: "Error en servicio TTS" },
       { status: 500 },
     )
   }

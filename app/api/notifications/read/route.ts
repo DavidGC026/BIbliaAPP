@@ -4,7 +4,7 @@ import { markNotificationsRead } from "@/lib/bible"
 
 export async function POST(req: NextRequest) {
   try {
-    const session = getSession(req)
+    const session = await getSession(req)
     if (!session) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 })
     }
@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true })
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Error al marcar notificaciones" },
+      { error: "Error al marcar notificaciones" },
       { status: 500 },
     )
   }

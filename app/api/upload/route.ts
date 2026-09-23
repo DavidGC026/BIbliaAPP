@@ -1,29 +1,14 @@
-import { writeFile } from "fs/promises"
-import { join } from "path"
+import { saveUpload } from "@/lib/upload-storage"
+import { readBoundedBody, securityErrorResponse } from "@/lib/request-security"
 import { type NextRequest, NextResponse } from "next/server"
 import { getSession } from "@/lib/auth"
-import { maxEdgeForPurpose, shrinkImage } from "@/lib/image-resize"
+import { maxEdgeForPurpose, prepareUploadedImage } from "@/lib/image-resize"
 import {
   createUserMedia,
   ensureUserMediaTables,
   setUserAvatar,
   type AvatarVisibility,
 } from "@/lib/user-media"
-
-const ALLOWED_EXTENSIONS = new Set(["png", "jpg", "jpeg", "webp", "gif"])
-const ALLOWED_MIME_PREFIXES = ["image/"]
-
-function extensionFromFile(file: File): string {
-  const fromName = file.name.split(".").pop()?.toLowerCase()
-  if (fromName && ALLOWED_EXTENSIONS.has(fromName)) return fromName
-  const mimeMap: Record<string, string> = {
-    "image/png": "png",
-    "image/jpeg": "jpg",
-    "image/webp": "webp",
-    "image/gif": "gif",
-  }
-  return mimeMap[file.type] || "png"
-}
 
 function purposeToKind(purpose: string): "avatar" | "group" | "church_logo" | "other" {
   if (purpose === "avatar") return "avatar"
@@ -40,16 +25,18 @@ function purposeToVisibility(purpose: string): AvatarVisibility {
 
 export async function POST(req: NextRequest) {
   try {
-    const session = getSession(req)
+    const session = await getSession(req)
     if (!session) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 })
     }
 
-    const formData = await req.formData()
+    const body = await readBoundedBody(req, 10 * 1024 * 1024 + 64 * 1024)
+    const formData = await new Response(body, { headers: { "Content-Type": req.headers.get("content-type") || "" } }).formData()
     const file = formData.get("file") as File | null
-    const purpose = (formData.get("purpose") as string) || "other"
+    const rawPurpose = formData.get("purpose")
+    const purpose = typeof rawPurpose === "string" ? rawPurpose.slice(0, 64) : "other"
 
-    if (!file) {
+    if (!(file instanceof File)) {
       return NextResponse.json({ error: "No se encontró ningún archivo" }, { status: 400 })
     }
 
@@ -57,25 +44,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "El archivo es demasiado grande (máx 10MB)" }, { status: 400 })
     }
 
-    if (!ALLOWED_MIME_PREFIXES.some((p) => file.type.startsWith(p))) {
-      return NextResponse.json({ error: "Solo se permiten imágenes" }, { status: 400 })
-    }
-
-    const extension = extensionFromFile(file)
-    if (!ALLOWED_EXTENSIONS.has(extension)) {
-      return NextResponse.json({ error: "Formato de imagen no permitido" }, { status: 400 })
-    }
-
-    const bytes = await file.arrayBuffer()
-    const original = Buffer.from(bytes)
-    // Se guarda reducida: el navegador descodifica el original entero a mapa de
-    // bits para mostrarlo, así que una foto de 4000×3000 costaba ~45 MB de RAM
-    // aunque se pintara en una tarjeta pequeña. Ver lib/image-resize.ts.
-    const { buffer } = await shrinkImage(original, extension, maxEdgeForPurpose(purpose))
+    const original = Buffer.from(await file.arrayBuffer())
+    const { buffer, extension, mimeType } = await prepareUploadedImage(original, maxEdgeForPurpose(purpose))
     const filename = `${crypto.randomUUID()}.${extension}`
-    const uploadDir = join(process.cwd(), "public", "uploads")
-    const filepath = join(uploadDir, filename)
-    await writeFile(filepath, buffer)
+    await saveUpload(filename, buffer)
 
     await ensureUserMediaTables()
     const kind = purposeToKind(purpose)
@@ -95,7 +67,7 @@ export async function POST(req: NextRequest) {
     const mediaId = await createUserMedia(
       session.userId,
       filename,
-      file.type,
+      mimeType,
       kind,
       visibility,
     )
@@ -110,7 +82,6 @@ export async function POST(req: NextRequest) {
       filename,
     })
   } catch (err) {
-    console.error("Error uploading file:", err)
-    return NextResponse.json({ error: "Error al subir el archivo" }, { status: 500 })
+    return securityErrorResponse(err)
   }
 }

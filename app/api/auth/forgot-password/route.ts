@@ -1,3 +1,5 @@
+import { readAuthBody, emailField, passwordField, RequestError, securityErrorResponse } from "@/lib/request-security"
+import { limitAccountAccess } from "@/lib/auth-rate-limit"
 import { type NextRequest, NextResponse } from "next/server"
 import { getUserByEmail, setUserPasswordResetToken } from "@/lib/bible"
 import { generateSecureToken } from "@/lib/auth"
@@ -8,7 +10,9 @@ const GENERIC_MESSAGE =
 
 export async function POST(req: NextRequest) {
   try {
-    const { email } = await req.json()
+    const body = await readAuthBody(req)
+    const email = emailField(body.email)
+    await limitAccountAccess(req, email, "forgot-password", 3)
 
     if (!email) {
       return NextResponse.json({ error: "El correo electrónico es obligatorio." }, { status: 400 })
@@ -26,9 +30,6 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, message: GENERIC_MESSAGE })
   } catch (err) {
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Error al procesar la solicitud" },
-      { status: 500 },
-    )
+    return securityErrorResponse(err)
   }
 }

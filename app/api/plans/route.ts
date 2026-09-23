@@ -9,7 +9,7 @@ import { getSession } from "@/lib/auth"
 
 export async function GET(req: NextRequest) {
   try {
-    const session = getSession(req)
+    const session = await getSession(req)
     if (!session) {
       return NextResponse.json({ error: "No autorizado." }, { status: 401 })
     }
@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ plans, userPlans })
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Error al obtener planes" },
+      { error: "Error al obtener planes" },
       { status: 500 }
     )
   }
@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const session = getSession(req)
+    const session = await getSession(req)
     if (!session) {
       return NextResponse.json({ error: "No autorizado." }, { status: 401 })
     }
@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
     }
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Error en la operación del plan" },
+      { error: "Error en la operación del plan" },
       { status: 500 }
     )
   }

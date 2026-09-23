@@ -8,7 +8,7 @@ import { APP_SECTION_GROUPS, DEFAULT_READER_SECTIONS } from "@/lib/app-sections"
  */
 export async function GET(req: NextRequest) {
   try {
-    const session = getSession(req)
+    const session = await getSession(req)
     if (!session) {
       return NextResponse.json({ error: "No autorizado." }, { status: 401 })
     }
@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ groups, defaults: DEFAULT_READER_SECTIONS })
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Error al obtener secciones" },
+      { error: "Error al obtener secciones" },
       { status: 500 }
     )
   }

@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
     })
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Error al verificar correo" },
+      { error: "Error al verificar correo" },
       { status: 500 },
     )
   }
@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
     return GET(internalReq)
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Error al verificar correo" },
+      { error: "Error al verificar correo" },
       { status: 500 },
     )
   }

@@ -162,7 +162,7 @@ export async function GET(req: NextRequest) {
     })
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Error al consultar el diccionario" },
+      { error: "Error al consultar el diccionario" },
       { status: 500 },
     )
   }

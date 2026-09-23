@@ -1,3 +1,5 @@
+import { readAuthBody, emailField, passwordField, RequestError, securityErrorResponse } from "@/lib/request-security"
+import { limitAccountAccess } from "@/lib/auth-rate-limit"
 import { type NextRequest, NextResponse } from "next/server"
 import { getSession } from "@/lib/auth"
 import {
@@ -17,12 +19,16 @@ function parseCategories(raw: unknown): TransferCategory[] {
 
 export async function POST(req: NextRequest) {
   try {
-    const session = getSession(req)
+    const session = await getSession(req)
     if (!session) {
       return NextResponse.json({ error: "No autorizado." }, { status: 401 })
     }
 
-    const { sourceEmail, sourcePassword, move, categories } = await req.json()
+    const body = await readAuthBody(req)
+    const { move, categories } = body
+    const sourceEmail = emailField(body.sourceEmail)
+    const sourcePassword = passwordField(body.sourcePassword)
+    await limitAccountAccess(req, sourceEmail, "login")
     const source = await verifyTransferSourceAccount(
       sourceEmail,
       sourcePassword,
@@ -45,9 +51,6 @@ export async function POST(req: NextRequest) {
       ...result,
     })
   } catch (err) {
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Error al transferir datos" },
-      { status: 400 },
-    )
+    return securityErrorResponse(err)
   }
 }

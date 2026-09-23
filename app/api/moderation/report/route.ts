@@ -15,7 +15,7 @@ const VALID_REASONS = new Set<ReportReason>([
 
 export async function POST(req: NextRequest) {
   try {
-    const session = getSession(req)
+    const session = await getSession(req)
     if (!session) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 })
     }
@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
     })
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Error al enviar el reporte." },
+      { error: "Error al enviar el reporte." },
       { status: 500 },
     )
   }

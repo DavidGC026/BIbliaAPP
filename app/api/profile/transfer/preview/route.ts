@@ -1,3 +1,5 @@
+import { readAuthBody, emailField, passwordField, RequestError, securityErrorResponse } from "@/lib/request-security"
+import { limitAccountAccess } from "@/lib/auth-rate-limit"
 import { type NextRequest, NextResponse } from "next/server"
 import { getSession } from "@/lib/auth"
 import {
@@ -8,12 +10,15 @@ import {
 
 export async function POST(req: NextRequest) {
   try {
-    const session = getSession(req)
+    const session = await getSession(req)
     if (!session) {
       return NextResponse.json({ error: "No autorizado." }, { status: 401 })
     }
 
-    const { sourceEmail, sourcePassword } = await req.json()
+    const body = await readAuthBody(req)
+    const sourceEmail = emailField(body.sourceEmail)
+    const sourcePassword = passwordField(body.sourcePassword)
+    await limitAccountAccess(req, sourceEmail, "login")
     const source = await verifyTransferSourceAccount(
       sourceEmail,
       sourcePassword,
@@ -31,10 +36,6 @@ export async function POST(req: NextRequest) {
       notebookNotes,
     })
   } catch (err) {
-    const code = err instanceof SameAccountTransferError ? err.code : undefined
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : "No se pudo verificar la cuenta", code },
-      { status: 400 },
-    )
+    return securityErrorResponse(err)
   }
 }

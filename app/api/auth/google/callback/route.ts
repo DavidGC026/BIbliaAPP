@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { generateToken, getAppUrl, sessionCookieFlags } from "@/lib/auth"
+import { createSessionToken, getAppUrl, sessionCookieFlags } from "@/lib/auth"
 import {
   authenticateGoogleProfile,
   buildDesktopOAuthRedirect,
@@ -105,7 +105,7 @@ export async function GET(req: NextRequest) {
     }
 
     const cookieHeader = req.headers.get("cookie") || ""
-    const stateMatch = cookieHeader.match(new RegExp(`${GOOGLE_OAUTH_STATE_COOKIE}=([^;]+)`))
+    const stateMatch = cookieHeader.match(new RegExp(`(?:^|;\\s*)${GOOGLE_OAUTH_STATE_COOKIE}=([^;]+)`))
     const savedState = stateMatch?.[1]
     if (!savedState || savedState !== state) {
       return authErrorRedirect("Sesión OAuth inválida. Inténtalo de nuevo.", platform, state)
@@ -113,11 +113,12 @@ export async function GET(req: NextRequest) {
 
     const profile = await exchangeGoogleCode(code)
     const user = await authenticateGoogleProfile(profile)
-    const token = generateToken({ userId: user.id, role: user.role })
+    const token = await createSessionToken(user.id)
     return authSuccessRedirect(token, platform, state, user.linkedExistingAccount)
   } catch (err) {
+    console.error("Error en inicio de sesión con Google", err)
     return authErrorRedirect(
-      err instanceof Error ? err.message : "Error al iniciar sesión con Google",
+      "No se pudo iniciar sesión con Google. Inténtalo de nuevo.",
       platform,
       state,
     )

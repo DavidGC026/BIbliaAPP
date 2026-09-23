@@ -127,7 +127,7 @@ function toBible(row: BibleCatalogRow): BibleVersion {
 }
 
 export async function listAccessibleBibles(req: Request): Promise<BibleVersion[]> {
-  const session = getSession(req)
+  const session = await getSession(req)
   const roles = privilegedRoles()
   const rows = await catalogRows()
   const result: BibleVersion[] = []
