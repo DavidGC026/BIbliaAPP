@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "check": "npm run check:editor && npm run check:interlinear && npm run check:games",
+    "check:auth": "node --import tsx --test lib/auth.test.ts scripts/test_auth_route.cjs",
+    "check": "npm run check:auth && npm run check:editor && npm run check:interlinear && npm run check:games",
     "check:games": "tsx lib/games/__check__.ts",
     "check:games-api": "tsx --env-file=.env.local scripts/check_games_api.ts",
     "check:editor": "tsx lib/tiptap/__roundtrip__.ts",

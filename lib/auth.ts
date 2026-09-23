@@ -21,58 +21,92 @@ export interface UserSession {
   role: string
 }
 
+interface SessionClaims extends UserSession {
+  iat: number
+  exp: number
+  startedAt: number
+}
+
+export const SESSION_MAX_AGE_SECONDS = 7 * 24 * 60 * 60
+const SESSION_MAX_AGE_MS = SESSION_MAX_AGE_SECONDS * 1000
+const ABSOLUTE_SESSION_AGE_MS = 30 * 24 * 60 * 60 * 1000
+const RENEW_AFTER_MS = 24 * 60 * 60 * 1000
+const TOKEN_CONTEXT = Buffer.from("bibliaapp-session-v2")
+let cachedSecret: string | undefined
+let cachedKey: Buffer | undefined
+
 function deriveKey(): Buffer {
-  return crypto.scryptSync(getSecret(), "salt", 32)
+  const secret = getSecret()
+  if (secret !== cachedSecret || !cachedKey) {
+    cachedKey = crypto.scryptSync(secret, TOKEN_CONTEXT, 32)
+    cachedSecret = secret
+  }
+  return cachedKey
 }
 
-/** Formato nuevo: <iv-hex>:<ciphertext-hex> */
+function validIdentity(payload: UserSession): boolean {
+  return Number.isSafeInteger(payload.userId) && payload.userId > 0 &&
+    typeof payload.role === "string" && /^[a-z][a-z0-9_-]{0,63}$/i.test(payload.role)
+}
+
+function issueToken(payload: UserSession, startedAt: number): string {
+  if (!validIdentity(payload)) throw new Error("Identidad de sesión inválida.")
+  const now = Date.now()
+  const claims: SessionClaims = {
+    userId: payload.userId,
+    role: payload.role,
+    iat: now,
+    exp: Math.min(now + SESSION_MAX_AGE_MS, startedAt + ABSOLUTE_SESSION_AGE_MS),
+    startedAt,
+  }
+  const iv = crypto.randomBytes(12)
+  const cipher = crypto.createCipheriv("aes-256-gcm", deriveKey(), iv)
+  cipher.setAAD(TOKEN_CONTEXT)
+  const encrypted = Buffer.concat([cipher.update(JSON.stringify(claims), "utf8"), cipher.final()])
+  return `v2:${iv.toString("hex")}:${encrypted.toString("hex")}:${cipher.getAuthTag().toString("hex")}`
+}
+
+/** AES-GCM autentica también el IV: los tokens CBC anteriores no son seguros. */
 export function generateToken(payload: UserSession): string {
-  const data = JSON.stringify({
-    ...payload,
-    exp: Date.now() + 7 * 24 * 60 * 60 * 1000,
-  })
-  const iv = crypto.randomBytes(16)
-  const cipher = crypto.createCipheriv("aes-256-cbc", deriveKey(), iv)
-  let encrypted = cipher.update(data, "utf8", "hex")
-  encrypted += cipher.final("hex")
-  return `${iv.toString("hex")}:${encrypted}`
+  return issueToken(payload, Date.now())
 }
 
-function verifyLegacyToken(token: string): UserSession | null {
+function verifyClaims(token: string): SessionClaims | null {
+  if (typeof token !== "string" || token.length > 2048 ||
+      !/^v2:[a-f0-9]{24}:(?:[a-f0-9]{2})+:[a-f0-9]{32}$/.test(token)) return null
   try {
-    const decipher = crypto.createDecipheriv(
-      "aes-256-cbc",
-      deriveKey(),
-      Buffer.alloc(16, 0),
-    )
-    let decrypted = decipher.update(token, "hex", "utf8")
-    decrypted += decipher.final("utf8")
-    const payload = JSON.parse(decrypted)
-    if (payload.exp < Date.now()) return null
-    return { userId: payload.userId, role: payload.role }
+    const [, iv, encrypted, tag] = token.split(":")
+    const decipher = crypto.createDecipheriv("aes-256-gcm", deriveKey(), Buffer.from(iv, "hex"))
+    decipher.setAAD(TOKEN_CONTEXT)
+    decipher.setAuthTag(Buffer.from(tag, "hex"))
+    const decoded = Buffer.concat([decipher.update(Buffer.from(encrypted, "hex")), decipher.final()])
+    const payload: SessionClaims = JSON.parse(decoded.toString("utf8"))
+    const now = Date.now()
+    if (!payload || !validIdentity(payload) ||
+        !Number.isSafeInteger(payload.iat) || !Number.isSafeInteger(payload.exp) ||
+        !Number.isSafeInteger(payload.startedAt) || payload.startedAt <= 0 ||
+        payload.startedAt > payload.iat || payload.iat > now ||
+        payload.exp <= now || payload.exp <= payload.iat ||
+        payload.exp > payload.iat + SESSION_MAX_AGE_MS ||
+        payload.exp > payload.startedAt + ABSOLUTE_SESSION_AGE_MS) return null
+    return payload
   } catch {
     return null
   }
 }
 
 export function verifyToken(token: string): UserSession | null {
-  try {
-    if (token.includes(":")) {
-      const [ivHex, encrypted] = token.split(":")
-      if (!ivHex || !encrypted) return null
-      const iv = Buffer.from(ivHex, "hex")
-      if (iv.length !== 16) return null
-      const decipher = crypto.createDecipheriv("aes-256-cbc", deriveKey(), iv)
-      let decrypted = decipher.update(encrypted, "hex", "utf8")
-      decrypted += decipher.final("utf8")
-      const payload = JSON.parse(decrypted)
-      if (payload.exp < Date.now()) return null
-      return { userId: payload.userId, role: payload.role }
-    }
-    return verifyLegacyToken(token)
-  } catch {
-    return verifyLegacyToken(token)
-  }
+  const payload = verifyClaims(token)
+  return payload ? { userId: payload.userId, role: payload.role } : null
+}
+
+/** Renueva solo una sesión vigente y conserva el límite absoluto del login. */
+export function renewSessionToken(req: Request, user: UserSession): string | null {
+  const token = getRequestToken(req)
+  const claims = token ? verifyClaims(token) : null
+  if (!claims || claims.userId !== user.userId) return null
+  if (Date.now() - claims.iat < RENEW_AFTER_MS && claims.role === user.role) return null
+  return issueToken(user, claims.startedAt)
 }
 
 const LEGACY_SALT = "biblia-salt-2026"
@@ -119,20 +153,19 @@ export function generateSecureToken(): string {
 
 export { getAppUrl } from "./app-url"
 
-export function getSession(req: Request): UserSession | null {
+function getRequestToken(req: Request): string | null {
   const authHeader = req.headers.get("authorization")
-  if (authHeader && authHeader.startsWith("Bearer ")) {
-    const token = authHeader.substring(7)
-    return verifyToken(token)
+  if (authHeader !== null) {
+    const bearer = /^Bearer ([^\s]+)$/i.exec(authHeader)
+    return bearer?.[1] ?? null
   }
-  const cookieHeader = req.headers.get("cookie")
-  if (cookieHeader) {
-    const match = cookieHeader.match(/session=([^;]+)/)
-    if (match) {
-      return verifyToken(match[1])
-    }
-  }
-  return null
+  const match = /(?:^|;\s*)session=([^;]+)/.exec(req.headers.get("cookie") ?? "")
+  return match?.[1] ?? null
+}
+
+export function getSession(req: Request): UserSession | null {
+  const token = getRequestToken(req)
+  return token ? verifyToken(token) : null
 }
 
 export function sessionCookieFlags(): string {

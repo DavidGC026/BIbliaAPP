@@ -26,6 +26,7 @@ public/uploads
 scripts/*
 !scripts/004_interlinear.sql
 !scripts/import_interlinear_gnt.ts
+!scripts/test_auth_route.cjs
 .continue
 # docs/ queda fuera del repo porque contiene material privado
 # (infra-privada.md, comandos de servidor). Se publican solo los
