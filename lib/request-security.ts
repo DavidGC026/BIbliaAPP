@@ -49,7 +49,9 @@ export function passwordField(value: unknown): string {
 }
 
 export function securityErrorResponse(error: unknown): NextResponse {
-  if (error instanceof RequestError) return NextResponse.json({ error: error.message }, { status: error.status,
+  if (error instanceof RequestError) return NextResponse.json({ error: error.message,
+    ...("code" in error && typeof error.code === "string" ? { code: error.code } : {}),
+  }, { status: error.status,
     headers: { "Cache-Control": "private, no-store", ...(error.retryAfter ? { "Retry-After": String(error.retryAfter) } : {}) } })
   console.error("Error al procesar una solicitud protegida", error)
   return NextResponse.json({ error: "No se pudo completar la solicitud. Reintenta en unos momentos." }, { status: 503, headers: { "Cache-Control": "private, no-store" } })

@@ -1,9 +1,16 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
 import sharp from "sharp"
-import { readAuthBody, readBoundedBody, emailField, passwordField } from "./request-security"
+import { readAuthBody, readBoundedBody, emailField, passwordField, RequestError, securityErrorResponse } from "./request-security"
 import { getAppUrl } from "./app-url"
 import { prepareUploadedImage } from "./image-resize"
+
+test("typed domain errors retain the codes expected by existing clients", async () => {
+  const error = Object.assign(new RequestError("La cuenta es la misma."), { code: "SAME_ACCOUNT" })
+  const response = securityErrorResponse(error)
+  assert.equal(response.status, 400)
+  assert.equal((await response.json()).code, "SAME_ACCOUNT")
+})
 
 test("auth inputs reject arrays, wrong types, oversized bodies and invalid JSON", async () => {
   for (const text of ["null", "[]", "{"]) await assert.rejects(readAuthBody(new Request("https://example.test", { method: "POST", headers: { "Content-Type": "application/json" }, body: text })))
